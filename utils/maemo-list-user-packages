@@ -3,7 +3,7 @@
 # Usage: maemo-list-user-packages
 #
 # Lists all packages that the user can manage with the Application
-# installer in this format
+# Manager in this format
 #
 #    name<TAB>version<TAB>section-field<TAB>installed-size<NL>
 # 
