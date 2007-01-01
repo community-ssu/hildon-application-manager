@@ -1,68 +1,65 @@
-About Repositories for the Application Installer 2006
-=====================================================
+## About Repositories for the Application Installer 2006
 
-Basic repository setup
-----------------------
+### Basic repository setup
 
-The Application installer can deal with any repository that "apt-get"
-can understand.  However, the Application installer only shows 'user'
+The Hildon Application Manager ("AM") can deal with any repository
+that "apt-get" can understand.  However, the AM only shows 'user'
 packages to the user.  A user packages is identified by being in the
-"user" section; see the "Packaging HOWTO".
+"user" section; see [here](packaging.html).
 
-Also, when adding a new repository manually, the Application installer
-provides default values for certain parts of a sources.list line.  You
-might want to take this into account when laying out your repository
-so that users have it easy when configuring it.
+Also, when adding a new repository manually, the AM provides default
+values for certain parts of a sources.list line.  You might want to
+take this into account when laying out your repository so that users
+have it easy when configuring it.
 
 The distribution will default to the symbolic name of the distribution
 that is installed on the device.  This symbolic name is referred to as
-${dist} in the sequel.  For maemo 2.0, this is "mistral".  The
-component list defaults to just "user".
+${dist} in the sequel.  For maemo 2.0, this is "mistral"; for maemo
+3.0, it is "bora".  The component list defaults to just "user".
 
 Thus, unless you have a specific reason to use something else, it is
 probably a good idea to have repositories that can be specified as
 
-    deb URL ${dist} user
+<pre>
+deb URL ${dist} user
+</pre>
 
 so that the user only has to enter URL into the "New Catalogue"
 dialog.
 
-How to actually setup a repository is explained in the "Debian
-Repository HOWTO".
+How to actually setup a repository is explained in the [Debian
+Repository
+HOWTO](http://www.debian.org/doc/manuals/repository-howto/repository-howto).
 
-    http://www.debian.org/doc/manuals/repository-howto/repository-howto
 
+### Single-click install
 
-"Single-click install"
-----------------------
-
-* THIS FEATURE IS NOT SUPPORTED IN THE IT 2006 RELEASE:
-* 
-* You get some useful reaction out of the Application Manager when you
-* give it a .install file, but the associated dialogs are not
-* localized, for example, and the IT 2006 Application Manager doesn't
-* handle .install files very gracefully.  But feel free to try anyway.
-
+THIS FEATURE IS NOT SUPPORTED IN THE IT 2006 RELEASE:
 
 When you want users to be able to browse your repositories using the
-Application installer, you need to provide instructions to the user
-about how to configure your repository.  On a fundamental level, you
-need to tell them what values to put into the "New repository" dialog.
+AM, you need to provide instructions to the user about how to
+configure your repository.  On a fundamental level, you need to tell
+them what values to put into the "New repository" dialog.
 
-This manual task can be automated by providing a file of MIME type
+This manual task can be automated by providing a file of mime type
 "application/x-install-instructions" and have the user open it with
-the Application installer.  Files with the extension ".install" are
-recognized to have the mime type "application/x-install-instructions".
+the AM.
+
+Files with the extension ".install" are recognized by the Internt
+Tablet OS to have the mime type "application/x-install-instructions",
+but you might also need to configure your web server accordingly.
 
 Such a .install file is a text file following the GKeyfile format, as
 defined by glib.  An example would look like this:
 
-    [install]
-    repo_name = Foo Catalogue
-    repo_deb  = deb http://foo.com/maemo mistral user
+<pre>
+[install]
+repo_name = Foo Catalogue
+repo_deb  = deb http://foo.com/maemo mistral user
+</pre>
 
 Thus, it can contain information about a repository, and opening the
-file will add the repository to /etc/apt/sources.list if it isn't
+file will add the repository to `/etc/apt/sources.list` if it isn't
 there already.  The existence check is based on a simple string
 comparison without any intelligence: if you put two spaces in the
 "deb" line instead of one, the strings are considered different.  This
@@ -70,10 +67,12 @@ test might get smarter in the future.
 
 The .install file can also contain the name of a package, like so:
 
-    [install]
-    repo_name = Foo Catalogue
-    repo_deb  = deb http://foo.com/maemo mistral user
-    package   = foo-app
+<pre>
+[install]
+repo_name = Foo Catalogue
+repo_deb  = deb http://foo.com/maemo mistral user
+package   = foo-app
+</pre>
 
 Opening this file will attempt to install the package named "foo-app",
 after adding the specified repository if it is not already configured.
@@ -94,47 +93,41 @@ displayed to the user.
 
 Here is a table of the various key names:
 
-   maemo 2.0:  repo_deb
-   maemo 3.0:  repo_deb_3
+<pre>
+maemo 2.0:  repo_deb
+maemo 3.0:  repo_deb_3
+</pre>
 
-There is also an example shell script for creating .install files in
-the same directory as this document.
+### Disabling repositories
 
-
-Disabling repositories
-----------------------
-
-The Application installer lets the user edit parts of the contents of
+The AM lets the user edit parts of the contents of
 /etc/apt/sources.list.  It recognizes lines marked with "deb", "#deb"
 and a few special comments (see below) and preserves everything else.
 A "deb" line is the usual specification for a source of binary
 packages.  A "#deb" line is the same, but disabled.  When
-enabling/disabling a repository, the Application installer switches
-between the "deb" and "#deb" marker.
+enabling/disabling a repository, the AM switches between the "deb" and
+"#deb" marker.
 
 There must be no space between "#" and "deb" in the "#deb" marker for
 it to be recognized by the Application installer.
 
-
-Repository names
-----------------
+### Repository names
 
 THIS FEATURE IS NOT SUPPORTED IN THE IT 2006 RELEASE.
 
 A repository can have a name for easier identification.  Names are
 stored in /etc/apt/sources.list as a comment line of the form
 
-    #maemo:name NAME
+<pre>
+#maemo:name NAME
+</pre>
 
 This declaration applies to the next following 'deb' or '#deb' line.
 
-
-Marking a repository as essential
----------------------------------
+### Marking a repository as essential
 
 A "deb" or "#deb" line in /etc/apt/sources.list can be marked as
-'essential'.  The Application installer will refuse to change or
-remove such a line.
+'essential'.  The AM will refuse to change or remove such a line.
 
 The way to mark a line as essential is to put a line of the form
 "#maemo:essential" before the line.  The "#maemo:essential" marker
@@ -142,11 +135,9 @@ must be on a line of its own, with no whitespace between "#" and
 "maemo:essential".  The marker does not have to immediately precede
 the "deb" or "#deb" line.
 
+### Setting up a repository with certified packages
 
-Setting up a repository with certified packages
------------------------------------------------
-
-The AI can recognize certain parts of repositories as 'certified'.
+The AM can recognize certain parts of repositories as 'certified'.
 Packages coming from those parts are installed without showing the big
 fat warning dialog to the user.  (But that is the only difference
 between certified parts and non-certified ones.)
@@ -175,16 +166,17 @@ desire not to modify libapt-pkg at this point.  As far as I can see,
 libapt-pkg does not remember which keys succeeded in verifying the
 signature.  This could be improved in the future.
 
-
 The list of URI prefixes of certified repository parts is contained in
 the file /etc/osso-application-installer/certified.list.  It consists
 of lines of the forms
 
-    uri-prefix <uri-prefix>
+<pre>
+uri-prefix URI-PREFIX
+</pre>
 
-where <uri-prefix> must not contain whitespace and must match the URI
-of a downloaded package literally (i.e., no %xx escape expansion is
-done, etc).  Everything after and including the first '#' in a line is
+where URI-PREFIX must not contain whitespace and must match the URI of
+a downloaded package literally (i.e., no %xx escape expansion is done,
+etc).  Everything after and including the first '#' in a line is
 ignored.  Blank lines are allowed, of course.
 
 

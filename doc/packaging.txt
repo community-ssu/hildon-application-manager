@@ -1,100 +1,64 @@
-Howto make a package for the Application installer 2006
-=======================================================
+## How to make a package for the Hildon Application Manager
 
-This is a short guide about how to make packages for the Application
-installer of the Internet Tablet OS 2006.
+This is a short guide about how to make packages for the Hildon
+Application Manager.  It is valid for Internet Tablet OS 2006 and
+later, but not for the old Internet Tablet OS 2005.
 
-The main point to take away is that the AI 2006 is a graphical
-frontend to the standard Debian package management infrastructure,
-similar to Synpatic, but aimed at a different clientele.
+The main point to take away is that the Hildon Application Manager
+("AM") is a graphical frontend to the standard Debian package
+management infrastructure, similar to Synpatic, but aimed at a
+different clientele.
 
-The AI 2006 uses the same backend tools as Synaptic, Aptitude, or
-apt-get (namely libapt-pkg), and it does it in the standard way
-without imposing any constraints: packages are installed as root and
-can touch the whole system, for example.
+The AM uses the same backend tools as Synaptic, Aptitude, or apt-get
+(namely libapt-pkg), and it does it in the standard way without
+imposing any constraints: packages are installed as root and can touch
+the whole system, for example.
 
 The normal way to distribute a package is therefore to put it into
-some repository and make it accessible to apt.  See the "Repository
-Maintainers Guide" for more information on how to setup such a
-repository.
+some repository.  See the [here](repos.html) for more information on
+how to setup such a repository.
 
-This HOWTO assumes that you are familiar with making .deb packages.  A
-good place to start is the "Debian New Maintainers' Guide"
+This HOWTO assumes that you are familiar with making `.deb` packages.
+A good place to start is the [Debian New Maintainers'
+Guide](http://www.debian.org/doc/maint-guide/).
 
-    http://www.debian.org/doc/maint-guide/
+You can freely alternate between the AM and apt-get, say.  Changes
+done to the system via apt-get or dpkg are picked up by the AM without
+confusing it, and vice versa.
 
-There is also the example "hello-world-app" package that you can use
-to get started.
+Packages made for the AM should follow a few extra rules, tho, if they
+want to integrate nicely.  These rules are explained below.
 
-You can freely alternate between AI 2006 and apt-get, say.  Changes
-done to the system via apt-get or dpkg are picked up by the AI 2006
-without confusing it, and vice versa.
-
-Packages made for the Application 2006 should follow a few extra
-rules, tho, if they want to integrate nicely.  These rules are related
-to
-
-  - general stuff
-  - dependencies
-  - sections
-  - icons
-  - the installation/removal policy of the AI
-  - limited feedback to the user, no controlling terminal
-  - warning about removing running applications
-  - utilities to use in your maintainer scripts
-
-
-Relationship with Application installer 2005
---------------------------------------------
-
-The Application installer 2006 is very different from the one in
-Internet Tablet OS 2005 (IT 2005) and the two are not at all
-compatible.  If you have packages that work with IT 2005, you need
-to redo their packaging in order to make them work with IT 2006.
-This is not really that bad, since IT 2005 and IT 2006 are not
-binary compatible with each other and you need to make separate
-packages for them anyway.
-
-The Application installer 2005 will reject packages made for 2006 and
-vice versa.
-
-The two versions of the AI are visually different and there should be
-no risk to confuse the two.  The AI 2005, for example, is a Control
-panel applet, and the AI 2006 is a regular application started from
-the "Tools" menu.  Also the AI 2006 actually calls itself "Application
-manager" on the screen.
-
-
-General
--------
+### General
 
 All strings coming from the control information of a package are
 interpreted in UTF-8 when they are shown in the UI.  If a string is
 not valid UTF-8, all bytes above 127 are replaced with '?' before
 displaying it.
 
+### Dependencies
 
-Dependencies
-------------
+The Application installer in the old Internet Tablet OS 2005 had a
+funny way to use the `Depends` control field in packages.  Starting
+with the Internet tablet OS 2006, there is nothing special about the
+`Depends` control field anymore.  It should no longer contain `maemo`.
+It should now contain all the real dependencies, like
+`${shlibs:Depends}`, etc.
 
-There is nothing special about the "Depends" control field anymore.
-It should no longer contain "maemo".  It should now contain all the
-real dependencies, like ${shlibs:Depends}, etc.
+### Sections
 
-
-Sections
---------
-
-By default, the AI 2006 only shows packages in certain sections to the
+By default, the AM only shows packages in certain sections to the
 user.  This has been done to hide the existence of the hundreds of
-system packages that make up the IT 2006 itself.  The AI is, at this
-point, not intended to let the user manage the whole system, only a
-smaller set of third party applications.
+system packages that make up the operating system itself.  The AM is,
+at this point, not intended to let the user manage the whole system,
+only a smaller set of third party applications.
 
-The AI only shows packages in the "user" section.  Thus, your
-"Section:" field in the control file should be of the form
+The AM only shows packages in the *user* section.  Thus, your
+`Section` field in the control file should be of the form
 
-    Section: user/<SUBSECTION>
+<pre>
+Section: user/<SUBSECTION>
+</pre>
 
 where <SUBSECTION> is arbitrary.  <SUBSECTION> should be a nice
 capitalised, English word like "Ringtones".  There is no support for
@@ -107,6 +71,7 @@ these subsections will be correctly localised.
 
 The list of predefined subsections and their English names is:
 
+<pre>
     user/accessories    Accessories		   
     user/communication  Communication
     user/games	        Games			   
@@ -117,24 +82,27 @@ The list of predefined subsections and their English names is:
     user/support        Support		   
     user/themes	        Themes		   
     user/tools          Tools 		   
+</pre>
 
 Thus, if you want to put your package into the Office subsection,
 include the field
 
-    Section: user/office
+<pre>
+Section: user/office
+</pre>
 
 in your control information.  If you want to put it into "Ringtones"
 (which is not pre-defined), use
 
-    Section: user/Ringtones
+<pre>
+Section: user/Ringtones
+</pre>
 
-
-Icons
------
+### Icons
 
 A package can have an icon that is displayed next to its name by the
-AI.  Icons are included in the control information of a package as a
-base64 encoded field named "Maemo-Icon-26".
+AM.  Icons are included in the control information of a package as a
+base64 encoded field named `Maemo-Icon-26`.
 
 The image format of the icon can be anything that is understood by
 GdkPixbufLoader, but is most commonly the PNG format.
@@ -143,6 +111,7 @@ The image should be 26x26 pixels with a transparent background.
 
 Here is an example of a correctly formatted Maemo-Icon-26 field:
 
+<pre>
 Maemo-Icon-26:
  iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAAABGdBTUEAAK/INwWK6QAAABl0
  RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAALxSURBVHja3FZNTBNREP669J/S
@@ -160,16 +129,17 @@ Maemo-Icon-26:
  tkJakDz05Hsks+poPzwg6+Luo9chVb2O3Hilv7V6W5nO02cVX3wxjsj3CMKRBUSjUcQWY0iy
  SQVoi6XJaiQxubKpI02yj2xk6BoaBr0BqXRKCZpYSiCZlIXCguM4pWtvY0ypyUtt87PSIj/t
  pJ/JICzLKiBLySTYVArpdFrp3DuMhRZVqfvnJ+wPAQYA1hdr5EDqltYAAAAASUVORK5CYII=
+</pre>
 
 The way to get these fields into your .deb files is to include them
-with a "XB-" prefix in your debian/control file, see the Debian Policy
-Manual, section 5.7.
+with a "XB-" prefix in your debian/control file, see the [Debian
+Policy Manual, section
+5.7](http://www.debian.org/doc/debian-policy/ch-controlfields.html#s5.7).
 
 
-Installation and removal policy
--------------------------------
+### Installation and removal policy
 
-The Application installer has its own rules for automatically
+The Hildon Application Manager has its own rules for automatically
 installing and removing packages in addition to the ones specified by
 the user.  These rules are tuned to give little surprises for simple
 package management operations, but in turn they are not really useable
@@ -177,59 +147,55 @@ for complicated things like "apt-get dist-upgrade".  When designing
 the conflicts of your packages, you might want to take these rules
 into account.
 
-Specifically, the AI will never automatically remove a user package.
+Specifically, the AM will never automatically remove a user package.
 
 If a conflict caused by installing a package could be resolved by
-removing a package, the AI will not do the removal but will refuse the
+removing a package, the AM will not do the removal but will refuse the
 installation request instead.
 
 When removing a package, all packages that are a direct or indirect
 dependency of the removed package will be considered for removal.
 They will in fact be removed when they are a non-user package, have
-been automatically installed by the AI to satisfy a dependeny, and are
+been automatically installed by the AM to satisfy a dependeny, and are
 no longer needed.
 
-The AI is not very smart in reporting conflicts: when your package
-conflicts with a non-user package, the problem report by the AI will
+The AM is not very smart in reporting conflicts: when your package
+conflicts with a non-user package, the problem report by the AM will
 blame the conflict on that non-user package instead of on the user
 packages that depend on it.
 
+### Feedback from maintainer scripts
 
-Feedback from maintainer scripts
---------------------------------
-
-When the Application installer runs your maintainer scripts, they have
+When the Application Manager runs your maintainer scripts, they have
 no controlling terminal; their standard input is connected to
-/dev/null.  DISPLAY is set correctly, tho.
+/dev/null.  `DISPLAY` is set correctly, tho.
 
-The Application installer collects a transcript of the
-installation/uninstallation process, including the output of
-maintainer scripts.  However, this output is hidden away in the "Log",
-and you should not expect users to look there and understand its
-contents.
+The AM collects a transcript of the installation/uninstallation
+process, including the output of maintainer scripts.  However, this
+output is hidden away in the "Log", and you should not expect users to
+look there and understand its contents.
 
 Thus, you should try really hard to not fail in your maintainer
 scripts.  This does not mean that you should ignore errors, of course,
 but that you should only do things that have a very high chance of
 succeeding.  The simpler, the better.
 
+### Warning about removing/upgrading running applications
 
-Warning about removing/upgrading running applications
------------------------------------------------------
-
-The Application installer can run a script provided by your package
-before removing or upgrading it.  That script can tell the Application
-installer to cancel the operation.
+The AM can run a script provided by your package before removing or
+upgrading it.  That script can tell the AM to cancel the operation.
 
 The canonical use for this feature is to warn the user when he tries
 to remove or upgrade an application that is currently running.  You
-can use the utility 'maemo-application-running' to perform this test.
+can use the utility `maemo-application-running` to perform this test.
 (See below for details.)
 
-When uninstalling or upgrading a package named PACKAGE, the
-Application installer will run the program named
+When uninstalling or upgrading a package named PACKAGE, the AM will
+run the program named
 
-    /var/lib/osso-application-installer/info/PACKAGE.checkrm
+<pre>
+/var/lib/osso-application-installer/info/PACKAGE.checkrm
+</pre>
 
 if it exists.  When this program exits with code 111, the operation is
 cancelled.  In all other cases, including when the program terminates
@@ -237,22 +203,25 @@ with a signal, the operation is carried out.
 
 The arguments given to the *.checkrm program are either
 
-    foo.checkrm remove
+<pre>
+foo.checkrm remove
+</pre>
 
 when the package is going to be removed, or
 
-    foo.checkrm upgrade <VERSION>
+<pre>
+foo.checkrm upgrade VERSION
+</pre>
 
-when it is going to be upgraded to version <VERSION>.
+when it is going to be upgraded to version VERSION.
 
-
-Utilities to use in your maintainer scripts
--------------------------------------------
+### Utilities to use in your maintainer scripts
 
 There are some utilities available that you can use in your maintainer
 scripts to interact with the user:
 
 - maemo-select-menu-location <app>.desktop [default-folder]
+
   maemo-select-menu-location --remove folder
 
   When your package contains a .desktop file and consequently has an
@@ -354,15 +323,16 @@ scripts to interact with the user:
   Pre-Depend on the "maemo-installer-utils" package.
 
 
-Other utilities
----------------
+### Other utilities
 
 - maemo-list-user-packages
 
   Lists all packages that the user can manage with the Application
   installer in this format
 
-    name<TAB>version<TAB>section-field<TAB>installed-size<NL>
+  <pre>
+    name TAB version TAB section-field TAB installed-size NL
+  </pre>
 
   where 'section-field' is the value of the "Section:" field for the
   package.
