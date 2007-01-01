@@ -1,7 +1,0 @@
-#! /bin/sh
-
-set -e
-
-mv -f /etc/apt/sources.list.testrepo-bak /etc/apt/sources.list
-
-apt-key del 3267077C || true
