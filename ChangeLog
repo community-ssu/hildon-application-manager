@@ -1,7 +1,5 @@
 2007-01-01  Marius Vollmer  <mvo@zagadka.de>
 
-	* Makefile.am: Don't install and distribute certified.list.
-
 	The great renaming.
 	
 	* src/apt-worker.cc (save_auto_flags, load_auto_flags): Put auto
@@ -24,6 +22,14 @@
 	find_application_manager_window): Renamed former to latter,
 	changed all callers.  Look for the hildon-application-manager
 	name.
+
+	* Makefile.am (SUBDIRS): Removed test-data.
+	* configure.ac: Do not generate test-data/Makefile
+
+	* src/Makefile.am, utils/Makefile.am: Use HAM_DEPS_CFLAGS and
+	HAM_DEPS_LIBS instead of the old AI_DEPS_ names.
+
+	* Makefile.am: Don't install and distribute certified.list.
 
 2006-12-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
