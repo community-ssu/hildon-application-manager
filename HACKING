@@ -9,19 +9,18 @@ You probably also want to set
 
     assume-connection 1
 
-in ~/.osso/appinstaller.  Otherwise it will try to use the
-Connectivity APIs that are not present.  Run the AM once and then edit
-the file.
+in ~/.osso/hildon-application-manager.  Otherwise it will try to use
+the Connectivity APIs that are not present.  Run the AM once and then
+edit the file.
 
-When building the AM, it will also create a osso-application.run
-executable.  This executable doesn't use maemo-launcher and is thus
-easier to use for debugging.
+When building the AM, it will also create a
+hildon-application-manager.run executable.  This executable doesn't
+use maemo-launcher and is thus easier to use for debugging.
 
 If you have changed apt-worker and you want to test it without
 installing it, you can give its location as a parameter to
-osso-application-installer.
+hildon-application-manager.
 
 I usually run it like this from .../src/ in Scratchbox:
 
-    run-standalone.sh ./osso-application-installer.run ./apt-worker
-
+    run-standalone.sh ./hildon-application-manager.run ./apt-worker

@@ -1,7 +1,10 @@
-This is osso-application-installer, version 4
-=============================================
+This is hildon-application-managerr, version 5
+==============================================
 
 [ About versions:
+
+  Versions 1 to 4 were called "osso-application-installer", versions 5
+  and later are called "hildon-application-manager".
 
   1.x initial 'prototype'
 
@@ -11,22 +14,27 @@ This is osso-application-installer, version 4
       package management tools
 
   4.x completely new design that uses libapt-pkg and repositories
+
+  5.x renamed as hildon-application-manager and moved development to
+      garage.maemo.org, but no fundamental code changes.  
 ]
 
-The osso-application-installer is a program to manage user packages in
-the OSSO platform.  It uses the system-wide package management tools
-(thru libapt-pkg) and presents a 'end user oriented' interface to
-them.
+The Hildon Application Manager is a program to manage add-on software
+components for the Hildon Desktop.  It uses the Debian package
+management tools provided by the maemo platform (namely APT and dpkg)
+and presents a 'end user oriented' interface to them.
 
-The package management tools are powerful enough to manage the whole
-system, but osso-application installer is not intended to offer that
-power to the user.  If you want it, synaptic is quite easy to compile
-and runs reasonable well on the 770...
+The Debian package management tools are powerful enough to manage the
+whole system, but the Hildon Application Manager does not offer the
+full power to the user.
 
-Osso-application-installer is intended to be fully compatible with
-existing and future interfaces for package management.  It should be
-possible to, for example, freely alternate between apt-get, synaptic
-and osso-application installer and not have anything break.
+Instead, the Hildon Application Manager is intended to be fully
+compatible with existing and future interfaces to the package
+management tools.  It should be possible to, for example, freely
+alternate between apt-get, synaptic and the Hildon Application Manager
+and not have anything break.  Thus, if you need more power, you can
+use Debian package management tools directly, or use one of the more
+powerful interfaces.
 
 
 Documentation
@@ -34,7 +42,7 @@ Documentation
 
 Technical documentation can be found in the doc/ directory.  It mostly
 explains how the apt technology is used in the context of maemo and
-how it has been extended.  There are two documents:
+how it has been extended.  There are two main documents:
 
 - packaging.txt
 
