@@ -173,9 +173,9 @@ find_window (const char *name, int max_level)
 }
 
 Window
-find_application_installer_window ()
+find_application_manager_window ()
 {
-  return find_window ("osso-application-installer", 2);
+  return find_window ("hildon-application-manager", 2);
 }
 
 void
