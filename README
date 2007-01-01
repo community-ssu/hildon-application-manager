@@ -246,5 +246,10 @@ hildon-application-manager:
 External references
 
   l10n textdomain
+  - use old name for now.
+
   osso-application-installer-main-view in themes
+  - use old name for now.
+
   window name in select-menu-location
+  - switch to new name.
