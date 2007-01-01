@@ -1,5 +1,5 @@
-The usual way to install osso-application-installer is to build a .deb
-package and install that but you can also install from source.
+The usual way to install the hildon-application-manager is to build a
+.deb package and install that but you can also install from source.
 
 Hit-and-run instructions:
 
@@ -11,7 +11,7 @@ Via .deb:
 
   $ ./configure
   $ make deb
-  # dpkg --install osso-application-installer_<version>_<arch>.deb
+  # dpkg --install hildon-application-manager_<version>_<arch>.deb
 
-After checking out the sources you need to run ./autogen.sh before the
-steps above.
+After checking out the sources from Subversion you need to run
+./autogen.sh before the steps above.

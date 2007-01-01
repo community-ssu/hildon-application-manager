@@ -48,7 +48,7 @@ System decomposition view
 The Application installer decomposes into the following functional
 parts:
 
- - The "osso-application-installer" program, "oai" in the sequel.
+ - The "hildon-application-manager" program, "ham" in the sequel.
 
  - The "apt-worker" program.
 
@@ -58,16 +58,16 @@ parts:
 
  - The "gnupg" program.
 
-Oai is started when "Application Installer" is selected from the
+Ham is started when "Application Installer" is selected from the
 "Others" menu or in response to a "mime-open" D-BUS request.  In turn,
-it starts apt-worker via sudo so that apt-worker runs as root.  Oai
+it starts apt-worker via sudo so that apt-worker runs as root.  Ham
 and apt-worker communicate over pipes using a private protocol.
 
 Apt-worker is linked to libapt-pkg and uses it to perform all
 operations related to the actual package management, like querying the
 package data base, accessing repositories, managing the list of
 repositories and running dpkg.  The stdout and stderr output of
-apt-worker is caught by oai and made available to the user on request.
+apt-worker is caught by ham and made available to the user on request.
 
 Libapt-pkg can optionally use gpgv to verify digital signatures.  Gpgv
 then runs as a subprocess of apt-worker.
@@ -83,47 +83,47 @@ The normal course of actions can be illustrated by following the
 process of installing a new package.
 
  - The user opens the "Application Installer", which starts a new
-   process runnining oai.
+   process runnining ham.
 
- - Oai runs apt-worker as a subprocess via sudo.
+ - Ham runs apt-worker as a subprocess via sudo.
 
- - Oai sets up the UI and goes to the usual event loop, doing
+ - Ham sets up the UI and goes to the usual event loop, doing
    everything in callbacks.
 
  - Apt-worker initializes libapt-pkg and reads the package database
    cache.
 
- - Apt-worker then goes into a loop, reading requests from oai and
+ - Apt-worker then goes into a loop, reading requests from ham and
    sending back responses.  It only handles one request at any one
    time.
 
  - The user clicks on "Install Applications".
 
- - Oai sends a request to apt-worker asking for the list of installed
-   user packages.  Oai resumes its normal event loop after sending the
+ - Ham sends a request to apt-worker asking for the list of installed
+   user packages.  Ham resumes its normal event loop after sending the
    request and executes a callback when the response comes.
 
- - When the response comes, oai fills its own data structures and
+ - When the response comes, ham fills its own data structures and
    presents the appropriate list to the user.
 
- - Right after showing the list oai sends a request to apt-worker for
+ - Right after showing the list ham sends a request to apt-worker for
    more information about the first package in the list.  This
    additional information is more expensive to compute and includes
    things like whether all dependencies of a package are available and
    if so, how much data needs to be downloaded when actually
    installing the package.
 
- - While the response is outstanding, oai continues to handle events
+ - While the response is outstanding, ham continues to handle events
    in the normal fashion.
 
- - When the response comes, oai augments its data structures and the
+ - When the response comes, ham augments its data structures and the
    displayed list with that additional information.  It then sends a
    similar request for the next package in the list until all packages
    are covered or the user goes to another view.
 
  - The user asks for the details of a particular packages.
 
- - Again, oai sends a request for this information to apt-worker and
+ - Again, ham sends a request for this information to apt-worker and
    when the response comes, presents this information to the user.
 
  - The user decides to install the package.
@@ -132,17 +132,17 @@ process of installing a new package.
 
  - Apt-worker uses libapt-pkg to perform the requested operation,
    which will in turn run dpkg and maybe gpgv as subprocesses.
-   Progress reports are send to oai over the request/response channel.
+   Progress reports are send to ham over the request/response channel.
 
  - Output of dpkg, gpgv, the maintainer scripts of packages etc and
    additional status information from libapt-pkg appears on stdout and
-   stderr of apt-worker and is collected by oai.
+   stderr of apt-worker and is collected by ham.
 
  - Maintainer scripts of packages might interact with the user at this
    point by accessing the X-Server in the usual way.
 
- - When the operation has finished and oai has received the
-   corresponding response from apt-worker, oai will re-request the
+ - When the operation has finished and ham has received the
+   corresponding response from apt-worker, ham will re-request the
    list of packages and reinitialize its internal data structures.
 
 Cancellation of requests sent to apt-worker has not been considered

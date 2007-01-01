@@ -226,3 +226,24 @@ The code needs a serious cleanup.  For example
 - instead of recreating widgets all the time, we should hide/show them.
 - the cps of main.cc is seriously confusing now.  maybe better
   documentation can help.
+
+Migration
+---------
+
+Files to migrate when upgrading from osso-application-installer to
+hildon-application-manager:
+
+  ~user/.osso/appinstaller
+  ~user/.osso/hildon-application-manager
+
+  /var/lib/osso-application-installer
+  /var/lib/hildon-application-manager
+  keep symlink
+
+  /etc/osso-application-installer
+  /etc/hildon-application-manager
+
+External references
+
+  l10n textdomain
+  osso-application-installer-main-view in themes

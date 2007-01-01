@@ -1,10 +1,10 @@
 CXXFLAGS = $(CFLAGS)
 
-bin_PROGRAMS = osso-application-installer.launch
-noinst_PROGRAMS = osso-application-installer.run
+bin_PROGRAMS = hildon-application-manager.launch
+noinst_PROGRAMS = hildon-application-manager.run
 libexec_PROGRAMS = apt-worker
 
-osso_application_installer_launch_SOURCES = main.h			\
+hildon_application_manager_launch_SOURCES = main.h			\
                                             main.cc			\
 					    util.h			\
 					    util.cc			\
@@ -29,17 +29,17 @@ osso_application_installer_launch_SOURCES = main.h			\
 					    apt-worker-proto.h		\
 					    apt-worker-proto.cc
 
-osso_application_installer_launch_CFLAGS =   $(AI_DEPS_CFLAGS) -shared
-osso_application_installer_launch_CXXFLAGS = $(AI_DEPS_CFLAGS) -shared \
+hildon_application_manager_launch_CFLAGS =   $(AI_DEPS_CFLAGS) -shared
+hildon_application_manager_launch_CXXFLAGS = $(AI_DEPS_CFLAGS) -shared \
                                              -fno-rtti -fno-exceptions
-osso_application_installer_launch_LDFLAGS =  -shared \
+hildon_application_manager_launch_LDFLAGS =  -shared \
                                              -Wl,--version-script=export.map
-osso_application_installer_launch_LDADD =    $(AI_DEPS_LIBS)
+hildon_application_manager_launch_LDADD =    $(AI_DEPS_LIBS)
 
-osso_application_installer_run_SOURCES =  $(osso_application_installer_launch_SOURCES)
-osso_application_installer_run_CFLAGS =   $(AI_DEPS_CFLAGS)
-osso_application_installer_run_CXXFLAGS = $(AI_DEPS_CFLAGS)
-osso_application_installer_run_LDADD =    $(AI_DEPS_LIBS)
+hildon_application_manager_run_SOURCES =  $(hildon_application_manager_launch_SOURCES)
+hildon_application_manager_run_CFLAGS =   $(AI_DEPS_CFLAGS)
+hildon_application_manager_run_CXXFLAGS = $(AI_DEPS_CFLAGS)
+hildon_application_manager_run_LDADD =    $(AI_DEPS_LIBS)
 
 apt_worker_SOURCES = apt-worker.cc \
                      apt-worker-proto.h \
@@ -52,5 +52,5 @@ apt_worker_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
 EXTRA_DIST = export.map
 
 install-exec-local:
-	rm -f $(DESTDIR)$(bindir)/osso-application-installer
-	ln -s /usr/bin/maemo-invoker $(DESTDIR)$(bindir)/osso-application-installer
+	rm -f $(DESTDIR)$(bindir)/hildon-application-manager
+	ln -s /usr/bin/maemo-invoker $(DESTDIR)$(bindir)/hildon-application-manager

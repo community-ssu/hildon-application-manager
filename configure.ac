@@ -1,4 +1,4 @@
-# configure.ac for osso-application-installer
+# configure.ac for hildon-application-manager
 
 AC_INIT(hildon-application-manager, 5.0)
 AC_CONFIG_SRCDIR([src/main.cc])

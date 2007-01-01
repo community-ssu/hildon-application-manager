@@ -167,7 +167,7 @@ libapt-pkg does not remember which keys succeeded in verifying the
 signature.  This could be improved in the future.
 
 The list of URI prefixes of certified repository parts is contained in
-the file /etc/osso-application-installer/certified.list.  It consists
+the file /etc/hildon-application-manager/certified.list.  It consists
 of lines of the forms
 
 <pre>

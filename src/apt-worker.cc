@@ -1,10 +1,10 @@
 /*
- * This file is part of osso-application-installer
+ * This file is part of the hildon-application-manager.
  *
  * Parts of this file are derived from apt.  Apt is copyright 1997,
  * 1998, 1999 Jason Gunthorpe and others.
  *
- * Copyright (C) 2005, 2006 Nokia Corporation.  All Right reserved.
+ * Copyright (C) 2005, 2006, 2007 Nokia Corporation.  All Rights reserved.
  *
  * Contact: Marius Vollmer <marius.vollmer@nokia.com>
  *
