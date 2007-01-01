@@ -16,11 +16,11 @@ if test x$ac_cv_header_apt_pkg_configuration_h != xyes; then
   AC_ERROR([libapt-pkg not found.])
 fi
 
-PKG_CHECK_MODULES(AM_DEPS, glib-2.0 gtk+-2.0 hildon-libs hildon-fm libosso
+PKG_CHECK_MODULES(HAM_DEPS, glib-2.0 gtk+-2.0 hildon-libs hildon-fm libosso
                            osso-ic gconf-2.0 gnome-vfs-2.0 libossohelp
                            obex-vfs-utils)
-AC_SUBST(AM_DEPS_CFLAGS)
-AC_SUBST(AM_DEPS_LIBS)
+AC_SUBST(HAM_DEPS_CFLAGS)
+AC_SUBST(HAM_DEPS_LIBS)
 
 PKG_CHECK_MODULES(AW_DEPS, glib-2.0)
 AC_SUBST(AW_DEPS_CFLAGS)
@@ -33,7 +33,6 @@ AC_DEFINE_UNQUOTED(DEB_HOST_ARCH, "$DEB_HOST_ARCH", [Debian architecture])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-		 utils/Makefile
-                 test-data/Makefile])
+		 utils/Makefile])
 
 AC_OUTPUT

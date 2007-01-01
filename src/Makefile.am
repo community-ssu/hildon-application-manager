@@ -29,17 +29,17 @@ hildon_application_manager_launch_SOURCES = main.h			\
 					    apt-worker-proto.h		\
 					    apt-worker-proto.cc
 
-hildon_application_manager_launch_CFLAGS =   $(AI_DEPS_CFLAGS) -shared
-hildon_application_manager_launch_CXXFLAGS = $(AI_DEPS_CFLAGS) -shared \
+hildon_application_manager_launch_CFLAGS =   $(HAM_DEPS_CFLAGS) -shared
+hildon_application_manager_launch_CXXFLAGS = $(HAM_DEPS_CFLAGS) -shared \
                                              -fno-rtti -fno-exceptions
 hildon_application_manager_launch_LDFLAGS =  -shared \
                                              -Wl,--version-script=export.map
-hildon_application_manager_launch_LDADD =    $(AI_DEPS_LIBS)
+hildon_application_manager_launch_LDADD =    $(HAM_DEPS_LIBS)
 
 hildon_application_manager_run_SOURCES =  $(hildon_application_manager_launch_SOURCES)
-hildon_application_manager_run_CFLAGS =   $(AI_DEPS_CFLAGS)
-hildon_application_manager_run_CXXFLAGS = $(AI_DEPS_CFLAGS)
-hildon_application_manager_run_LDADD =    $(AI_DEPS_LIBS)
+hildon_application_manager_run_CFLAGS =   $(HAM_DEPS_CFLAGS)
+hildon_application_manager_run_CXXFLAGS = $(HAM_DEPS_CFLAGS)
+hildon_application_manager_run_LDADD =    $(HAM_DEPS_LIBS)
 
 apt_worker_SOURCES = apt-worker.cc \
                      apt-worker-proto.h \

@@ -1,10 +1,10 @@
-SUBDIRS = src utils test-data
+SUBDIRS = src utils
 
 desktopdir = $(datadir)/applications/hildon
 desktop_DATA = hildon-application-manager.desktop
 
 servicefiledir=$(datadir)/dbus-1/services
-servicefile_DATA=com.nokia.hildon-application-manager.service
+servicefile_DATA=com.nokia.hildon_application_manager.service
 
 mimedir = $(datadir)/mime/packages
 mime_DATA = hildon-application-manager.xml
@@ -16,7 +16,7 @@ aptconfdir = $(sysconfdir)/apt/apt.conf.d/
 aptconf_DATA = 00-smallcache
 
 EXTRA_DIST = hildon-application-manager.desktop	                \
-             com.nokia.hildon-application-manager.service	\
+             com.nokia.hildon_application_manager.service	\
              hildon-application-manager.xml			\
              hildon-application-manager.conf		        \
              00-smallcache
