@@ -17,7 +17,12 @@
 	* src/settings.cc (SETTINGS_FILE): Changed to
 	.osso/hildon-application-manager.
 
-	* src/main 
+	* utils/maemo-confirm-text-user.c
+	(find_application_installer_window,
+	find_application_manager_window): Renamed former to latter,
+	changed all callers.  Look for the hildon-application-manager
+	name.
+
 2006-12-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 4.45
