@@ -9,9 +9,6 @@ servicefile_DATA=com.nokia.hildon-application-manager.service
 mimedir = $(datadir)/mime/packages
 mime_DATA = hildon-application-manager.xml
 
-etcdir = $(sysconfdir)/hildon-application-manager/
-etc_DATA = certified.list
-
 backupdir = $(sysconfdir)/osso-backup/applications/
 backup_DATA = hildon-application-manager.conf
 
@@ -21,7 +18,6 @@ aptconf_DATA = 00-smallcache
 EXTRA_DIST = hildon-application-manager.desktop	                \
              com.nokia.hildon-application-manager.service	\
              hildon-application-manager.xml			\
-             certified.list			                \
              hildon-application-manager.conf		        \
              00-smallcache
 
