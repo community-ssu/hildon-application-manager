@@ -30,6 +30,32 @@ add_sudoer ()
     fi
 }
 
+## Migrate some files to their new names.
+
+migrate ()
+{
+    old="$1"
+    new="$2"
+    flags="$3"
+    if [ -e "$old" -a ! -e "$new" ]; then
+	echo "Migrating $old to $new"
+	mv "$old" "$new"
+	if [ "$flags" = "symlink" ]; then
+	    ln -s "$new" "$old"
+	fi
+    fi
+}
+
+migrate /home/user/.osso/appinstaller \
+        /home/user/.osso/hildon-application-manager
+
+migrate /etc/osso-application-installer \
+        /etc/hildon-application-manager
+
+migrate /var/lib/osso-application-installer \
+        /var/lib/hildon-application-manager \
+        symlink
+
 ## Add line to sudo so that "user" can run "apt-worker" as
 ## "root".
 ##
