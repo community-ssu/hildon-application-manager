@@ -1,0 +1,4 @@
+#maemo:essential
+deb file:///home/mvo/work/stage.maemo.org/trunk/osso-application-installer/test-data/testrepo cert main
+deb file:///home/mvo/work/stage.maemo.org/trunk/osso-application-installer/test-data/testrepo old main
+#deb file:///home/mvo/work/stage.maemo.org/trunk/osso-application-installer/test-data/testrepo new main

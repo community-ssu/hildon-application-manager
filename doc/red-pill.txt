@@ -1,0 +1,40 @@
+Red pill mode settings
+----------------------
+
+After activating the red pill mode, the following additional settings
+are available in "Tools > Settings".
+
+ - "Clean apt cache"
+
+   If activated, the equivalent of "apt-get clean" is performed after
+   every install or update.  (This is the behavior for blue-pill
+   mode.)
+
+ - "Assume net connection"
+
+   This will not ask for an active IAP before downloading.  This is
+   useful if you have a network connection, but the 770 connectivity
+   APIs are not available or don't know about it.
+
+ - "Break locks"
+
+   This will break needed locks instead of failing.  This is done by
+   default in blue pill mode so that users don't lock themselves out
+   when a crash leaves a stale lock behind.
+
+ - "Show dependencies"
+
+   This adds another tab to the details dialog with some dependencies
+   from the package.
+
+ - "Show all packages"
+
+   This will not filter out packages that are not in the "user"
+   section.  It will also allow installing packages from any section.
+
+ - "Show magic system package"
+
+   This will include the "magic:sys" package in the list of packages.
+   Updating that package will do something similar to "apt-get
+   upgrade".  It is not yet fully defined what it will do exactly.
+   This feature might become available in blue-pill mode at one point.

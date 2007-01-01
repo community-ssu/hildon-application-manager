@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+   <mime-type type="application/x-deb">
+     <comment>Debian package</comment>
+     <glob pattern="*.deb"/>
+   </mime-type>
+   <mime-type type="application/x-debian-package">
+     <comment>Debian package</comment>
+     <glob pattern="*.deb"/>
+     <glob pattern="*.Deb"/>
+     <glob pattern="*.dEb"/>
+     <glob pattern="*.deB"/>
+     <glob pattern="*.DEb"/>
+     <glob pattern="*.dEB"/>
+     <glob pattern="*.DeB"/>
+     <glob pattern="*.DEB"/>
+   </mime-type>
+   <mime-type type="application/x-install-instructions">
+     <comment>Application manager install instructions</comment>
+     <glob pattern="*.install"/>
+   </mime-type>
+</mime-info>

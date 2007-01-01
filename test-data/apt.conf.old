@@ -1,0 +1,9 @@
+APT::FTPArchive::Release {
+  Version      "1.0";
+  Origin       "Nokia";
+  Suite        "old";
+  Architecture "arm source";
+  Components   "main";
+}
+
+

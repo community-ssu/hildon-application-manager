@@ -1,0 +1,441 @@
+osso-application-installer (4.45) unstable; urgency=low
+
+  * Fixes: NB#47877. (again)
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 15 Dec 2006 17:12:32 +0200
+
+osso-application-installer (4.44) unstable; urgency=low
+
+  * Fixes: NB#47877. (again)
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 14 Dec 2006 19:35:00 +0200
+
+osso-application-installer (4.43) unstable; urgency=low
+
+  * Fixes: NB#48797, NB#47877.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon,  4 Dec 2006 18:06:15 +0200
+
+osso-application-installer (4.42) unstable; urgency=low
+
+  * Fixes: NB#47858, NB#46125.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 20 Nov 2006 16:52:22 +0200
+
+osso-application-installer (4.41) unstable; urgency=low
+
+  * Fixes: NB#47458.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 14 Nov 2006 19:40:20 +0200
+
+osso-application-installer (4.40) unstable; urgency=low
+
+  * Fixes: NB#46824.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 14 Nov 2006 17:05:23 +0200
+
+osso-application-installer (4.38) unstable; urgency=low
+
+  * debian/rules: Added -Wno-format to CFLAGS.
+  * Fixes: NB#47440.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 13 Nov 2006 16:36:04 +0200
+
+osso-application-installer (4.37) unstable; urgency=low
+
+  * Fixes: NB#43352, NB#32242, NB#32249, NB#38397, NB#38592, NB#31101.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 30 Oct 2006 18:21:09 +0200
+
+osso-application-installer (4.36.1) unstable; urgency=low
+
+  * preinst: Do not fail when /etc/apt/sources.list doesn't exist.
+  * prerm: Correctly modify "/etc/sudoers", not "/etc/sudoers.".  Set
+    permissions to 0440 after replacing it.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 26 Oct 2006 18:48:31 +0300
+
+osso-application-installer (4.36) unstable; urgency=low
+
+  * Fixes: NB#43737.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 24 Oct 2006 21:27:14 +0300
+
+osso-application-installer (4.35) unstable; urgency=low
+
+  * Rescue /etc/apt/sources.list when updating from a broken package
+    database. (M811)
+  * Fixes: NB#43112, NB#43144, NB#38086, NB#43732, NB#43471.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 18 Oct 2006 13:50:46 +0300
+
+osso-application-installer (4.34) unstable; urgency=low
+
+  * Fixes: NB#41085.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 10 Oct 2006 16:00:40 +0300
+
+osso-application-installer (4.33) unstable; urgency=low
+
+  * Fixes: NB#35475, NB#40909, NB#41085, NB#36147, NB#40794, NB#40845.
+  * Fixes: NB#41160.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 21 Sep 2006 21:29:25 +0300
+
+osso-application-installer (4.32.2) unstable; urgency=low
+
+  * debian/postinst: Reset /etc/sudoers to 0440 after appending to it.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 21 Sep 2006 21:29:25 +0300
+
+osso-application-installer (4.32.1) unstable; urgency=low
+
+  * debian/control (Build-Depends): Added osso-bttools-dev.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 19 Sep 2006 13:07:11 +0300
+
+osso-application-installer (4.32) unstable; urgency=low
+
+  * Fixes: NB#32246, NB#29726, NB#36027, NB#34922, NB#40618.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 18 Sep 2006 19:41:03 +0300
+
+osso-application-installer (4.31) unstable; urgency=low
+
+  * Fixes: NB#31929, NB#32959, NB#39538, NB#35475, NB#27946, NB#32249,
+    NB#30375, NB#30390, NB#33091, NB#32375, NB#36104, NB#38383.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu,  7 Sep 2006 16:10:44 +0300
+
+osso-application-installer (4.30) unstable; urgency=low
+
+  * Fixes: NB#32230, NB#34538, NB#34922, NB#38086, NB#35491.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  6 Sep 2006 19:40:18 +0300
+
+osso-application-installer (4.29) unstable; urgency=low
+
+  * Fixes: NB#25494, NB#34533, NB#32236, NB#34528, NB#31101.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 25 Aug 2006 20:40:33 +0300
+
+osso-application-installer (4.28) unstable; urgency=low
+
+  * Made red-pill mode configurable.
+  * Implemented first stab at upgrading the system.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 21 Aug 2006 15:30:33 +0300
+
+osso-application-installer (4.27) unstable; urgency=low
+
+  * Rereleased 4.26 with osso-application-installer.conf committed to svn.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  2 Aug 2006 15:43:41 +0300
+
+osso-application-installer (4.26) unstable; urgency=low
+
+  * Don't include sources.list.
+  * Tell Backup/Restore to backup /etc/apt/sources.list.
+  * Fixes: NB#36318, NB#36694, NB#35753, NB#35651, NB#36696.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  2 Aug 2006 15:33:43 +0300
+
+osso-application-installer (4.25) unstable; urgency=low
+
+  * Skipped because of improper tagging... I will never learn this.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 13 Jul 2006 18:50:39 +0300
+
+osso-application-installer (4.24) unstable; urgency=low
+
+  * Ensure that the dependencies of a installed package are reinstalled
+    when needed.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 13 Jul 2006 17:45:10 +0300
+
+osso-application-installer (4.23) unstable; urgency=low
+
+  * UI version 2 overhaul.
+  * Fixes: NB#34057, NB#34052, NB#33648, NB#33240.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  5 Jul 2006 21:27:56 +0300
+
+osso-application-installer (4.22) unstable; urgency=low
+
+  * Fixed bugs N32851.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 20 Jun 2006 13:52:12 +0300
+
+osso-application-installer (4.21) unstable; urgency=low
+
+  * Fixed bugs N32315, N30939, N31849.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 12 Jun 2006 23:58:09 +0300
+
+osso-application-installer (4.20) unstable; urgency=low
+
+  * Pass https_proxy to apt-worker.
+  * Set proper operation label in search results view.
+  * Don't show each package twice in search results.
+  * Disable "Edit" and "Delete" buttons in Catalogue dialog when nothing
+    is selected.
+  * Corrected two logical ID bugs.
+  * Fixed bugs N32056, N32066.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  7 Jun 2006 20:56:45 +0300
+
+osso-application-installer (4.19) unstable; urgency=low
+
+   * Fixed bugs N29642, N29195, N29232, N27902, N27905, N28068, N28184,
+     N29384, N29531, N27762, N28620, N29522, N30282, N29382.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 22 May 2006 21:28:47 +0300
+
+osso-application-installer (4.18.1) unstable; urgency=low
+
+  * Released 4.18 again with sources.list commited to svn.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 15 May 2006 13:55:24 +0300
+
+osso-application-installer (4.18) unstable; urgency=low
+
+  * Include sources.list for product configuration.
+  * Use GnomeVFS for saving the log.
+  * Fixed bugs N25774, N27888, N27900, N27902, N28068, N28382, N28387,
+    N28528, N28536.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri,  5 May 2006 18:43:08 +0300
+
+osso-application-installer (4.17) unstable; urgency=low
+
+  * Proceed to install/remove even with a broken package database.
+  * Produce more correct error messages when the Log can not be saved.
+  * Produce "Download failed.  Package not found" message when
+    appropriate.
+  * Fixed bugs N25774 N27888 N27900 N27902 N28068 N28382 N28387 N28528
+    N28536.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  3 May 2006 20:24:30 +0300
+
+osso-application-installer (4.16) unstable; urgency=low
+
+  * Only simulate removal when necessary.
+  * Support .install files with "Install from file".
+  * Cleaned up progress reporting.
+  * Fixed bugs N27735, N27742, N27743, N27736, N27789, N27762.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 25 Apr 2006 21:00:16 +0300
+
+osso-application-installer (4.15) unstable; urgency=low
+
+  * Real install/remove policy implemented.
+  * Big speedup when cleaning up after a simulated install/remove.
+  * Package info is only collected when needed.
+  * Handle and show broken packages correctly.
+  * Show "Updating" banner when appropriate.
+  * Show real device name.
+  * New "deb" target in Makefile to make clean Debian source packages.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 21 Apr 2006 18:37:46 +0300
+
+osso-application-installer (4.14) unstable; urgency=low
+
+  * Support installing remote files with "Install from file".
+  * Better error messages.
+  * Avoid corrupted cache when refresh fails.
+  * Support for new "Application installer instruction" files, and
+    associated MIME type.
+  * Support for named repositories.
+  * Fixed bugs N26424, N25494.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 11 Apr 2006 20:57:27 +0300
+
+osso-application-installer (4.13) unstable; urgency=low
+
+  * Maemo-launcherized osso-application-installer and maemo-confirm-text
+    (N24827).
+  * Implemented context sensitive menu.
+  * Fixed searching to work according to spec.
+  * Add new repositories at end, dim edit and delete for essential repos.
+  * Save toolbar visibility settings.
+  * Be smart about showing/not showing categories; added "All" category.
+  * Fixed N25613, N26040.
+  * Fixed maintainer email in debian/control.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 10 Apr 2006 11:47:19 +0300
+  
+osso-application-installer (4.12) unstable; urgency=low
+
+  * Skipped.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri,  7 Apr 2006 18:45:07 +0300
+
+osso-application-installer (4.11) unstable; urgency=low
+
+  * Skipped.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu,  6 Apr 2006 00:29:37 +0300
+
+osso-application-installer (4.10.1) unstable; urgency=low
+
+  * Fixed malformed Build-Depends line: insert comma after libgconf2-dev
+    and depend on libosso-gnomevfs2-dev instead of libosso-gnome-vfs2-dev.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue,  4 Apr 2006 18:30:19 +0300
+
+osso-application-installer (4.10) unstable; urgency=low
+
+  * Added libosso-help-dev to Build-Depends.
+  * Activated online help.
+  * Reduced library dependencies of apt-worker.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 31 Mar 2006 18:32:09 +0300
+
+osso-application-installer (4.9) unstable; urgency=low
+
+  * Fixed for GCC 3.4.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 28 Mar 2006 17:30:51 +0300
+
+osso-application-installer (4.8) unstable; urgency=low
+
+  * Added maemo-list-user-packages script for the memory applet.
+    Top window on mime-open.
+    Fullscreening works again.
+    Keep on pulsing when no real progress indication is available.
+    Cancel button is dimmed when cancelling is known not to work.
+    Download is cancelled automatically when net is disconnected.
+    Backend crashes are noticed.
+    Handle shutdown_ind hw state change (#23249). 
+
+  * Build-Depend on ibosso-gnome-vfs2-dev.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 24 Mar 2006 20:40:37 +0200
+
+osso-application-installer (4.7) unstable; urgency=low
+
+  * Build-Depend on libgconf2-dev.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 13 Mar 2006 22:15:41 +0200
+
+osso-application-installer (4.6) unstable; urgency=low
+
+  * Removed "Temp files" settings dialog.  Performance and robustness
+    improvements.  Bring up network when needed.  Build-Depend on
+    hildon-libs-dev >= 0.12.0.  Provide maemo-installer-utils virtual
+    package.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 13 Mar 2006 21:51:57 +0200
+
+osso-application-installer (4.5) unstable; urgency=low
+
+  * Make it work with hildon-libs 0.12.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu,  9 Mar 2006 15:23:52 +0200
+
+osso-application-installer (4.4) unstable; urgency=low
+
+  * First serious pass over UI spec and layout guide.  Should be quite
+    close now.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu,  2 Mar 2006 22:42:47 +0200
+
+osso-application-installer (4.3) unstable; urgency=low
+
+  * Fixed typo in Depends: it's l10n, not l10.  Also, miscellaneous
+    changes towards UI spec and layout compliance.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  1 Mar 2006 11:35:09 +0200
+
+osso-application-installer (4.2) unstable; urgency=low
+
+  * I18N, added missing files.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 28 Feb 2006 11:47:14 +0200
+
+osso-application-installer (4.1) unstable; urgency=low
+
+  * Feature complete.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 27 Feb 2006 14:57:51 +0200
+
+osso-application-installer (4.0.pre12) unstable; urgency=low
+
+  * Complete except for SWR 124712 (untested) and 124688 (unimplemented).
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 24 Feb 2006 17:10:22 +0200
+
+osso-application-installer (4.0.pre11) unstable; urgency=low
+
+  * Don't make .desktop symlink for others menu.  Run
+    osso-update-category-database and update-mime-database in postinst.
+    Put correct icon name in osso-application-installer.desktop.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 22 Feb 2006 15:08:01 +0200
+
+osso-application-installer (4.0.pre10) unstable; urgency=low
+
+  * Nearly feature complete.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 21 Feb 2006 13:21:05 +0200
+
+osso-application-installer (4.0.pre9) unstable; urgency=low
+
+  * Added refcounting for package_info.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 14 Feb 2006 15:54:32 +0200
+
+osso-application-installer (4.0.pre8) unstable; urgency=low
+
+  * More features, close to being testable.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon,  6 Feb 2006 21:24:40 +0200
+
+osso-application-installer (4.0.pre7) unstable; urgency=low
+
+  * For test repository.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 31 Jan 2006 15:57:37 +0200
+
+osso-application-installer (4.0.pre6) unstable; urgency=low
+
+  * Added Build-Depenencies.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 30 Jan 2006 13:22:39 +0200
+
+osso-application-installer (4.0.pre5) unstable; urgency=low
+
+  * Next try at tagging something that builds with svn-buildpackage.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 27 Jan 2006 15:15:44 +0200
+
+osso-application-installer (4.0.pre4) unstable; urgency=low
+
+  * Added test-data directory to source code repository.  Fixed
+    debian/rules to call autogen.sh.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 27 Jan 2006 14:53:36 +0200
+
+osso-application-installer (4.0.pre3) unstable; urgency=low
+
+  * First public prototype.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 27 Jan 2006 14:38:09 +0200
+
+osso-application-installer (4.0.pre2) unstable; urgency=low
+
+  * Next prototype release.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 24 Jan 2006 21:35:06 +0200
+
+osso-application-installer (4.0.pre1) unstable; urgency=low
+
+  * Next prototype release.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 23 Jan 2006 18:38:32 +0200
+
+osso-application-installer (4.0.pre0) unstable; urgency=low
+
+  * Prototype release.
+
+ -- Marius Vollmer <marius.vollmer@nokia>  Wed, 18 Jan 2006 12:49:39 +0200

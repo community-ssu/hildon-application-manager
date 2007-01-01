@@ -1,0 +1,190 @@
+About Repositories for the Application Installer 2006
+=====================================================
+
+Basic repository setup
+----------------------
+
+The Application installer can deal with any repository that "apt-get"
+can understand.  However, the Application installer only shows 'user'
+packages to the user.  A user packages is identified by being in the
+"user" section; see the "Packaging HOWTO".
+
+Also, when adding a new repository manually, the Application installer
+provides default values for certain parts of a sources.list line.  You
+might want to take this into account when laying out your repository
+so that users have it easy when configuring it.
+
+The distribution will default to the symbolic name of the distribution
+that is installed on the device.  This symbolic name is referred to as
+${dist} in the sequel.  For maemo 2.0, this is "mistral".  The
+component list defaults to just "user".
+
+Thus, unless you have a specific reason to use something else, it is
+probably a good idea to have repositories that can be specified as
+
+    deb URL ${dist} user
+
+so that the user only has to enter URL into the "New Catalogue"
+dialog.
+
+How to actually setup a repository is explained in the "Debian
+Repository HOWTO".
+
+    http://www.debian.org/doc/manuals/repository-howto/repository-howto
+
+
+"Single-click install"
+----------------------
+
+* THIS FEATURE IS NOT SUPPORTED IN THE IT 2006 RELEASE:
+* 
+* You get some useful reaction out of the Application Manager when you
+* give it a .install file, but the associated dialogs are not
+* localized, for example, and the IT 2006 Application Manager doesn't
+* handle .install files very gracefully.  But feel free to try anyway.
+
+
+When you want users to be able to browse your repositories using the
+Application installer, you need to provide instructions to the user
+about how to configure your repository.  On a fundamental level, you
+need to tell them what values to put into the "New repository" dialog.
+
+This manual task can be automated by providing a file of MIME type
+"application/x-install-instructions" and have the user open it with
+the Application installer.  Files with the extension ".install" are
+recognized to have the mime type "application/x-install-instructions".
+
+Such a .install file is a text file following the GKeyfile format, as
+defined by glib.  An example would look like this:
+
+    [install]
+    repo_name = Foo Catalogue
+    repo_deb  = deb http://foo.com/maemo mistral user
+
+Thus, it can contain information about a repository, and opening the
+file will add the repository to /etc/apt/sources.list if it isn't
+there already.  The existence check is based on a simple string
+comparison without any intelligence: if you put two spaces in the
+"deb" line instead of one, the strings are considered different.  This
+test might get smarter in the future.
+
+The .install file can also contain the name of a package, like so:
+
+    [install]
+    repo_name = Foo Catalogue
+    repo_deb  = deb http://foo.com/maemo mistral user
+    package   = foo-app
+
+Opening this file will attempt to install the package named "foo-app",
+after adding the specified repository if it is not already configured.
+There is no guarantee, tho, that the named package will actually be
+downloaded from the given repository.  If the package is available
+with a later version from other repositories that are listed in
+sources.list, then it will be downloaded from there.
+
+The "repo_name" entry is optional.  If you omit it, the repository
+will have no name.  The name of a repository is only used in the UI;
+it has no effect on functionality.
+
+The "repo_deb" entry is not optional.  In fact, different releases of
+maemo will use different key names so that you can control what
+repository to use with what maemo release.  If the expected repo_deb
+variant is not found in the .install file, an error message will be
+displayed to the user.
+
+Here is a table of the various key names:
+
+   maemo 2.0:  repo_deb
+   maemo 3.0:  repo_deb_3
+
+There is also an example shell script for creating .install files in
+the same directory as this document.
+
+
+Disabling repositories
+----------------------
+
+The Application installer lets the user edit parts of the contents of
+/etc/apt/sources.list.  It recognizes lines marked with "deb", "#deb"
+and a few special comments (see below) and preserves everything else.
+A "deb" line is the usual specification for a source of binary
+packages.  A "#deb" line is the same, but disabled.  When
+enabling/disabling a repository, the Application installer switches
+between the "deb" and "#deb" marker.
+
+There must be no space between "#" and "deb" in the "#deb" marker for
+it to be recognized by the Application installer.
+
+
+Repository names
+----------------
+
+THIS FEATURE IS NOT SUPPORTED IN THE IT 2006 RELEASE.
+
+A repository can have a name for easier identification.  Names are
+stored in /etc/apt/sources.list as a comment line of the form
+
+    #maemo:name NAME
+
+This declaration applies to the next following 'deb' or '#deb' line.
+
+
+Marking a repository as essential
+---------------------------------
+
+A "deb" or "#deb" line in /etc/apt/sources.list can be marked as
+'essential'.  The Application installer will refuse to change or
+remove such a line.
+
+The way to mark a line as essential is to put a line of the form
+"#maemo:essential" before the line.  The "#maemo:essential" marker
+must be on a line of its own, with no whitespace between "#" and
+"maemo:essential".  The marker does not have to immediately precede
+the "deb" or "#deb" line.
+
+
+Setting up a repository with certified packages
+-----------------------------------------------
+
+The AI can recognize certain parts of repositories as 'certified'.
+Packages coming from those parts are installed without showing the big
+fat warning dialog to the user.  (But that is the only difference
+between certified parts and non-certified ones.)
+
+The way to configure such a certified part is to specify a URI prefix;
+all archive files downloaded from a location with that prefix are
+considered certified if the corresponding Release file has been signed
+and successfully verified.
+
+The Release file can be signed by _any_ key known to apt to be
+accepted for a certified part.  This is acceptable since only
+known-good public keys are factory-configured and if the attacker has
+enough access to the device to configure a key for his dns-spoofed
+repository, he has breached the device already from our point of view.
+
+The reason for basing the 'is-certified' test on a URI prefix instead
+of on "deb" lines in sources.list, say, or (URI, Distribution,
+Component) tuples is simplicity: The URI prefix test can be done very
+easily, and without modifying libapt-pkg.  (It might or not might not
+be a good idea to use pool/ directories for certified parts of a
+repository.  It is probably simpler to not use them.)
+
+The reason that any key is accepted when verifying the signature on
+the Release file of a certified part is again simplicity and the
+desire not to modify libapt-pkg at this point.  As far as I can see,
+libapt-pkg does not remember which keys succeeded in verifying the
+signature.  This could be improved in the future.
+
+
+The list of URI prefixes of certified repository parts is contained in
+the file /etc/osso-application-installer/certified.list.  It consists
+of lines of the forms
+
+    uri-prefix <uri-prefix>
+
+where <uri-prefix> must not contain whitespace and must match the URI
+of a downloaded package literally (i.e., no %xx escape expansion is
+done, etc).  Everything after and including the first '#' in a line is
+ignored.  Blank lines are allowed, of course.
+
+

@@ -1,0 +1,368 @@
+Howto make a package for the Application installer 2006
+=======================================================
+
+This is a short guide about how to make packages for the Application
+installer of the Internet Tablet OS 2006.
+
+The main point to take away is that the AI 2006 is a graphical
+frontend to the standard Debian package management infrastructure,
+similar to Synpatic, but aimed at a different clientele.
+
+The AI 2006 uses the same backend tools as Synaptic, Aptitude, or
+apt-get (namely libapt-pkg), and it does it in the standard way
+without imposing any constraints: packages are installed as root and
+can touch the whole system, for example.
+
+The normal way to distribute a package is therefore to put it into
+some repository and make it accessible to apt.  See the "Repository
+Maintainers Guide" for more information on how to setup such a
+repository.
+
+This HOWTO assumes that you are familiar with making .deb packages.  A
+good place to start is the "Debian New Maintainers' Guide"
+
+    http://www.debian.org/doc/maint-guide/
+
+There is also the example "hello-world-app" package that you can use
+to get started.
+
+You can freely alternate between AI 2006 and apt-get, say.  Changes
+done to the system via apt-get or dpkg are picked up by the AI 2006
+without confusing it, and vice versa.
+
+Packages made for the Application 2006 should follow a few extra
+rules, tho, if they want to integrate nicely.  These rules are related
+to
+
+  - general stuff
+  - dependencies
+  - sections
+  - icons
+  - the installation/removal policy of the AI
+  - limited feedback to the user, no controlling terminal
+  - warning about removing running applications
+  - utilities to use in your maintainer scripts
+
+
+Relationship with Application installer 2005
+--------------------------------------------
+
+The Application installer 2006 is very different from the one in
+Internet Tablet OS 2005 (IT 2005) and the two are not at all
+compatible.  If you have packages that work with IT 2005, you need
+to redo their packaging in order to make them work with IT 2006.
+This is not really that bad, since IT 2005 and IT 2006 are not
+binary compatible with each other and you need to make separate
+packages for them anyway.
+
+The Application installer 2005 will reject packages made for 2006 and
+vice versa.
+
+The two versions of the AI are visually different and there should be
+no risk to confuse the two.  The AI 2005, for example, is a Control
+panel applet, and the AI 2006 is a regular application started from
+the "Tools" menu.  Also the AI 2006 actually calls itself "Application
+manager" on the screen.
+
+
+General
+-------
+
+All strings coming from the control information of a package are
+interpreted in UTF-8 when they are shown in the UI.  If a string is
+not valid UTF-8, all bytes above 127 are replaced with '?' before
+displaying it.
+
+
+Dependencies
+------------
+
+There is nothing special about the "Depends" control field anymore.
+It should no longer contain "maemo".  It should now contain all the
+real dependencies, like ${shlibs:Depends}, etc.
+
+
+Sections
+--------
+
+By default, the AI 2006 only shows packages in certain sections to the
+user.  This has been done to hide the existence of the hundreds of
+system packages that make up the IT 2006 itself.  The AI is, at this
+point, not intended to let the user manage the whole system, only a
+smaller set of third party applications.
+
+The AI only shows packages in the "user" section.  Thus, your
+"Section:" field in the control file should be of the form
+
+    Section: user/<SUBSECTION>
+
+where <SUBSECTION> is arbitrary.  <SUBSECTION> should be a nice
+capitalised, English word like "Ringtones".  There is no support for
+localising that word yet, unfortunately.
+
+However, there is also a predefined set of subsections.  If your
+package fits into one of these subsections, you should put it there.
+This will avoid fragmenting the subsection names, and the names of
+these subsections will be correctly localised.
+
+The list of predefined subsections and their English names is:
+
+    user/accessories    Accessories		   
+    user/communication  Communication
+    user/games	        Games			   
+    user/multimedia     Multimedia		   
+    user/office	        Office		   
+    user/other          Other                    
+    user/programming    Programming		   
+    user/support        Support		   
+    user/themes	        Themes		   
+    user/tools          Tools 		   
+
+Thus, if you want to put your package into the Office subsection,
+include the field
+
+    Section: user/office
+
+in your control information.  If you want to put it into "Ringtones"
+(which is not pre-defined), use
+
+    Section: user/Ringtones
+
+
+Icons
+-----
+
+A package can have an icon that is displayed next to its name by the
+AI.  Icons are included in the control information of a package as a
+base64 encoded field named "Maemo-Icon-26".
+
+The image format of the icon can be anything that is understood by
+GdkPixbufLoader, but is most commonly the PNG format.
+
+The image should be 26x26 pixels with a transparent background.
+
+Here is an example of a correctly formatted Maemo-Icon-26 field:
+
+Maemo-Icon-26:
+ iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAAABGdBTUEAAK/INwWK6QAAABl0
+ RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAALxSURBVHja3FZNTBNREP669J/S
+ XYxtKRWl1JOSFBIPhkitCQeNiaKBmzdj9Ggk0ZOBxHDWixcTjV6MF+WiIB40YEyMBMGYEqQK
+ tLS2lG7pdre0pF3WtxslgJRuD2J0kpfdTN7O976Z782sRpIk7IZR2C2TGW1cv8xaY5WuXLy8
+ iW5XV5fk8/kkr9e7ya/T6SSNRiOViikvbbmDDD590SusZBGYDiDwJbDud7vdvYIgIJfLYXV1
+ tSwhrQrSfRX6/26N/j+gkjW6ce06HE4HGEctGuj9oEwUzFYz5ubmEA6HQVEUisUi8vn8b4rd
+ zjRbNxCZrr+3t7XTzjrnvMfdxMi7xj6OIRaPIbWcQjabVdRWKBTkrX4SZ2SjvCtKXf+tkxxD
+ M5MetwfHj/lwwueHy+WCVqvdehdHKq7R6JvbpfNMAGiGhs1mg9ls3sS+4hodbDqCwef9mA9P
+ 7vhhVVWV3BGUOomiaCSufEWMxNwimlweMFYbpoMfyp70J6t8xanLZgWs8Ak07N0Hau0P3qOs
+ wIHnl5FJx2E1WlUFuXrzIS713KusRplMCoLAgl2O4N34ODQ4VRaot6cbUzMRNNQ/w/uJWXWM
+ eH5JARkYHsLQMIe1NZEpB7Sn1uKFhkL3maO4cL5NHVAo+hkPnrzEq2HqQIf/3ICzvr7FXmeH
+ 3qBXlslkgtFoVBS3YfbcKRRFfJpagE6vUwd0//FbjI7mkcvnGoNfg51ORx3sNju+hWYxMxsk
+ jHlF2jJgdXU1DAaDrDx/kQAVRREJlldXo8kJoPlQ8wHSevosFgs5MmE5H0IingDP8eAzPAQC
+ tkJakDz05Hsks+poPzwg6+Luo9chVb2O3Hilv7V6W5nO02cVX3wxjsj3CMKRBUSjUcQWY0iy
+ SQVoi6XJaiQxubKpI02yj2xk6BoaBr0BqXRKCZpYSiCZlIXCguM4pWtvY0ypyUtt87PSIj/t
+ pJ/JICzLKiBLySTYVArpdFrp3DuMhRZVqfvnJ+wPAQYA1hdr5EDqltYAAAAASUVORK5CYII=
+
+The way to get these fields into your .deb files is to include them
+with a "XB-" prefix in your debian/control file, see the Debian Policy
+Manual, section 5.7.
+
+
+Installation and removal policy
+-------------------------------
+
+The Application installer has its own rules for automatically
+installing and removing packages in addition to the ones specified by
+the user.  These rules are tuned to give little surprises for simple
+package management operations, but in turn they are not really useable
+for complicated things like "apt-get dist-upgrade".  When designing
+the conflicts of your packages, you might want to take these rules
+into account.
+
+Specifically, the AI will never automatically remove a user package.
+
+If a conflict caused by installing a package could be resolved by
+removing a package, the AI will not do the removal but will refuse the
+installation request instead.
+
+When removing a package, all packages that are a direct or indirect
+dependency of the removed package will be considered for removal.
+They will in fact be removed when they are a non-user package, have
+been automatically installed by the AI to satisfy a dependeny, and are
+no longer needed.
+
+The AI is not very smart in reporting conflicts: when your package
+conflicts with a non-user package, the problem report by the AI will
+blame the conflict on that non-user package instead of on the user
+packages that depend on it.
+
+
+Feedback from maintainer scripts
+--------------------------------
+
+When the Application installer runs your maintainer scripts, they have
+no controlling terminal; their standard input is connected to
+/dev/null.  DISPLAY is set correctly, tho.
+
+The Application installer collects a transcript of the
+installation/uninstallation process, including the output of
+maintainer scripts.  However, this output is hidden away in the "Log",
+and you should not expect users to look there and understand its
+contents.
+
+Thus, you should try really hard to not fail in your maintainer
+scripts.  This does not mean that you should ignore errors, of course,
+but that you should only do things that have a very high chance of
+succeeding.  The simpler, the better.
+
+
+Warning about removing/upgrading running applications
+-----------------------------------------------------
+
+The Application installer can run a script provided by your package
+before removing or upgrading it.  That script can tell the Application
+installer to cancel the operation.
+
+The canonical use for this feature is to warn the user when he tries
+to remove or upgrade an application that is currently running.  You
+can use the utility 'maemo-application-running' to perform this test.
+(See below for details.)
+
+When uninstalling or upgrading a package named PACKAGE, the
+Application installer will run the program named
+
+    /var/lib/osso-application-installer/info/PACKAGE.checkrm
+
+if it exists.  When this program exits with code 111, the operation is
+cancelled.  In all other cases, including when the program terminates
+with a signal, the operation is carried out.
+
+The arguments given to the *.checkrm program are either
+
+    foo.checkrm remove
+
+when the package is going to be removed, or
+
+    foo.checkrm upgrade <VERSION>
+
+when it is going to be upgraded to version <VERSION>.
+
+
+Utilities to use in your maintainer scripts
+-------------------------------------------
+
+There are some utilities available that you can use in your maintainer
+scripts to interact with the user:
+
+- maemo-select-menu-location <app>.desktop [default-folder]
+  maemo-select-menu-location --remove folder
+
+  When your package contains a .desktop file and consequently has an
+  entry in the Desktop menu for this file, it can call
+  maemo-select-menu-location in its postinst script to let the user
+  choose a location for the entry.
+
+  The "<app>.desktop" parameter is the name of your .desktop file,
+  without any directories.  The default-folder parameter is optional,
+  and when given determines the default folder of the menu entry.  If
+  you omit it, the menu entry will appear in "Extras".
+
+  The way to specify a folder that is provided by the system is by
+  giving its logical name as listed in the
+  /etc/xdg/menus/applications.menu file, NOT by giving its English
+  name.  Example logical names are
+
+    tana_fi_games
+    tana_fi_tools
+    tana_fi_utilities
+  
+  If you use a folder name that does not yet exist, it is created.  In
+  that case, you should NOT use a logical name, since there will
+  likely be no translations available for that logical name.  When
+  creating a new folder, use a plain text name in a language that is
+  appropriate.  But, try to use existing folders as much as you can.
+
+  Thus, if your package installs the file
+
+    /usr/share/applications/hildon/foo.desktop
+
+  and you want it to go to the "Utilities" menu, you would put this
+  invokation into your postinst script:
+
+    maemo-select-menu-location foo.desktop tana_fi_utilities
+
+  If you want it to go into a non-existing folder, use something like
+
+    maemo-select-menu-location foo.desktop "Cute hacks"
+
+  In order to use maemo-select-menu-location in postinst, you should
+  Pre-Depend on the "maemo-select-menu-location" package.
+
+  You might want to skip calling maemo-select-menu-location when
+  merely upgrading as opposed to installing from scratch.
+
+  You can use the "--remove" option to remove a folder from the menu.
+  It will only be removed when it is empty.  The "folder" parameter is
+  interpeted in the same way as the "default folder", see above.
+
+
+- maemo-application-running -x executable-file
+  maemo-application-running -d <app>.desktop
+
+  This utility checks whether the application specified on the
+  commandline is currently running.  If it is running, it exits with
+  code 0.  If it is not running, it exits with code 1.  If some error
+  occured, it exits with code 2.
+
+  When using the -x option, the utility checks whether any process is
+  currently executing that file, by looking into /proc/PID/exe.
+
+  When using the -d option, the utility uses the given .desktop file
+  to find the service name of the application und queries D-BUS
+  whether this service is currently registered.  If there is no
+  service name in the .desktop file, the utility uses the executable
+  file as with the -x option.
+
+  [THE -d OPTION HAS NOT BEEN IMPLEMENTED YET.  SORRY.]
+
+  In order to use maemo-application-running in postinst, you should
+  Pre-Depend on the "maemo-installer-utils" package.
+
+
+- maemo-confirm-text [title] file
+
+  Displays the contents of FILE in a dialog with "Ok" and "Cancel"
+  buttons.  The default title of the dialog is "License agreement".
+
+  When the user clicks "Ok", this utility exits with code 0; when he
+  clicks "Cancel", it exits with code 1; and when an error occurs, it
+  exits with code 2.
+
+  The recommended place to call this utility is in the preinst
+  maintainer script of a package.  If the user does not agree to the
+  license, the preinst script should fail, thus causing the
+  installation to abort.  (XXX - maybe we should recommend using
+  something like debconf for this so that we can get the agreement for
+  a bunch of packages with one dialog.)
+
+  (If you show a license agreement in your _postinst_ script, it is
+  probably not a good idea to make the postinst script fail when the
+  user does not agree to the license terms.  Instead, you could
+  configure your application in such a way that it will ask the user
+  to agree to the license agreement again when the application is
+  started and refuse to run when he disagrees.)
+
+  In order to use maemo-confirm-text in postinst, you should
+  Pre-Depend on the "maemo-installer-utils" package.
+
+
+Other utilities
+---------------
+
+- maemo-list-user-packages
+
+  Lists all packages that the user can manage with the Application
+  installer in this format
+
+    name<TAB>version<TAB>section-field<TAB>installed-size<NL>
+
+  where 'section-field' is the value of the "Section:" field for the
+  package.

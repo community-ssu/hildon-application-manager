@@ -1,0 +1,25 @@
+#! /bin/sh
+
+# Usage: check-icon-overflow DEB
+#
+# Checks whether the maemo icon in DEB triggers the buffer overflow in
+# the Application Manager.
+
+set -e
+
+if [ $# != 1 ]; then
+  echo "usage: check-icon-overflow DEB" >&2
+  exit 2
+fi
+
+size=`dpkg-deb -f "$1" Maemo-Icon-26 | base64-decode | wc -c`
+
+if [ "$size" -gt 2048 ]; then
+  echo "Icon in $1 is larger than 2048 bytes."
+  echo " Some versions of the Application Manager might crash"
+  echo " when trying to handle it."
+  exit 1
+fi
+
+echo "(Icon of `basename $1` is $size bytes.)"
+exit 0

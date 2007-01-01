@@ -1,0 +1,14 @@
+Source: osso-application-installer
+Section: misc
+Priority: optional
+Maintainer: Marius Vollmer <marius.vollmer@nokia.com>
+Build-Depends: debhelper (>= 4.0.0), libapt-pkg-dev, libglib2.0-dev, libgtk2.0-dev, hildon-libs-dev (>= 0.12.0), hildon-fm-dev, osso-ic-dev, libgconf2-dev, libosso-gnomevfs2-dev, libosso-help-dev, osso-gnomevfs-extra-dev
+Standards-Version: 3.6.0
+
+Package: osso-application-installer
+Architecture: any
+Depends: ${shlibs:Depends}, maemo-launcher, osso-application-installer-l10n-mr0 | osso-application-installer-l10n-mr
+Provides: maemo-installer-utils
+Description: A program for managing user installed applications.
+ The Application manager is a frontend for dpkg and apt.  It allows
+ you to manage a subset of the installed and available packages.

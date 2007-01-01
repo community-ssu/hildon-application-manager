@@ -1,0 +1,38 @@
+#! /bin/sh
+
+# make-dot-install REPONAME REPODEB ARCHIVE.DEB
+
+# Create a .install file for a .deb archive file.  The name of the
+# .install file will be ${Package}.install and its contents will be
+#
+#   [install]
+#   repo_name = REPONAME
+#   repo_deb  = REPODEB
+#   package   = ${Package}
+#
+# where ${Package} is the name of the package as specified in ARCHIVE.DEB
+#
+# The .install file will be created in the current directory.
+
+set -e
+
+if [ $# != 3 ]; then
+  echo "Usage: make-dot-install REPONAME REPODEB ARCHIVE.DEB" >&2
+  exit 1
+fi
+
+reponame="$1"
+repodeb="$2"
+archive="$3"
+
+section=`dpkg-deb -f "$archive" Section`
+
+if echo "$section" | grep -q '^user/'; then
+  package=`dpkg-deb -f "$archive" Package`
+  echo "Creating $package.install"
+  ( echo "[install]"
+    echo "repo_name = $reponame"
+    echo "repo_deb  = $repodeb"
+    echo "package   = $package" 
+  ) >$package.install
+fi

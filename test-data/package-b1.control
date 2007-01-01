@@ -1,0 +1,14 @@
+Package: package-B
+Version: 1
+Section: maemo_Games
+Architecture: all
+Installed-Size: 1
+Maintainer: <marius.vollmer@nokia.com>
+Conflicts: package-A (= 1)
+Description: Test package B, version 1.
+ Package number one, only for testing.
+ It also has a very long description to
+ see some bugs with the way these descriptions
+ are displayed by the Application installer.
+ You know, long as in longer than anyone would
+ want to read.

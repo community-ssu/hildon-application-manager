@@ -1,0 +1,17 @@
+The usual way to install osso-application-installer is to build a .deb
+package and install that but you can also install from source.
+
+Hit-and-run instructions:
+
+  $ ./configure
+  $ make
+  # make install
+
+Via .deb:
+
+  $ ./configure
+  $ make deb
+  # dpkg --install osso-application-installer_<version>_<arch>.deb
+
+After checking out the sources you need to run ./autogen.sh before the
+steps above.

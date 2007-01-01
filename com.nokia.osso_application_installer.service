@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=com.nokia.osso_application_installer
+Exec=/usr/bin/osso-application-installer

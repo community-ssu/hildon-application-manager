@@ -1,0 +1,13 @@
+#! /bin/sh
+
+# Usage: maemo-list-user-packages
+#
+# Lists all packages that the user can manage with the Application
+# installer in this format
+#
+#    name<TAB>version<TAB>section-field<TAB>installed-size<NL>
+# 
+# where 'section-field' is the value of the "Section:" field for the
+# package.
+
+dpkg-query --showformat '${Package}\t${Version}\t${Section}\t${Installed-Size}\n' -W | grep "`echo -e '.*\t.*\tuser/.*\t.*'`"

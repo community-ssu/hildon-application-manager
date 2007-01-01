@@ -1,0 +1,1861 @@
+2006-12-15  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.45
+	
+	* src/apt-worker.cc (operation): Only send the status reply before
+	fetching when there is actually something to fetch.  Otherwise the
+	Download dialog is also shown during uninstalling, stupid.
+
+2006-12-14  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.44
+	
+	* src/apt-worker.cc (operation): Send a status reply before
+	starting to fetch files.  This makes sure that the progress dialog
+	appears immediately even if the first pulse of the fetcher takes
+	some time to happen. (N47877)
+
+2006-12-11  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.43
+	
+	* src/util.cc (create_progress): Use respond_on_escape to set up
+	our own Escape handler.  The default one seems to destroy the
+	dialog.  (N47877).
+
+	* src/settings.cc (settings_dialog_response): Add missing
+	pop_dialog_parent.
+
+	* src/util.cc, src/repo.cc: Use get_dialog_parent,
+	push_dialog_parent, and pop_dialog_parent for the rest of the
+	dialogs.
+
+2006-12-04  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Keep track of dialog stacking order in a general way. (N48797)
+	
+	* src/details.cc, src/details.h, src/log.cc, src/main.cc,
+	src/repo.cc, src/search.cc, src/settings.cc, src/util.cc,
+	src/util.h
+	(push_dialog_parent, pop_dialog_parent, get_dialog_parent): New,
+	Use them for all dialogs by pushing newly created ones and
+	popping when they are destroyed.
+	* src/main.cc (main): Push the main window as the default dialog
+	parent.
+	* src/details.h, src/details.cc (show_package_details): Removed
+	'parent' parameter.  Updated all callers.  Don't pass parent
+	around via closure etc.
+	* src/repo.cc (show_repo_edit_dialog): Removed 'parent' parameter.
+	Updated all callers.  Don't pass parent around via closure etc.
+	
+2006-11-20  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.42
+	
+	* src/apt-worker.cc (handle_request): Dump errors after calling
+	cache_init.
+	(ensure_cache): New, to retry creating the cache when needed.  Use
+	it everywhere instead of testing package_cache for NULLness.
+	(N46125)
+	
+	* src/main.cc (show_help): Don't log unavailable help topics.
+
+	* src/repo.cc (find_repo): Be robust against NULL deb lines as
+	parameter.
+	(maybe_add_repo): Catch malformed deb_line parameters and abort
+	installation in that case. (N47858)
+
+2006-11-14  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.41
+	
+	* src/repo.cc (add_new_repo): Default to "bora" instead of
+	"mistral".  (N47458).
+
+	Released 4.40
+	
+	* src/util.h, src/util.cc, src/log.cc
+	(show_file_chooser_for_save): Added parent parameter.  Updated
+	callers.
+
+	Released 4.39
+
+	* src/repo.cc (show_repo_edit_dialog): Also use the right parent
+	for the non-readonly version of the dialog, stupid.
+
+2006-11-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.38
+	
+	* src/details.cc, src/details.h, src/utils.cc, src/main.cc
+	(show_package_details): Added parent parameter so that the
+	stacking order of dialogs can be preserved.  Updated all callers
+	to provide it.
+	* src/repo.cc (show_repo_edit_dialog): Likewise: added parent
+	parameter for the dialog, updated all callers.  (N46824)
+
+2006-11-07  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc, src/menu.cc, src/main.cc, src/log.cc,
+	src/hildonbreadcrumbtrail.c, src/apt-worker.cc: Removed unused
+	variables and static functions. Use unsigned ints when
+	appropriate.
+
+	* src/util.cc (BTNAME_DEFAULT): Removed.
+	(device_name): Use translated sfil_li_folder_root instead of
+	BTNAME_DEFAULT. (N47440)
+	
+2006-11-03  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.37
+	
+	* src/details.cc (show_with_details): Don't line wrap the summary
+	line, but ellipsize in the middle.  Otherwise we seem to trigger a
+	bug in GtkLabel that produces an extra blank line.
+	
+	* src/apt-worker.cc (must_open): Put in proper return statement.
+	D'Oh.
+	(cache_init): Added with_status parameter.
+	(UpdateProgress::Update): Only send status message when requested.
+	(handle_request): Don't request status messages when updating in
+	the background.
+	(main): Likewise.
+
+2006-10-30  Marius Vollmer  <marius.vollmer@nokia.com>
+ 
+ 	* src/main.cc: initialize lots of global vars to NULL.
+ 	* src/main.cc (show_view): now the previous child is removed
+ 	with gtk_container_remove. Should be cleaner.
+ 	* src/main.cc (make_main_view): unref the buttons size group
+ 	after setting it up.  (N38397)
+ 	* src/main.cc (get_intermediate_package_info): unref a new 
+ 	package info reference if it's already being loaded.  (N38397)
+ 	* src/util.cc (create_progress, set_progress): nullify global
+ 	references to widgets of progress dialog when destroyed.
+ 	* src/util.cc (get_https_proxy): don't leak the gconf client
+ 	response.
+	(get_http_proxy): Free strings gotten from
+	gconf_client_get_string.
+
+2006-10-30  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (get_small_font): Changes the way get_small_label is
+	calculated. Instead of using osso-SmallFont, it uses
+	PANGO_SCALE_SMALL with osso-SystemFont. Should make fonts in
+	details dialog and log bigger (N32242, N32249).
+
+	* src/details.cc (add_table_field): Added ellipsize mode parameter
+	and use it for the value label.  Don't line wrap value label.
+	(show_with_details): Ellipsize from start for the maintainer.
+
+2006-10-30  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Disable dialog separator (N43352) for:
+
+        * src/util.cc (ask_yes_no_with_details, 
+	ask_yes_no_with_arbitrary_details, scare_user_with_legalese).
+	* src/details.cc (show_with_details).
+	* src/log.cc (show_log).
+	* src/repo.cc (show_repo_edit_dialog, sources_list_reply).
+	* src/search.cc	(show_search_dialog).
+	* src/settings.cc (show_settings_dialog).
+
+2006-10-26  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.36.1
+
+	* Changes to debian/ only, see debian/changelog.
+
+2006-10-24  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.36
+	
+	* src/util.cc (pixbuf_from_base64): Only ref the pixbuf if it is
+	non-NULL.
+	(b64decode): Reset load_ptr to start of buffer once the buffer has
+	been written.  Correct test for buffer fullness.  (Most
+	embarrassing bug so far... N43737.)
+
+2006-10-23  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.35
+
+	* src/util.cc (create_progress): Make the longer title shorter by
+	two Xs so that the Dutch downloading message is not truncated.
+	Hackish.  Bug 44440 has been filed for the real issue (N38086).
+
+	* src/util.cc (set_bt_name_from_message): Don't log name changes.
+
+	* src/util.cc (annoy_user_with_details): Set close button response
+	id to GTK_RESPONSE_CANCEL, so dialog closes when ESC key is
+	pressed (N43732).
+
+2006-10-18  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (make_global_package_list): Packed icon and package
+	name in a single column to avoid the column separator in the
+	header (N43112).
+	(localize_file_and_keep_it_open): Return with an error when a
+	localization operation is active.
+	(cleanup_temp_file): Guard against closing and freeing things
+	twice. (N43471)
+
+2006-10-16  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (get_package_list_reply): Use localized
+	ai_ni_operation_failed instead of literal "Operation
+	failed". (N43144)
+
+2006-10-10  Marius Vollmer  <marius.vollmer@nokia.com>
+
+        Released 4.34.
+	
+	* src/Makefile.am, utils/Makefile.am (CXXFLAGS): Default to
+	$(CFLAGS). (N41085)
+
+2006-10-07  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/instr.cc (open_local_install_instructions): Use "repo_deb_3"
+	instead of "repo_deb", to prepare for maemo 3.0.  Annoy user when
+	not found.
+
+2006-10-02  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.33.
+	
+	* src/util.cc (make_global_package_list): Explicitly set cursor to
+	beginning and scroll to it.  (N40794, N40845, N41160)
+	(set_global_package_list): Use gtk_list_store_insert_with_values
+	instead of append/set.
+
+	* src/instr.h, src/instr.cc (instr_cont,
+	open_install_instructions, open_local_install_instructions): Do
+	not call localize_file in open_install_instructions since this has
+	already been done.  Renameds open_install_instructions to
+	open_local_install_instructions to reflect this fact.  Removed
+	instr_cont and do everything directly in
+	open_local_install_instructions.
+	* src/main.cc (install_from_file_cont2): Call
+	open_local_install_instructions instead of
+	open_install_instructions.
+	* src/util.h, src/util.cc (localize_file,
+	localize_file_and_keep_it_open): Renamed former to latter; changed
+	callers.  Open a GnomeVFSHandle.
+	(cleanup_temp_file): Close it.
+	
+	* osso-application-installer.desktop: Added Comment field for
+	thumb menu. (N41583)
+
+2006-10-01  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/repo.cc (_UI2_): Removed, corrected all uses.
+
+	* src/utils.cc: Don't include <bttools-dbus.h>, it is deprecated.
+	(BTNAME_SERVICE, BTNAME_REQUEST_IF, BTNAME_SIGNAL_IF,
+	BTNAME_REQUEST_PATH, BTNAME_SIGNAL_PATH, BTNAME_REQ_GET,
+	BTNAME_SIG_CHANGED): New, using the "bluez.org" D-Bus API.
+	* debian/control (Build-Depends): Don't depend on osso-bttools-dev
+
+	* src/repo.cc (sources_list_reply): Use ai_ti_add_catalogue
+	instead of ai_ti_add_cataloque, stupid.  (N36147)
+
+	Optimizations for the launcherized osso-application-installer from
+	Leonid Moiseichuk.  Thanks!  (N41085)
+
+	* utils/export.map, src/export.map: New.
+	* utils/Makefile.am, src/Makefile.am: Hardcode launcher flags.
+	Use export.map when linking.
+	(EXTRA_DIST): Distribute export.map.
+	* src/Makefile.am (osso_application_installer_launch_CXXFLAGS): 
+	Added -fno-rtti and -fno-exceptions.
+	* debian/rules (CFLAGS): Add -mthumb when requested by
+	DEB_BUILD_OPTIONS.
+	* configure.ac: Removed LAUNCHER_CFLAGS and LAUNCHER_LDFLAGS.
+
+2006-09-30  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker.cc (encode_dependencies): Put version information
+	in parentheses.
+
+2006-09-25  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (refresh_package_cache_reply): Show the "Refresh
+	cancelled" message for all versions of the UI. (N35475)
+
+2006-09-24  Marius Vollmer  <mvo@zagadka.de>
+
+	* utils/maemo-confirm-text-user.c (get_small_font): Updated with
+	new code from src/util.cc.
+	(find_window_1, find_window, find_application_installer_window):
+	New.
+	(dialog_realized): New, to make the dialog transient for the
+	Application Installer main window.
+	(main): Connect it.
+	
+	* src/main.cc (main_window_realized): New, to set WM_NAME of the
+	main window.
+	(main): Connect it.
+	
+2006-09-18  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.32.
+	
+	* src/repo.cc (show_repo_edit_dialog): Let the "Close" button
+	respond with GTK_RESPONSE_CANCEL, to make the Escape key work.
+	(N40618)
+
+	* src/details.h (decode_summary): Transfer lists to
+	package_info::summary_packages and put the header into
+	package_info::summary directly.  Don't return a value.  Updated
+	all callers.
+	(add_table_field): Omit field when value is blank.  Handle NULL
+	field names.
+	(add_tabel_list, add_table_list_1): New, they do the job of
+	format_string_list and format_string_list_1 now.
+	(format_string_list, format_string_list_1): Removed.
+	(show_with_details): Use a GtkTable for the summary tab. (N32246)
+	
+	* src/main.h, src/main.c (package_info): Added summary_packages
+	field.
+	(package_info, ~package_info): Initialize and free it.
+	
+	* src/util.h, src/util.cc (setup_dbus): New.
+	(btname, set_bt_name_from_message, btname_received,
+	handle_dbus_signal): New.
+	(device_name): Just return btname.
+	* src/main.h, src/main.cc (device_label): New.
+	(make_main_view): Set it and make sure it is reset.
+	(get_device_label): Return it.
+	(main): Call setup_dbus. (N29726)
+	
+	* src/main.cc (make_main_view): Set ellipsize mode to device name
+	label and new organization for main window, removing GtkTable and
+	add just containers (GtkHbox). (N36027)
+
+	* src/repo.cc (repo_edit_response): Move check for empty name
+	before check for empty web address so that the empty name check
+	has higher priority. (N34922)
+	(add_entry): Added mandatory argument to select the flags for the
+	captions.
+	(show_repo_edit_dialog): Pass mandatory flag to add_entry as
+	appropriate.
+
+2006-09-12  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.31.
+
+	* src/apt-worker.cc (update_package_cache): Reverted change from
+	2006-09-11: call cache_init so that the process is visible, return
+	rescode_failure instead of rescode_download_failed.
+
+2006-09-11  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (update_package_cache): Call need_cache_init
+	instead of cache_init so that the cache building happens in the
+	background.  Return rescode_download_failed for any kind of
+	failure.
+	(escape_for_shell): New.
+	(get_deb_record, install_from_file): Use it to guard against
+	filenames with single quotes in them. (N38383)
+
+	* src/main.cc (refresh_package_cache_reply): Show appropriate
+	error message when result code is
+	rescode_download_failed. (N36104)
+
+	* src/util.h (show_updating): Added label parameter.
+	(update_label): New, to store it.
+	(refresh_updating_banner): Use it.
+	* src/main.cc (search_packages): Show "searching" banner before
+	calling backend.
+	(search_packages_reply): Hide it. (N32375)
+
+	* src/repo.h (parse_quoted_word): Added prototype.
+	* src/main.cc (check_repositories, check_repositories_reply): New,
+	to check whether any repositories are defined and enabled and
+	either show the right info banner or call
+	maybe_refresh_package_cache.  them.
+	(make_install_applications_view, make_upgrade_applications_view):
+	Use check_repositories instead of maybe_refresh_package_cache.
+	(N30390, N33091)
+	
+	* src/util.cc (call_copy_cont): Replaced 'success' parameter with
+	GnomeVFSResult.  Removed 'show_error' parameter.  Use "no
+	connection" for ERROR_IO.  Updated all callers.
+	(copy_progress): When completed, check for existence of file and
+	fail with ERROR_IO if it is not there. (N30375)
+	
+	* src/util.cc (get_small_font): Added support to get the
+	osso-SmallFont from the theme instead of a fixed font
+	definition. It uses a fixed definition just in case the theme has
+	not osso-SmallFont definition.
+	(make_small_text_view): Modified the call to the get_small_font
+	function.
+	(make_small_label): Modified the call to the get_small_font
+	function. (N32249)
+
+	* src/main.h, src/main.cc (get_main_trail): New function, required
+	to access the main_trail from other objects.
+	* util.cc (global_package_list_key_pressed): Added, this function
+	is a callback that controls the focus movement between the
+	main_trail and the package list. It is connected to the
+	key-press-event of the package list treeview. If we are in the
+	first row and press up hardkey we send the focus to the last
+	button in the main_trail. It also avoids left and right movements
+	in the treeview.
+	(make_global_package_list): Added the connection of the of the
+	key-press-event to its new callback. (N27946)
+
+2006-09-08  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.h, src/util.cc (reset_progress_was_cancelled): New, to
+	reset the progress_cancelled flag which used to be done in
+	create_progress.
+	(create_progress): Don't reset it here.
+	(show_progress): Call reset_progress_was_cancelled here.
+	* src/apt-worker-client.cc (apt_worker_install_package_cont): Call
+	reset_progress_was_cancelled here to be prepared for the
+	spontaneous showing of the dialog. (N35475)
+
+2006-09-07  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* debian/postinst: Make /etc/sudoers writable before appending to
+	it. (N39538)
+
+	* 00-smallcache: Use the "Small-Cache-Limit" option instead of
+	"Cache-Limit", available in apt 0.6.42.3osso17.  (N31929, N32959)
+
+2006-09-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.30.
+	
+	* src/util.h, src/util.cc (skip_whitespace): New.
+	(all_white_space): Make it return bool, not int.  Reimplemented
+	using skip_whitespace.
+	* src/repo.cc (skipped_equal): New.
+	(repo_edit_response): Use it to reject URIs that are just
+	"http://". (N35491)
+	
+	* src/util.cc (create_progress): Added title parameter since we
+	really have to create the dialog with the correct title from the
+	start.  Resizing does not happen afterwards. (N38086)
+	(show_progress): Pass title.
+	(set_progress): Redone logic so that the title of the dialog is
+	only changed if necessary.  Pass new title when recreating dialog.
+	
+	* src/repo.cc (repo_edit_closure): Added had_name flag.
+	(repo_edit_response): Irritate user when it is true but the name
+	entry is empty (N34922). If the flag is false, allow an empty name
+	and canonicalize it to NULL.
+	(show_repo_edit_dialog): Set had_name appropriately.
+
+	* src/util.cc (refresh_updating_banner): New, for showing/hiding
+	the banner based on the current state.
+	(updating_timeout): Increase updating_level here and call
+	refresh_updating_banner ...
+	(show_updating): ... and not here.
+	(hide_updating): Let refresh_updating_banner do the work.
+	(allow_updating_banner, allow_updating, prevent_updating): New.
+	* src/main.cc (show_view): Call allow_updating so that it is the
+	default.
+	(make_main_view): Call prevent_updating to disallow the banner
+	from ever showing in the main view. (N32230)
+	
+	* src/repo.cc (add_entry): Use a non-editable, non-focusable
+	GtkTextView instead of a GtkLabel for displaying read only
+	entries. (N34538)
+	(show_repo_edit_dialog): Use proper logical id for "Close" button.
+	Make it grab the focus.
+
+2006-09-04  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/repo.cc (maybe_add_new_repo_cont): Don't annoy user when
+	catalogue was already in the list.
+
+2006-08-30  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.29
+	
+	* src/repo.cc (make_repo_list): Make both scrollbars
+	automatic. (N34533)
+
+	* src/main.cc (refresh_package_cache,
+	refresh_package_cache_with_cont): Added 'ask' parameter.  Updated
+	all callers.
+
+	* src/repo.cc (show_repo_edit_dialog): Make dialog wider.
+	(sources_list_reply): Make dialog taller. (N32236)
+	(maybe_add_new_repo_cont): Don't refresh cache here.
+
+	* src/instr.cc (instr_cont2, instr_cont3): Renamed former to
+	latter.
+	(inst_cont2): New, always refresh the cache here, without asking.
+
+	* src/main.cc (make_last_update_label): Use "ai_li_update_%s"
+	instead of "ai_li_update_%x" and put ai_li_never in it when
+	appropriate.
+
+	* src/repo.cc (repo_response): Irritate user when 'editing' an
+	essential repository and show the readonly details dialog.
+	(repo_row_activated): Likewise.
+	(repo_selection_changed): The edit button is active for all repos
+	now.
+	(refresh_repo_list): Use gtk_list_store_insert_with_values instead
+	of append-plus-set so that the selection-changed signal gets all
+	information that it needs. (N34528)
+	(insensitive_press, insensitive_delete_press): Renamed former to
+	latter.  Show "unable to remove", but only when there is a
+	selected row.
+	(sources_list_reply): Don't connect to insensitive-press for the
+	edit button.  Use insensitive_delete_press for the delete button.
+	Make edit and delete button insensitive initially,
+	repo_selection_changed will take care of making them sensitive in
+	the right way.
+	
+2006-08-29  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Redone fishing for extra hints about installation failures.
+	
+	* src/log.h, src/log.cc (set_log_start, scan_log,
+	scan_log_for_result_code): New.
+	* src/main.cc (install_package, install_package_reply,
+	install_from_file, install_from_file_reply): Use them to augment
+	result code. (N25494)
+	* src/apt-worker-client.h, src/apt-worker-client.cc
+	(status_out_of_space, reset_client_error_status,
+	client_error_out_of_space): Removed.
+	(interpret_pmstatus): Don't interpret "pmerror:".
+
+2006-08-25  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker-client.h, src/apt-worker-client.cc
+	(status_out_of_space, reset_client_error_status,
+	client_error_out_of_space): New.
+	(interpret_pmstatus): Interpret "pmerror:" as well and set
+	status_out_of_space accordingly.
+	* src/main.cc (install_package_reply): Explicitely set result_code
+	when client_error_out_of_space is true. (N31101)
+	
+2006-08-21  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.28.
+	
+	Made the red-pill mode configurable.
+
+	* src/settings.h, src/settings.cc:
+	(red_pill_show_deps, red_pill_show_all, red_pill_show_magic_sys):
+	New. Updated old users of red_pill_mode to also check the more
+	specific setting.
+	(make_boolean_option): New.
+	(make_updates_tab, make_settings_tab): Renamed former to latter.
+	Use make_boolean_option to add more configuration options in
+	red_pill_mode.
+	(settings_dialog_response): Set boolean options created with
+	make_boolean_option.  Reget package list when in red_pill_mode
+	since it might have changed.
+
+	* src/main.cc (make_main_view): Do not add "Refresh list of
+	packages" button here when in red-pill mode...
+	(main): ...add a button to the toolbar here instead.
+		
+	* src/apt-worker-client.cc, apt-worker-client.h,
+	apt-worker-proto.h, apt-worker.cc: Added show_magic_sys parameter
+	to APTCMD_GET_PACKAGE_LIST to control the inclusion of the
+	"magic:sys" package.  Updated all callers.
+
+2006-08-20  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/details.cc (nicify_description_in_place): Deal with NULL
+	descriptions.
+
+	* main.h, main.cc, details.h, details.cc, util.h, util.cc:
+	Replaced the old "bool installed" flag for selecting what kind of
+	details to display with a proper "enum detail_kind" throughout.
+	This allows us to keep track of what kind of detail is actually
+	cached in the package_info structure.  Previously, the wrong kind
+	of details were displayed when you first asked for "install
+	details", say, and later for "remove details".
+
+	Implemented the artificial "magic:sys" package that represents all
+	non-user packages.
+	
+	* src/apt-worker.cc (mark_sys_upgrades,
+	mark_named_package_for_install): New.
+	(cmd_get_package_list): Append the "magic:sys" package.
+	(installable_status_1, installable_status, removable_status):
+	Removed 'want' parameter which is not needed.  Updated all
+	callers.
+	(cmd_get_package_info): Handle "magic:sys" package by using
+	mark_named_package_for_install instead of mark_for_install and
+	explicitely setting the removable_status.
+	(encode_broken, encode_install_summary): Pass 'want' package by
+	name, not as a cache iterator.  Use mark_named_package_for_install
+	instead of mark_for_install.  This allows artifical packages to
+	work.
+	(cmd_get_package_details): Explicitly handle "magic:sys" package.
+	(cmd_install_check, cmd_install_package): Use
+	mark_named_package_for_install instead of mark_for_install.
+
+2006-08-02  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.27
+
+	(Skipped 4.25 and 4.26 due to tagging and committing mistakes)
+	
+	* src/main.cc (expose_main_view): New, for drawing the big image
+	in a themable way and such that it is always in the background.
+	(make_main_view): Put everything in a GtkEventBox and use
+	expose_main_view for that. (N36318, N36694)
+
+2006-07-31  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (scroll_to_widget): New.
+	(make_global_section_list): Connect it to the focus-in-event for
+	every section button so that the scrolled window shows the focused
+	button. (N35753)
+
+	* src/details.cc (add_table_field): Enable line wrapping for the
+	value label and expand the value cell horizontally, but don't
+	expand anything else. (N35651)
+	(show_with_details): Don't put table in hbox since it is supposed
+	to expand to the full width now.
+	
+	* osso-application-installer.conf: New, for backuping up
+	sources.list. (N36696)
+	* Makefile.am: Install it and distribute it.  Don't install
+	sources.list.
+	* debian/postinst: Touch sources.list into existence.
+
+2006-07-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.24
+	
+	Ensure that the dependencies of a installed package are
+	reinstalled when needed.
+	
+	* src/apt-worker.cc (auto_flags, package_flags): Replaced
+	auto_flags with more general package_flags construction to
+	accomodate the new ' related' flag.  Updated all users.
+	(restore_auto_flags): Removed since cache_reset can do it for us.
+	(load_auto_flags): Don't call restore_auto_flags.
+	(cache_init): Call cache_reset here after load_auto_flags.
+	(is_related, mark_related): New.
+	(cache_reset_package): Reset 'related' flag of a package.
+	(mark_for_install): Don't set ReInstall flag, mark_related does it
+	now.  Call mark_related.
+	(myDPkgPM::CreateOrderList): Use 'related' flag to decide whether
+	to ignore an interesting package, not the ReInstall flag.
+
+2006-07-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.23
+	
+	* src/util.cc (ensure_network): Use correct logical ID
+	"ai_nw_connecting", stupid.
+
+2006-07-05  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Show a "Disabled" button instead of "Enabled" one for UI version 2
+	and up. (N34057)
+
+	* src/repo.cc (repo_edit_closure): Added disabled_button field.
+	(show_repo_edit_dialog): Create it for UI versions 2 and up.
+	(repo_edit_response): Take enabled flag from either the enabled or
+	disabled button, as appropriate.
+
+	* src/repo.cc (add_entry): Use GtkLabels instead of GtkEntries for
+	readonly texts.
+	(maybe_add_new_repo_cont): Don't add new_repo when it is already
+	present.  Show information note in that case.
+	(sources_list_reply): When new_repo is already present, only
+	succeed immediately when this request for installing a package.
+	
+	* src/util.cc (ask_yes_no_with_arbitrary_details): Set
+	line-wrapping mode for label. (N34052)
+	(ensure_network): Use ai_new_connecting for UI versions 2 and
+	later instead of stealing the text from the browser-ui.
+
+	Show more specific information banners when pressing on
+	insensitive things.
+
+	* src/main.cc: Throughout, only show "Foo has been cancelled"
+	information notes for UI version 2 and up. (N33240)
+	(set_operation_label): Added "insens" parameter.  Updated all
+	callers to provide the right string.  Force old value of "Not
+	available" for UI versions below 2.  Pass insens text on to
+	set_operation_menu_label.
+	(make_last_update_label): Show "Never" when last_update is
+	zero. (N33651)
+	(install_named_package): Use available logical instead of English.
+	(insensitive_press): Expect text to show as data parameter.
+	Changed all signal connections to provide the right text.
+	(insensitive_operation_press): New.
+	(main): Use it for the toolbar operation button.
+
+	* src/menu.h, src/menu.cc (set_operation_menu_label): Added insens
+	parameter.  Updated all callers to provide the right string.
+	Force "Not available" for UI versions below 2.
+	(add_item): Added insens parameter.  Updated all callers.  Only
+	connect to insensitive-press signal when insens is provided.
+	Force "Not available" for UI versions below 2.
+	(insensitive_operation_press): New.
+	(create_menu): Use it for the operation menu item.	
+	
+2006-06-30  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Deal with packages that need to be reinstalled. (N33648)
+	
+	* src/apt-worker.cc (mydebSystem::ClearUpdates,
+	clear_dpkg_updates): Renamed former to latter.  Don't remove
+	files, but run dpkg to apply the journal when a updates file is
+	found.
+	(mydebSystem::Lock): Don't call ClearUpdates.
+	(cache_init): Call clear_dpkg_updates here, before creating the
+	cache.
+	(mark_for_install): Set reinstall flag for packages that need to
+	be reinstalled.
+	(myDPkgPM::CreateOrderList): Don't ignore packages that have the
+	reinstall flag set.
+	(cmd_get_package_list): Also offer an available version when the
+	package needs to be reinstalled and the installed version can be
+	downloaded.
+	
+2006-06-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Implement a better way to ignore unrelated packages.  This one
+	ignores all kept packages, not only the NeedsConfigure kepts ones.
+	
+	* src/apt-worker.cc (myDPkgPM::CreateOrderList): New.
+	(myDPkgPM::Configure): Removed, it is no longer needed.
+	(operation): Call myDPkgPM::CreateOrderList explicitely since it
+	is not virtual.
+
+2006-06-20  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.22
+	
+	* src/util.cc (iap_callback): Only log errors, but not connections
+	and disconnections.
+
+	* src/apt-worker.cc (encode_prep_summary): Only log results when
+	DEBUG is defined.
+	(cmd_clean): Ignore locking failures for EPERM and ENOSPC which
+	both might be due to a 'out of space' condition and we badly want
+	to free some space in that case.  Also, init the cache again if
+	that has failed previously.  (N32851)
+	
+2006-06-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.21
+	
+	* src/util.cc (annoy_user): Use correct parent for dialog so that
+	it isn't system modal.
+
+	* src/settings.cc (open_settings_file): Don't log ENOENT error
+	message.
+
+	* src/main.cc (install_package_cont3): Don't log the check command.
+	(check_uninstall_scripts2): Likewise.
+
+	* src/util.cc (run_cmd): Don't log ENOENT errors.
+
+	* src/apt-worker.cc (cmd_get_file_details): Pass back NULL for the
+	installed version when the archive file can not be parsed. (N32315)
+	* src/main.cc (file_details_reply): Give correct summary for
+	status_corrupted.
+
+	* utils/maemo-confirm-text-user.c (no_button_events): New.
+	(make_small_text_view): Connect it to "button-press-event" to
+	suppress all interaction with the text. (N30939)
+
+	* src/util.cc (make_global_section_list): Set attach detail so
+	that buttons form a group.
+
+2006-06-12  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (get_https_proxy): Return NULL when secure_host is
+	not set or the empty string.
+	(ensure_network_cont): Reset en_callback and en_data before
+	invoking callback.
+	(ensure_network): Always set en_callback and en_data and always
+	use ensure_network_cont to invoke the callback.  Previously, the
+	callback was not called when osso_iap_cb returned failure.
+	
+	* src/main.cc (make_padded_button): Added attach_flags argument to
+	get the style 'detail' right.
+	(make_main_view): Updated all callers of make_padded_button to
+	pass the correct flags.
+	(get_package_list_reply): Make sure that the reference count of
+	the created package_info structures is correct by reffing them
+	explicitely before every insertion into a list, and unreffing once
+	at the end.  Specifically, updateable packages are in two lists,
+	but were only referenced once. (N31849)
+
+	* src/apt-worker-client.cc (apt_worker_install_package_cont): Bug
+	fix: don't use already freed http_proxy for the https_proxy
+	argument.
+
+2006-06-07  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.20
+	
+	* src/main.cc (search_packages): Only search the first section,
+	not all to avoid hitting a package in both the "All" section and
+	in its real section.
+
+	* src/util.cc (make_global_package_list): Fix column resizing
+	parameters so that the Version and Size columns expand as needed
+	to avoid truncation of the column headers. (N32066)
+
+	* src/main.cc (make_search_results_view): Call set_operation_label
+	appropriately.
+
+	Pass https proxy to apt-worker.
+	
+	* src/util.h, src/util.cc (get_https_proxy): New.
+	* src/apt-worker-proto.h (APTCMD_UPDATE_PACKAGE_CACHE,
+	APTCMD_INSTALL_PACKAGE): Added https_proxy parameter.
+	* src/apt-worker-client.cc (apt_worker_update_cache_cont) 
+	(apt_worker_install_package_cont): Get and pass https proxy.
+	* src/apt-worker.cc (cmd_update_cache, cmd_install_package): Set
+	https_proxy envvar when requested.
+
+	* 00-smallcache: Reduce limit again to 1.6 MiB.  We don't cater to
+	bloated repositories.
+
+2006-06-05  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (create_progress): Reset progress_cancelled and
+	cancel_count here...
+	(show_progress): ... instead of here. (N32056)
+
+2006-05-29  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/repo.cc (repo_selection_changed): Disable "Edit" and
+	"Delete" buttons when nothing is selected.
+
+2006-05-26  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (annoy_user_with_log): Don't use logical ID in
+	disabled code.
+
+	* src/main.cc (install_package_reply): Use correct logical ID
+	"ai_ni_error_update_failed".
+
+	* src/details.cc (decode_summary): Use correct logical ID
+	"ai_fi_details_packages_update".
+
+	* src/settings.cc: Removed code for SHOW_CLEANING_SETTINGS, which
+	was disabled for a long time now but confuses the automatic l10n
+	code review.
+
+2006-05-24  Marius Vollmer  <marius.vollmer@nokia.com>
+
+        * certified.list, sources.list: Remove comment that they are
+	empty.  This is less confusing when other packages add to these
+	files.
+
+	* 00-smallcache: Raise limit to 3 MB, to cope with bloated
+	repositories that unfortunately do exist.
+
+2006-05-22  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.19
+	
+	* src/util.cc (annoy_user_with_gnome_vfs_result): Show info
+	banners for "name too long" and "not allowed" instead of info
+	notes. (N30282)
+
+	* src/main.cc (maybe_refresh_package_cache): Never ask more than
+	once per session.
+	(refresh_package_cache_reply): Set last_update only on success.
+	(refresh_package_cache_cont): Don't set it here. (N29384)
+	(make_main_view): Prevent device name from growing the table
+	column. (N29382)
+
+	* src/util.cc (annoy_user_with_details_response): Do not close
+	dialog when displaying details. (N29531)
+	(device_name): Default to "Nokia 770", not "???".
+	
+2006-05-19  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (escape_key_press_event): Renamed from
+	escape_key_release_event.  Don't check event type.
+	(respond_on_escape): Connect to "key_press_event". (N29522)
+
+	* src/main.cc (key_event): Toggle fullscreen on key press, not key
+	release. (N28068)
+	
+	* 00-smallcache: New.
+	* Makefile.am (aptconfdir, aptconf_DATA): Install it. (N29642)
+	(EXTRA_DIST): Distribute it.
+
+	* src/apt-worker-client.h, src/apt-worker-client.cc
+	(apt_worker_install_package): New "updating" paramater, for
+	getting the progess title right.  Changed all callers.
+	(apt_worker_install_package_cont): Set appropriate title for the
+	progress bar that is shown after the "Downloading" one.
+	(apt_worker_update_cache_cont): Show progress indicator here, not
+	before calling ensure_network.
+		
+	* src/util.h, src/util.cc (set_general_progress_title): New.
+	(progress_cancel_button): Removed.
+	(create_progress): New, for creating a fresh progress dialog each
+	time the operation changes.
+	(show_progress): Use it.
+	(hide_progress): Destroy progress dialog, don't just hide it.
+	(set_progress): Create a new dialog, if current operation changes,
+	but not when the new operation is "Refreshing" and we are not
+	currently showing any progress dialog.
+	(ensure_network): Show "Connectin" progress when we are going to
+	wait for the callback.
+	(ensure_network_cont): Hide it.
+
+	* src/main.cc (refresh_package_cache_cont): Don't show progress,
+	apt_worker_update_cache does it now.
+	(install_package_cont3): Likewise for apt_worker_install_package.
+	(install_packahe_cont2, install_package_with_net,
+	install_package): Request network after the confirmation dialog,
+	not before it. (N27762)
+
+2006-05-17  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/repo.cc (sources_list_reply): Use correct logical id for
+	"Unable to delete cataloque".  Didn't I test this?
+	Embarassing. (N28620)
+
+2006-05-16  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/search.cc (set_search_area_default): New.
+	(show_search_dialog): Use it as a kluge for getting the dialog
+	size right. (N28184)
+
+	* src/util.cc (make_global_package_list): Use proper logical id
+	and not hardcoded strings for the column title. (N29195, N29232,
+	N29235, N29236, N29237)
+
+	* src/main.cc (main): Only put first separator into
+	tooolbar. (N27902)
+	(window_state_event): Set border of main window when
+	fullscreening. (N27905)
+
+2006-05-15  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.18.1
+
+	No code changes, but sources.list was missing from subversion
+	which breaks our build system.
+
+2006-05-11  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.18
+	
+	* src/util.h, src/util.cc (no_button_events): New.
+	(make_small_text_view): Use it to suppress button events so that
+	no text can be selected. (N28855)
+	(grab_focus_on_map): New.
+	(make_global_package_list, make_global_section_list): Use
+	it. (N27936, N27934)
+	* src/main.cc (make_main_view): Likewise. (N27908)
+
+	* src/apt-worker-proto.h (apt_proto_result_code): Added
+	rescode_package_corrupted.
+	* src/main.cc (annoy_user_with_result_code): Handle
+	rescode_package_corrupted.  Added 'upgrade' parameter.  Changed
+	all callers.
+	* src/apt-worker.cc (combine_rescodes): New.
+	(operation): Figure out more precise results for each item, and
+	combine them with combine_rescodes. (N28904)
+	
+2006-05-10  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (nicify_section_name): Empty section names are
+	turned into "-". (N25433)
+
+	* src/details.cc (show_with_details): Make dialog slightly taller
+	so that everything fits always.
+
+	* src/apt-worker.cc (is_user_section): Require section name to be
+	longer than 5 characters, not 6.
+	(check_installable): Treat packages without a "Section" field as
+	non-user packages.
+	(encode_field): New default parameter, with "" as default default.
+	(cmd_get_file_details): Use NULL as default for Maemo-Icon-26.
+
+	* src/main.cc (is_user_section): Removed.  It was unused.
+
+2006-05-08  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/details.h, src/details.cc (nicify_description_in_place):
+	Made non-static.
+	* src/main.cc (file_details_reply): Use it.
+	(search_packages): Show "Search complete" banner (N28574).
+	(search_packages_reply): Likewise.
+	
+	* src/main.cc (file_details_reply): Initialize "broken".
+
+	* src/util.cc (call_copy_cont): Added optional 'show_error'
+	parameter.
+	(copy_progress): Use it to suppress error message when copy has
+	been cancelled.  Indicate failure when copy has been cancelled.
+	
+	* Makefile.am (aptdir, apt_DATA): New.  Installs sources.list.
+	(EXTRA_DIST): Distribute it.
+
+	* src/util.h, src/util.cc (annoy_user_with_gnome_vfs_result): New.
+	(fcd_response): Get URI from file chooser, not filename.  Changed
+	all parameter names from "filename" to "uri" to reflect this.
+	(N28625)
+	
+	* src/log.cc (save_log_cont, save_log): Rewritten to use GnomeVFS.
+        (N28524, N28531)
+	
+2006-05-04  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/repo.cc (sources_list_reply): Emit correct irritation when
+	trying to remove an essential repository. (N28620)
+
+	* src/menu.cc (add_item): Show "Not available" when any item is
+	pressed insensitively. (N28618)
+
+2006-05-03  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.17
+	
+	* src/log.cc (save_log): Check for extension only in basename of
+	filename, not entire pathname.
+	
+	* src/settings.h, src/settings.cc (break_locks): New.
+	(load_settings, save_settings): Load and save it.
+
+	* src/apt-worker-client.cc (start_apt_worker): Pass "B" option to
+	apt-worker when break_locks is true.
+
+	* src/util.cc (really_cancel_response): New.
+	(cancel_response): Ask whether to exit on the tenth cancel
+	attempt.
+
+	* apt-worker.cc (flag_break_locks): New.
+	(main): Set it when passed the "B" option.
+	(ForceLock): New, for breaking locks when allowed to.  Use it
+	instead of GetLock everywhere.
+	(mydebSystem, mydebsystem): New, to be able to use ForceLock
+	instead of GetLock, and to clear the dpkg updates journal.
+	
+2006-05-02  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.h, src/util.cc (respond_on_escape,
+	escape_key_release_event): New.
+	* src/repo.cc (sources_list_reply): Use respond_on_escape to close
+	the dialog on ESC.
+	* src/details.cc (show_with_details): Likewise. (N28387)
+	* src/log.cc (show_log): Likewise. (N28382)
+
+	* src/main.cc (install_check_reply): Show the unsure variant of
+	the legal disclaimer when authentication fails.
+	(main): Add separators between toolbar buttons. (N27902)
+	(key_event): Rect to fullscreen key when it is released, avoiding
+	key repeating. (N27946)
+	* src/main.cc (show_help): Don't ask for a help dialog, ask for
+	the full help application. (N25774)
+
+	* src/apt-worker.cc (operation): Don't do the sanity check;
+	proceed also when packages are broken.
+	(cmd_get_file_details): Use empty string ""
+	instead of NULL for versions when the file is corrupted.
+
+2006-04-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/utils.h, src/util.cc (show_file_chooser_for_save): Set
+	default folder to "Documents". (N27900)
+	(ask_custom): New.
+	* src/log.cc (save_log): Use it to get the correct button labels.
+	(log_response): Put version information into log after clearing it.
+
+	* src/util.h, src/util.cc (annoy_user_with_errno): New.
+	* src/log.cc (save_log, save_log_cont): Detect existing files and
+	ask for permission to continue.  Use annoy_user_with_errno to
+	produce appropriate error messages.  Put up information banner
+	when saved succeeded. (N27888)
+
+	* src/apt-worker.cc (operation): Return rescode_packages_not_found
+	when all downloads failed with result code 404.
+
+2006-04-25  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.16
+	
+	Cleanup progress reporting.
+	
+	* src/main.cc (install_package_cont2): Don't show progress during
+	checking, it is fast enough now.
+	(install_check_reply): Don't hide progress since it has not been
+	shown.
+	(install_package_with_net): New, does what install_package used to
+	do.
+	(install_package): Call ensure_network and continue with
+	install_package_with_net.
+	(uninstall_package_doit): Add newline to log message.
+	(get_package_list_with_cont): Clear the displayed
+	lists here in order not to show outdated information now that the
+	cach is being rebuilt without progress banner.
+	(get_package_list_reply): Don't clear them here.
+	* src/apt-worker.cc (cmd_get_package_info): Provide useful
+	download_size and user_size_deltas even for non-installable or
+	non-removable packages.
+	(init_cache_after_request, need_cache_init): New.
+	(handle_request): Call cache_init after shipping back the response
+	when requested.
+	(install_package, remove_package, install_file): Call
+	need_cache_init instead of cache_init.
+	
+	* src/main.cc (confirm_install): Show download_size also for
+	non-installable packages. (N27743)
+
+	* osso-application-installer.desktop (X-Osso-Service): Don't use
+	the full name.  Using the "com.nokia." prefix will prevent the
+	Task navigator from showing the loading banner.  (N27736)
+
+	* src/main.cc (key_press_event, key_event): Renamed former to
+	latter.  Show parent view on ESC release.
+	(main): Connect key_press to both "key_press_event" and
+	"key_release_event". (N27735)
+	
+	* src/util.cc (show_deb_file_chooser): Also filter in
+	application/x-install-instructions mime type.
+
+	* src/search.cc (show_search_dialog): Make dialog application
+	modal instead of system modal.
+	* src/settings.cc (show_sort_settings_dialog,
+	show_settings_dialog): Likewise.
+
+	* src/main.cc (main_image): New.
+	(make_main_view): Only load the AI image once and not every time
+	the main view is constructed.
+	(confirm_install): Use correct logical ids. (N27742)
+	(install_from_file_cont2): Recognize ".install" files here.
+	(mime_open_handler): Don't recognize them here.
+
+	Only simulate removal when necessary.
+	
+	* src/apt-worker-proto.h (apt_proto_able_status): Added
+	status_unknown.
+	(APTCMD_GET_PACKAGE_INFO): Document new only_installable
+	parameter.
+	* src/apt-worker-client.h, src/apt-worker-client.cc (must_mkfifo):
+	Unlink fifo before creating it.
+	(apt_worker_get_package_info): Added only_installable parameter.
+	Changed all callers.
+	* src/apt-worker.cc (cmd_get_package_info): Decode
+	only_installable parameter.  Only simulate removal when requested,
+	return status_unknown otherwise.
+	* src/main.h, src/main.c (call_with_package_info): Added
+	only_installable_info parameter.  Changed callers.  If the
+	removable status is wanted, only continue immediately when we
+	actually have it.
+	(get_intermediate_package_info): Likewise.
+	
+2006-04-21  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.15
+
+	* src/log.cc (save_log): Append ".txt" if there is no extension
+	already.  Report errors in the log.
+
+2006-04-20  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Completed support for automatically removing non-user packages
+	that have been automatically installed and are no longer needed.
+	
+	* src/apt-worker.cc (auto_flags, package_count, save_auto_flags,
+	load_auto_flags, restore_auto_flags): New, to keep track of which
+	packages have been installed automatically.
+	(cache_init): Maintain package_count and auto_flags.  Call
+	load_auto_flags.
+	(operation): Call save_auto_flags after everything has been done.
+	(is_auto_package): Use the real flag now.
+	(cache_reset, cache_reset_package): 'Refactored' to allow
+	resetting of individual packages now that we need to get the auto
+	flag right as well.
+	(mark_for_install): Use cache_reset_package instead of MarkKeep.
+	(mark_for_remove): Added only_maybe parameter.  Reset package if
+	it can't be removed and only_maybe is true.  Set only_maybe true
+	when recursing.
+
+	* src/settings.cc (load_settings): Try to be smart about selecting
+	the desired UI version when not forced.
+
+	* src/repo.cc (repo_text_func): Only use repository name for UI
+	versions 2 and later.  Showing the name without giving the user a
+	way to edit it is confusing.
+
+2006-04-19  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (iap_callback): Log unexpected event types.
+	(cancel_count): New.
+	(show_progress): Clear it.
+	(cancel_response): Hide progress on the fifth cancel request.
+
+2006-04-18  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.h, src/util.cc (device_name): New.
+	* src/main.cc (make_main_view): Use it.
+
+	* src/apt-worker.cc (operation): Do not run fetcher loop.  Call
+	_system->Lock() before returning.
+
+	* src/util.h, src/util.cc (show_updating, hide_updating): New.
+	* src/main.cc (get_package_list, get_package_list_reply): Use
+	them.
+
+	* src/util.cc (global_icon_func): Use correct icon.
+	
+2006-04-17  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker.cc (is_auto_package): New.
+	(mark_for_install, mark_for_remove): New.  Use them thruout
+	instead of pkgDepCache::MarkInstall and pkgDepCache::MarkDelete,
+	respectively.
+
+	* src/main.cc (installed_package_selected): Don't call
+	get_intermediate_package_info, it is not needed.
+	(make_uninstall_applications_view): Don't call
+	get_package_list_info.
+	(make_search_results_view): Likewise, when searching the installed
+	packages.
+	
+	* src/main.h, src/main.cc (package_info): Added dependencies
+	member.
+	* src/details.cc (show_with_details): Show them in red-pill-mode.
+	(get_package_details_reply): Only throw them away in
+	blue-pill-mode.
+	
+2006-04-16  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker.cc (cache_reset): New.
+	(cmd_get_package_info): Use it instead of pkgDepCache::Init.
+	(encode_install_summary, encode_remove_summary,
+	cmd_get_packages_to_remove): Likewise.
+	(cmd_install_check): Likewise, and don't call cache_init.
+	(cmd_install_package): Do not call pkgDepCache::Init as the cache
+	is now always in a pristine state.
+	(cmd_remove_package): Likewise.
+	(update_package_cache): Do not call pkgCacheFile::BuildCaches,
+	cache_init does it indirectly via pkCacheFile::Open.
+	(encode_upgrades): Do not list newly installed packages. (They
+	were listed for debugging and it is harmless to do so, but we
+	shouldn't do it for correctness sake.)
+
+	* src/main.cc (make_main_view): Do not fake device name so that I
+	don't forget to fix this.  Show additional "apt-get update" button
+	when in red-pill-mode.
+	
+2006-04-15  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker-proto.h (APTCMD_GET_PACKAGE_LIST): Added broken
+	return value.
+	* src/apt-worker.cc (cmd_get_package_list): Provide it.
+	* src/main.h, src/main.cc (package_info): Added broken member.
+	(get_package_list_reply): Set it from the response.
+	(search_packages_reply): Ignore it.
+	* src/util.cc (broken_icon): New.
+	(global_icon_func): Initialize it and use it for installed,
+	broken packages.
+	* src/details.cc (show_with_details): Use package_info broken
+	instead if assuming false.
+
+	* src/apt-worker.cc (class myDPkgPM): New.
+	(operation): Use it instead of the one created by _system.
+
+2006-04-14  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker.cc (cmd_get_package_list): Use
+	pkgDepCache::GetCandidateVer instead of walking the list of
+	versions ourselves since not all entries on that list are actually
+	candidates for installing, such as removed-but-not-purged ones.
+
+	* src/util.cc (make_global_package_list): Increase refcount of
+	global_section_list.  Otherwise it becomes invalid when the widget
+	is destroyed.
+	(clear_global_section_list): Unref it.
+
+2006-04-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* debian/rules (config.status): Don't depend on configure, just
+	run autogen.sh manually when it doesn't exist.
+	(configure): Deleted target since autogen.sh might not be
+	available.
+	
+	* Makefile.am (EXTRA_DIST): Distribute the various _DATA files.
+	* utils/Makefile.am (EXTRA_DIST): Distribute the bin_SCRIPTS.
+
+	Released 4.14
+	
+	* Makefile.am (deb): New target, for making cleaner source packages.
+	* make-package: New.
+	
+	* src/util.cc (size_string_detailed): Corrected 1Gb threshold.
+	Corrected logical id for sizes larger than 1Gb.
+
+	* src/apt-worker.cc (operation): Don't check for enough free space
+	when we are only checking the 'certified' status of the packages.
+	* src/main.cc (annoy_user_with_result_code): Handle
+	rescode_out_of_space.
+
+	* src/settings.cc (force_ui_version, ui_version): New.
+	(load_settings, save_settings): Handle them.
+
+	* src/util.h, src/util.cc (ask_yes_no_with_arbitrary_details,
+	gettext_alt): New.
+	(show_progress): Use "Refreshing package list" as initial title
+	since it is probably the longest one and the dialog is not
+	resizing automatically when changin the title later... yeah, shoot
+	me.
+	(do_copy): Use "Opening..." logical id from hildon-fm.
+
+	* src/apt-worker-proto.h (apt_proto_able_status): Added
+	status_conflicting.
+	* src/apt-worker.cc (installable_status_1, installable_status):
+	Return it when appropriate.
+	* src/main.cc (annoy_user_with_installable_status_details):
+	Produce error message for it.
+
+	* src/apt-worker.cc (cmd_get_file_details): Add information about
+	the installed version of the package.
+	(check_installable): Output explanation about non-user packages to
+	the log.
+	
+	* src/main.cc (get_package_list_with_cont): New.
+	(get_package_list_reply): Call cont when everything has been done.
+	Also, switch to parent view in more cases, as appropriate.
+	(refresh_package_list_with_cont): New.
+	(refresh_package_list_reply): use get_package_list_with_cont to
+	invoke our cont when everything has been done.
+	(refresh_package_list): Update last_updated and save it even when
+	user declines to do the update.
+
+	(install_from_file_reply, install_from_file_cont4): Say "updating"
+	instead of "installing" when the package is already installed.
+	(install_from_file_cont): Free uri string, as required.
+	
+	New MIME type for 'single-click install', named repositories.
+	
+        * src/instr.h, src/instr.cc: New.
+	* src/Makefile.am: Add them.
+	
+	* osso-application-installer.desktop (MimeType): Also list
+	"application/x-install-instructions".
+	* osso-application-installer.xml: Define it here.
+	* src/main.h, src/main.cc (install_named_package): New.
+	(mime_open_handler): Call open_install_instructions for files
+	ending with ".install"
+
+	* src/repo.h, src/repo.cc (maybe_add_repo): New.
+	(repo_line): Added name member.
+	(repo_line::repo_line): Do not handle parsing of "#maemo:" lines
+	here.
+	(sources_list_reply): Do the parsing here.  Launch into the "Add
+	catalog" routine when requested instead of into the "Catalog"
+	dialog routine.
+	(repo_encoder): Output "#maemo:" flags explicitely.
+	(repo_closure::find_repo): New.
+	(repo_edit_closure): Added readonly member.
+	(repo_edit_response): Don't do anything about the repo_line when
+	the dialog is readonly.  Use proper logical IDs.  Handle name
+	attribute.
+	(add_entry): Added autocap and readonly parameters.
+	(show_repo_edit_dialog): Added readonly parameter.  Construct
+	dialog accordingly.  Show name when ui version is at least 2.
+	(repo_text_func): Show name instead of deb_line when there is one.
+	
+2006-04-11  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* configure.ac (AI_DEPS): Use obex-vfs-utils.
+	(DEB_HOST_ARCH): New, for architecture checking of standalone
+	files.
+	* debian/control (Build-Depends): Added osso-gnomevfs-extra-dev.
+
+	* src/main.cc (get_package_list_reply): If current view becomes
+	empty, switch to parent.
+	(refresh_package_cache_reply): Always call get_package_list, even
+	when refresh failed.
+	(annoy_user_with_result_code): New.
+	(install_package_reply): Use it.
+	(install_check_reply): Display correct error message, depending on
+	whether this is an upgrade or an installation.
+	(annoy_user_with_installable_status_details): New.
+	(install_package_cont2): Use it.
+	(annoy_user_with_removable_status_details): New.
+	(uninstall_package_doit): Use it.
+	(install_from_file_reply, install_from_file_cont4,
+	install_from_file_cont3, file_details_reply, file_details_reply):
+	Call cleanup_temp_file appropriately.
+	(install_from_file_fail): Use
+	annoy_user_with_installable_status_details (N26424).
+	(file_details_reply): Don't filter non-user packages here, this is
+	now done by apt-worker.
+	Produce appropriate summary for installable_status.
+	(main): Don't call maybe_refresh_package_cache ();
+	(make_upgrade_applications_view): But call it here.
+
+	* src/apt-worker-proto.h (apt_proto_able_status): New.
+	(apt_proto_package_info): Renamed installable to
+	installable_status and removable to removable_status.  Updated all
+	users to use apt_proto_able_status codes with them.
+	(apt_proto_result_code): New.
+	(APTCMD_UPDATE_PACKAGE_CACHE, APTCMD_INSTALL_PACKAGE): Specify
+	that they uses apt_proto_result_code as the return value.
+	(APTCMD_GET_FILE_DETAILS): Added only_user parameter.  Updated all
+	callers.  Use apt_proto_able_status in return values.
+
+	* src/apt-worker.cc (installable_status_1, installable_status,
+	removable_status): New.
+	(cmd_get_package_info): Use them to fill status fields in
+	response.
+	(update_package_cache): Return result code.  Call cache_init
+	always once the BuildCaches has been called.  Don't abort when
+	cleaning old files fails.
+	(cmd_update_package_cache): Return result code in response.
+	(operation, operation_1): Merged these two. cache_init is now
+	called by the individual command handlers, errors are dumped by
+	the handler loop.  Return result code instead of a boolean.
+	Updated all callers.
+	(cmd_install_package): Return result code in response.
+	(check_and_encode_missing_dependencies): Return able_status
+	instead of boolean.  Updated all callers.
+	(combine_status): New.
+	(check_installable): Return able status.  Check for user packages
+	if requested.  Check for correct architecture.
+	(cmd_get_file_details): Create fake response for corrupted packages.
+	Handle only_user parameter.
+	
+	* src/apt-worker-client.h, apt-worker-client.cc
+	(apt_worker_get_file_details): Added only_user parameter.  Updated
+	all callers.
+
+	* src/details.h, src/details.cc (show_package_details): Added
+	show_problems paramater.  Updated all callers.
+	(show_with_details): Switch notebook to problems page when
+	show_problems is true.
+
+	Support installing from remote files.
+	
+	* src/util.h, src/util.cc (cleanup_temp_file): New.
+	(currently_annoying_user): New.
+	(annoy_user_response, annoy_user,
+	annoy_user_with_details_response, annoy_user_with_details,
+	annoy_user_with_log_response, annoy_user_with_log): Maintain it
+	and do nothing when it is true.
+	(copy_copy_cont, copy_progress, do_copy): New, with lots of global
+	state.
+	(localize_file): Use it to really copy remote files.
+	
+	* src/repo.cc (show_repo_edit_dialog): Show help for "New" dialog
+	also for "Edit" dialog since there is no help for the latter.
+
+2006-04-10  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/settings.cc (SETTINGS_FILE): Changed location to be inside
+	.osso/ so that it is automatically backed up.
+
+2006-04-07  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.13, skipped 4.12.
+	
+	* src/util.cc (get_http_proxy): Use http_proxy envvar when gconf
+	says there is no proxy.
+
+2006-04-07  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/util.h, src/util.cc (localize_file): Make uri parameter
+	const.
+
+2006-04-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/repo.cc (add_entry): Set "autocap" to FALSE for all entry
+	widgets.
+
+	* src/apt-worker.cc (main): Be 20 clicks nicer.
+
+	* src/main.cc (main): Set application name to "" to get rid of the
+	two part title.
+
+	Released 4.11
+
+	* Makefile.am (mo_DATA, noinst_DATA): Don't install the engb .mo
+	file.
+	* src/Makefile.am (install-exec-local): Use $(DESTDIR), stupid.
+	
+2006-04-05  Marius Vollmer  <marius.vollmer@nokia.com>
+	
+	* src/menu.h, src/menu.cc (create_package_menu): New.
+	* src/util.h, src/util.cc (make_global_package_list): Use it to
+	set the tap and hold menu.  Added op_label parameter for this;
+	udated all callers.
+
+	* src/menu.h, src/menu.cc (set_search_menu_sensitive): New.
+	* src/main.cc (enable_search): Call it.
+
+	* src/details.cc (nicify_description_in_place): New.
+	(get_package_details_reply): Use it.
+
+	Fix searching.
+
+	* src/main.cc (struct view): Removed path member.  Updated all
+	initialisations.
+	(show_view): Construct from fresh every time since views might
+	change their parent.
+	(search_packages_reply): Fix by decoding leading success int of
+	response.  First collect results and only switch the search
+	results view when there are some.  Otherwise show information
+	banner.  Free old search results only when actually having new
+	ones.
+	(search_packages): Likewise for the the searches in package names
+	only.
+
+	Add new repositories at the end.  Dim Edit and Delete buttons for
+	essential repositories.
+	
+	* src/repo.cc (repo_closure): Added edit_button and delete_button
+	members to aid in dimming those buttons for essential
+	repositories.  Added lastp member to aid in adding to the end of
+	the list.
+	(add_new_repo): Add new repo to the end.
+	(remove_repo): Maintain lastp.
+	(repo_response): Don't check for essential repos here, the button
+	are insensitive for them.
+	(repo_row_activated): Use information banner with the correct
+	logical id instead of note.
+	(repo_selection_changed): New, dim buttons appropriately.
+	(make_repo_list): Connect repo_selection_changed.
+	(insensitive_press): New.
+	(sources_list_reply): Use it for the Edit and Delete buttons.
+	
+	Launcherized osso-application-installer.
+	
+	* src/Makefile.am (bin_PROGRAMS): Renamed
+	osso-application-installer to osso-application-installer.launch.
+	(osso_application_installer_launch_CFLAGS,
+	osso_application_installer_launch_LDFLAGS,
+	osso_application_installer_launch_CXXFLAGS): Add launcherizing
+	flags.
+	(install-exec-local): Make launcherizing symlink.
+	
+	* debian/control: Depend on maemo-launcher.
+
+2006-04-04  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Maemo-launcherize maemo-confirm-text.
+	
+	* configure.ac (LAUNCHER_CFLAGS, LAUNCHER_LDFLAGS): New.
+	* utils/Makefile.am: Renamed maemo-confirm-text.user to
+	maemo-confirm-text.launch.
+	(maemo_confirm_text_launch_CFLAGS,
+	maemo_confirm_text_launch_LDFLAGS): Use new flags to really turn
+	maemo-confirm-text.user into maemo-confirm-text.launch.
+	* utils/maemo-confirm-text-user.c (fill_text_buffer_from_file):
+	Don't support "-" since the launcher does not support it, either.
+	* utils/maemo-confirm-text: Use maemo-invoker to call
+	maemo-confirm-text.launch.
+
+	* debian/control: Merged bugfix from 4.10-build-depends-fix.
+
+	* src/settings.h, src/setting.cc (fullscreen_toolbar,
+	normal_toolbar): Added.
+	(load_settings): Load them.
+	(save_settings): Save them.
+	(make_updates_tab): Use a HildonCaption (N25613).
+	
+	* src/menu.cc (create_menu): Initialize toolbar checkboxen from
+	settings.
+
+	* src/main.cc: Use "updating" logical IDs instead of the
+	"installing" ones when the operation is in fact an update.
+	(fullscreen_toolbar_visibility, normal_toolbar_visibility): Removed.
+	(set_toolbar_visibility): Use new global settings instead.
+	
+	* src/main.cc (make_install_applications_view): Show package list
+	directly when there is only one category.  Refresh package cache
+	here.
+	(make_install_section_view): Don't do it here.
+	(get_package_details_reply): If less than
+	MAX_PACKAGES_NO_CATEGORIES are in the "all" category, use only
+	that category and forget about the rest.
+
+	* src/repo.cc (repo_reply): use ai_ni_operation_failed instead of
+	ai_ni_error_general.
+
+	* src/main.h (section_info): Renamed 'name' member to
+	symbolic_name.  Added new 'name' member that points to the UI
+	string.  Updated all users to use the right one.
+	(canonicalize_section_name, nicify_section_name): Split off
+	subsection extraction from latter into former.
+	(find_section_info): Use canonicalize_section_name for the
+	symbolic name, and nicify_section_name for the UI name.  Added
+	allow_all parameter and change section to "other" when it is "all"
+	but not allowed.
+	(get_package_details_reply): Put all new packages into the
+	artificial "all" section.
+	(sort_all_packages): Exclude "all" section when sorting sections.
+	* src/util.cc (make_global_section_list): Do not call
+	nicify_section_name since we have the UI string already.
+	
+	* src/details.cc (show_with_details): Use correct logical ids
+	instead of ai_va_details_updating_requires,
+	ai_va_details_updating_frees, ai_fi_packages_install,
+	ai_fi_packages_update, ai_fi_packages_uninstall.
+
+	* Makefile.am (mo_DATA): Install en_GB translation.
+
+2006-03-31  Marius Vollmer  <marius.vollmer@nokia.com>
+
+        Released 4.10
+	
+	* src/main.h, src/main.cc
+	(section_info): Added reference counting; updated all users.
+	The name member is now allocated and not nicified.
+	(cur_section): Removed.
+	(cur_section_name): Use this instead.
+	(view_section): Set cur_section_name here.
+	(make_install_section_view): Use it here to find the current
+	section_info struct.
+	(find_section_info): Added create parameter, updated callers.
+	(set_install_section_name): Nicify the view label here.
+	* src/util.cc (make_global_section_list): Nicify section name here.
+	
+	* src/details.cc (get_package_details_reply): Don't recode
+	maintainer name.
+
+	* src/apt-worker-proto.h, src/apt-worker-proto.cc: Specify that
+	strings are in UTF-8.
+	(apt_proto_decoder::decode_string_in_place): Check for UTF-8
+	validity and correct if necessary.
+
+	* src/apt-worker.cc (install_file): Call cache_init after
+	everything has been done.
+
+2006-03-30  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker-client.cc (apt_worker_update_cache_cont): Show
+	error message when network connection could not be established.
+
+	* src/hildonbreadcrumbtrail.c (hildon_bread_crumb_trail_set_path):
+	Set button widget name to "osso-breadcrumb-button".  Make arrow
+	smaller.
+
+	* src/main.h, src/main.cc (AI_TOPIC, set_dialog_help, show_help):
+	New.
+	(enable_search, set_current_help_topic): New.  Call them in all
+	view makers to use them appropriately.
+	(make_main_view): Use logical id instead of "Repository".
+	(nicify_section_name): Try to get translation for category name.
+	(refresh_package_cache_reply, install_package_reply,
+	install_package_cont5, install_package_cont2,
+	uninstall_package_cont2, install_from_file_cont4): Notice a
+	cancelled operation and show appropriate info note.
+	(refresh_package_cache_cont): Remember time etc of this refresh
+	also when it was cancelled or unsuccessful.
+	(main): Show info banner when insensitive things in the toolbar
+	are pressed.
+	
+	* src/settings.cc (show_settings_dialog): Activate help.
+	* src/search.cc (show_search_dialog): Likewise.
+	* src/repo.cc (show_repo_edit_dialog, sources_list_reply): Likewise
+	* src/log.cc (show_log): Likewise.
+	* src/details.cc (show_with_details): Set parent of dialog.
+	Activate help.
+
+	* src/util.h, src/utils.cc (ask_yes_no_with_details): Use a
+	GtkDialog.  Added title parameter for that.  Changed all callers
+	to provide the correct title.
+	(scare_user_with_legalese): Added 'sure' parameter and display the
+	certain or uncertain version of the text accordingly.  Changed
+	callers.  Create a dialog, not a confirmation note.
+	(progress_was_cancelled, progress_cancelled): New.
+	(set_progress): Never make cancel button insensitive.
+	(cancel_response): Make decisison whether to cancel here and show
+	info banner when not doing it.  Set progress_cancelled.
+	(show_progress): Reset progress_cancelled.
+	(default_icon): New.
+	(global_icon_func): Fetch default icon if needed.  Use it as
+	default.
+	
+	* configure.ac (AI_DEPS): Addd libossohelp.
+	(AW_DEPS): New, to get rid of dependencies on UI libraries in
+	apt-worker.
+
+	* src/Makefile.am (apt_worker_CFLAGS, apt_worker_CXXFLAGS,
+	apt_worker_LDADD): Use AW_DEPS instead of AI_DEPS.
+
+2006-03-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.9
+	
+	* src/apt-worker.cc (get_field): Return string by setting start
+	and end pointers, not as a pointer into a dead C++ 'string'.
+	Changed callers.
+	(get_field_int, encode_field): New.
+	(check_and_encode_missing_dependencies): Expect start and end
+	pointers.
+	(make_file_details_response): Use encode_field and get_field_int
+	instead of long-hand.
+
+	* src/apt-worker-proto.cc, src/apt-worker-proto.h
+	(apt_proto_encoder::encode_stringn,
+	apt_proto_encoder::encode_mem_plus_zeros): New.
+	(apt_proto_encoder::encode_mem, apt_proto_encoder::encode_mem):
+	Use them respectively.
+	
+	* src/hildonbreadcrumbtrail.c (hildon_bread_crumb_trail_set_path):
+	Set name of buttons, do not unset relief, make padding smaller.
+
+	* src/main.cc (install_check_reply): Hide progress when apt-worker
+	has failed.
+
+2006-03-24  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 4.8
+	
+	* src/main.cc (hw_state_handler): New.
+	(main): Register it.
+	(refresh_package_cache_reply, status_callback): Handle cancelling
+	of request.
+	
+	* src/util.h, src/util.cc (set_progress): Changed arguments to
+	match APTCMD_STATUS responses.  Updated all callers.  Dim cancel
+	button when not in op_downloading.
+	(iap_callback): Cancel apt-worker when disconnected and the
+	current operation is op_downloading.
+	
+	* src/apt-worker-client.cc (cancel_request,
+	cancel_all_pending_requests): New.
+	(notice_apt_worker_failure): Call cancel_all_pending_requests, put
+	up error note.
+	(call_apt_worker): Use cancel_request instead of doing it
+	explicitely.
+
+	* utils/maemo-list-user-packages: New.
+	* utils/Makefile.am (bin_SCRIPTS): Added it.
+
+	* configure.ac: Check for gnome-vfs-2.0 module.
+
+	* src/main.h, src/main.c (present_main_window): New.
+	(install_check_reply, install_package_cont3,
+	install_package_cont4): Retrieve upgraded packages and call
+	checkrm scripts.
+	(check_uninstall_scripts2): Include package name in dialog text.
+	(mime_open_handler): Call present_main_window.
+	(set_fullscreen): Use gtk functions for fullscreening.
+	(fullscreen_state_change, window_state_event): Replaced former
+	with latter.
+	(key_press_event): New.
+	(main): Connect new event handlers.
+	
+	* src/util.h, src/util.cc (push, pop): New.
+	* src/util.cc (pulse_progress): Return TRUE so that the pulsing
+	doesn't stop.
+	(show_progress): Call start_pulsing always, not only when the
+	dialog already exists.
+	(set_progress): Pulse when fraction is negative, stop pulsing
+	otherwise.
+	(localize_file): Use GnomeVFS to parse the URI and unescape it.
+
+	* src/apt-worker.cc (encode_upgrades): New.
+	(operation_1): Call it when checking only.  Also, send -1 as
+	percentage when starting the real operation so that the progress
+	bar starts pulsing.
+	
+2006-03-22  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (get_icon, make_file_details_response): The
+	icon field is now named "Maemo-Icon-26".
+
+2006-03-16  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (handle_request): Only set http_proxy when the
+	value is non-NULL.
+
+	* src/apt-worker-client.h (cancel_apt_worker): Added prototype.
+
+	* src/util.cc (cancel_response): New.
+	(show_progress): Connect it to cancel button.
+	(pulse_id, pulse_progress, start_pulsing, stop_pulsing): New, used
+	to pulse before the first real status response.
+	(iap_callback): Don't call callback for disconnect message, data
+	is invalid then.
+	
+	* configure.ac: Check for gconf-2.0 module.
+
+	* osso-application-installer.desktop (Name): Use logical id.
+
+	Pass http_proxy to apt-worker when needed.
+	
+	* src/apt-worker-proto.h: Added http_proxy parameter to
+	APTCMD_UPDATE_PACKAGE_CACHE and APTCMD_INSTALL_PACKAGE.
+	* src/util.h, src/util.cc (get_http_proxy): New.
+	* src/apt-worker-client.cc (apt_worker_update_cache_cont,
+	apt_worker_install_package_cont): Use it to pass the http proxy to
+	apt-worker.
+	* src/apt-worker.cc (handle_request): Set http_proxy envvar for
+	APTCMD_UPDATE_PACKAGE_CACHE and APTCMD_INSTALL_PACKAGE.
+	
+	* utils/maemo-confirm-text-user.c (main): Bugfix: correctly use
+	'file' parameter instead of argv[1].
+
+	* utils/maemo-confirm-text: Only "su" when invoked as root,
+	otherwise just run maemo-confirm-text.user.
+
+2006-03-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* utils/Makefile.am: Removed check-application-for-uninstall,
+	added maemo-application-running and maemo-confirm-text.
+
+	* src/repo.cc (add_new_repo): Provide defaults for distribution
+	and components.
+
+	* src/main.cc: Use HildonWindow instead of HildonApp and
+	HildonAppview.  Thanks to Johan Bilien!
+
+	* src/apt-worker-client.h, src/apt-worker-client.cc,
+	src/apt-worker-proto.h, src/apt-worker.cc, src/main.cc: Changed
+	identification of user packages; now we look at the component, not
+	the category, and the value should be "user", not "maemo".
+	Changed parameter name of GET_PACKAGE_LIST request from
+	"only_maemo" to "only_user".
+
+2006-03-10  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	General improvement of robustness in failure cases.  Bring up
+	network when needed.  Changed scheme for identifying user
+	packages.
+	
+	* configure.ac: Include osso-ic PKG_CHECK_MODULES.
+	* debian/control: Include osso-ic-dev in Build-Depends.
+	
+	* settings.cc: Removed "clean_after_install" setting from UI.
+
+	* main.h, main.cc, util.cc, apt-worker-proto.h, apt-worker.cc:
+	Return short descriptions and icons in the GET_PACKAGE_LIST
+	response, not in the GET_PACKAGE_INFO response.  Expect these
+	values to always be valid, not only when have_info is true.
+
+2006-03-09  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* configure.ac: Include hildon-fm in PKG_CHECK_MODULES since the
+	hildon_file_chooser_dialog has been moved from hildon-libs to
+	hildon-fm.
+
+2006-03-08  Marius Vollmer  <marius.vollmer@nokia.com>
+
+        * util.h, util.c (all_white_space): New function.
+	
+	* src/repo.cc (repo_edit_response): Disallow empty URLs and
+	distributions.
+
+	* utils/check-application-for-uninstall.c: Proper parsing of
+	command line options.  Look into /proc to find the executable.
+	Include application name in dialog.
+
+2005-12-09  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Started from scratch, thus no detailed ChangeLog entries until the
+	code settles a bit.

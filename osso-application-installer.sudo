@@ -1,0 +1,8 @@
+#! /bin/sh
+if [ -f /targets/links/scratchbox.config ]; then
+  SUDO=fakeroot
+else
+  SUDO=sudo
+fi
+
+exec $SUDO /usr/bin/run-standalone.sh /usr/bin/osso-application-installer

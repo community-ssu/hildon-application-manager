@@ -1,0 +1,220 @@
+This is osso-application-installer, version 4
+=============================================
+
+[ About versions:
+
+  1.x initial 'prototype'
+
+  2.x working version of 1.x series with app-installer tool
+
+  3.x intermediate version with the UI of 2.x that uses system-wide
+      package management tools
+
+  4.x completely new design that uses libapt-pkg and repositories
+]
+
+The osso-application-installer is a program to manage user packages in
+the OSSO platform.  It uses the system-wide package management tools
+(thru libapt-pkg) and presents a 'end user oriented' interface to
+them.
+
+The package management tools are powerful enough to manage the whole
+system, but osso-application installer is not intended to offer that
+power to the user.  If you want it, synaptic is quite easy to compile
+and runs reasonable well on the 770...
+
+Osso-application-installer is intended to be fully compatible with
+existing and future interfaces for package management.  It should be
+possible to, for example, freely alternate between apt-get, synaptic
+and osso-application installer and not have anything break.
+
+
+Documentation
+-------------
+
+Technical documentation can be found in the doc/ directory.  It mostly
+explains how the apt technology is used in the context of maemo and
+how it has been extended.  There are two documents:
+
+- packaging.txt
+
+  For package maintainers; explains things like how to make the
+  Application installer not hide your package from the user, how to
+  associate an icon with it, etc.
+
+- repository.txt
+
+  For repository maintainers; explains things like how to "certify"
+  parts of a repository, etc.
+
+
+About the implementation
+------------------------
+
+If you want to dive into the code, this is your spring board (aka "The
+Design Document").  This section gives a high level overview of the
+implementation, highlights general principles and then describes how
+the code is divided into files.  Further documentation of internal
+APIs etc. is contained in the appropriate source code files.
+
+
+The essential library that provides the actual package management
+functionality is libapt-pkg.  It is used by the Application installer
+in the same way as apt-get, Synaptic and aptitude use it and its use
+integrates the Application installer seamlessly into the system-wide
+package management.
+
+The Application installer runs as two processes: The first process
+implements the GUI and runs as the user who started the Application
+installer.  The second process is started in the background and is the
+one that actually links to libapt-pkg and does all the package
+management work.  It runs as "root".
+
+The first process is called the "frontend", the second one is called
+the "backend".
+
+The frontend starts the backend by executing an appropriate "sudo"
+command (in the Scratchbox environment, fakeroot is used instead).
+The two processes communicate via named fifos using an ad-hoc, binary,
+private protocol.  The frontend also captures stdout and stderr of the
+backend and makes it available to the user as the "Log".
+
+No attempt has been made to restrict access to the backend.  Every
+program, not just the frontend, can start the backend without needig
+to provide any credentials such as the root password.  Since the
+backend can be instructed to execute arbitrary code (via the
+maintainer scripts of a package), having the Application installer in
+your system is like having a globally known password on the root
+account.  This is deemed acceptable for the maemo platform since
+devices built using that platform are not multi-user devices (yet) and
+there is no system administrator.  Privilege separation is used only
+to contain damage in the case of accidents, not to defend against
+attacks.
+
+The backend is command driven: it reads a request, executes it, ships
+back a respose, and then loops to reads the next request.  It
+asynchronously sends status upates.  Downloads performed by the
+backend are interuptible, but in general commands are not
+interruptible.
+
+The frontend is event driven in the usual way.  It will send requests
+to the backend and then react to it when the result arrives by
+executing a registered callback.  Somewhat unusually, it will just run
+one event loop and no recursive ones for modal dialogs or when waiting
+for a reponse from the backend.  In effect, the control flow is
+implemented in continuation passing style.  (The event loop is the
+trampoline that gives us the desired tail-call elimination for this.)
+
+The motivation for using continuation passing style was to avoid
+spontanous reentry of event callbacks (which are not supported by Gtk+
+and are tricky in general) but still have a fully concurrent 'UI
+experience'.  Thus most of the code does not need to be reentrant,
+which makes it easier to reason about its robustness.
+
+Writing in continuation passing style in C is a bit cumbersome, but
+worth it, in my opinion.
+
+The backend and most of the frontend is written in C++, but a small
+part of the GUI code is plain C to enable easier transportation into
+external libraries or reuse.  Despite the use of C++, this is not a
+object oriented program.  No inheritance, run-time types, exceptions
+or templates are used.
+
+
+The backend is contained in the single file "apt-worker.cc".
+
+The protocol that is used between the frontend and the backend is
+defined in "apt-worker-proto.h".  Support for encoding and decoding it
+'for the wire' is contained in "apt-worker-proto.cc".  These two files
+are used by both the frontend and the backend, but no other source
+files are shared.
+
+The frontend uses global variables without prejudice and in a
+disciplined way.  Being a program (and not a library), the frontend
+naturally has a well defined global state and the knowledge about this
+is exploited to simplify the internal APIs.  For example, the function
+'do_current_operation' takes no parameters and will start the
+installation/upgrading/removal process of the currently highlighted
+package, depending on the currently active view.  However, the global
+package list and the global section list clearly go to far and need to
+be 'unglobalized'.
+
+The frontend implementation is divided into a number of files
+according to easily recognizable UI features.  Internal APIs are
+documented in the header files.
+
+- main.h, main.cc
+
+  Contains the main logic, such as all the views and code for
+  installing/upgrading/removing packages and installing from a file.
+  The header file defines the main data structure used by the
+  frontend: package_info.
+
+- menu.h, menu.cc
+
+  The main menu and the context menu for package lists.
+
+- details.h, details.cc
+
+  The "Details" dialog.
+
+- settings.h, settings.cc
+
+  The "Settings" dialog and loading saving of settings and persistent
+  state.
+
+- search.h, search.cc
+
+  The "Search" dialog.  The actual searching is implemented in main.cc.
+
+- repo.h, repo.cc
+
+  The "Catalogue" dialog.
+
+- log.h, log.cc
+
+  The "Log" dialog.
+
+- instr.h, instr.cc
+
+  For handling the MIME type application/x-install-instructions.
+
+- util.h, util.cc
+
+  A host of general UI and non-UI related utilities such as
+  confirmation dialogs, scrollable text views, progress indicators,
+  etc.
+
+  These files also contain the implementation of the package list and
+  section list functionality.
+
+- hildonbreadcrumbtrail.h, hildonbreadcrumbtrail.c
+
+  A throw-away implementation of the breadcrumb trail 'widget'.  These
+  files might turn one-day into a real, reuseable widget, but right
+  now they only implement the bare necessities.
+
+- apt-worker-client.h, apt-worker-client.cc
+
+  Support for starting the backend and communicating with it.
+
+
+BUGS
+----
+
+- don't rely on apt-worker startup being successful.
+- https needs to be trusted, even without key.
+- use doubles for sizes, maybe
+- dialogs need to be more careful about their parents since Matchbox
+  doesn't preserve the stacking order when switching between windows.
+
+Cleanup
+-------
+
+The code needs a serious cleanup.  For example
+
+- the global package and section list needs to be unglobalized.
+- likewise localize_file_and_keep_it_open.
+- instead of recreating widgets all the time, we should hide/show them.
+- the cps of main.cc is seriously confusing now.  maybe better
+  documentation can help.

@@ -1,0 +1,6 @@
+// This is should be large enough for the maemo SDK mistral
+// repository.  The average space per package in a normal setup 
+// is 250 bytes or so, so 1.6 MB is good for about 6400 packages, give
+// or take, which should be enough for everyone.
+
+APT { Small-Cache-Limit 1600000 };

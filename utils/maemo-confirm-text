@@ -1,0 +1,2 @@
+#! /bin/sh
+exec maemo-invoker /usr/bin/maemo-confirm-text.launch "$@"

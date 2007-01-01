@@ -1,0 +1,22 @@
+{
+  global: 
+	_GLOBAL_OFFSET_TABLE_;
+	__exidx_end;
+	_bss_end__;
+	__bss_start__;
+	__dso_handle;
+	__libc_csu_fini;
+	__exidx_start;
+	_init;
+	__bss_end__;
+	_start;
+	__libc_csu_init;
+	main;
+	__end__;
+	_fini;
+	_edata;
+	_end;
+	_IO_stdin_used;
+	__data_start;
+  local: *;
+};

@@ -1,0 +1,29 @@
+#! /bin/sh
+
+## make-package -- make a Debian package using a separate debian/
+##                 directory.
+
+if test $# -ne 3; then
+  echo 1>&2 "usage: make-package PACKAGE VERSION DEBIAN-DIRECTORY"
+  exit 1
+fi
+ 
+set -e
+set -x
+
+PACKAGE="$1"
+VERSION="$2"
+DEBIAN="$3"
+
+DISTDIR=$PACKAGE-$VERSION
+ABS_DEBIAN=`cd $DEBIAN && pwd`
+
+make dist distdir=$DISTDIR
+tar xzf $DISTDIR.tar.gz
+
+( cd $DISTDIR
+  tar --exclude .svn -C $ABS_DEBIAN -cf - debian | tar xf -
+  dpkg-buildpackage -rfakeroot -uc -us -sa -D
+)
+
+rm -rf $DISTDIR $DISTDIR.tar.gz

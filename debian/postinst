@@ -1,0 +1,54 @@
+#!/bin/sh -e
+
+set -e
+
+## Make sure that sources.list exists.
+
+## If it doesn't exist, we try to rescue the backup made by our
+## preinst.  This allows us to survive a update from a broken package
+## database that doesn't contain conffile information, like the one in
+## IT2006.
+
+if [ ! -f /etc/apt/sources.list ]; then
+  if [ -f /tmp/sources.list-preinst-backup ]; then
+    mv /tmp/sources.list-preinst-backup /etc/apt/sources.list
+  else
+    touch /etc/apt/sources.list
+  fi
+else
+  rm /tmp/sources.list-preinst-backup || true
+fi
+
+add_sudoer ()
+{
+    line="$1"
+    if ! grep -F -q "$line" /etc/sudoers; then
+	echo "+$line"
+	chmod u+w /etc/sudoers # *cough*
+	echo "$line" >>/etc/sudoers
+	chmod u-w /etc/sudoers
+    fi
+}
+
+## Add line to sudo so that "user" can run "apt-worker" as
+## "root".
+##
+## KEEP THIS IN SYNC WITH prerm
+
+add_sudoer 'user ALL = NOPASSWD: /usr/libexec/apt-worker'
+
+if [ -x /usr/bin/update-mime-database ]; then
+ update-mime-database /usr/share/mime
+fi
+
+if [ -x /usr/bin/osso-update-category-database ]; then
+ osso-update-category-database /usr/share/mime
+fi
+
+if [ -x /usr/bin/update-desktop-database ]; then
+ update-desktop-database
+fi
+
+#DEBHELPER#
+
+exit 0

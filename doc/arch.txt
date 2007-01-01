@@ -1,0 +1,158 @@
+Introduction
+------------
+
+This is the architecture description of the Application Installer
+application and its supporting components.
+
+The supporting components are apt and GnuPG.  This document considers
+them to be part of the subsystem and not as external dependencies.
+The end-user oriented GUI program that these components are supporting
+is termed "the GUI" in the following.
+
+
+System context
+--------------
+
+* Functionality provided by the subsystem
+
+The Application Installer allows the end-user to browse a externally
+provided catalog of software components, to install those components
+to the device filesystem, and to browse/upgrade/remove components that
+have been installed in that way.  The Application Installer does not
+aim to manage all software components that make up the Internet Tablet
+2006 OS.  This is reflected in the design of the GUI, but dpkg and apt
+are not restricted in any way.
+
+* Software context
+
+The Appliction Installer is not used by other components in the
+system.
+
+The GUI is a regular hildonized program with no unusual dependencies.
+It is a mime handler for .deb files and listens for events on D-BUS
+for this.  It appears in the "Others" menu in the Task Navigator and
+is started as a D-BUS service.
+
+For some access to local files, GnomeVFS might be used.
+
+Part of the GUI runs as root and is started via "sudo".
+
+The actual package management is ultimately carried out by dpkg.
+
+
+System decomposition view
+-------------------------
+
+* Top-level view of Application Installer subsystem
+
+The Application installer decomposes into the following functional
+parts:
+
+ - The "osso-application-installer" program, "oai" in the sequel.
+
+ - The "apt-worker" program.
+
+ - The "libapt-pkg" library.
+
+ - The "gpgv" program.
+
+ - The "gnupg" program.
+
+Oai is started when "Application Installer" is selected from the
+"Others" menu or in response to a "mime-open" D-BUS request.  In turn,
+it starts apt-worker via sudo so that apt-worker runs as root.  Oai
+and apt-worker communicate over pipes using a private protocol.
+
+Apt-worker is linked to libapt-pkg and uses it to perform all
+operations related to the actual package management, like querying the
+package data base, accessing repositories, managing the list of
+repositories and running dpkg.  The stdout and stderr output of
+apt-worker is caught by oai and made available to the user on request.
+
+Libapt-pkg can optionally use gpgv to verify digital signatures.  Gpgv
+then runs as a subprocess of apt-worker.
+
+Gnupg can optionally be used to manage the key-ring used by
+libapt-pkg.  Gnupg would then be called by root from the command line.
+
+
+Runtime view
+------------
+
+The normal course of actions can be illustrated by following the
+process of installing a new package.
+
+ - The user opens the "Application Installer", which starts a new
+   process runnining oai.
+
+ - Oai runs apt-worker as a subprocess via sudo.
+
+ - Oai sets up the UI and goes to the usual event loop, doing
+   everything in callbacks.
+
+ - Apt-worker initializes libapt-pkg and reads the package database
+   cache.
+
+ - Apt-worker then goes into a loop, reading requests from oai and
+   sending back responses.  It only handles one request at any one
+   time.
+
+ - The user clicks on "Install Applications".
+
+ - Oai sends a request to apt-worker asking for the list of installed
+   user packages.  Oai resumes its normal event loop after sending the
+   request and executes a callback when the response comes.
+
+ - When the response comes, oai fills its own data structures and
+   presents the appropriate list to the user.
+
+ - Right after showing the list oai sends a request to apt-worker for
+   more information about the first package in the list.  This
+   additional information is more expensive to compute and includes
+   things like whether all dependencies of a package are available and
+   if so, how much data needs to be downloaded when actually
+   installing the package.
+
+ - While the response is outstanding, oai continues to handle events
+   in the normal fashion.
+
+ - When the response comes, oai augments its data structures and the
+   displayed list with that additional information.  It then sends a
+   similar request for the next package in the list until all packages
+   are covered or the user goes to another view.
+
+ - The user asks for the details of a particular packages.
+
+ - Again, oai sends a request for this information to apt-worker and
+   when the response comes, presents this information to the user.
+
+ - The user decides to install the package.
+
+ - Again, this request is forwarded to apt-worker.
+
+ - Apt-worker uses libapt-pkg to perform the requested operation,
+   which will in turn run dpkg and maybe gpgv as subprocesses.
+   Progress reports are send to oai over the request/response channel.
+
+ - Output of dpkg, gpgv, the maintainer scripts of packages etc and
+   additional status information from libapt-pkg appears on stdout and
+   stderr of apt-worker and is collected by oai.
+
+ - Maintainer scripts of packages might interact with the user at this
+   point by accessing the X-Server in the usual way.
+
+ - When the operation has finished and oai has received the
+   corresponding response from apt-worker, oai will re-request the
+   list of packages and reinitialize its internal data structures.
+
+Cancellation of requests sent to apt-worker has not been considered
+extensively yet.
+
+
+Security view
+-------------
+
+Apt-worker runs as root and can be used easily to perform arbitrary
+actions as root; it provides instant privilege escalation.  Thus,
+being "user" is equivalent to being "root" (security-wise) when
+apt-worker is present in the system.

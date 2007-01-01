@@ -1,0 +1,7 @@
+#! /bin/sh
+
+set -e
+
+if [ -f /etc/apt/sources.list ]; then
+  cp /etc/apt/sources.list /tmp/sources.list-preinst-backup
+fi
