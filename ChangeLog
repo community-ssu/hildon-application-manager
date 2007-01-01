@@ -1,5 +1,7 @@
 2007-01-01  Marius Vollmer  <mvo@zagadka.de>
 
+	* Makefile.am: Don't install and distribute certified.list.
+
 	The great renaming.
 	
 	* src/apt-worker.cc (save_auto_flags, load_auto_flags): Put auto
