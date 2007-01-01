@@ -1275,7 +1275,7 @@ install_package_cont3 (bool res, void *data)
       if (res)
 	{
 	  char *cmd =
-	    g_strdup_printf ("/var/lib/osso-application-installer/info/%s.checkrm",
+	    g_strdup_printf ("/var/lib/hildon-application-manager/info/%s.checkrm",
 			     name);
       
 	  char *argv[] = { cmd, "upgrade", version, NULL };
@@ -1850,7 +1850,7 @@ check_uninstall_scripts2 (int status, void *data)
       c->cur_name = name;
 
       char *cmd =
-	g_strdup_printf ("/var/lib/osso-application-installer/info/%s.checkrm",
+	g_strdup_printf ("/var/lib/hildon-application-manager/info/%s.checkrm",
 			 name);
       
       char *argv[] = { cmd, "remove", NULL };
@@ -2481,7 +2481,7 @@ main_window_realized (GtkWidget* widget, gpointer unused)
      name.
   */
   XStoreName (GDK_WINDOW_XDISPLAY (win), GDK_WINDOW_XID (win),
-	      "osso-application-installer");
+	      "hildon-application-manager");
 }
 
 static void
@@ -2879,7 +2879,7 @@ main (int argc, char **argv)
 
   /* XXX - check errors.
    */
-  osso_ctxt = osso_initialize ("osso_application_installer",
+  osso_ctxt = osso_initialize ("hildon_application_manager",
 			       PACKAGE_VERSION, TRUE, NULL);
 
   osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);

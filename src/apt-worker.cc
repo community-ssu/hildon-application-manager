@@ -732,13 +732,13 @@ save_auto_flags ()
   if (package_cache == NULL)
     return;
 
-  if (mkdir ("/var/lib/osso-application-installer", 0777) < 0 && errno != EEXIST)
+  if (mkdir ("/var/lib/hildon-application-manager", 0777) < 0 && errno != EEXIST)
     {
-      log_stderr ("/var/lib/osso-application-installer: %m");
+      log_stderr ("/var/lib/hildon-application-manager: %m");
       return;
     }
 
-  FILE *f = fopen ("/var/lib/osso-application-installer/autoinst", "w");
+  FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "w");
   if (f)
     {
       pkgDepCache &cache = *package_cache;
@@ -773,7 +773,7 @@ load_auto_flags ()
   for (unsigned int i = 0; i < package_count; i++)
     package_flags[i].autoinst = false;
 
-  FILE *f = fopen ("/var/lib/osso-application-installer/autoinst", "r");
+  FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "r");
   if (f)
     {
       pkgDepCache &cache = *package_cache;
@@ -1078,7 +1078,7 @@ cache_reset ()
 }
 
 /* Mark a package for installation, using a 'no-surprises' approach
-   suitable for the Application installer.
+   suitable for the Application Manager.
 
    Concretely, installing a package will never automatically remove
    other packages.  Thus, we undo the removals scheduled by
@@ -1357,7 +1357,7 @@ cmd_get_package_list ()
       // example, those that have been forcfully installed despite
       // missing dependencies.  This is probably OK for now since only
       // the former kinds of brokenness should be producable with the
-      // Application installer anyway.
+      // Application Manager anyway.
       //
       response.encode_int (pkg.State ()
 			   != pkgCache::PkgIterator::NeedsNothing);
@@ -2072,7 +2072,7 @@ static GList *certified_uri_prefixes = NULL;
 void
 read_certified_conf ()
 {
-  const char *name = "/etc/osso-application-installer/certified.list";
+  const char *name = "/etc/hildon-application-manager/certified.list";
 
   FILE *f = fopen (name, "r");
 

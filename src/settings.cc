@@ -54,7 +54,7 @@ bool normal_toolbar = true;
 int  force_ui_version = 0;
 int  ui_version = 0;
 
-#define SETTINGS_FILE ".osso/appinstaller"
+#define SETTINGS_FILE ".osso/hildon-application-manager"
 
 static FILE *
 open_settings_file (const char *mode)
