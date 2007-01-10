@@ -98,7 +98,7 @@ void get_package_list ();
 void get_package_list_with_cont (void (*cont) (void *data), void *data);
 void show_current_details ();
 void do_current_operation ();
-void install_named_package (const char *package);
+void install_named_package (const char *package, void (*cont) (void *data), void *data);
 void refresh_package_cache (bool ask);
 void refresh_package_cache_with_cont (bool ask,
 				      void (*cont) (bool res, void *data), 

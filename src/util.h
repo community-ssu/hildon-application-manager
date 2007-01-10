@@ -113,8 +113,12 @@ void ask_yes_no_with_arbitrary_details (const gchar *title,
 					void *data);
 
 void annoy_user (const gchar *text);
+void annoy_user_with_cont (const gchar *text, void (*cont) (void *data), void *data);
 void annoy_user_with_details (const gchar *text,
 			      package_info *pi, detail_kind kind);
+void annoy_user_with_details_with_cont (const gchar *text,
+					package_info *pi, detail_kind kind,
+					void (*cont) (void *data), void *data);
 void annoy_user_with_log (const gchar *text);
 void annoy_user_with_errno (int err, const gchar *detail);
 void annoy_user_with_gnome_vfs_result (GnomeVFSResult result,
@@ -254,7 +258,7 @@ GtkWidget *make_small_label (const char *text);
   regardless of whether it is currently being displayed or not.
 */
 
-typedef void package_info_callback (package_info *);
+typedef void package_info_callback (package_info *, void (*cont) (void *data), void *data);
 
 GtkWidget *make_global_package_list (GList *packages,
 				     bool installed,

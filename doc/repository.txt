@@ -45,7 +45,7 @@ This manual task can be automated by providing a file of mime type
 "application/x-install-instructions" and have the user open it with
 the AM.
 
-Files with the extension ".install" are recognized by the Internt
+Files with the extension ".install" are recognized by the Internet
 Tablet OS to have the mime type "application/x-install-instructions",
 but you might also need to configure your web server accordingly.
 
@@ -65,7 +65,7 @@ comparison without any intelligence: if you put two spaces in the
 "deb" line instead of one, the strings are considered different.  This
 test might get smarter in the future.
 
-The .install file can also contain the name of a package, like so:
+The .install file can also contain the name of one or more packages, like so:
 
 <pre>
 [install]
@@ -80,6 +80,19 @@ There is no guarantee, tho, that the named package will actually be
 downloaded from the given repository.  If the package is available
 with a later version from other repositories that are listed in
 sources.list, then it will be downloaded from there.
+
+More than one package can be installed from a .install file. Package names
+are separated with semicolons:
+
+<pre>
+[install]
+repo_name = Foo Catalogue
+repo_deb  = deb http://foo.com/maemo mistral user
+package   = foo-app;foo-app2
+</pre>
+
+This file will offer installation of foo-app and foo-app2 from the
+repository.
 
 The "repo_name" entry is optional.  If you omit it, the repository
 will have no name.  The name of a repository is only used in the UI;

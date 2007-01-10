@@ -1,3 +1,34 @@
+2007-01-10  Jose Dapena Paz  <jdapena@igalia.com>
+
+	* src/instr.cc (instr_select_packages_next, 
+	instr_select_packages_cont, instr_select_packages): added
+	stub dataflow to ask for selecting packages to install from a
+	.install file.
+	(instr_cont3, instr_cont2): changes to process more than one
+	package (get char ** instead of char *).
+	(open_local_install_instructions): parse more than one package
+	in the .install file if they're present.
+	* src/util.cc (yes_no_response): support for NULL closure
+	callback.
+	* src/util.cc: support closure callbacks for many dialogs
+	(annoy_user_with_cont instead of annoy_user, 
+	annoy_user_with_details_with_cont instead of
+	annoy_user_with_details). Also prevented more cases for
+	null closures.
+	* src/main.cc: same for all install package procedure. With this
+	we can run dataflows, and set a function to be run when it's
+	finished. It's used to implement sequences of package installing
+	back to back (for example, when you install a .install file with
+	more than one package, next package is installed when the last one
+	has ended).
+	* src/main.cc: add support in the install package and install named
+	package flow to install more than one package.
+	* src/details.cc (show_package_details_with_cont, 
+	show_package_details): also added support for running a callback 
+	after the dialog.
+	* doc/repository.txt: added information about installing more than
+	one package using a .install file.
+
 2007-01-01  Marius Vollmer  <mvo@zagadka.de>
 
 	The great renaming.

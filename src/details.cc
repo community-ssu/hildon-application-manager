@@ -38,6 +38,8 @@ struct spd_closure {
   package_info *pi;
   detail_kind kind;
   bool show_problems;
+  void (*cont) (void * data);
+  void *data;
 };
 
 static const char *
@@ -248,19 +250,30 @@ add_table_list_1 (GtkWidget *table, int row,
   return add_table_list (table, row, title, list);
 }
 
+struct details_closure {
+  void (*cont) (void *data);
+  void *data;
+};
+
 static void
 details_response (GtkDialog *dialog, gint response, gpointer clos)
 {
+  details_closure * closure = (details_closure *) clos;
   pop_dialog_parent ();
   gtk_widget_destroy (GTK_WIDGET (dialog));
+  if (closure->cont)
+    closure->cont(closure->data);
+  delete closure;
 }
 
 static void
-show_with_details (package_info *pi, bool show_problems)
+show_with_details_with_cont (package_info *pi, bool show_problems,
+			     void (*cont) (void *data), void *data)
 {
   GtkWidget *dialog, *notebook;
   GtkWidget *table, *common;
   GtkWidget *summary_table, *summary_tab;
+  details_closure *closure = new details_closure;
 
   gchar *status;
 
@@ -447,8 +460,10 @@ show_with_details (package_info *pi, bool show_problems)
 
   pi->unref ();
 
+  closure->cont = cont;
+  closure->data = data;
   g_signal_connect (dialog, "response",
-		    G_CALLBACK (details_response), NULL);
+		    G_CALLBACK (details_response), closure);
 
   gtk_widget_set_usize (dialog, 600, 320);
   gtk_widget_show_all (dialog);
@@ -456,6 +471,12 @@ show_with_details (package_info *pi, bool show_problems)
   if (show_problems)
     gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook),
 				   problems_page);
+}
+
+static void
+show_with_details (package_info *pi, bool show_problems)
+{
+  show_with_details_with_cont(pi, show_problems, NULL, NULL);
 }
 
 void
@@ -503,11 +524,16 @@ get_package_details_reply (int cmd, apt_proto_decoder *dec, void *clos)
   package_info *pi = c->pi;
   detail_kind kind = c->kind;
   bool show_problems = c->show_problems;
+  void (*cont) (void *data) = c->cont;
+  void *data = c->data;
   delete c;
 
   if (dec == NULL)
     {
       pi->unref ();
+      if (cont != NULL) {
+	cont(data);
+      }
       return;
     }
 
@@ -531,7 +557,7 @@ get_package_details_reply (int cmd, apt_proto_decoder *dec, void *clos)
 
   pi->have_detail_kind = kind;
 
-  show_with_details (pi, show_problems);
+  show_with_details_with_cont (pi, show_problems, cont, data);
 }
 
 void
@@ -548,10 +574,9 @@ spd_cont (package_info *pi, void *data, bool changed)
 				    data);
   else
     {
-      bool show_problems = c->show_problems;
+      show_with_details_with_cont (pi, c->show_problems, c->cont, c->data);
       delete c;
 
-      show_with_details (pi, show_problems);
     }
 }
 
@@ -559,10 +584,21 @@ void
 show_package_details (package_info *pi, detail_kind kind,
 		      bool show_problems)
 {
+  show_package_details_with_cont (pi, kind, show_problems, NULL, NULL);
+}
+
+void
+show_package_details_with_cont (package_info *pi, detail_kind kind,
+				bool show_problems,
+				void (*cont) (void *data),
+				void *data)
+{
   spd_closure *c = new spd_closure;
   c->pi = pi;
   c->kind = kind;
   c->show_problems = show_problems;
+  c->cont = cont;
+  c->data = data;
   pi->ref ();
   get_intermediate_package_info (pi, false, spd_cont, c);
 }

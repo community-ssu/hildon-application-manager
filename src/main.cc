@@ -951,27 +951,31 @@ get_intermediate_package_info (package_info *pi,
 
 static void
 annoy_user_with_result_code (int result_code, const char *failure,
-			     bool upgrading)
+			     bool upgrading,
+			     void (*cont) (void *data), void *data)
 {
-  if (result_code == rescode_success)
+  if (result_code == rescode_success) {
+    if (cont)
+      cont(data);
     return;
+  }
 
   if (result_code == rescode_download_failed)
-    annoy_user (_("ai_ni_error_download_failed"));
+    annoy_user_with_cont (_("ai_ni_error_download_failed"), cont, data);
   else if (result_code == rescode_packages_not_found)
-    annoy_user (_("ai_ni_error_download_missing"));
+    annoy_user_with_cont (_("ai_ni_error_download_missing"), cont, data);
   else if (result_code == rescode_package_corrupted)
     {
       if (upgrading)
-	annoy_user (_("ai_ni_error_update_corrupted"));
+	annoy_user_with_cont (_("ai_ni_error_update_corrupted"), cont, data);
       else
-	annoy_user (_("ai_ni_error_install_corrupted"));
+	annoy_user_with_cont (_("ai_ni_error_install_corrupted"), cont, data);
     }
   else if (result_code == rescode_out_of_space)
-    annoy_user (dgettext ("hildon-common-strings",
-			  "sfil_ni_not_enough_memory"));
+    annoy_user_with_cont (dgettext ("hildon-common-strings",
+				    "sfil_ni_not_enough_memory"), cont, data);
   else
-    annoy_user (failure);
+    annoy_user_with_cont (failure, cont, data);
 }
 
 struct rpc_clos {
@@ -1160,10 +1164,20 @@ clean_reply (int cmd, apt_proto_decoder *dec, void *data)
    */
 }
 
+struct ip_closure {
+  package_info *pi;
+  GSList *upgrade_names;
+  GSList *upgrade_versions;
+  char *cur_name;
+  void (*cont) (void *data);
+  void *data;
+};
+
 static void
 install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
-  package_info *pi = (package_info *)data;
+  ip_closure *c = (ip_closure *) data;
+  package_info *pi = c->pi;
 
   hide_progress ();
 
@@ -1187,7 +1201,7 @@ install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
 				    ? _("ai_ni_update_successful")
 				    : _("ai_ni_install_successful")),
 				   pi->name);
-      annoy_user (str);
+      annoy_user_with_cont (str, c->cont, c->data);
       g_free (str);
     }
   else
@@ -1195,9 +1209,14 @@ install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
       if (progress_was_cancelled ())
 	{
 	  if (ui_version < 2)
-	    annoy_user ((upgrading
-			 ? _("ai_ni_update_cancelled")
-			 : _("ai_ni_install_cancelled")));
+	    annoy_user_with_cont ((upgrading
+				   ? _("ai_ni_update_cancelled")
+				   : _("ai_ni_install_cancelled")),
+				  c->cont, c->data);
+	  else {
+	    if (c->cont)
+	      c->cont(c->data);
+	  }
 	}
       else
 	{
@@ -1209,7 +1228,7 @@ install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
 
 	  result_code = scan_log_for_result_code (result_code);
 
-	  annoy_user_with_result_code (result_code, str, upgrading);
+	  annoy_user_with_result_code (result_code, str, upgrading, c->cont, c->data);
 	  g_free (str);
 	}
     }
@@ -1219,13 +1238,12 @@ install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
   get_package_list ();
 }
 
-struct ip_closure {
+struct ipc_closure2 {
   package_info *pi;
-  GSList *upgrade_names;
-  GSList *upgrade_versions;
-  char *cur_name;
+  void (*cont) (void *data);
+  void *data;
 };
-
+  
 static void install_package_cont3 (bool res, void *data);
 
 static void
@@ -1245,6 +1263,7 @@ install_package_cont4 (int status, void *data)
     }
   else
     install_package_cont3 (true, data);
+
 }
 
 static void
@@ -1256,16 +1275,23 @@ install_package_cont3 (bool res, void *data)
     {
       if (res)
 	{
+	  ipc_closure2 * closure2 = new ipc_closure2;
+	  closure2->pi = c->pi;
+	  closure2->cont = c->cont;
+	  closure2->data = c->data;
 	  set_log_start ();
 	  apt_worker_install_package (c->pi->name,
 				      c->pi->installed_version != NULL,
-				      install_package_reply, c->pi);
+				      install_package_reply, data);
 	}
-      else
+      else {
 	c->pi->unref ();
+	if (c->cont)
+	  c->cont(c->data);
+	delete c;
+      }
 
       g_free (c->cur_name);
-      delete c;
     }
   else
     {
@@ -1299,25 +1325,30 @@ install_package_cont5 (bool res, void *data)
   if (!res)
     {
       if (ui_version < 2)
-	annoy_user (c->pi->installed_version
-		    ? _("ai_ni_update_cancelled")
-		    : _("ai_ni_install_cancelled"));
+	annoy_user_with_cont (c->pi->installed_version
+			      ? _("ai_ni_update_cancelled")
+			      : _("ai_ni_install_cancelled"),
+			      c->cont,
+			      c->data);
       install_package_cont3 (false, data);
     }
   else
     install_package_cont3 (true, data);
 }
 
-
 static void
 install_check_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   GList *notauth = NULL, *notcert = NULL;
+  ipc_closure2 *closure2 = (ipc_closure2 *) data;
 
   ip_closure *c = new ip_closure;
-  c->pi = (package_info *)data;
+  c->pi = closure2->pi;
+  c->cont = closure2->cont;
+  c->data = closure2->data;
   c->upgrade_names = c->upgrade_versions = NULL;
   c->cur_name = NULL;
+  delete closure2;
 
   if (dec == NULL)
     {
@@ -1378,37 +1409,39 @@ install_check_reply (int cmd, apt_proto_decoder *dec, void *data)
 }
 
 static void
-annoy_user_with_installable_status_details (package_info *pi)
+annoy_user_with_installable_status_details (package_info *pi, void (*cont) (void *data), void *data)
 {
   if (pi->info.installable_status == status_missing)
     {
-      annoy_user_with_details ((pi->installed_version
-				? _("ai_ni_error_update_missing")
-				: _("ai_ni_error_install_missing")),
-			       pi, install_details);
+      annoy_user_with_details_with_cont ((pi->installed_version
+					  ? _("ai_ni_error_update_missing")
+					  : _("ai_ni_error_install_missing")),
+					 pi, install_details, cont, data);
     }
   else if (pi->info.installable_status == status_conflicting)
     {
-      annoy_user_with_details ((pi->installed_version
-				? _("ai_ni_error_update_conflict")
-				: _("ai_ni_error_install_conflict")),
-			       pi, install_details);
+      annoy_user_with_details_with_cont ((pi->installed_version
+					  ? _("ai_ni_error_update_conflict")
+					  : _("ai_ni_error_install_conflict")),
+					 pi, install_details, cont, data);
     }
   else if (pi->info.installable_status == status_corrupted)
     {
-      annoy_user ((pi->installed_version
-		   ? _("ai_ni_error_update_corrupted")
-		   : _("ai_ni_error_install_corrupted")));
+      annoy_user_with_cont ((pi->installed_version
+			     ? _("ai_ni_error_update_corrupted")
+			     : _("ai_ni_error_install_corrupted")),
+			    cont, data);
     }
   else if (pi->info.installable_status == status_incompatible)
     {
-      annoy_user ((pi->installed_version
-		   ? _("ai_ni_error_update_incompatible")
-		   : _("ai_ni_error_install_incompatible")));
+      annoy_user_with_cont ((pi->installed_version
+			     ? _("ai_ni_error_update_incompatible")
+			     : _("ai_ni_error_install_incompatible")),
+			    cont, data);
     }
   else if (pi->info.installable_status == status_incompatible_current)
     {
-      annoy_user (_("ai_ni_error_n770package_incompatible"));
+      annoy_user_with_cont (_("ai_ni_error_n770package_incompatible"), cont, data);
     }
   else
     {
@@ -1417,7 +1450,7 @@ annoy_user_with_installable_status_details (package_info *pi)
 			  ? _("ai_ni_error_update_failed")
 			  : _("ai_ni_error_installation_failed")),
 			 pi->name);
-      annoy_user_with_details (str, pi, install_details);
+      annoy_user_with_details_with_cont (str, pi, install_details, cont, data);
       g_free (str);
     }
 }
@@ -1425,7 +1458,8 @@ annoy_user_with_installable_status_details (package_info *pi)
 static void
 install_package_with_net (bool res, void *data)
 {
-  package_info *pi = (package_info *)data;
+  ipc_closure2 * closure2 = (ipc_closure2 *)data;
+  package_info *pi = (package_info *)closure2->pi;
 
   if (res)
     {
@@ -1438,22 +1472,28 @@ install_package_with_net (bool res, void *data)
 	  else
 	    add_log ("Installing %s %s\n", pi->name, pi->available_version);
 	  
-	  apt_worker_install_check (pi->name, install_check_reply, pi);
+	  apt_worker_install_check (pi->name, install_check_reply, closure2);
 	}
       else
 	{
-	  annoy_user_with_installable_status_details (pi);
+	  annoy_user_with_installable_status_details (pi, closure2->cont, closure2->data);
 	  pi->unref ();
+	  delete closure2;
 	}
     }
-  else
+  else {
     pi->unref ();
+    if (closure2->cont)
+      closure2->cont(closure2->data);
+    delete closure2;
+  }
 }
 
 static void
 install_package_cont2 (bool res, void *data)
 {
-  package_info *pi = (package_info *)data;
+  ipc_closure2 * closure2 = (ipc_closure2 *)data;
+  package_info *pi = (package_info *)closure2->pi;
 
   if (res)
     {
@@ -1462,32 +1502,52 @@ install_package_cont2 (bool res, void *data)
       // the user cancel the network connection procedure very early.  The
       // network is requested again when it is actually needed.
 
-      ensure_network (install_package_with_net, pi);
+      ensure_network (install_package_with_net, closure2);
     }
   else
     {
       if (ui_version < 2)
 	{
 	  if (pi->installed_version)
-	    annoy_user (_("ai_ni_update_cancelled"));
+	    annoy_user_with_cont (_("ai_ni_update_cancelled"), closure2->cont, closure2->data);
 	  else
-	    annoy_user (_("ai_ni_install_cancelled"));
+	    annoy_user_with_cont (_("ai_ni_install_cancelled"), closure2->cont, closure2->data);
+	}
+      else
+	{
+	  if (closure2->cont != NULL)
+	    closure2->cont(closure2->data);
 	}
       pi->unref ();
+      delete closure2;
     }
 }
+
+struct ipc_closure {
+  void (*cont) (void *data);
+  void *data;
+};
 
 static void
 install_package_cont (package_info *pi, void *data, bool changed)
 {
-  confirm_install (pi, install_package_cont2, pi);
+  ipc_closure *closure = (ipc_closure *) data;
+  ipc_closure2 *closure2 = new ipc_closure2;
+  closure2->pi = pi;
+  closure2->cont = closure->cont;
+  closure2->data = closure->data;
+  delete closure;
+  confirm_install (pi, install_package_cont2, closure2);
 }
 
 static void
-install_package (package_info *pi)
+install_package (package_info *pi, void (*cont) (void *data), void *data)
 {
+  ipc_closure * closure = new ipc_closure;
+  closure->cont = cont;
+  closure->data = data;
   pi->ref ();
-  get_intermediate_package_info (pi, true, install_package_cont, NULL);
+  get_intermediate_package_info (pi, true, install_package_cont, closure);
 }
 
 static void
@@ -1498,13 +1558,13 @@ available_package_details (gpointer data)
 }
 
 void
-available_package_selected (package_info *pi)
+available_package_selected (package_info *pi, void (*cont) (void *data), void *data)
 {
   if (pi)
     {
       set_details_callback (available_package_details, pi);
       set_operation_callback ((void (*)(void*))install_package, pi);
-      get_intermediate_package_info (pi, true, NULL, NULL);
+      get_intermediate_package_info(pi, true, NULL, NULL);
     }
   else
     {
@@ -1520,10 +1580,10 @@ installed_package_details (gpointer data)
   show_package_details (pi, remove_details, false);
 }
 
-static void uninstall_package (package_info *);
+static void uninstall_package (package_info *, void (*cont) (void * data), void *data);
 
 void
-installed_package_selected (package_info *pi)
+installed_package_selected (package_info *pi, void (*cont) (void *data), void *data)
 {
   if (pi)
     {
@@ -1921,7 +1981,7 @@ uninstall_package_cont (package_info *pi, void *data, bool changed)
 }
 
 static void
-uninstall_package (package_info *pi)
+uninstall_package (package_info *pi, void (*cont) (void *data), void *data)
 {
   pi->ref ();
   get_intermediate_package_info (pi, false, uninstall_package_cont, NULL);
@@ -2171,7 +2231,7 @@ search_packages (const char *pattern, bool in_descriptions)
 }
 
 void
-install_named_package (const char *package)
+install_named_package (const char *package, void (*cont) (void *data), void *data)
 {
   GList *p = NULL;
 
@@ -2180,7 +2240,7 @@ install_named_package (const char *package)
   find_in_package_list (&p, installed_packages, package);
 
   if (p == NULL)
-    annoy_user (_("ai_ni_error_download_missing"));
+    annoy_user_with_cont (_("ai_ni_error_download_missing"), cont, data);
   else
     {
       package_info *pi = (package_info *)p->data;
@@ -2188,11 +2248,11 @@ install_named_package (const char *package)
 	{
 	  char *text = g_strdup_printf (_("ai_ni_package_installed"),
 					package);
-	  annoy_user (text);
+	  annoy_user_with_cont (text, cont, data);
 	  g_free (text);
 	}
       else
-	install_package (pi);
+	install_package (pi, cont, data);
     }
 }
 
@@ -2296,7 +2356,7 @@ install_from_file_reply (int cmd, apt_proto_decoder *dec, void *data)
       result_code = scan_log_for_result_code (result_code);
 
       annoy_user_with_result_code (result_code, str,
-				   pi->installed_version != NULL);
+				   pi->installed_version != NULL, NULL, NULL);
       g_free (str);
     }
 
@@ -2346,7 +2406,7 @@ install_from_file_fail (bool res, void *data)
   package_info *pi = (package_info *)data;
 
   if (res)
-    annoy_user_with_installable_status_details (pi);
+    annoy_user_with_installable_status_details (pi, NULL, NULL);
 
   pi->unref ();
 }

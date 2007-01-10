@@ -130,7 +130,8 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
 
   pop_dialog_parent ();
   gtk_widget_destroy (GTK_WIDGET (dialog));
-  cont (response == GTK_RESPONSE_OK, data);
+  if (cont)
+    cont (response == GTK_RESPONSE_OK, data);
 }
 
 void
@@ -250,27 +251,51 @@ ask_yes_no_with_arbitrary_details (const gchar *title,
 }
 
 static bool currently_annoying_user = false;
+struct auwc_closure {
+  void (*cont) (void *);
+  void *data;
+};
 
 static void
 annoy_user_response (GtkDialog *dialog, gint response, gpointer data)
 {
+  auwc_closure * closure_data = (auwc_closure *) data;
+
   pop_dialog_parent ();
   gtk_widget_destroy (GTK_WIDGET (dialog));
   currently_annoying_user = false;
+  if (closure_data != NULL) {
+    if (closure_data->cont != NULL) {
+      closure_data->cont(closure_data->data);
+    }
+    delete closure_data;
+  }
+}
+
+void annoy_user (const gchar *text) {
+  annoy_user_with_cont(text, NULL, NULL);
 }
 
 void
-annoy_user (const gchar *text)
+annoy_user_with_cont (const gchar *text, void (*cont) (void *data), void *data)
 {
-  if (currently_annoying_user)
-    return;
 
+  if (currently_annoying_user) {
+    if (cont != NULL) {
+      cont(data);
+    } else {
+      return;
+    }
+  }
   GtkWidget *dialog;
+  auwc_closure * closure_data = new auwc_closure;
 
   dialog = hildon_note_new_information (get_dialog_parent (), text);
   push_dialog_parent (dialog);
+  closure_data->cont = cont;
+  closure_data->data = data;
   g_signal_connect (dialog, "response", 
-		    G_CALLBACK (annoy_user_response), NULL);
+		    G_CALLBACK (annoy_user_response), closure_data);
   gtk_widget_show_all (dialog);
   currently_annoying_user = true;
 }
@@ -278,6 +303,8 @@ annoy_user (const gchar *text)
 struct auwd_closure {
   package_info *pi;
   detail_kind kind;
+  void (*cont) (void *data);
+  void *data;
 };
 
 static void
@@ -288,7 +315,7 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
 
   if (response == 1)
     {
-      show_package_details (c->pi, c->kind, true);
+      show_package_details_with_cont (c->pi, c->kind, true, c->cont, c->data);
     }
   else
     {
@@ -296,13 +323,24 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
       gtk_widget_destroy (GTK_WIDGET (dialog));
       currently_annoying_user = false;
       c->pi->unref ();
+      if (c->cont) {
+	c->cont(c->data);
+      }
       delete c;
     }
 }
 
+void annoy_user_with_details (const gchar *text,
+			      package_info *pi, detail_kind kind)
+{
+  annoy_user_with_details_with_cont (text, pi, kind, NULL, NULL);
+}
+
 void
-annoy_user_with_details (const gchar *text,
-			 package_info *pi, detail_kind kind)
+annoy_user_with_details_with_cont (const gchar *text,
+				   package_info *pi, detail_kind kind,
+				   void (*cont) (void *data),
+				   void *data)
 {
   if (currently_annoying_user)
     return;
@@ -1014,13 +1052,13 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
 	{
 	  gtk_tree_model_get (model, &iter, 0, &pi, -1);
 	  if (pi)
-	    global_selection_callback (pi);
+	    global_selection_callback (pi, NULL, NULL);
 	}
     }
   else
     {
       if (global_selection_callback)
-	global_selection_callback (NULL);
+	global_selection_callback (NULL, NULL, NULL);
     }
 }
 
@@ -1043,7 +1081,7 @@ global_row_activated (GtkTreeView *treeview,
       package_info *pi;
       gtk_tree_model_get (model, &iter, 0, &pi, -1);
       if (pi)
-	global_activation_callback (pi);
+	global_activation_callback (pi, NULL, NULL);
     }
 }
 
@@ -1276,7 +1314,7 @@ clear_global_package_list ()
 void
 global_package_info_changed (package_info *pi)
 {
-  if (pi->model == GTK_TREE_MODEL (global_list_store))
+  if (pi->model &&(pi->model == GTK_TREE_MODEL (global_list_store)))
     global_row_changed (&pi->iter);
 }
 
@@ -1473,7 +1511,8 @@ fcd_response (GtkDialog *dialog, gint response, gpointer clos)
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (response == GTK_RESPONSE_OK)
-    cont (uri, data);
+    if (cont)
+      cont (uri, data);
   else
     g_free (uri);
 }
