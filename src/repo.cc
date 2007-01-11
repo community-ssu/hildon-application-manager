@@ -950,30 +950,112 @@ show_repo_dialog ()
   apt_worker_get_sources_list (sources_list_reply, NULL);
 }
 
-void
-maybe_add_repo (const char *name, const char *deb_line,	bool for_install,
+struct maybe_add_repo_next_closure 
+{
+  GSList *repo_list;
+  bool for_install;
+  void (*cont) (bool res, void *data);
+  void *data;
+};
+
+void maybe_add_repo_cont (GSList *repo_list, bool for_install,
+			  void (*cont) (bool res, void *data), void *data);
+
+/* This functions does the real job of adding repositories. It calls the
+ * callback once the processing ends */
+static void
+maybe_add_repo (repo_line *n, bool for_install,
 		void (*cont) (bool res, void *data), void *data)
 {
-  repo_line *n = new repo_line (NULL, deb_line, false, g_strdup (name));
-  
+  repo_add_closure *ac = NULL;
   if (n->deb_line == NULL)
     {
-      add_log ("Malformed deb line: '%s'\n", deb_line);
+      add_log ("Malformed deb line: '%s'\n", n->deb_line);
       annoy_user (_("ai_ni_operation_failed"));
       delete n;
       cont (FALSE, data);
       return;
     }
 
-  repo_add_closure *ac = new repo_add_closure;
+  ac = new repo_add_closure;
   ac->clos = NULL;
   ac->new_repo = n;
   ac->for_install = for_install;
   ac->cont = cont;
   ac->cont_data = data;
-
+  
   apt_worker_get_sources_list (sources_list_reply, ac);
 }
+
+/* callback for running functions after each execution of add_repo flow.
+ * It's used to go on adding repos if there are more, or running the
+ * final add_repos callback if not */
+void
+maybe_add_repo_next (bool res, void * data)
+{
+  if (res) 
+    {
+      maybe_add_repo_next_closure *closure = (maybe_add_repo_next_closure *) data;
+      maybe_add_repo_cont (closure->repo_list, closure->for_install, 
+			   closure->cont, closure->data);
+      delete closure;
+    }
+}
+
+void 
+maybe_add_repo_cont (GSList *repo_list, bool for_install,
+		     void (*cont) (bool res, void *data), void *data)
+{
+  repo_line *n = NULL;
+  maybe_add_repo_next_closure *closure = new maybe_add_repo_next_closure;
+
+  /* No remaining repositories. Then it should run the callback */
+  if (repo_list == NULL) 
+    {
+      if (cont)
+	cont(TRUE, data);
+      return;
+    }
+
+  n = (repo_line *) repo_list->data;
+  repo_list = g_slist_delete_link(repo_list, repo_list);
+  closure->repo_list = repo_list;
+  closure->for_install = for_install;
+  closure->cont = cont;
+  closure->data = data;
+
+  maybe_add_repo(n, for_install, maybe_add_repo_next, closure);
+}
+
+/* processes repositories, and after a complete configuration, runs a callback.
+ * repository name and deb line list formats are char ** arrays ended by 
+ * a NULL element */
+void 
+maybe_add_repos (const char **name_list, const char **deb_line_list, bool for_install,
+		      void (*cont) (bool res, void *data), void *data)
+{
+  GSList *repo_line_list = NULL;
+  char **current_name = NULL;
+  char **current_line = NULL;
+
+  current_name = (char **) name_list;
+
+  /* Creates a list of repo_line objects from the catalogue strings.
+   * It allows getting fewer repository names than repository lines. The
+   * first names are bound to the first deb lines.
+   */
+  for (current_line = (char **) deb_line_list;
+       current_line[0] != 0;
+       current_line++)
+    {
+      repo_line *n = new repo_line (NULL, current_line[0], false, g_strdup (current_name[0]));
+      repo_line_list = g_slist_prepend(repo_line_list, n);
+      if (current_name[0] != 0)
+	current_name++;
+    }
+
+  maybe_add_repo_cont (repo_line_list, for_install, cont, data);
+}  
 
 static void
 pill_response (GtkDialog *dialog, gint response, gpointer unused)

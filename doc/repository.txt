@@ -86,9 +86,9 @@ are separated with semicolons:
 
 <pre>
 [install]
-repo_name = Foo Catalogue
-repo_deb  = deb http://foo.com/maemo mistral user
-package   = foo-app;foo-app2
+repo_name  = Foo Catalogue
+repo_deb_3 = deb http://foo.com/maemo bora user
+package    = foo-app;foo-app2
 </pre>
 
 This file will offer installation of foo-app and foo-app2 from the
@@ -103,6 +103,17 @@ maemo will use different key names so that you can control what
 repository to use with what maemo release.  If the expected repo_deb
 variant is not found in the .install file, an error message will be
 displayed to the user.
+
+You can also put more than one repository, separating them with semicolons.
+Remember that, in case you put repository names, you should put the same
+number of them. A complete example, with two repositories and two packages:
+
+<pre>
+[install]
+repo_name  = Foo Catalogue;Bar Catalogue
+repo_deb_3 = deb http://foo.com/maemo bora user;deb http://bar.com/maemo bora user
+package    = foo-app;bar-app
+</pre>
 
 Here is a table of the various key names:
 

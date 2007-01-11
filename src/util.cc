@@ -121,7 +121,7 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
 	c->details (c->data);
       return;
     }
-
+ 
   void (*cont) (bool res, void *data) = c->cont; 
   void *data = c->data;
   if (c->pi)

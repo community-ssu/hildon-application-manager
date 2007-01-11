@@ -26,8 +26,8 @@
 
 void show_repo_dialog ();
 
-void maybe_add_repo (const char *name, const char *deb_line, bool for_install,
-		     void (*cont) (bool res, void *data), void *data);
+void maybe_add_repos (const char **name, const char **deb_line, bool for_install,
+		      void (*cont) (bool res, void *data), void *data);
 
 bool parse_quoted_word (char **start, char **end, bool term);
 

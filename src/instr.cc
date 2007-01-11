@@ -44,10 +44,11 @@ annoy_user_with_gerror (const char *filename, GError *error)
   annoy_user (_("ai_ni_operation_failed"));
 }
 
-static void instr_select_packages_cont (bool res, void * data)
+static void 
+instr_select_packages_cont (bool res, void *data)
 {
-  GSList * selected_package_list = (GSList *) data;
-  gchar * package_name = NULL;
+  GSList *selected_package_list = (GSList *) data;
+  gchar *package_name = NULL;
 
   /* cancelled installation */
   if (!res) {
@@ -68,62 +69,75 @@ static void instr_select_packages_cont (bool res, void * data)
 }
 
 static void
-instr_select_packages_next (void * data)
+instr_select_packages_next (void *data)
 {
-  instr_select_packages_cont(TRUE, data);
+  instr_select_packages_cont (TRUE, data);
 }
 
 static void
-instr_select_packages (char ** packages)
+instr_select_packages (char **packages)
 {
   /* This function should prepare a dialog to select the packages to install from the list in
    * packages. Now it simply calls to a stub returning function for that dialog
    */
-  char ** current = NULL;
-  GSList * selected_packages = NULL;
+  char **current = NULL;
+  GSList *selected_packages = NULL;
 
   for (current = packages; current[0] != NULL; current++)
-    selected_packages = g_slist_prepend (selected_packages, current[0]);
+    {
+      selected_packages = g_slist_prepend (selected_packages, current[0]);
+    }
+
   g_free(packages);
 
-  instr_select_packages_cont(TRUE, selected_packages);
+  instr_select_packages_cont (TRUE, selected_packages);
 }
 
 static void
 instr_cont3 (bool res, void *data)
 {
-  char **package_list = (char **)data;
+  char **package_list = (char **) data;
 
   if (!res) {
     g_strfreev (package_list);
     return;
   }
 
-  if (package_list != NULL) {
-    if (package_list[1] == NULL) {
-      install_named_package (package_list[0], NULL, NULL);
-      g_strfreev (package_list);
-    } else {
-       instr_select_packages (package_list);
+  if (package_list != NULL)
+    {
+      if (package_list[1] == NULL) 
+	{
+	  install_named_package (package_list[0], NULL, NULL);
+	  g_strfreev (package_list);
+	} 
+      else 
+	{
+	  instr_select_packages (package_list);
+	}
     }
-  }
 }
 
 static void
 instr_cont2 (bool res, void *data)
 {
-  char **package_list = (char **)data;
+  char **package_list = (char **) data;
 
   if (res)
-    refresh_package_cache_with_cont (false, instr_cont3, package_list);
+    {
+      refresh_package_cache_with_cont (false, instr_cont3, package_list);
+    }
   else
-    g_strfreev (package_list);
+    {
+      g_strfreev (package_list);
+    }
 }
 
 void
 open_local_install_instructions (const char *filename)
 {
   GError *error = NULL;
+  gsize repo_name_size = 0;
+  gsize repo_deb_size = 0;
 
   GKeyFile *keys = g_key_file_new ();
   if (!g_key_file_load_from_file (keys, filename, GKeyFileFlags(0), &error))
@@ -136,22 +150,35 @@ open_local_install_instructions (const char *filename)
 
   cleanup_temp_file ();
 
-  gchar *repo_name = g_key_file_get_value (keys, "install", "repo_name", NULL);
-  gchar *repo_deb  = g_key_file_get_value (keys, "install", "repo_deb_3", NULL);
+  /* We parse the repository names, deb lines and the packages we want to install. */
+  gchar **repo_name_list = g_key_file_get_string_list (keys, "install", "repo_name", &repo_name_size, NULL);
+  gchar **repo_deb_list  = g_key_file_get_string_list (keys, "install", "repo_deb_3", &repo_deb_size, NULL);
   gchar **package_list   = g_key_file_get_string_list (keys, "install", "package", NULL, NULL);
 
-  if (package_list == NULL && repo_deb == NULL)
-    annoy_user (_("ai_ni_operation_failed"));
-
-  if (repo_deb)
+  /* If there's no repo name field, then enter a stub name list with a null value */
+  if ((repo_name_size == 0) && (repo_deb_size > 0)) 
     {
-      maybe_add_repo (repo_name, repo_deb, package_list != NULL,
+      repo_name_list = (gchar **) g_malloc (sizeof (gchar **));
+      repo_name_size = repo_deb_size;
+    }
+
+  if ((package_list == NULL && repo_deb_list == NULL)||
+      (repo_name_size != repo_deb_size))
+    {
+      annoy_user (_("ai_ni_operation_failed"));
+    }
+
+  if (repo_deb_list)
+    {
+      maybe_add_repos ((const gchar **) repo_name_list, (const gchar **) repo_deb_list, package_list != NULL,
 		      instr_cont2, package_list);
     }
   else
-    annoy_user (_("ai_ni_error_n770package_incompatible"));
+    {
+      annoy_user (_("ai_ni_error_n770package_incompatible"));
+    }
 
-  g_free (repo_name);
-  g_free (repo_deb);
+  g_strfreev (repo_name_list);
+  g_strfreev (repo_deb_list);
   g_key_file_free (keys);
 }

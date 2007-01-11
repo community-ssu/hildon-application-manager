@@ -1,3 +1,16 @@
+2007-01-11  Jose Dapena Paz  <jdapena@igalia.com>
+
+	* src/instr.cc, src/repo.h, src/repo.cc: coding style review.
+	Fixed many typos.
+	Implementation of support of multiple catalogue files in
+	.install files:
+	* src/instr.cc: parse multiple catalogues names and deb lines.
+	* src/repo.cc, src/repo.h: implementation of handling of
+	multiple catalogues in .install file (UI flow, enable
+	adding a last callback, and chaining calls to get repositories.
+	* doc/repository.txt: add description of multicatalogue
+	.install file feature.
+
 2007-01-10  Jose Dapena Paz  <jdapena@igalia.com>
 
 	* src/instr.cc (instr_select_packages_next, 
