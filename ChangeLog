@@ -1,3 +1,24 @@
+2007-01-12  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Implementation of support of l10n in catalogue names in
+	sources.list:
+	* src/repo.cc (struct repo_line): add support to store
+	translations of the repository name. Support is also
+	added to constructor.
+	(repo_line::get_name): new function to get the proper
+	translated name of a repository
+	(repo_edit_response): if user changes the catalogue name
+	drop all translations.
+	(show_repo_edit_dialog): shows the proper catalogue
+	name (translated or not).
+	(add_new_repo): create new repositories without
+	translations.
+	(repo_encoder): encode translated strings for catalogues.
+	(sources_list_reply): decode translated strings for
+	catalogues.
+	* doc/repository.txt: add description of sources.list
+	repository names localisation support.
+	
 2007-01-11  Jose Dapena Paz  <jdapena@igalia.com>
 
 	* src/instr.cc, src/repo.h, src/repo.cc: coding style review.

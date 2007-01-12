@@ -28,6 +28,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <libintl.h>
+#include <locale.h>
 
 #include <gtk/gtk.h>
 #include <hildon-widgets/hildon-note.h>
@@ -45,8 +46,10 @@ struct repo_closure;
 
 struct repo_line {
 
-  repo_line (repo_closure *clos, const char *line, bool essential, char *name);
+  repo_line (repo_closure *clos, const char *line, bool essential, char *name, 
+	     GSList *loc_list, GSList *translation_list);
   ~repo_line ();
+  const char * get_name();
 
   repo_line *next;
   repo_closure *clos;
@@ -56,6 +59,7 @@ struct repo_line {
   bool enabled;
   bool essential;
   char *name;
+  GData *loc_names;
 };
 
 struct repo_closure {
@@ -134,15 +138,21 @@ parse_quoted_word (char **start, char **end, bool term)
   return true;
 }
 
-repo_line::repo_line (repo_closure *c, const char *l, bool e, char *n)
+/* locale_list is a GSList of gchar * with the locales with a translation of
+ * name available. translation_list is the list of translations. */
+repo_line::repo_line (repo_closure *c, const char *l, bool e, char *n, 
+		      GSList *locale_list, GSList *translation_list)
 {
-  char *end;
-
+  char *end = NULL;
+  GSList *cur_locale = NULL;
+  GSList *cur_translation = NULL;
+  
   clos = c;
   line = g_strdup (l);
   name = n;
   essential = e;
   deb_line = NULL;
+  loc_names = NULL;
 
   char *type = line;
   if (parse_quoted_word (&type, &end, false))
@@ -153,18 +163,54 @@ repo_line::repo_line (repo_closure *c, const char *l, bool e, char *n)
 	enabled = false;
       else
 	return;
-
+      
       deb_line = end;
       parse_quoted_word (&deb_line, &end, false);
     }
+  
+  /* Add translation of repository name to the data list */
+  cur_translation = translation_list;
+  g_datalist_init (&loc_names);
+  for (cur_locale = locale_list; cur_locale != NULL; cur_locale = g_slist_next (cur_locale))
+    {
+      if (cur_translation != NULL)
+	{
+	  g_datalist_set_data_full (&loc_names, (char *) cur_locale->data, cur_translation->data, g_free);
+	  cur_translation = g_slist_next (cur_translation);
+	}
+    }
 }
-
+  
 repo_line::~repo_line ()
 {
   free (name);
   free (line);
+  if (loc_names != NULL)
+    g_datalist_clear (&loc_names);
 }
+  
+const gchar * 
+repo_line::get_name()
+{
+  char *current_locale = NULL;
+  gchar *translation = NULL;
 
+  current_locale = setlocale (LC_MESSAGES, "");
+  translation = (gchar *) g_datalist_get_data (&loc_names, current_locale);
+  if (name == NULL)
+    {
+      /* If translations are available, but no name, translations are not valid */
+      return NULL;
+    }
+  else
+    {
+      if (translation != NULL)
+	return translation;
+      else
+	return name;
+    }
+}
+    
 repo_closure::repo_closure ()
 {
   lines = NULL;
@@ -254,9 +300,23 @@ repo_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 		}
 	      name = NULL;
 	    }
-	  
-	  free (r->name);
-	  r->name = g_strdup (name);
+
+	  /* If user has changed the repository name, then clean all the translations
+	   * and store only the user custom name */
+	  if (r->get_name ())
+	    {
+	      if (strcmp(name, r->get_name ())!= 0)
+		{
+		  free (r->name);
+		  r->name = g_strdup (name);
+		  g_datalist_clear (&(r->loc_names));
+		}
+	    }
+	  else
+	    {
+	      r->name = g_strdup (name);
+	      g_datalist_clear (&(r->loc_names));
+	    }
 	}
 
       if (all_white_space (uri) || stripped_equal (uri, "http://"))
@@ -405,17 +465,20 @@ show_repo_edit_dialog (repo_line *r, bool isnew, bool readonly)
 
   if (ui_version > 1)
     {
-      if (r->name)
+      char *current_name = (char *) r->get_name ();
+      if (current_name)
 	{
-	  end = r->name + strlen (r->name);
+	  end = current_name + strlen (current_name);
 	  c->had_name = true;
 	}
       c->name_entry = add_entry (vbox, group,
 				 _("ai_fi_new_repository_name"),
-				 r->name, end, true, readonly, true);
+				 current_name, end, true, readonly, true);
     }
   else
-    c->name_entry = NULL;
+    {
+      c->name_entry = NULL;
+    }
 
   start = r->deb_line;
   parse_quoted_word (&start, &end, false);
@@ -473,7 +536,7 @@ show_repo_edit_dialog (repo_line *r, bool isnew, bool readonly)
 static void
 add_new_repo (repo_closure *c)
 {
-  repo_line *r = new repo_line (c, "deb http:// bora user", false, NULL);
+  repo_line *r = new repo_line (c, "deb http:// bora user", false, NULL, NULL, NULL);
   r->next = NULL;
   *c->lastp = r;
   c->lastp = &r->next;
@@ -497,6 +560,19 @@ remove_repo (repo_line *r)
       }
 }
 
+/* callback for encoding localised names */
+static void
+repo_encode_loc_name (GQuark key_id, gpointer data, gpointer user_data)
+{
+  apt_proto_encoder *enc = (apt_proto_encoder *) user_data;
+  if (data != NULL)
+    {
+      char *l = g_strdup_printf ("#maemo:name:%s %s", g_quark_to_string (key_id), (char *) data);
+      enc->encode_string (l);
+      g_free (l);
+    }
+}
+
 static void
 repo_encoder (apt_proto_encoder *enc, void *data)
 {
@@ -508,6 +584,9 @@ repo_encoder (apt_proto_encoder *enc, void *data)
 	  char *l = g_strdup_printf ("#maemo:name %s", r->name);
 	  enc->encode_string (l);
 	  g_free (l);
+	  /* Encode translated names only if there's a non-translated 
+	   * fallback version */
+	  g_datalist_foreach (&(r->loc_names), repo_encode_loc_name, enc);
 	}
       if (r->essential)
 	enc->encode_string ("#maemo:essential");
@@ -653,7 +732,7 @@ repo_text_func (GtkTreeViewColumn *column,
   if (r)
     {
       if (ui_version >= 2 && r->name)
-	g_object_set (cell, "text", r->name, NULL);
+	g_object_set (cell, "text", r->get_name (), NULL);
       else
 	g_object_set (cell, "text", r->deb_line, NULL);
     }
@@ -832,6 +911,8 @@ sources_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   bool next_is_essential = false;
   char *next_name = NULL;
+  GSList *next_name_locale_list = NULL;
+  GSList *next_name_translation_list = NULL;
 
   if (dec == NULL)
     return;
@@ -846,15 +927,35 @@ sources_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 	break;
       
       if (g_str_has_prefix (line, "#maemo:essential"))
+	/* Essential repository. Forbidden to be removed from UI */
 	next_is_essential = true;
       else if (g_str_has_prefix (line, "#maemo:name "))
+	/* Repository name */
 	next_name = g_strdup (line + 12);
+      else if (g_str_has_prefix (line, "#maemo:name:"))
+	{
+	  /* Parsing of repository translations */
+	  gchar **tokens = NULL;
+
+	  tokens = g_strsplit (line + 12, " ", 2);
+	  if ((tokens != NULL) && (tokens[0] != NULL) && (tokens[1] != NULL))
+	    {
+	      next_name_locale_list = g_slist_prepend (next_name_locale_list, 
+						       g_strdup (tokens[0]));
+	      next_name_translation_list = g_slist_prepend (next_name_translation_list, 
+							    g_strdup (tokens[1]));
+	    }
+	  g_strfreev (tokens);
+	}
       else
 	{
-	  *rp = new repo_line (c, line, next_is_essential, next_name);
+	  *rp = new repo_line (c, line, next_is_essential, next_name, 
+			       next_name_locale_list, next_name_translation_list);
 	  rp = &(*rp)->next;
 	  next_is_essential = false;
 	  next_name = NULL;
+	  next_name_locale_list = NULL;
+	  next_name_translation_list = NULL;
 	}
     }
   *rp = NULL;
@@ -1048,7 +1149,8 @@ maybe_add_repos (const char **name_list, const char **deb_line_list, bool for_in
        current_line[0] != 0;
        current_line++)
     {
-      repo_line *n = new repo_line (NULL, current_line[0], false, g_strdup (current_name[0]));
+      repo_line *n = new repo_line (NULL, current_line[0], false, 
+				    g_strdup (current_name[0]), NULL, NULL);
       repo_line_list = g_slist_prepend(repo_line_list, n);
       if (current_name[0] != 0)
 	current_name++;

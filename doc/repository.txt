@@ -148,6 +148,23 @@ stored in /etc/apt/sources.list as a comment line of the form
 
 This declaration applies to the next following 'deb' or '#deb' line.
 
+You can also set translations of the name for different locales. The
+proper translation will be shown by the application manager. You have
+to add a line like this one:
+
+<pre>
+#maemo:name:LN TRANSLATED NAME
+</pre>
+
+For example, for getting a string translated to spanish (locale es_ES)
+and Galician (locale gl_ES):
+
+<pre>
+#maemo:name:es_ES Repositorio de prueba
+#maemo:name:gl_ES Repositorio de proba
+#maemo:name Test catalogue
+</pre>
+
 ### Marking a repository as essential
 
 A "deb" or "#deb" line in /etc/apt/sources.list can be marked as
