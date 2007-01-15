@@ -19,6 +19,10 @@
 	* src/instr.cc 	(open_local_install_instructions): now 
 	repo_name_list is initialized with 0 values, to prevent
 	problems when the list is empty.
+	* src/instr.cc (open_local_install_instructions): fix
+	added same day: translation lists for each repository
+	must be reversed when created, to preserve the order of
+	the localisation names list.
 
 	
 2007-01-12  Jose Dapena Paz  <jdapena@igalia.com>

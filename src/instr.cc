@@ -211,13 +211,13 @@ open_local_install_instructions (const char *filename)
 
   /* We obtain the translations array */
   GSList **translation_lists = g_new0 (GSList *, repo_name_size+1);
+  gsize trans_index = 0;
   for (cur_loc = loc_list; cur_loc != NULL; cur_loc = g_slist_next (cur_loc))
     {
       if (cur_loc->data != NULL)
 	{
 	  gchar **cur_name = NULL;
 	  gsize trans_count = 0;
-	  gsize trans_index = 0;
 	  gchar **translation = NULL;
  
 	  translation = 
@@ -239,6 +239,12 @@ open_local_install_instructions (const char *filename)
 	    }
 	  g_strfreev (translation);
 	}
+    }
+
+  /* Lists must be reversed in order to match the order in loc_list */
+  for (trans_index = 0; trans_index < repo_name_size; trans_index++)
+    {
+      translation_lists[trans_index] = g_slist_reverse (translation_lists[trans_index]);
     }
 
   /* If there's no repo name field, then enter a stub name list with a null value */
