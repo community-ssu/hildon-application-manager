@@ -1,3 +1,26 @@
+2007-01-15  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Implementation of support of l10n in catalogue names in
+	.install files:
+	* src/instr.cc (get_repo_names_locs): new function that parses
+	the file to get the available translation names.
+	(open_local_install_instructions): now it obtains the 
+	translations for all repository names, and passes them to
+	maybe_add_repos ().
+	* src/repo.cc, src/repo.h (maybe_add_repos): now it gets the
+	translations, and passes them to the repo_line constructor.
+	* doc/repository.txt: added description of localisation support
+	in .install files.
+
+	Other changes:
+	* src/repo.cc: now repo_line::get_name() is used always
+	when a function wants to get the name of a repo_line to
+	show to the user.
+	* src/instr.cc 	(open_local_install_instructions): now 
+	repo_name_list is initialized with 0 values, to prevent
+	problems when the list is empty.
+
+	
 2007-01-12  Jose Dapena Paz  <jdapena@igalia.com>
 
 	Implementation of support of l10n in catalogue names in

@@ -668,8 +668,8 @@ repo_response (GtkDialog *dialog, gint response, gpointer clos)
 	return;
 
       char *name = r->deb_line;
-      if (ui_version > 1 && r->name)
-	name = r->name;
+      if (ui_version > 1 && r->get_name ())
+	name = (char *) r->get_name ();
       char *text = g_strdup_printf (_("ai_nc_remove_repository"), name);
       ask_yes_no (text, remove_repo_cont, r);
       g_free (text);
@@ -731,7 +731,7 @@ repo_text_func (GtkTreeViewColumn *column,
   gtk_tree_model_get (model, iter, 0, &r, -1);
   if (r)
     {
-      if (ui_version >= 2 && r->name)
+      if (ui_version >= 2 && r->get_name ())
 	g_object_set (cell, "text", r->get_name (), NULL);
       else
 	g_object_set (cell, "text", r->deb_line, NULL);
@@ -984,8 +984,8 @@ sources_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 	  ac->clos = c;
 
 	  char *name = ac->new_repo->deb_line;
-	  if (ac->new_repo->name)
-	    name = ac->new_repo->name;
+	  if (ac->new_repo->get_name ())
+	    name = (char *) ac->new_repo->get_name ();
 
 	  gchar *str;
 
@@ -1132,14 +1132,21 @@ maybe_add_repo_cont (GSList *repo_list, bool for_install,
  * repository name and deb line list formats are char ** arrays ended by 
  * a NULL element */
 void 
-maybe_add_repos (const char **name_list, const char **deb_line_list, bool for_install,
-		      void (*cont) (bool res, void *data), void *data)
+maybe_add_repos (const char **name_list, 
+		 const char **deb_line_list, 
+		 const GSList *loc_list,
+		 const GSList **translation_lists,
+		 bool for_install,
+		 void (*cont) (bool res, void *data), 
+		 void *data)
 {
   GSList *repo_line_list = NULL;
   char **current_name = NULL;
+  GSList **translation_index = NULL;
   char **current_line = NULL;
 
   current_name = (char **) name_list;
+  translation_index = (GSList **) translation_lists;
 
   /* Creates a list of repo_line objects from the catalogue strings.
    * It allows getting fewer repository names than repository lines. The
@@ -1149,11 +1156,32 @@ maybe_add_repos (const char **name_list, const char **deb_line_list, bool for_in
        current_line[0] != 0;
        current_line++)
     {
+      GSList *cur_loc = NULL;
+      GSList *cur_translation = NULL;
+      GSList *line_locs = NULL;
+      GSList *line_translations = NULL;
+
+      /* Obtain translations */
+      cur_loc = (GSList *) loc_list;
+      cur_translation = translation_index[0];
+      while (cur_loc != NULL && cur_translation != NULL)
+	{
+	  line_locs = 
+	    g_slist_prepend (line_locs, g_strdup ((gchar *) cur_loc->data));
+	  line_translations = 
+	    g_slist_prepend (line_translations, g_strdup ((gchar *) cur_translation->data));
+	  cur_loc = g_slist_next (cur_loc);
+	  cur_translation = g_slist_next (cur_translation);
+	}
+
       repo_line *n = new repo_line (NULL, current_line[0], false, 
-				    g_strdup (current_name[0]), NULL, NULL);
-      repo_line_list = g_slist_prepend(repo_line_list, n);
+				    g_strdup (current_name[0]), 
+				    line_locs, line_translations);
+      repo_line_list = g_slist_prepend (repo_line_list, n);
       if (current_name[0] != 0)
 	current_name++;
+      if (translation_index[0] != NULL)
+	translation_index++;
     }
 
   maybe_add_repo_cont (repo_line_list, for_install, cont, data);

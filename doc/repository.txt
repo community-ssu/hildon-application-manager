@@ -122,6 +122,17 @@ maemo 2.0:  repo_deb
 maemo 3.0:  repo_deb_3
 </pre>
 
+Repository names can be translated, adding new entries for corresponding
+locales:
+
+<pre>
+[install]
+repo_name  = Foo Catalogue;Bar Catalogue
+repo_name[es_ES] = Repositorio Foo;Repositorio Bar
+repo_deb_3 = deb http://foo.com/maemo bora user;deb http://bar.com/maemo bora user
+package    = foo-app;bar-app
+</pre>
+
 ### Disabling repositories
 
 The AM lets the user edit parts of the contents of
