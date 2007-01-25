@@ -232,7 +232,8 @@ scripts to interact with the user:
   The "<app>.desktop" parameter is the name of your .desktop file,
   without any directories.  The default-folder parameter is optional,
   and when given determines the default folder of the menu entry.  If
-  you omit it, the menu entry will appear in "Extras".
+  you omit it, the menu entry will reappear in its old place, or in
+  "Extras" when the .desktop file was never installed before.
 
   The way to specify a folder that is provided by the system is by
   giving its logical name as listed in the

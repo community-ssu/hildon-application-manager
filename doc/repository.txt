@@ -1,4 +1,4 @@
-## About Repositories for the Application Installer 2006
+## About Repositories for the Hildon Application Manager
 
 ### Basic repository setup
 
