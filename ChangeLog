@@ -1,3 +1,36 @@
+2007-02-01  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/settings.h, src/settings.cc, src/main.cc, src/log.cc,
+	src/repo.cc, src/menu.cc, src/util.cc (ui_version,
+	force_ui_version): Removed.  Changed all users to assume
+	ui_version == 2.
+
+	* src/repo.cc (repo_edit_response): Only change the name after all
+	input has been validated.
+
+	* src/log.h, src/log.cc (clear_log): New, so that the log header
+	is only added in one place.
+	(log_response): Use it.
+	* src/main.cc (main): Call clear_log instead of adding the log
+	header explicitly.
+	
+2007-01-31  Marius Vollmer  <mvo@zagadka.de>
+
+	Use new libconic API to talk to the connectivity
+	facility.
+	
+	* src/util.cc (connection_object): New.
+	(iap_callback): Adapted to be a handler for the "connection-event"
+	signal.
+	(ensure_network): Use ConICConnection object etc instead of
+	osso_iap_cb and osso_iap_connect.
+
+	* configure.ac (HAM_DEPS_CFLAGS, HAM_DEPS_LIBS): use conic package
+	instead of osso-ic.
+
+	* debian/control: Build-Depend on libconic0-dev instead of
+	osso-ic-dev.
+
 2007-01-31  Jose Dapena Paz  <jdapena@igalia.com>
 
 	Refactored support of temporary repositories in Single-click
