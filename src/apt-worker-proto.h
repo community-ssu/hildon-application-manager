@@ -54,8 +54,21 @@ enum apt_command {
   APTCMD_MAX
 };
 
+/* Possible states:
+ *  APTSTATE_CURRENT doesn't switch the state.
+ *  APTSTATE_DEFAULT uses the default APT databases
+ *  APTSTATE_TEMP uses the temporary APT database (for installing 
+ *    packages from temporary repositories.
+ */
+enum apt_state {
+  APTSTATE_CURRENT = 0,
+  APTSTATE_DEFAULT,
+  APTSTATE_TEMP
+};
+
 struct apt_request_header {
   int cmd;
+  int state;
   int seq;
   int len;
 };

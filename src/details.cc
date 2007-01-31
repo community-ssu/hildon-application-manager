@@ -600,5 +600,5 @@ show_package_details_with_cont (package_info *pi, detail_kind kind,
   c->cont = cont;
   c->data = data;
   pi->ref ();
-  get_intermediate_package_info (pi, false, spd_cont, c);
+  get_intermediate_package_info (pi, false, spd_cont, c, APTSTATE_DEFAULT);
 }

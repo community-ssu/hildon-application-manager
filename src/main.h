@@ -76,7 +76,8 @@ void get_intermediate_package_info (package_info *pi,
 				    bool only_installable_info,
 				    void (*func) (package_info *, void *,
 						  bool),
-				    void *);
+				    void *,
+				    int state);
 
 struct section_info {
 
@@ -94,13 +95,16 @@ struct section_info {
   GList *packages;
 };
 
-void get_package_list ();
-void get_package_list_with_cont (void (*cont) (void *data), void *data);
+void get_package_list (int state);
+void get_package_list_with_cont (int state, void (*cont) (void *data), void *data);
 void show_current_details ();
 void do_current_operation ();
-void install_named_package (const char *package, void (*cont) (void *data), void *data);
-void refresh_package_cache (bool ask);
-void refresh_package_cache_with_cont (bool ask,
+void install_named_package (int state, const char *package, void (*cont) (void *data), void *data);
+void install_named_packages (int state, const char **package);
+void refresh_package_cache (int state, 
+			    bool ask);
+void refresh_package_cache_with_cont (int state,
+				      bool ask,
 				      void (*cont) (bool res, void *data), 
 				      void *data);
 void install_from_file ();

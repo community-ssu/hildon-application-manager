@@ -1,0 +1,49 @@
+## About temporary repositories in Application Installer
+
+THIS FEATURE IS NOT SUPPORTED IN THE IT 2006 RELEASE:
+
+As you can see in doc/repository.txt, Single-click install files
+enable the user to install a defined set of packages from custom
+repositories.
+
+If you add a line "temporary = true", it means that the
+repositories are temporal. Then, to install the packages, it
+will only get information from the repositories specified in the
+file.
+
+### Implementation of temporary repositories: apt-worker
+
+The core of the implementation of temporary repositories support
+is in apt-worker.cc.
+
+The class AptWorkerState stores the status of apt for a specific
+set of repositories. We have two: the default set (the one using
+standard apt configuration), and a temporary set (the one used
+for temporary repositories). Only one of them can be used at the
+same time. 
+
+Access to the currently used one is done using the
+class method AptWorkerState::GetCurrent (). Change of currently
+enabled state is done using AptWorkerState::SetDefault () and
+AptWorkerState::SetTemp ().
+
+An AptWorkerState includes a reference to a pkgCacheFile object.
+This cache is wiped out anytime the current apt worker state is
+commuted.
+
+apt-worker protocol provides a state parameter for all calls. This
+parameter is used to set the correct state in the beginning of every
+call.
+
+### Implementation of temporary repositories: UI and protocol
+
+Methods of apt worker client with support for selecting different
+apt worker states get a state parameter. 
+
+The UI sequence to install temporary repositories is:
+   * Parse the single-click install file (instr.cc)
+   * Create a temporary sources.list in 
+     /var/lib/hildon-application-manager/sources.list.temp
+     (repo.cc)
+   * Refresh the temporary package list (main.cc).
+   * Install the packages (main.cc).

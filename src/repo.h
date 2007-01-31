@@ -34,6 +34,10 @@ void maybe_add_repos (const char **name,
 		      void (*cont) (bool res, void *data), 
 		      void *data);
 
+void temporary_set_repos (const char **deb_line_list,
+			  void (*cont) (bool res, void *data),
+			  void *data);
+
 bool parse_quoted_word (char **start, char **end, bool term);
 
 #endif /* !REPO_H */

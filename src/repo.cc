@@ -596,6 +596,18 @@ repo_encoder (apt_proto_encoder *enc, void *data)
 }
 
 static void
+repo_temp_encoder (apt_proto_encoder *enc, void *data)
+{
+  GSList *repo_line_list = (GSList *) data;
+  for (; repo_line_list; repo_line_list = g_slist_next (repo_line_list))
+    {
+      if (repo_line_list->data)
+	enc->encode_string (((repo_line*) (repo_line_list->data))->line);
+    }
+  enc->encode_string (NULL);
+}
+
+static void
 repo_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   if (dec == NULL)
@@ -681,8 +693,8 @@ repo_response (GtkDialog *dialog, gint response, gpointer clos)
     {
       if (c->dirty)
 	{
-	  apt_worker_set_sources_list (repo_encoder, c, repo_reply, NULL);
-	  refresh_package_cache (true);
+	  apt_worker_set_sources_list (APTSTATE_DEFAULT, repo_encoder, c, repo_reply, NULL);
+	  refresh_package_cache (APTSTATE_DEFAULT, true);
 	}
       
       delete c;
@@ -873,7 +885,7 @@ maybe_add_new_repo_cont (bool res, void *data)
 	  *c->lastp = r;
 	  c->lastp = &r->next;
 	  
-	  apt_worker_set_sources_list (repo_encoder, c, repo_reply, NULL);
+	  apt_worker_set_sources_list (APTSTATE_DEFAULT, repo_encoder, c, repo_reply, NULL);
       
 	  ac->cont (true, ac->cont_data);
 	}
@@ -965,7 +977,7 @@ sources_list_reply (int cmd, apt_proto_decoder *dec, void *data)
   /* XXX - do something with 'success'.
    */
 
-  int success = dec->decode_int ();
+  dec->decode_int ();
 
   repo_add_closure *ac = (repo_add_closure *)data;
 
@@ -1185,7 +1197,61 @@ maybe_add_repos (const char **name_list,
     }
 
   maybe_add_repo_cont (repo_line_list, for_install, cont, data);
-}  
+}
+
+struct tc_closure {
+  void (*cont) (bool res, void *data);
+  void *data;
+};
+
+static void
+temporary_clean_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  tc_closure *closure = (tc_closure *) data;
+
+  hide_progress();
+  if (data != NULL)
+    {
+      if (closure->cont)
+	closure->cont (true, closure->data);
+      delete closure;
+    }
+}
+
+void
+temporary_set_sources_list (GSList *repo_line_list,
+			    void (*cont) (bool res, void *data),
+			    void *data)
+{
+  tc_closure *closure = new tc_closure;
+  closure->cont = cont;
+  closure->data = data;
+  apt_worker_set_sources_list (APTSTATE_TEMP, repo_temp_encoder, repo_line_list, 
+				    repo_reply, NULL);
+  apt_worker_clean (APTSTATE_TEMP, temporary_clean_reply, closure);
+}
+
+void
+temporary_set_repos (const char **deb_line_list,
+		     void (*cont) (bool res, void *data),
+		     void *data)
+{
+  GSList *repo_line_list = NULL;
+  char **current_line = NULL;
+
+  /* Creates a list of repo_line objects from the catalogue strings.
+   */
+  for (current_line = (char **) deb_line_list;
+       current_line[0] != 0;
+       current_line++)
+    {
+      repo_line *n = new repo_line (NULL, current_line[0], false,
+				    NULL, NULL, NULL);
+      repo_line_list = g_slist_prepend (repo_line_list, n);
+    }
+  
+  temporary_set_sources_list (repo_line_list, cont, data);
+}
 
 static void
 pill_response (GtkDialog *dialog, gint response, gpointer unused)
@@ -1197,7 +1263,7 @@ pill_response (GtkDialog *dialog, gint response, gpointer unused)
     {
       red_pill_mode = (response == GTK_RESPONSE_YES);
       save_settings ();
-      get_package_list ();
+      get_package_list (APTSTATE_DEFAULT);
     }
 }
 

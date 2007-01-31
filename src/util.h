@@ -42,7 +42,9 @@
 
   PUSH_DIALOG_PARENT and POP_DIALOG_PARENT are used to keep track of
   the top-most window to be used as the parent for new dialogs.
-  GET_DIALOG_PARENT returns that window.
+  GET_DIALOG_PARENT returns that window. PUSH_NO_PARENT is used to
+  specify a non-parented flow. It happens when the flow is started
+  from another application. END_DIALOG_FLOW removes no parent mark.
 
   ASK_YES_NO shows QUESTION in a confirmation note.  The result RES
   passed to the continuation CONT is true when the user clicks "Ok",
@@ -91,7 +93,10 @@
 */
 
 void push_dialog_parent (GtkWidget *window);
+void push_no_parent ();
+void end_dialog_flow ();
 void pop_dialog_parent ();
+void print_dialog_stack ();
 GtkWindow *get_dialog_parent ();
 
 void ask_yes_no (const gchar *question,
@@ -258,7 +263,7 @@ GtkWidget *make_small_label (const char *text);
   regardless of whether it is currently being displayed or not.
 */
 
-typedef void package_info_callback (package_info *, void (*cont) (void *data), void *data);
+typedef void package_info_callback (int state, package_info *, void (*cont) (void *data), void *data);
 
 GtkWidget *make_global_package_list (GList *packages,
 				     bool installed,
@@ -294,6 +299,21 @@ typedef void section_activated (section_info *);
 
 GtkWidget *make_global_section_list (GList *sections, section_activated *act);
 void clear_global_section_list ();
+
+/* Select packages to install dialog
+
+   SELECT_PACKAGES_LIST shows a dialog containing the list of 
+   packages to install. The title is TITLE, and it will show QUESTION
+
+   CONT is called with DATA as DATA parameter when the dialog is closed. 
+   If Ok is pressed, RES is TRUE.
+ */
+
+void select_package_list (GList *package_list,
+			  const gchar *title,
+			  const gchar *question,
+			  void (*cont) (gboolean res, GList * pl, void *data),
+			  void *data);
 
 /* Formatting sizes
 

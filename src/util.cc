@@ -74,6 +74,7 @@ extern "C" {
 
 static GSList *dialog_parents = NULL;
 
+/* Obtain the current dialog parent for newly instantiated dialogs */
 GtkWindow *
 get_dialog_parent ()
 {
@@ -83,16 +84,40 @@ get_dialog_parent ()
     return NULL;
 }
 
+/* Adds a toplevel to the toplevels stack */
 void
 push_dialog_parent (GtkWidget *w)
 {
   dialog_parents = g_slist_prepend (dialog_parents, w);
 }
 
+/* Adds a NULL to the toplevels stack. It's used to run dialog flows
+ * from other windows */
+void
+push_no_parent ()
+{
+  dialog_parents = g_slist_prepend (dialog_parents, NULL);
+}
+
+/* Removes the top dialog of the toplevels stack. */
 void
 pop_dialog_parent ()
 {
   if (dialog_parents)
+    {
+      GSList *old = dialog_parents;
+      dialog_parents = dialog_parents->next;
+      g_slist_free_1 (old);
+
+    }
+}
+
+/* Should be run when a dialog flow ends. It checks if there's a NULL
+ * in the top of  the toplevels stack and removes it in order to
+ * restore the standard behavior of the stack */
+void end_dialog_flow ()
+{
+  if ((dialog_parents)&&(dialog_parents->data == NULL))
     {
       GSList *old = dialog_parents;
       dialog_parents = dialog_parents->next;
@@ -132,6 +157,8 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
   gtk_widget_destroy (GTK_WIDGET (dialog));
   if (cont)
     cont (response == GTK_RESPONSE_OK, data);
+  else
+    end_dialog_flow ();
 }
 
 void
@@ -264,12 +291,18 @@ annoy_user_response (GtkDialog *dialog, gint response, gpointer data)
   pop_dialog_parent ();
   gtk_widget_destroy (GTK_WIDGET (dialog));
   currently_annoying_user = false;
-  if (closure_data != NULL) {
-    if (closure_data->cont != NULL) {
-      closure_data->cont(closure_data->data);
+  if (closure_data != NULL) 
+    {
+      if (closure_data->cont != NULL)
+	{
+	  closure_data->cont(closure_data->data);
+	}
+      else
+	{
+	  delete closure_data;
+	  end_dialog_flow ();
+	}
     }
-    delete closure_data;
-  }
 }
 
 void annoy_user (const gchar *text) {
@@ -284,6 +317,7 @@ annoy_user_with_cont (const gchar *text, void (*cont) (void *data), void *data)
     if (cont != NULL) {
       cont(data);
     } else {
+      end_dialog_flow ();
       return;
     }
   }
@@ -370,6 +404,8 @@ annoy_user_with_details_with_cont (const gchar *text,
   pi->ref ();
   c->pi = pi;
   c->kind = kind;
+  c->cont = cont;
+  c->data = data;
   g_signal_connect (dialog, "response", 
 		    G_CALLBACK (annoy_user_with_details_response), c);
   gtk_widget_show_all (dialog);
@@ -1052,13 +1088,13 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
 	{
 	  gtk_tree_model_get (model, &iter, 0, &pi, -1);
 	  if (pi)
-	    global_selection_callback (pi, NULL, NULL);
+	    global_selection_callback (APTSTATE_DEFAULT, pi, NULL, NULL);
 	}
     }
   else
     {
       if (global_selection_callback)
-	global_selection_callback (NULL, NULL, NULL);
+	global_selection_callback (APTSTATE_DEFAULT, NULL, NULL, NULL);
     }
 }
 
@@ -1081,7 +1117,7 @@ global_row_activated (GtkTreeView *treeview,
       package_info *pi;
       gtk_tree_model_get (model, &iter, 0, &pi, -1);
       if (pi)
-	global_activation_callback (pi, NULL, NULL);
+	global_activation_callback (APTSTATE_DEFAULT, pi, NULL, NULL);
     }
 }
 
@@ -1415,6 +1451,242 @@ clear_global_section_list ()
       g_object_unref (global_section_list);
     }
   global_section_list = NULL;
+}
+
+enum {
+  COLUMN_SP_SELECTED,
+  COLUMN_SP_NAME,
+  COLUMN_SP_SIZE,
+  COLUMN_SP_PACKAGE_INFO,
+  SP_N_COLUMNS
+};
+
+static GtkListStore *
+make_select_package_list_store (GList *package_list, gint *total_size)
+{
+  GtkListStore *list_store = NULL;
+  GList * node = NULL;
+  gint acc_size = 0;
+
+  list_store = gtk_list_store_new (SP_N_COLUMNS,
+				   G_TYPE_BOOLEAN,
+				   G_TYPE_STRING,
+				   G_TYPE_STRING,
+				   G_TYPE_POINTER);
+
+  for (node = package_list; node != NULL; node = g_list_next (node))
+    {
+      package_info *pi = (package_info *) node->data;
+      GtkTreeIter iter;
+      char package_size_str[20];
+      size_string_general (package_size_str, 20, pi->info.install_user_size_delta);
+      gtk_list_store_append (list_store, &iter);
+      gtk_list_store_set (list_store, &iter,
+			  COLUMN_SP_SELECTED, TRUE,
+			  COLUMN_SP_NAME, pi->name,
+			  COLUMN_SP_SIZE, package_size_str,
+			  COLUMN_SP_PACKAGE_INFO, pi,
+			  -1);
+      acc_size += pi->info.install_user_size_delta;
+    }
+
+  if (total_size != NULL)
+    *total_size = acc_size;
+
+  return list_store;
+}
+
+void fill_required_space_label (GtkWidget *label,
+				gint size)
+{
+  gchar * text = NULL;
+  gchar size_str[20];
+
+  size_string_general (size_str, 20, size);
+
+  text = g_strdup_printf (_("ai_ia_storage"), size_str);
+  gtk_label_set_text (GTK_LABEL(label), text);
+  g_free (text);
+}
+
+void update_required_space_label (GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *i, void *data)
+{
+  gboolean has_iter = FALSE;
+  gint acc_size = 0;
+  GtkWidget *label = NULL;
+  GtkTreeIter iter;
+
+  has_iter = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(model), &iter);
+  label = GTK_WIDGET(data);
+
+  while (has_iter)
+    {
+      gboolean selected = FALSE;
+      package_info *pi = NULL;
+
+      gtk_tree_model_get (GTK_TREE_MODEL(model), &iter,
+			  COLUMN_SP_SELECTED, &selected,
+			  COLUMN_SP_PACKAGE_INFO, &pi,
+			  -1);
+      if (selected)
+	acc_size += pi->info.install_user_size_delta;
+      has_iter = gtk_tree_model_iter_next (GTK_TREE_MODEL(model), &iter);
+    }
+
+  fill_required_space_label (label, acc_size);
+}
+
+struct spl_closure
+{
+  GtkListStore *list_store;
+  void (*cont) (gboolean res, GList *package_list, void *data);
+  void *data;
+};
+
+void select_package_list_response (GtkDialog *dialog,
+				   gint response,
+				   gpointer user_data)
+{
+  spl_closure *closure = (spl_closure *)user_data;
+  gboolean res = FALSE;
+  GList *package_list = NULL;
+  GtkTreeIter iter;
+  gboolean has_iter = FALSE;
+
+  res = (response == GTK_RESPONSE_OK);
+
+  has_iter = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(closure->list_store), &iter);
+  while (has_iter)
+    {
+      gboolean selected = FALSE;
+      package_info *pi = NULL;
+
+      gtk_tree_model_get (GTK_TREE_MODEL(closure->list_store), &iter,
+			  COLUMN_SP_SELECTED, &selected,
+			  COLUMN_SP_PACKAGE_INFO, &pi,
+			  -1);
+      if (selected)
+	package_list = g_list_prepend (package_list, pi);
+      has_iter = gtk_tree_model_iter_next (GTK_TREE_MODEL(closure->list_store), &iter);
+    }
+  package_list = g_list_reverse (package_list);
+  g_object_unref(closure->list_store);
+
+  pop_dialog_parent ();
+  gtk_widget_destroy (GTK_WIDGET (dialog));
+
+  if (closure->cont)
+    {
+      closure->cont (res, package_list, closure->data);
+    }
+  else
+    {
+      g_list_free (package_list);
+      end_dialog_flow ();
+    }
+
+  delete closure;
+}
+
+void
+package_selected_toggled_callback (GtkCellRendererToggle *cell,
+				   char *path_string,
+				   gpointer user_data)
+{
+  GtkTreePath *path;
+  GtkTreeIter iter;
+  gboolean selected;
+  GtkTreeView *tree_view;
+
+  tree_view = GTK_TREE_VIEW (user_data);
+
+  path = gtk_tree_path_new_from_string (path_string);
+  gtk_tree_model_get_iter (gtk_tree_view_get_model (tree_view),
+			   &iter, path);
+  gtk_tree_model_get (gtk_tree_view_get_model (tree_view),
+		      &iter, COLUMN_SP_SELECTED, &selected, -1);
+  gtk_list_store_set (GTK_LIST_STORE(gtk_tree_view_get_model (tree_view)),
+		      &iter, COLUMN_SP_SELECTED, !selected, -1);
+  gtk_tree_path_free (path);
+}
+
+void select_package_list (GList *package_list,
+			  const gchar *title,
+			  const gchar *question,
+			  void (*cont) (gboolean res, GList *pl, void *data),
+			  void *data)
+{
+  GtkWidget *dialog;
+  GtkListStore *list_store;
+  GtkWidget *tree_view;
+  GtkTreeViewColumn *column;
+  GtkCellRenderer *renderer;
+  GtkWidget *message_label;
+  GtkWidget *required_space_label;
+  gint total_size;
+  spl_closure *closure = new spl_closure;
+
+  dialog = gtk_dialog_new_with_buttons (title, get_dialog_parent (),
+					GTK_DIALOG_MODAL,
+					_("ai_bd_ok"),      GTK_RESPONSE_OK,
+					_("ai_bd_cancel"),  GTK_RESPONSE_CANCEL,
+					NULL);
+  push_dialog_parent (dialog);
+
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+  list_store = make_select_package_list_store (package_list, &total_size);
+
+  /* Set the message dialog */
+  message_label = gtk_label_new (question);
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), message_label);
+  
+  /* Add required space label */
+  required_space_label = gtk_label_new (NULL);
+  gtk_box_pack_end_defaults (GTK_BOX(GTK_DIALOG(dialog)->vbox), required_space_label);
+  fill_required_space_label (required_space_label, total_size);
+
+  /* Set up treeview */
+  tree_view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (list_store));
+  g_object_set (G_OBJECT(tree_view), "allow-checkbox-mode", FALSE, NULL);
+  renderer = gtk_cell_renderer_toggle_new ();
+  gtk_cell_renderer_toggle_set_radio (GTK_CELL_RENDERER_TOGGLE (renderer), FALSE);
+  g_signal_connect (G_OBJECT (renderer), "toggled", 
+		    G_CALLBACK (package_selected_toggled_callback), tree_view);
+  column = gtk_tree_view_column_new_with_attributes ("Marked", renderer, 
+						     "active", COLUMN_SP_SELECTED, 
+						     NULL);
+  gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
+			       column);
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes ("Name", renderer, 
+						     "text", COLUMN_SP_NAME, 
+						     NULL);
+  gtk_tree_view_column_set_expand(column, TRUE);
+  gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
+			       column);
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes ("Size", renderer, 
+						     "text", COLUMN_SP_SIZE, 
+						     NULL);
+  gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
+			       column);
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), tree_view);
+  
+  /* Add separator */
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
+		     gtk_hseparator_new ());
+
+  closure->list_store = list_store;
+  closure->cont = cont;
+  closure->data = data;
+
+  g_signal_connect (list_store, "row-changed", G_CALLBACK (update_required_space_label), required_space_label);
+  g_signal_connect (dialog, "response", 
+		    G_CALLBACK (select_package_list_response), 
+		    closure);
+
+  gtk_widget_set_usize (dialog, 600, 320);
+  gtk_widget_show_all (dialog);
 }
 
 #define KILO 1000

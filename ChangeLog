@@ -1,3 +1,92 @@
+2007-01-31  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Refactored support of temporary repositories in Single-click
+	install files:
+	* src/apt-worker.cc, src/apt-worker.h: now apt-worker commands
+	with temporary state support accept a state parameter.
+	* src/apt-worker-client.cc, src/apt-worker-client.h: added state 
+	parameter to protocol implementation and many calls. Also removed 
+	_temp_ variations of calls, as now state parameter selects the type 
+	of state.
+	* src/instr.cc: removed "temp" functions. Now states are handled
+	using a state attribute in the standard instr_* functions.
+	* src/settings.cc, src/menu.cc, src/repo.cc: add state parameter to 
+	get_package_list calls.
+	* src/repo.cc: add state parameter to apt_worker_set_sources_list
+	calls.
+	* src/repo.cc, src/repo.h: renamed temporary_repos to 
+	temporary_set_repos.
+	* src/util.cc: now global callbacks receive a state parameter.
+	* src/main.cc (free_all_packages): now it gets a state parameter,
+	to free temp packages or all packages.
+	* src/main.cc: added function find_package_in_lists (), that retrieves
+	the package info from proper lists depending on states. This enables
+	to refactor install_named_package[s] to remove _temp_ variations.
+	* src/main.cc: now there's a single get_package_list_reply, with a
+	state parameter. Depending on it it calls get_package_list_entry_temp
+	or get_package_list_entry_default.
+	* src/main.cc (get_package_list*, call_with_package_[list]*,
+	install_package*, install_named_package*): added 
+	support for using states. Removed _temp_ versions of functions.
+	* src/main.cc: added get_package_list_entry () function, that parses
+	a decoder package list. It's used from get_package_list_reply_default
+	and get_package_list_reply_temp.
+	* src/main.cc (refresh_package_cache*): added state parameter handling
+	and removed _temp_ versions.
+	* doc/temporary.txt: update implementation notes.
+	* src/instr.cc: removed multipackage selection feature on getting
+	more than one package from a standard single-click install file, as this
+	is not in specifications.
+
+	Added better support for launching app manager dialogs from
+	other applications
+	* src/util.cc: added functions for launching dialog flows without
+	parents: push_no_parent () and end_dialog_flow ().
+	* src/util.cc, src/instr.cc, src/main.cc: added end_dialog_flow support.
+	* src/main.cc (mime_open_handler, main): add support for launching dialogs
+	on top of other applications. It simply iconifies the main application 
+	window before launching the new dialog, and changes the dialog stack to
+	make it think there's no parent (and then run on top of current 
+	application.
+
+2007-01-23  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Added support of temporary repositories in Single-click
+	install files:
+	* src/apt-worker.cc: big reorganization work, to add
+	support for maintaining a standard configuration of APT,
+	and a temporary configuration. This is all implemented
+	through the use of the new AptWorkerState class.
+	* src/instr.cc: added parsing of temporary parameter in
+	Single-click install files. If it's found and it's true,
+	it will get temporary repositories, refresh the temporary
+	cache and install the packages.
+	* src/repo.cc, src/repo.h: added temporary_repos, that
+	sets the temporary sources.list file, and refreshes the
+	temporary cache in apt worker.
+	* src/main.cc: maintains a new package list (temp_packages)
+	with the list of package info objects for the last
+	selected temporary repository.
+	* src/main.cc: added functions to manage temporary
+	repositories (free_all_temp_packages (), 
+	get_temp_package_list_with_cont (), get_temp_package_list (),
+	refresh_temp_package_cache_with_cont (), install_temp_package (),
+	install_named_package_with_temp_repository (),
+	* src/main.cc: modified get_intermediate_package_info 
+	and get_next_package_info to support getting information 
+	from temporary repositories.
+	* src/details.cc (show_details_with_cont): adapt to new
+	API of get_intermediate_package_info ().
+	* Added doc/temporary.txt with a description of the implementation
+	of temporary repositories.
+
+	Other changes:
+	* src/util.cc (annoy_user_with_details_with_cont): set 
+	the callback for being able to use it in the response.
+	* src/main.cc (confirm_install): remove a warning (now
+	it does not return a boolean).
+	* Minor code style changes.
+	
 2007-01-15  Jose Dapena Paz  <jdapena@igalia.com>
 
 	Implementation of support of l10n in catalogue names in

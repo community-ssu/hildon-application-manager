@@ -324,9 +324,9 @@ apt_worker_is_running ()
 }
 
 bool
-send_apt_worker_request (int cmd, int seq, char *data, int len)
+send_apt_worker_request (int cmd, int state, int seq, char *data, int len)
 {
-  apt_request_header req = { cmd, seq, len };
+  apt_request_header req = { cmd, state, seq, len };
   return must_write (&req, sizeof (req)) &&  must_write (data, len);
 }
 
@@ -346,7 +346,7 @@ struct pending_request {
 static pending_request pending[APTCMD_MAX];
 
 void
-call_apt_worker (int cmd, char *data, int len,
+call_apt_worker (int cmd, int state, char *data, int len,
 		 apt_worker_callback *done_callback,
 		 void *done_data)
 {
@@ -362,7 +362,7 @@ call_apt_worker (int cmd, char *data, int len,
       pending[cmd].seq = next_seq ();
       pending[cmd].done_callback = done_callback;
       pending[cmd].done_data = done_data;
-      if (!send_apt_worker_request (cmd, pending[cmd].seq, data, len))
+      if (!send_apt_worker_request (cmd, state, pending[cmd].seq, data, len))
 	{
 	  annoy_user_with_log (_("ai_ni_operation_failed"));
 	  cancel_request (cmd);
@@ -467,7 +467,8 @@ apt_worker_set_status_callback (apt_worker_callback *callback, void *data)
 }
 
 void
-apt_worker_get_package_list (bool only_user,
+apt_worker_get_package_list (int state,
+			     bool only_user,
 			     bool only_installed,
 			     bool only_available,
 			     const char *pattern,
@@ -480,12 +481,13 @@ apt_worker_get_package_list (bool only_user,
   request.encode_int (only_available);
   request.encode_string (pattern);
   request.encode_int (show_magic_sys);
-  call_apt_worker (APTCMD_GET_PACKAGE_LIST,
+  call_apt_worker (APTCMD_GET_PACKAGE_LIST, state,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
 
 struct awuc_closure {
+  int state;
   apt_worker_callback *callback;
   void *data;
 };
@@ -497,6 +499,7 @@ apt_worker_update_cache_cont (bool success, void *clos)
   awuc_closure *c = (awuc_closure *)clos;
   apt_worker_callback *callback = c->callback;
   void *data = c->data;
+  int state = c->state;
   delete c;
 
   if (success)
@@ -513,7 +516,7 @@ apt_worker_update_cache_cont (bool success, void *clos)
       g_free (https_proxy);
 
       show_progress (_("ai_nw_updating_list"));
-      call_apt_worker (APTCMD_UPDATE_PACKAGE_CACHE,
+      call_apt_worker (APTCMD_UPDATE_PACKAGE_CACHE, state, 
 		       request.get_buf (), request.get_len (),
 		       callback, data);
     }
@@ -525,11 +528,12 @@ apt_worker_update_cache_cont (bool success, void *clos)
 }
 
 void
-apt_worker_update_cache (apt_worker_callback *callback, void *data)
+apt_worker_update_cache (int state, apt_worker_callback *callback, void *data)
 {
   awuc_closure *c = new awuc_closure;
   c->callback = callback;
   c->data = data;
+  c->state = state;
 
   ensure_network (apt_worker_update_cache_cont, c);
 }
@@ -537,31 +541,45 @@ apt_worker_update_cache (apt_worker_callback *callback, void *data)
 void
 apt_worker_get_sources_list (apt_worker_callback *callback, void *data)
 {
-  call_apt_worker (APTCMD_GET_SOURCES_LIST, NULL, 0,
+  call_apt_worker (APTCMD_GET_SOURCES_LIST, APTSTATE_DEFAULT, NULL, 0,
 		   callback, data);
 }
 
 void
-apt_worker_set_sources_list (void (*encoder) (apt_proto_encoder *, void *),
+apt_worker_set_sources_list (int state,
+			     void (*encoder) (apt_proto_encoder *, void *),
 			     void *encoder_data,
 			     apt_worker_callback *callback, void *data)
 {
   request.reset ();
   encoder (&request, encoder_data);
-  call_apt_worker (APTCMD_SET_SOURCES_LIST,
+  call_apt_worker (APTCMD_SET_SOURCES_LIST, state,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
 
 void
-apt_worker_get_package_info (const char *package,
+apt_worker_temp_set_sources_list (void (*encoder) (apt_proto_encoder *, void *),
+				  void *encoder_data,
+				  apt_worker_callback *callback, void *data)
+{
+  request.reset ();
+  encoder (&request, encoder_data);
+  call_apt_worker (APTCMD_SET_SOURCES_LIST, APTSTATE_TEMP,
+		   request.get_buf (), request.get_len (),
+		   callback, data);
+}
+
+void
+apt_worker_get_package_info (int state,
+			     const char *package,
 			     bool only_installable_info,
 			     apt_worker_callback *callback, void *data)
 {
   request.reset ();
   request.encode_string (package);
   request.encode_int (only_installable_info);
-  call_apt_worker (APTCMD_GET_PACKAGE_INFO,
+  call_apt_worker (APTCMD_GET_PACKAGE_INFO, state,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
@@ -577,18 +595,18 @@ apt_worker_get_package_details (const char *package,
   request.encode_string (package);
   request.encode_string (version);
   request.encode_int (summary_kind);
-  call_apt_worker (APTCMD_GET_PACKAGE_DETAILS,
+  call_apt_worker (APTCMD_GET_PACKAGE_DETAILS, APTSTATE_DEFAULT,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
 
 void
-apt_worker_install_check (const char *package,
+apt_worker_install_check (int state, const char *package,
 			  apt_worker_callback *callback, void *data)
 {
   request.reset ();
   request.encode_string (package);
-  call_apt_worker (APTCMD_INSTALL_CHECK,
+  call_apt_worker (APTCMD_INSTALL_CHECK, state,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
@@ -596,6 +614,7 @@ apt_worker_install_check (const char *package,
 struct awip_closure {
   char *package;
   bool updating;
+  int state;
   apt_worker_callback *callback;
   void *data;
 };
@@ -608,6 +627,7 @@ apt_worker_install_package_cont (bool success, void *clos)
   apt_worker_callback *callback = c->callback;
   void *data = c->data;
   bool updating = c->updating;
+  int state = c->state;
   delete c;
 
   if (success)
@@ -628,7 +648,7 @@ apt_worker_install_package_cont (bool success, void *clos)
 				  : _("ai_nw_installing"));
       reset_progress_was_cancelled ();
 
-      call_apt_worker (APTCMD_INSTALL_PACKAGE,
+      call_apt_worker (APTCMD_INSTALL_PACKAGE, state,
 		       request.get_buf (), request.get_len (),
 		       callback, data);
     }
@@ -637,9 +657,9 @@ apt_worker_install_package_cont (bool success, void *clos)
 
   g_free (package);
 }
-  
+
 void
-apt_worker_install_package (const char *package, bool updating,
+apt_worker_install_package (int state, const char *package, bool updating,
 			    apt_worker_callback *callback, void *data)
 {
   awip_closure *c = new awip_closure;
@@ -647,6 +667,7 @@ apt_worker_install_package (const char *package, bool updating,
   c->callback = callback;
   c->data = data;
   c->updating = updating;
+  c->state = state;
 
   ensure_network (apt_worker_install_package_cont, c);
 }
@@ -657,7 +678,7 @@ apt_worker_get_packages_to_remove (const char *package,
 {
   request.reset ();
   request.encode_string (package);
-  call_apt_worker (APTCMD_GET_PACKAGES_TO_REMOVE,
+  call_apt_worker (APTCMD_GET_PACKAGES_TO_REMOVE, APTSTATE_DEFAULT,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
@@ -668,15 +689,15 @@ apt_worker_remove_package (const char *package,
 {
   request.reset ();
   request.encode_string (package);
-  call_apt_worker (APTCMD_REMOVE_PACKAGE,
+  call_apt_worker (APTCMD_REMOVE_PACKAGE, APTSTATE_DEFAULT,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
 
 void
-apt_worker_clean (apt_worker_callback *callback, void *data)
+apt_worker_clean (int state, apt_worker_callback *callback, void *data)
 {
-  call_apt_worker (APTCMD_CLEAN, NULL, 0,
+  call_apt_worker (APTCMD_CLEAN, state, NULL, 0,
 		   callback, data);
 }
 
@@ -686,7 +707,7 @@ apt_worker_install_file (const char *file,
 {
   request.reset ();
   request.encode_string (file);
-  call_apt_worker (APTCMD_INSTALL_FILE,
+  call_apt_worker (APTCMD_INSTALL_FILE, APTSTATE_DEFAULT, 
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
@@ -698,7 +719,7 @@ apt_worker_get_file_details (bool only_user, const char *file,
   request.reset ();
   request.encode_int (only_user);
   request.encode_string (file);
-  call_apt_worker (APTCMD_GET_FILE_DETAILS,
+  call_apt_worker (APTCMD_GET_FILE_DETAILS, APTSTATE_DEFAULT, 
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }

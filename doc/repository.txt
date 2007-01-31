@@ -133,6 +133,26 @@ repo_deb_3 = deb http://foo.com/maemo bora user;deb http://bar.com/maemo bora us
 package    = foo-app;bar-app
 </pre>
 
+### Single-click install from temporary repositories
+
+THIS FEATURE IS NOT SUPPORTED IN THE IT 2006 RELEASE:
+
+You can add a special attribute to a .install file, called "temporary". If a Single
+click install file includes this parameter with a true value, it means that it will 
+install its packages getting them exclusively from the repositories in the file:
+
+<pre>
+[install]
+temporary  = true
+repo_name  = Foo Catalogue;Bar Catalogue
+repo_name[es_ES] = Repositorio Foo;Repositorio Bar
+repo_deb_3 = deb http://foo.com/maemo bora user;deb http://bar.com/maemo bora user
+package    = foo-app;bar-app
+</pre>
+
+This file will install foo-app and bar-app from the foo and bar catalogues just as if
+they were the only repositories present in the sources.list.
+
 ### Disabling repositories
 
 The AM lets the user edit parts of the contents of

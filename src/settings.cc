@@ -260,7 +260,7 @@ settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
 
       save_settings ();
       if (red_pill_mode)
-	get_package_list ();
+	get_package_list (APTSTATE_DEFAULT);
     }
 
   delete c;

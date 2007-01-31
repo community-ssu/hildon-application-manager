@@ -174,7 +174,7 @@ fullscreen_toolbar_activated (GtkWidget *item)
 static void
 call_refresh_package_cache ()
 {
-  refresh_package_cache (true);
+  refresh_package_cache (APTSTATE_DEFAULT, true);
 }
 
 void

@@ -57,7 +57,8 @@ void handle_one_apt_worker_response ();
 void apt_worker_set_status_callback (apt_worker_callback *callback,
 				     void *data);
 
-void apt_worker_get_package_list (bool only_user,
+void apt_worker_get_package_list (int state,
+				  bool only_user,
 				  bool only_installed,
 				  bool only_available,
 				  const char *pattern,
@@ -65,18 +66,21 @@ void apt_worker_get_package_list (bool only_user,
 				  apt_worker_callback *callback,
 				  void *data);
 
-void apt_worker_update_cache (apt_worker_callback *callback,
+void apt_worker_update_cache (int state,
+			      apt_worker_callback *callback,
 			      void *data);
 
 void apt_worker_get_sources_list (apt_worker_callback *callback,
 				  void *data);
 
-void apt_worker_set_sources_list (void (*encoder) (apt_proto_encoder *,
+void apt_worker_set_sources_list (int state,
+				  void (*encoder) (apt_proto_encoder *,
 						   void *),
 				  void *encoder_data,
 				  apt_worker_callback *callback, void *data);
 
-void apt_worker_get_package_info (const char *package,
+void apt_worker_get_package_info (int state,
+				  const char *package,
 				  bool only_installable_info,
 				  apt_worker_callback *callback,
 				  void *data);
@@ -87,11 +91,13 @@ void apt_worker_get_package_details (const char *package,
 				     apt_worker_callback *callback,
 				     void *data);
 
-void apt_worker_install_check (const char *package,
+void apt_worker_install_check (int state,
+			       const char *package,
 			       apt_worker_callback *callback,
 			       void *data);
 
-void apt_worker_install_package (const char *package,
+void apt_worker_install_package (int state, 
+				 const char *package,
 				 bool updating,
 				 apt_worker_callback *callback,
 				 void *data);
@@ -104,7 +110,8 @@ void apt_worker_remove_package (const char *package,
 				apt_worker_callback *callback,
 				void *data);
 
-void apt_worker_clean (apt_worker_callback *callback,
+void apt_worker_clean (int state, 
+		       apt_worker_callback *callback,
 		       void *data);
 
 void apt_worker_install_file (const char *filename,
