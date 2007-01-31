@@ -199,7 +199,8 @@ repo_line::get_name()
   translation = (gchar *) g_datalist_get_data (&loc_names, current_locale);
   if (name == NULL)
     {
-      /* If translations are available, but no name, translations are not valid */
+      /* If translations are available, but no name, translations are
+	 not valid */
       return NULL;
     }
   else
@@ -249,11 +250,6 @@ struct repo_edit_closure {
   GtkWidget *uri_entry;
   GtkWidget *dist_entry;
   GtkWidget *components_entry;
-
-  // Only one of these is non-NULL, depending on the UI version we
-  // implement.
-  //
-  GtkWidget *enabled_button;
   GtkWidget *disabled_button;
 };
 
@@ -300,23 +296,6 @@ repo_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 		}
 	      name = NULL;
 	    }
-
-	  /* If user has changed the repository name, then clean all the translations
-	   * and store only the user custom name */
-	  if (r->get_name ())
-	    {
-	      if (strcmp(name, r->get_name ())!= 0)
-		{
-		  free (r->name);
-		  r->name = g_strdup (name);
-		  g_datalist_clear (&(r->loc_names));
-		}
-	    }
-	  else
-	    {
-	      r->name = g_strdup (name);
-	      g_datalist_clear (&(r->loc_names));
-	    }
 	}
 
       if (all_white_space (uri) || stripped_equal (uri, "http://"))
@@ -332,16 +311,22 @@ repo_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 	  gtk_widget_grab_focus (c->dist_entry);
 	  return;
 	}
+      
+      /* If user has changed the repository name, then clean all the
+       * translations and store only the user custom name.
+       */
+      const char *old_name = r->get_name ();
+      if (name == NULL || old_name == NULL || strcmp (name, old_name) != 0)
+	{
+	  free (r->name);
+	  r->name = g_strdup (name);
+	  g_datalist_clear (&(r->loc_names));
+	}
 
       free (r->line);
 
-      if (c->enabled_button)
-	r->enabled =
-	  gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (c->enabled_button));
-      else
-	r->enabled =
-	  !gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
-					 (c->disabled_button));
+      r->enabled = !gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
+						  (c->disabled_button));
 	
       r->line = g_strdup_printf ("%s %s %s %s",
 				 r->enabled? "deb" : "#deb", uri, dist, comps);
@@ -462,23 +447,16 @@ show_repo_edit_dialog (repo_line *r, bool isnew, bool readonly)
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
   
   char *start, *end;
-
-  if (ui_version > 1)
+  
+  char *current_name = (char *) r->get_name ();
+  if (current_name)
     {
-      char *current_name = (char *) r->get_name ();
-      if (current_name)
-	{
-	  end = current_name + strlen (current_name);
-	  c->had_name = true;
-	}
-      c->name_entry = add_entry (vbox, group,
-				 _("ai_fi_new_repository_name"),
-				 current_name, end, true, readonly, true);
+      end = current_name + strlen (current_name);
+      c->had_name = true;
     }
-  else
-    {
-      c->name_entry = NULL;
-    }
+  c->name_entry = add_entry (vbox, group,
+			     _("ai_fi_new_repository_name"),
+			     current_name, end, true, readonly, true);
 
   start = r->deb_line;
   parse_quoted_word (&start, &end, false);
@@ -499,32 +477,15 @@ show_repo_edit_dialog (repo_line *r, bool isnew, bool readonly)
 				   _("ai_fi_new_repository_component"),
 				   start, end, false, readonly, false);
 
-  if (ui_version < 2)
-    {
-      c->disabled_button = NULL;
-      c->enabled_button = gtk_check_button_new ();
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->enabled_button),
-				    r->enabled);
-      caption = hildon_caption_new (group,
-				    _("ai_fi_new_repository_enabled"),
-				    c->enabled_button,
-				    NULL, HILDON_CAPTION_OPTIONAL);
-      gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
-      gtk_widget_set_sensitive (c->enabled_button, !readonly);
-    }
-  else
-    {
-      c->enabled_button = NULL;
-      c->disabled_button = gtk_check_button_new ();
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
-				    !(r->enabled));
-      caption = hildon_caption_new (group,
-				    _("ai_fi_new_repository_disabled"),
-				    c->disabled_button,
-				    NULL, HILDON_CAPTION_OPTIONAL);
-      gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
-      gtk_widget_set_sensitive (c->disabled_button, !readonly);
-    }
+  c->disabled_button = gtk_check_button_new ();
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
+				!(r->enabled));
+  caption = hildon_caption_new (group,
+				_("ai_fi_new_repository_disabled"),
+				c->disabled_button,
+				NULL, HILDON_CAPTION_OPTIONAL);
+  gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
+  gtk_widget_set_sensitive (c->disabled_button, !readonly);
 
   gtk_widget_set_usize (dialog, 650, -1);
 
@@ -680,7 +641,7 @@ repo_response (GtkDialog *dialog, gint response, gpointer clos)
 	return;
 
       char *name = r->deb_line;
-      if (ui_version > 1 && r->get_name ())
+      if (r->get_name ())
 	name = (char *) r->get_name ();
       char *text = g_strdup_printf (_("ai_nc_remove_repository"), name);
       ask_yes_no (text, remove_repo_cont, r);
@@ -693,7 +654,8 @@ repo_response (GtkDialog *dialog, gint response, gpointer clos)
     {
       if (c->dirty)
 	{
-	  apt_worker_set_sources_list (APTSTATE_DEFAULT, repo_encoder, c, repo_reply, NULL);
+	  apt_worker_set_sources_list (APTSTATE_DEFAULT, repo_encoder,
+				       c, repo_reply, NULL);
 	  refresh_package_cache (APTSTATE_DEFAULT, true);
 	}
       
@@ -743,7 +705,7 @@ repo_text_func (GtkTreeViewColumn *column,
   gtk_tree_model_get (model, iter, 0, &r, -1);
   if (r)
     {
-      if (ui_version >= 2 && r->get_name ())
+      if (r->get_name ())
 	g_object_set (cell, "text", r->get_name (), NULL);
       else
 	g_object_set (cell, "text", r->deb_line, NULL);

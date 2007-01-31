@@ -52,12 +52,8 @@ add_item (GtkMenu *menu, const gchar *label, const gchar *insens,
     g_signal_connect (item, "activate", G_CALLBACK (func), NULL);
 
   if (insens)
-    {
-      if (ui_version < 2)
-	insens = _("ai_ib_not_available");
-      g_signal_connect (item, "insensitive_press",
-			G_CALLBACK (insensitive_press), (void *)insens);
-    }
+    g_signal_connect (item, "insensitive_press",
+		      G_CALLBACK (insensitive_press), (void *)insens);
 
   return item;
 }
@@ -132,8 +128,6 @@ set_operation_menu_label (const char *label, bool sensitive,
 	 label);
       gtk_widget_set_sensitive (operation_menu_item, sensitive);
 
-      if (ui_version < 2)
-	insens = _("ai_ib_not_available");
       insensitive_operation_press_label = insens;
     }
 }

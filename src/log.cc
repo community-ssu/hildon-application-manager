@@ -129,6 +129,15 @@ save_log (char *uri, void *data)
     save_log_cont (true, uri);
 }
 
+void
+clear_log ()
+{
+  if (log_text)
+    g_string_truncate (log_text, 0);
+  add_log ("%s %s\n", PACKAGE, VERSION);
+  set_log_start ();
+}
+
 static void
 log_response (GtkDialog *dialog, gint response, gpointer clos)
 {
@@ -136,12 +145,9 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
 
   if (response == RESPONSE_CLEAR)
     {
-      if (log_text)
-	g_string_truncate (log_text, 0);
-      add_log ("%s %s, UI version %d\n", PACKAGE, VERSION, ui_version);
-      if (log_text)
+      clear_log ();
+      if (log_text && text_view)
 	set_small_text_view_text (text_view, log_text->str);
-      set_log_start ();
     }
 
   if (response == RESPONSE_SAVE)
@@ -212,6 +218,8 @@ add_log (const char *text, ...)
   if (log_text == NULL)
     log_text = g_string_new ("");
   g_string_append_vprintf (log_text, text, args);
+
+  // XXX - update log dialog when it is open now
 
   va_end (args);
 }

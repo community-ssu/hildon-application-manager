@@ -1363,17 +1363,10 @@ install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
     {
       if (progress_was_cancelled ())
 	{
-	  if (ui_version < 2)
-	    annoy_user_with_cont ((upgrading
-				   ? _("ai_ni_update_cancelled")
-				   : _("ai_ni_install_cancelled")),
-				  c->cont, c->data);
-	  else {
-	    if (c->cont)
-	      c->cont(c->data);
-	    else
-	      end_dialog_flow ();
-	  }
+	  if (c->cont)
+	    c->cont (c->data);
+	  else
+	    end_dialog_flow ();
 	}
       else
 	{
@@ -1481,25 +1474,6 @@ install_package_cont3 (bool res, void *data)
 }
 
 static void
-install_package_cont5 (bool res, void *data)
-{
-  ip_closure *c = (ip_closure *)data;
-
-  if (!res)
-    {
-      if (ui_version < 2)
-	annoy_user_with_cont (c->pi->installed_version
-			      ? _("ai_ni_update_cancelled")
-			      : _("ai_ni_install_cancelled"),
-			      c->cont,
-			      c->data);
-      install_package_cont3 (false, data);
-    }
-  else
-    install_package_cont3 (true, data);
-}
-
-static void
 install_check_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   GList *notauth = NULL, *notcert = NULL;
@@ -1552,9 +1526,9 @@ install_check_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (success)
     {
       if (notauth)
-	scare_user_with_legalese (false, install_package_cont5, c);
+	scare_user_with_legalese (false, install_package_cont3, c);
       else if (notcert)
-	scare_user_with_legalese (true, install_package_cont5, c);
+	scare_user_with_legalese (true, install_package_cont3, c);
       else
 	install_package_cont3 (true, c);
     }
@@ -1673,20 +1647,10 @@ install_package_cont2 (bool res, void *data)
     }
   else
     {
-      if (ui_version < 2)
-	{
-	  if (pi->installed_version)
-	    annoy_user_with_cont (_("ai_ni_update_cancelled"), closure2->cont, closure2->data);
-	  else
-	    annoy_user_with_cont (_("ai_ni_install_cancelled"), closure2->cont, closure2->data);
-	}
+      if (closure2->cont != NULL)
+	closure2->cont(closure2->data);
       else
-	{
-	  if (closure2->cont != NULL)
-	    closure2->cont(closure2->data);
-	  else
-	    end_dialog_flow ();
-	}
+	end_dialog_flow ();
       pi->unref ();
       delete closure2;
     }
@@ -2203,11 +2167,7 @@ uninstall_package_cont2 (bool res, void *data)
   if (res)
     check_uninstall_scripts (pi);
   else
-    {
-      if (ui_version < 2)
-	annoy_user (_("ai_ni_uninstall_cancelled"));
-      pi->unref ();
-    }
+    pi->unref ();
 }
 
 static void
@@ -2586,7 +2546,7 @@ set_operation_label (const char *label, const char *insens)
       insens = _("ai_ib_nothing_to_install");
     }
 
-  if (ui_version < 2 || insens == NULL)
+  if (insens == NULL)
     insens = _("ai_ib_not_available");
 
   operation_label = label;
@@ -2669,8 +2629,6 @@ install_from_file_cont4 (bool res, void *data)
   else
     {
       cleanup_temp_file ();
-      if (ui_version < 2)
-	annoy_user (_("ai_ni_install_cancelled"));
       pi->unref ();
       end_dialog_flow ();
     }
@@ -3130,7 +3088,7 @@ main (int argc, char **argv)
   //
   g_set_application_name ("");
 
-  add_log ("%s %s, UI version %d\n", PACKAGE, VERSION, ui_version);
+  clear_log ();
 
   if (argc > 1)
     apt_worker_prog = argv[1];

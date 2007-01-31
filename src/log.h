@@ -26,6 +26,7 @@
 
 #include "apt-worker-proto.h"
 
+void clear_log ();
 void add_log (const char *fmt, ...);
 void log_perror (const char *msg);
 void log_from_fd (int fd);

@@ -42,7 +42,7 @@
 #include <hildon-widgets/hildon-banner.h>
 #include <gdk/gdkkeysyms.h>
 #include <hildon-widgets/hildon-defines.h>
-#include <osso-ic.h>
+#include <conic.h>
 #include <libgnomevfs/gnome-vfs.h>
 
 extern "C" {
@@ -2299,6 +2299,8 @@ all_white_space (const char *str)
   return (*skip_whitespace (str)) == '\0';
 }
 
+static ConIcConnection *connection_object = NULL;
+
 struct en_closure {
   void (*callback) (bool success, void *data);
   void *data;
@@ -2330,30 +2332,27 @@ ensure_network_cont (bool success)
 }
 
 static void
-iap_callback (struct iap_event_t *event, void *arg)
+iap_callback (ConIcConnection *connection,
+	      ConIcConnectionEvent *event,
+	      gpointer user_data)
 {
   bool success = false;
-
-  switch (event->type)
+  
+  switch (con_ic_connection_event_get_status (event))
     {
-    case OSSO_IAP_CONNECTED:
-      // add_log ("OSSO_IAP_CONNECTED: %s\n", event->iap_name);
+    case CON_IC_STATUS_CONNECTED:
+      // add_log ("CON_IC_STATUS_CONNECTED\n");
       success = true;
       break;
 
-    case OSSO_IAP_DISCONNECTED:
-      // add_log ("OSSO_IAP_DISCONNECTED: %s\n", event->iap_name);
+    case CON_IC_STATUS_DISCONNECTED:
+      // add_log ("CON_IC_STATUS_DISCONNECTED\n");
       if (current_status_operation == op_downloading)
 	cancel_apt_worker ();
       break;
 
-    case OSSO_IAP_ERROR:
-      add_log ("IAP Error: %x %s.\n", -event->u.error_code, event->iap_name);
-      annoy_user (_("ai_ni_operation_failed"));
-      break;
-
     default:
-      add_log ("IAP Error: unexpected event type %d\n", event->type);
+      add_log ("ConIc Error: unexpected event type\n");
       annoy_user (_("ai_ni_operation_failed"));
       break;
     }
@@ -2376,21 +2375,21 @@ ensure_network (void (*callback) (bool success, void *data), void *data)
       ensure_network_cont (true);
       return;
     }
-  
-  if (osso_iap_cb (iap_callback) == OSSO_OK)
+
+  if (connection_object == NULL)
     {
-      if (osso_iap_connect (OSSO_IAP_ANY, OSSO_IAP_REQUESTED_CONNECT, NULL)
-	  == OSSO_OK)
-	{
-	  if (ui_version < 2)
-	    show_progress (dgettext ("osso-browser-ui",
-				     "weba_pb_clearing_connecting"));
-	  else
-	    show_progress (_("ai_nw_connecting"));
-	    
-	  return;
-	}
+      connection_object = con_ic_connection_new ();
+      g_signal_connect (connection_object, "connection-event",
+ 			G_CALLBACK (iap_callback), NULL);
     }
+   
+  if (con_ic_connection_connect (connection_object, CON_IC_CONNECT_FLAG_NONE))
+    {
+      show_progress (_("ai_nw_connecting"));
+      return;
+    }
+  else
+    add_log ("con_ic_connection_connect failed\n");
 
   annoy_user (_("ai_ni_operation_failed"));
   ensure_network_cont (false);
