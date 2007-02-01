@@ -1,3 +1,23 @@
+2007-02-01  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Some fixes for running dialog flows on top of other applications
+	calling app manager with mime_open calls.
+	
+	* src/util.cc, src/util.h (end_dialog_flow, mark_keep_running):
+	added functions to quit the application when a dialog flow ends
+	and nobody requested to keep the application running. Added also
+	a function to request to keep running.
+
+	* src/main.cc (window_property_topmost_notify_event, main): mark 
+	the application to keep running after a dialog flow when the main 
+	window becomes topmost.
+
+	Other fixes:
+
+	* src/main.cc (install_from_file_reply): removed call to
+	end_dialog_flow in this function, that made application die before
+	it should.
+
 2007-02-01  Marius Vollmer  <mvo@zagadka.de>
 
 	* src/settings.h, src/settings.cc, src/main.cc, src/log.cc,

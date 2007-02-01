@@ -855,7 +855,7 @@ get_package_list_reply_temp (int cmd, apt_proto_decoder *dec, void *data)
 	}
       
     }
-  
+
   if (c->cont)
     c->cont (c->data);
 
@@ -1216,7 +1216,9 @@ refresh_package_cache_cont (bool res, void *data)
   rpc_clos *c = (rpc_clos *)data;
 
   if (res)
-    apt_worker_update_cache (c->state, refresh_package_cache_reply, c);
+    {
+      apt_worker_update_cache (c->state, refresh_package_cache_reply, c);
+    }
   else
     {
       if (c->cont)
@@ -2609,7 +2611,6 @@ install_from_file_reply (int cmd, apt_proto_decoder *dec, void *data)
     }
 
   pi->unref ();
-  end_dialog_flow ();
 }
 
 void
@@ -2948,6 +2949,22 @@ set_toolbar_visibility (bool fullscreen, bool visibility)
   save_settings ();
 }
 
+/* If application becomes topmost, app manager should be
+ * marked to keep running even when there's a dialog flow
+ * running and it finishes. */
+static void
+window_property_topmost_notify_event (GObject *object,
+				      GParamSpec *param_spec,
+				      gpointer user_data)
+{
+  gboolean is_topmost = FALSE;
+  
+  g_object_get (object, "is-topmost", &is_topmost, NULL);
+
+  if (is_topmost)
+    mark_keep_running ();
+}
+
 static gboolean
 window_state_event (GtkWidget *widget, GdkEventWindowState *event,
 		    gpointer unused)
@@ -3228,11 +3245,15 @@ main (int argc, char **argv)
   if (!something_started)
     {
       something_started = TRUE;
+      mark_keep_running ();
     }
   else
     {
       gtk_window_iconify (GTK_WINDOW (window));
     }
+
+  g_signal_connect (G_OBJECT (window), "notify::is-topmost", 
+		    G_CALLBACK (window_property_topmost_notify_event), NULL);
 
   gtk_main ();
 }
