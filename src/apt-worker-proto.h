@@ -51,6 +51,8 @@ enum apt_command {
 
   APTCMD_CLEAN,
 
+  APTCMD_SAVE_APPLICATIONS_INSTALL_FILE,
+
   APTCMD_MAX
 };
 

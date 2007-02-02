@@ -34,6 +34,12 @@ enum detail_kind {
   remove_details = 2
 };
 
+enum {
+  INSTALL_TYPE_STANDARD = 0,
+  INSTALL_TYPE_BACKUP = 1,
+  INSTALL_TYPE_MEMORY_CARD = 2
+};
+
 struct package_info {
 
   package_info ();
@@ -100,7 +106,7 @@ void get_package_list_with_cont (int state, void (*cont) (void *data), void *dat
 void show_current_details ();
 void do_current_operation ();
 void install_named_package (int state, const char *package, void (*cont) (void *data), void *data);
-void install_named_packages (int state, const char **package);
+void install_named_packages (int state, const char **package, int install_type);
 void refresh_package_cache (int state, 
 			    bool ask);
 void refresh_package_cache_with_cont (int state,

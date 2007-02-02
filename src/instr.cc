@@ -31,6 +31,7 @@
 #include "util.h"
 #include "log.h"
 #include "repo.h"
+#include "apt-worker-client.h"
 
 #define _(x) gettext (x)
 
@@ -51,6 +52,7 @@ struct instr_closure
 {
   char **package_list;
   int state;
+  int install_type;
 };
 
 static void
@@ -67,28 +69,25 @@ instr_cont3 (bool res, void *data)
 
   if (closure->package_list != NULL && closure->package_list[0] != NULL)
     {
-      install_named_package (closure->state, closure->package_list[0], NULL, NULL);
-      g_strfreev (closure->package_list);
+      switch (closure->install_type)
+	{
+	case INSTALL_TYPE_BACKUP:
+	  if (closure->package_list != NULL)
+	    {
+	      install_named_packages (closure->state, (const char **) closure->package_list, closure->install_type);
+	    }
+	  else
+	    {
+	      end_dialog_flow ();
+	    }
+	  break;
+	case INSTALL_TYPE_STANDARD:
+	default:
+	  install_named_package (closure->state, closure->package_list[0], NULL, NULL);
+	  break;
+	}
     }
-      // REMOVED AS SPECS DON'T CONSIDER ADDING MORE THAN ONE PACKAGE FROM
-      // STANDARD INSTALL FILES
-//   if (closure->package_list != NULL)
-//     {
-//       if (closure->package_list[1] == NULL) 
-// 	{
-// 	  install_named_package (closure->state, closure->package_list[0], NULL, NULL);
-// 	} 
-//       else 
-// 	{
-// 	  install_named_packages (closure->state, (const char **) closure->package_list);
-// 	}
-//     }
-//   else
-//     {
-//       g_strfreev (closure->package_list);
-//       end_dialog_flow ();
-//     }
-
+  g_strfreev (closure->package_list);
   delete closure;
 }
 
@@ -153,6 +152,15 @@ get_repo_name_locs (GKeyFile *keys)
   return loc_list;
 }
 
+static int
+get_install_type_from_filename (const char *filename)
+{
+  if (g_str_has_suffix (filename, "applications.install"))
+    return INSTALL_TYPE_BACKUP;
+  else
+    return INSTALL_TYPE_STANDARD;
+}
+
 void
 open_local_install_instructions (const char *filename)
 {
@@ -161,6 +169,9 @@ open_local_install_instructions (const char *filename)
   gsize repo_deb_size = 0;
   GSList *loc_list = NULL;
   GSList *cur_loc = NULL;
+  int install_type = INSTALL_TYPE_STANDARD;
+
+  install_type = get_install_type_from_filename (filename);
 
   GKeyFile *keys = g_key_file_new ();
   if (!g_key_file_load_from_file (keys, filename, GKeyFileFlags(G_KEY_FILE_KEEP_TRANSLATIONS), &error))
@@ -238,6 +249,7 @@ open_local_install_instructions (const char *filename)
       instr_closure *closure = new instr_closure;
       closure->package_list = package_list;
       closure->state = APTSTATE_TEMP;
+      closure->install_type = install_type;
       temporary_set_repos ((const gchar **) repo_deb_list,
 		       instr_cont2, closure);
     }
@@ -246,6 +258,7 @@ open_local_install_instructions (const char *filename)
       instr_closure *closure = new instr_closure;
       closure->package_list = package_list;
       closure->state = APTSTATE_DEFAULT;
+      closure->install_type = install_type;
       maybe_add_repos ((const gchar **) repo_name_list, 
 		       (const gchar **) repo_deb_list, 
 		       (const GSList *) loc_list, 
@@ -273,4 +286,16 @@ open_local_install_instructions (const char *filename)
   g_strfreev (repo_name_list);
   g_strfreev (repo_deb_list);
   g_key_file_free (keys);
+}
+
+void
+save_keys_callback (int cmd, apt_proto_decoder *dec, void *data)
+{
+  /* No action required */
+}
+
+void
+save_installed_packages_file ()
+{
+  apt_worker_save_applications_install_file (save_keys_callback, NULL);
 }

@@ -84,6 +84,9 @@
 #include <glib/gstring.h>
 #include <glib/gstrfuncs.h>
 #include <glib/gmem.h>
+#include <glib/gfileutils.h>
+#include <glib/gslist.h>
+#include <glib/gkeyfile.h>
 
 #include "apt-worker-proto.h"
 
@@ -125,6 +128,10 @@ using namespace std;
 
 /* Temporary repositories temporary sources.list */
 #define TEMP_APT_SOURCE_LIST "/var/lib/hildon-application-manager/sources.list.temp"
+
+/* Name of installed applications list file, used for restoring backups */
+#define HILDON_APP_MGR_BACKUP_APPS_FILE "/var/lib/hildon-application-manager/applications.install"
+
 
 /* You know what this means.
  */
@@ -572,6 +579,7 @@ void cmd_remove_package ();
 void cmd_clean ();
 void cmd_get_file_details ();
 void cmd_install_file ();
+void cmd_save_applications_install_file ();
 
 /* Commands can request the package cache to be refreshed by calling
    NEED_CACHE_INIT before they return.  The cache will then be
@@ -693,6 +701,10 @@ handle_request ()
 
     case APTCMD_INSTALL_FILE:
       cmd_install_file ();
+      break;
+
+    case APTCMD_SAVE_APPLICATIONS_INSTALL_FILE:
+      cmd_save_applications_install_file ();
       break;
 
     default:
@@ -3091,4 +3103,200 @@ cmd_install_file ()
 
   need_cache_init ();
   response.encode_int (res == 0);
+}
+
+/* APTCMD_SAVE_APPLICATIONS_INSTALL_FILE
+
+   This method is used to store the list of installed packages. It's
+   used in backup machinery to restore the installed applications
+   from their repositories.
+ */
+
+static bool
+parse_quoted_word (char **start, char **end, bool term)
+{
+  char *ptr = *start;
+
+  while (isspace (*ptr))
+    ptr++;
+
+  *start = ptr;
+  *end = ptr;
+
+  if (*ptr == 0)
+    return false;
+
+  // Jump to the next word, handling double quotes and brackets.
+
+  while (*ptr && !isspace (*ptr))
+   {
+     if (*ptr == '"')
+      {
+	for (ptr++; *ptr && *ptr != '"'; ptr++);
+	if (*ptr == 0)
+	  return false;
+      }
+     if (*ptr == '[')
+      {
+	for (ptr++; *ptr && *ptr != ']'; ptr++);
+	if (*ptr == 0)
+	  return false;
+      }
+     ptr++;
+   }
+
+  if (term)
+    {
+      if (*ptr)
+	*ptr++ = '\0';
+    }
+  
+  *end = ptr;
+  return true;
+}
+
+void
+cmd_save_applications_install_file ()
+{
+  int res = 0;
+  string name = _config->FindFile("Dir::Etc::sourcelist");
+  FILE *f = fopen (name.c_str(), "r");
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  gchar **deb_lines_list = NULL;
+  gint n_repositories = 0;
+  GSList *packages_gslist = NULL;
+  gchar **packages_list = NULL;
+  gint n_packages = 0;
+  GSList *node = NULL;
+  gchar *keys_buffer = NULL;
+  GKeyFile *keys = NULL;
+  
+
+  /* read sources.list */
+  if (f)
+    {
+      char *line = NULL;
+      size_t len = 0;
+      ssize_t n;
+      char *start, *end;
+      GSList *deb_lines_gslist = NULL;
+
+      while ((n = getline (&line, &len, f)) != -1)
+	{
+	  if (n > 0 && line[n-1] == '\n')
+	    line[n-1] = '\0';
+	  
+	  if (line == NULL)
+	    break;
+
+	  start = (char *)line;
+	  if (parse_quoted_word (&start, &end, false)
+	      && end - start == 3 && !strncmp (start, "deb", 3))
+	    {
+	      deb_lines_gslist = g_slist_prepend (deb_lines_gslist, g_strdup (line));
+	      n_repositories++;
+	    }
+	}
+
+      /* Transform gslist to array (as required by GKeyFile API */
+      deb_lines_list = g_new0 (char *, n_repositories + 1);
+      n_repositories = 0;
+      for (node = deb_lines_gslist; node != NULL; node = g_slist_next (node))
+	{
+	  deb_lines_list[n_repositories] = (char *) node->data;
+	  n_repositories++;
+	}
+  
+      g_slist_free (deb_lines_gslist);
+      
+      free (line);
+      fclose (f);
+    }
+  else
+    {
+      perror (name.c_str());
+      response.encode_int (0);
+      return;
+    }
+
+  if (!ensure_cache ())
+    {
+      response.encode_int (0);
+      return;
+    }
+
+  /* Restore installed packages list. Based on cmd_get_package_list */
+  pkgDepCache &cache = *(state->cache);
+
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+    {
+      pkgCache::VerIterator installed = pkg.CurrentVer ();
+
+      // skip non user packages if requested
+      //
+      if (!installed.end ()
+	  && !is_user_package (installed))
+	continue;
+
+      // skip not-installed packages if requested
+      //
+      if (installed.end ())
+	continue;
+
+      pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+
+      // skip non user packages if requested
+      //
+      if (!candidate.end ()
+	  && !is_user_package (candidate))
+	continue;
+
+      // skip non-available packages if requested
+      //
+      if (candidate.end ())
+	continue;
+
+      // skip packages that are not installed and not available
+      //
+      if (installed.end () && candidate.end ())
+	continue;
+
+      // Name
+      packages_gslist = g_slist_prepend (packages_gslist, g_strdup(pkg.Name ()));
+      n_packages ++;
+    }
+
+  if (packages_gslist != NULL)
+    {
+      packages_list = g_new0 (char *, n_packages + 1);
+      n_packages = 0;
+      for (node = packages_gslist; node != NULL; node = g_slist_next (node))
+	{
+	  packages_list[n_packages] = (char *) node->data;
+	  n_packages++;
+	}
+      g_slist_free (packages_gslist);
+    }
+
+  keys = g_key_file_new ();
+
+  /* It's a temporary file. Should completely replace repositories */
+  g_key_file_set_boolean (keys, "install", "temporary", TRUE);
+
+  /* Store list of installed package names */
+  g_key_file_set_string_list (keys, "install", "package", packages_list, n_packages);
+  g_key_file_set_string_list (keys, "install", "repo_deb_3", deb_lines_list, n_repositories);
+  
+  keys_buffer = g_key_file_to_data (keys, NULL, NULL);
+
+  /* Save file */
+  if (keys_buffer != NULL)
+    {
+      res = g_file_set_contents (HILDON_APP_MGR_BACKUP_APPS_FILE, keys_buffer, -1, NULL);
+      g_free (keys_buffer);
+    }
+
+  g_key_file_free (keys);
+
+  response.encode_int (res);
 }

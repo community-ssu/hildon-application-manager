@@ -122,4 +122,7 @@ void apt_worker_get_file_details (bool only_user, const char *filename,
 				  apt_worker_callback *callback,
 				  void *data);
 
+void apt_worker_save_applications_install_file (apt_worker_callback *callback,
+						void *data);
+
 #endif /* !APT_WORKER_CLIENT_H */

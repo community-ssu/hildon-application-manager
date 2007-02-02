@@ -807,6 +807,8 @@ get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
 
   sort_all_packages ();
 
+  save_installed_packages_file ();
+
   /* We switch to the parent view if the current one is the search
      results view.
      
@@ -1691,6 +1693,7 @@ install_package (int state, package_info *pi, void (*cont) (void *data), void *d
 struct install_packages_closure {
   int state;
   GList *package_list;
+  int install_type;
 };
 
 static void
@@ -1732,20 +1735,33 @@ static void
 install_packages_with_package_info (void *data)
 {
   install_packages_closure *closure = (install_packages_closure *) data;
+  char *select_dialog_message = NULL;
+
+  switch (closure->install_type)
+    {
+    case INSTALL_TYPE_BACKUP:
+      select_dialog_message = _("ai_ti_restore");
+      break;
+    case INSTALL_TYPE_STANDARD:
+    default:
+      select_dialog_message = "";
+      break;
+    };
 
   select_package_list (closure->package_list, 
 		       _("ai_ti_install_apps"), 
-		       _("TODO_Install them now?"),
+		       select_dialog_message,
 		       install_packages_response,
 		       closure);
 }
 
 static void
-install_packages (int state, GList *package_list)
+install_packages (int state, GList *package_list, int install_type)
 {
   install_packages_closure *closure = new install_packages_closure;
   closure->state = state;
   closure->package_list = package_list;
+  closure->install_type = install_type;
   call_with_package_list_info (package_list, FALSE, 
 			       install_packages_with_package_info, closure, state);
 }
@@ -2474,7 +2490,7 @@ install_named_package (int state, const char *package, void (*cont) (void *data)
 }
 
 void
-install_named_packages (int state, const char **packages)
+install_named_packages (int state, const char **packages, int install_type)
 {
   GList *package_list = NULL;
   char **current_package = NULL;
@@ -2502,7 +2518,7 @@ install_named_packages (int state, const char **packages)
       return;
     }
 
-  install_packages (state, package_list);
+  install_packages (state, package_list, install_type);
 }
 
 static GtkWidget *details_button;

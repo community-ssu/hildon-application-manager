@@ -1,3 +1,27 @@
+2007-02-02  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Added preliminar support for integration with backup system:
+
+	* src/apt-worker.cc: added command 
+	cmd_save_applications_install_file () used to save a Single-click
+	install formated file with the list of currently installed
+	packages and active repositories. This file can be used to restore
+	the packages using the single-click API.
+
+	* src/instr.cc: added install types support. Now, depending on the
+	type of single-click install file name it runs the standard
+	dialog for installing one package, or it runs the packages selection
+	dialog of backup restore dialogs.
+
+	* src/instr.cc: added function for saving the applications.install 
+	file.
+
+	* src/main.cc, src/main.h: added support for install types in install 
+	packages dialogs. New specific support for restoring backups.
+
+	* hildon-application-manager.conf: added applications.install file to
+	the list of locations that should be backed up.
+
 2007-02-01  Jose Dapena Paz  <jdapena@igalia.com>
 
 	Some fixes for running dialog flows on top of other applications
