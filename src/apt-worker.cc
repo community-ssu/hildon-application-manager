@@ -79,6 +79,7 @@
 #include <apt-pkg/dpkgpm.h>
 #include <apt-pkg/debsystem.h>
 #include <apt-pkg/orderlist.h>
+#include <apt-pkg/algorithms.h>
 
 #include <glib/glist.h>
 #include <glib/gstring.h>
@@ -1218,22 +1219,6 @@ mark_related (pkgCache::PkgIterator &pkg)
 
   if (pkg.State() == pkgCache::PkgIterator::NeedsUnpack)
     cache.SetReInstall (pkg, true);
-  
-  pkgCache::VerIterator cand = cache.GetCandidateVer (pkg);
-  if (cand.end ())
-    return;
-
-  for (pkgCache::DepIterator dep = cand.DependsList(); dep.end() == false;
-       dep++)
-    {
-      if (dep->Type == pkgCache::Dep::PreDepends ||
-	  dep->Type == pkgCache::Dep::Depends)
-	{
-	  pkgCache::PkgIterator p = dep.TargetPkg ();
-	  if (!p.end ())
-	    mark_related (p);
-	}
-    }
 }
 
 /* Revert the cache to its initial state.  More concretely, all
@@ -1279,20 +1264,125 @@ cache_reset ()
    MarkInstall.  Doing this will break the original package, but that
    is what we want.
 */
+
 static void
-mark_for_install (pkgCache::PkgIterator &pkg)
+mark_for_install (pkgCache::PkgIterator &pkg, int level = 0)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
 
-  cache.MarkInstall (pkg);
-  for (pkgCache::PkgIterator p = cache.PkgBegin (); !p.end (); p++)
-    {
-      if (cache[p].Delete ())
-	cache_reset_package (p);
-    }
+  /* This check is just to be extra robust against infinite
+     recursions.  They shouldn't happen, but you never know...
+  */
+  if (level > 100)
+    return;
 
   mark_related (pkg);
+
+  /* Avoid recursion if package is already marked for installation.
+   */
+  if (cache[pkg].Mode == pkgDepCache::ModeInstall)
+    return;
+
+  /* Now mark it and return if that fails.
+   */
+  cache.MarkInstall (pkg, false);
+  if (cache[pkg].Mode != pkgDepCache::ModeInstall)
+    return;
+
+  /* Try to satisfy dependencies.  We can't use MarkInstall with
+     AutoInst == true since we don't like how it handles conflicts.
+
+     The code below is lifted from pkgDepCache::MarkInstall.  Sorry
+     for introducing this mess here.
+  */
+
+  pkgCache::DepIterator Dep = cache[pkg].InstVerIter(cache).DependsList();
+  for (; Dep.end() != true;)
+    {
+      // Grok or groups
+      pkgCache::DepIterator Start = Dep;
+      bool Result = true;
+      unsigned Ors = 0;
+      for (bool LastOR = true; Dep.end() == false && LastOR == true;
+	   Dep++,Ors++)
+	{
+	  LastOR = (Dep->CompareOp & pkgCache::Dep::Or) == pkgCache::Dep::Or;
+
+	  if ((cache[Dep] & pkgDepCache::DepInstall) == pkgDepCache::DepInstall)
+	    Result = false;
+	}
+      
+      // Dep is satisfied okay.
+      if (Result == false)
+	continue;
+
+      /* Check if this dep should be consider for install. If it is a user
+         defined important dep and we are installed a new package then 
+	 it will be installed. Otherwise we only worry about critical deps */
+      if (cache.IsImportantDep(Start) == false)
+	continue;
+      if (pkg->CurrentVer != 0 && Start.IsCritical() == false)
+	continue;
+      
+      /* If we are in an or group locate the first or that can 
+         succeed. We have already cached this.. */
+      for (; Ors > 1 
+	     && (cache[Start] & pkgDepCache::DepCVer) != pkgDepCache::DepCVer;
+	   Ors--)
+	Start++;
+
+      /* This bit is for processing the possibilty of an install/upgrade
+         fixing the problem */
+      SPtrArray<pkgCache::Version *> List = Start.AllTargets();
+      if ((cache[Start] & pkgDepCache::DepCVer) == pkgDepCache::DepCVer)
+	{
+	  // Right, find the best version to install..
+	  pkgCache::Version **Cur = List;
+	  pkgCache::PkgIterator P = Start.TargetPkg();
+	  pkgCache::PkgIterator InstPkg(cache,0);
+	 
+	  // See if there are direct matches (at the start of the list)
+	  for (; *Cur != 0 && (*Cur)->ParentPkg == P.Index(); Cur++)
+	    {
+	      pkgCache &pkgcache = cache.GetCache ();
+	      pkgCache::PkgIterator Pkg(pkgcache,
+					pkgcache.PkgP + (*Cur)->ParentPkg);
+	      if (cache[Pkg].CandidateVer != *Cur)
+		continue;
+	      InstPkg = Pkg;
+	      break;
+	    }
+
+	  // Select the highest priority providing package
+	  if (InstPkg.end() == true)
+	    {
+	      pkgPrioSortList(cache,Cur);
+	      for (; *Cur != 0; Cur++)
+		{
+		  pkgCache &pkgcache = cache.GetCache ();
+		  pkgCache::PkgIterator
+		    Pkg(pkgcache,pkgcache.PkgP + (*Cur)->ParentPkg);
+		  if (cache[Pkg].CandidateVer != *Cur)
+		    continue;
+		  InstPkg = Pkg;
+		  break;
+		}
+	    }
+	  
+	  if (InstPkg.end() == false)
+	    {
+	      mark_for_install (InstPkg, level + 1);
+
+	      // Set the autoflag, after MarkInstall because
+	      // MarkInstall unsets it
+	      if (P->CurrentVer == 0)
+		cache[InstPkg].Flags |= pkgCache::Flag::Auto;
+	    }
+
+	  continue;
+	}
+    }
 }
 
 /* Mark every upgradeable non-user package for installation.
