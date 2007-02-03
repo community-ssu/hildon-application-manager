@@ -1096,13 +1096,13 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
 	{
 	  gtk_tree_model_get (model, &iter, 0, &pi, -1);
 	  if (pi)
-	    global_selection_callback (APTSTATE_DEFAULT, pi, NULL, NULL);
+	    global_selection_callback (pi);
 	}
     }
   else
     {
       if (global_selection_callback)
-	global_selection_callback (APTSTATE_DEFAULT, NULL, NULL, NULL);
+	global_selection_callback (NULL);
     }
 }
 
@@ -1125,7 +1125,7 @@ global_row_activated (GtkTreeView *treeview,
       package_info *pi;
       gtk_tree_model_get (model, &iter, 0, &pi, -1);
       if (pi)
-	global_activation_callback (APTSTATE_DEFAULT, pi, NULL, NULL);
+	global_activation_callback (pi);
     }
 }
 

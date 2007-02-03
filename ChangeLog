@@ -1,3 +1,20 @@
+2007-02-03  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/util.h, src/util.cc (package_info_callback): Removed state,
+	cont and data parameters.  The package list widget shouldn't need
+	to care about those.  Changed all callers of the callbacks.
+
+	* src/main.cc (install_operation_callback,
+	uninstall_operation_callback): New, for use with
+	set_operation_callback instead of install_package and
+	uninstall_package, which are now incompatible with
+	set_operation_callback.  Changed all uses.
+	(available_package_selected, installed_package_selected): Changed
+	parameters so that they are suitable as package_info_callbacks.
+	(available_package_activated, installed_package_activated): New,
+	to be used with package list widget instead of install_package and
+	uninstall_package, which are now incompatible.
+	
 2007-02-02  Jose Dapena Paz  <jdapena@igalia.com>
 
 	Added preliminar support for integration with backup system:

@@ -263,7 +263,7 @@ GtkWidget *make_small_label (const char *text);
   regardless of whether it is currently being displayed or not.
 */
 
-typedef void package_info_callback (int state, package_info *, void (*cont) (void *data), void *data);
+typedef void package_info_callback (package_info *);
 
 GtkWidget *make_global_package_list (GList *packages,
 				     bool installed,

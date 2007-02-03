@@ -1773,20 +1773,32 @@ available_package_details (gpointer data)
   show_package_details (pi, install_details, false);
 }
 
+static void
+install_operation_callback (gpointer data)
+{
+  install_package (APTSTATE_DEFAULT, (package_info *)data, NULL, NULL);
+}
+
 void
-available_package_selected (int state, package_info *pi, void (*cont) (void *data), void *data)
+available_package_selected (package_info *pi)
 {
   if (pi)
     {
       set_details_callback (available_package_details, pi);
-      set_operation_callback ((void (*)(void*))install_package, pi);
-      get_intermediate_package_info (pi, true, NULL, NULL, state);
+      set_operation_callback (install_operation_callback, pi);
+      get_intermediate_package_info (pi, true, NULL, NULL, APTSTATE_DEFAULT);
     }
   else
     {
       set_details_callback (NULL, NULL);
       set_operation_callback (NULL, NULL);
     }
+}
+
+static void
+available_package_activated (package_info *pi)
+{
+  install_package (APTSTATE_DEFAULT, pi, NULL, NULL);
 }
 
 static void
@@ -1798,19 +1810,31 @@ installed_package_details (gpointer data)
 
 static void uninstall_package (int state, package_info *, void (*cont) (void * data), void *data);
 
+static void
+uninstall_operation_callback (gpointer data)
+{
+  uninstall_package (APTSTATE_DEFAULT, (package_info *)data, NULL, NULL);
+}
+
 void
-installed_package_selected (int state, package_info *pi, void (*cont) (void *data), void *data)
+installed_package_selected (package_info *pi)
 {
   if (pi)
     {
       set_details_callback (installed_package_details, pi);
-      set_operation_callback ((void (*)(void*))uninstall_package, pi);
+      set_operation_callback (uninstall_operation_callback, pi);
     }
   else
     {
       set_details_callback (NULL, NULL);
       set_operation_callback (NULL, NULL);
     }
+}
+
+static void
+installed_package_activated (package_info *pi)
+{
+  uninstall_package (APTSTATE_DEFAULT, pi, NULL, NULL);
 }
 
 static GtkWidget *
@@ -1871,7 +1895,7 @@ make_install_section_view (view *v)
 			      _("ai_li_no_applications_available"),
 			      _("ai_me_cs_install"),
 			      available_package_selected, 
-			      install_package);
+			      available_package_activated);
 
   view = make_package_list_view (list, true);
   gtk_widget_show_all (view);
@@ -1952,7 +1976,7 @@ make_install_applications_view (view *v)
 				  _("ai_li_no_applications_available"),
 				  _("ai_me_cs_install"),
 				  available_package_selected, 
-				  install_package);
+				  available_package_activated);
       get_package_list_info (si->packages);
       set_current_help_topic (AI_TOPIC ("packagesview"));
 
@@ -1994,7 +2018,7 @@ make_upgrade_applications_view (view *v)
 			      _("ai_li_no_updates_available"),
 			      _("ai_me_cs_update"),
 			      available_package_selected,
-			      install_package);
+			      available_package_activated);
 
   view = make_package_list_view (list, true);
   gtk_widget_show_all (view);
@@ -2214,7 +2238,7 @@ make_uninstall_applications_view (view *v)
 				   _("ai_li_no_installed_applications"),
 				   _("ai_me_cs_uninstall"),
 				   installed_package_selected,
-				   uninstall_package);
+				   installed_package_activated);
   gtk_widget_show_all (view);
 
   enable_search (true);
@@ -2245,7 +2269,7 @@ make_search_results_view (view *v)
 					? _("ai_me_cs_install")
 					: _("ai_me_cs_update")),
 				       available_package_selected,
-				       install_package);
+				       available_package_activated);
       get_package_list_info (search_result_packages);
     }
   else
@@ -2258,7 +2282,7 @@ make_search_results_view (view *v)
 				       NULL,
 				       _("ai_me_cs_uninstall"),
 				       installed_package_selected,
-				       uninstall_package);
+				       installed_package_activated);
     }
   gtk_widget_show_all (view);
 
