@@ -1,3 +1,11 @@
+2007-02-04  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker.cc (mark_related): Don't recurse over
+	dependencies.
+	(mark_for_install): Do auto-installation of dependencies
+	explicitly here, in order to control the algorithm better.  Call
+	mark_related while recursing.
+	
 2007-02-03  Marius Vollmer  <mvo@zagadka.de>
 
 	* src/util.h, src/util.cc (package_info_callback): Removed state,
