@@ -1,5 +1,9 @@
 2007-02-04  Marius Vollmer  <mvo@zagadka.de>
 
+	* Makefile.am (install-data-local): Create empty
+	/etc/hildon-application-manager directory so that it is easier for
+	other packages to put stuff into it.
+
 	* src/apt-worker.cc (mark_related): Don't recurse over
 	dependencies.
 	(mark_for_install): Do auto-installation of dependencies

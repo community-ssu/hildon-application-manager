@@ -15,6 +15,11 @@ backup_DATA = hildon-application-manager.conf
 aptconfdir = $(sysconfdir)/apt/apt.conf.d/
 aptconf_DATA = 00-smallcache
 
+etcdir = $(sysconfdir)/hildon-application-manager/
+
+install-data-local:
+	$(mkinstalldirs) $(DESTDIR)$(etcdir)
+
 EXTRA_DIST = hildon-application-manager.desktop	                \
              com.nokia.hildon_application_manager.service	\
              hildon-application-manager.xml			\
