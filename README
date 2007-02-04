@@ -228,6 +228,11 @@ The code needs a serious cleanup.  For example
 - the cps of main.cc is seriously confusing now.  maybe better
   documentation can help.
 
+ThirdPartyApt
+-------------
+
+Here: https://wiki.ubuntu.com/ThirdPartyApt
+
 Migration
 ---------
 
