@@ -1,3 +1,9 @@
+2007-02-05  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker.cc (package_replaces): New.
+	(mark_for_install): Use it to remove packcage that are in
+	Conflicts and also in Replaces.
+
 2007-02-04  Marius Vollmer  <mvo@zagadka.de>
 
 	* Makefile.am (install-data-local): Create empty

@@ -1256,6 +1256,32 @@ cache_reset ()
     cache_reset_package (pkg);
 }
 
+static bool
+package_replaces (pkgCache::PkgIterator &pkg,
+		  pkgCache::PkgIterator &target)
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgDepCache &cache = *(state->cache);
+
+  pkgCache::DepIterator Dep = cache[pkg].InstVerIter(cache).DependsList();
+  for (; Dep.end() != true; Dep++)
+    {
+      if (Dep->Type == pkgCache::Dep::Replaces)
+	{
+	  SPtrArray<pkgCache::Version *> List = Dep.AllTargets();
+	  for (pkgCache::Version **I = List; *I != 0; I++)
+	    {
+	      pkgCache::VerIterator Ver(cache,*I);
+	      pkgCache::PkgIterator Pkg = Ver.ParentPkg();
+	  
+	      if (Pkg == target)
+		return true;
+	    }
+	}
+    }
+  return false;
+}
+
 /* Mark a package for installation, using a 'no-surprises' approach
    suitable for the Application Manager.
 
@@ -1264,6 +1290,9 @@ cache_reset ()
    MarkInstall.  Doing this will break the original package, but that
    is what we want.
 */
+
+static void mark_for_remove (pkgCache::PkgIterator &pkg,
+			     bool only_maybe = false);
 
 static void
 mark_for_install (pkgCache::PkgIterator &pkg, int level = 0)
@@ -1291,7 +1320,8 @@ mark_for_install (pkgCache::PkgIterator &pkg, int level = 0)
     return;
 
   /* Try to satisfy dependencies.  We can't use MarkInstall with
-     AutoInst == true since we don't like how it handles conflicts.
+     AutoInst == true since we don't like how it handles conflicts,
+     and we have our own way of uninstalling packages.
 
      The code below is lifted from pkgDepCache::MarkInstall.  Sorry
      for introducing this mess here.
@@ -1382,6 +1412,25 @@ mark_for_install (pkgCache::PkgIterator &pkg, int level = 0)
 
 	  continue;
 	}
+
+      /* For conflicts/replaces combinations we de-install the package
+         with mark_for_remove, but only if it is a non-user package.
+         (Conflicts and Replaces may not have or groups.)
+      */
+      if (Start->Type == pkgCache::Dep::Conflicts
+	  || Start->Type == pkgCache::Dep::Obsoletes)
+	{
+	  for (pkgCache::Version **I = List; *I != 0; I++)
+	    {
+	      pkgCache::VerIterator Ver(cache,*I);
+	      pkgCache::PkgIterator target = Ver.ParentPkg();
+
+	      if (!is_user_package (Ver)
+		  && package_replaces (pkg, target))
+		mark_for_remove (target, true);
+	    }
+	  continue;
+	}
     }
 }
 
@@ -1423,7 +1472,7 @@ mark_named_package_for_install (const char *package)
    that it depends on as possible.
 */
 static void
-mark_for_remove (pkgCache::PkgIterator &pkg, bool only_maybe = false)
+mark_for_remove (pkgCache::PkgIterator &pkg, bool only_maybe)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
@@ -1431,6 +1480,13 @@ mark_for_remove (pkgCache::PkgIterator &pkg, bool only_maybe = false)
   /* 'unsigned', so that we can handle more than 2^31 broken packages.
    */
   unsigned int n_broken = cache.BrokenCount ();
+
+  /* XXX - the broken count is not a reliable indicator whether this
+           package is needed.  Removing this package might break
+           exactly one package that depends on it and fix exactly one
+           package that conflicts with it, thus balancing out the
+           broken count.
+  */
 
   cache.MarkDelete (pkg);
   cache[pkg].Flags &= ~pkgCache::Flag::Auto;
