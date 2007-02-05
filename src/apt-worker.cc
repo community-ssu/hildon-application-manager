@@ -1256,6 +1256,8 @@ cache_reset ()
     cache_reset_package (pkg);
 }
 
+/* Determine whether PKG replaces TARGET.
+ */
 static bool
 package_replaces (pkgCache::PkgIterator &pkg,
 		  pkgCache::PkgIterator &target)
@@ -1277,6 +1279,32 @@ package_replaces (pkgCache::PkgIterator &pkg,
 	      if (Pkg == target)
 		return true;
 	    }
+	}
+    }
+  return false;
+}
+
+/* Determine whether PKG is a critical dependency of other packages
+   thata re going to be installed.
+ */
+static bool
+package_is_needed (pkgCache::PkgIterator &pkg)
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgDepCache &cache = *(state->cache);
+
+  pkgCache::DepIterator Dep = pkg.RevDependsList();
+  for (; Dep.end() != true; Dep++)
+    {
+      if (Dep->Type == pkgCache::Dep::PreDepends
+	  || Dep->Type == pkgCache::Dep::Depends)
+	{
+	  pkgCache::PkgIterator other_pkg = Dep.ParentPkg();
+	  pkgCache::VerIterator other_ver = Dep.ParentVer();
+	  pkgCache::VerIterator inst_ver = cache[other_pkg].InstVerIter(cache);
+
+	  if (other_ver == inst_ver)
+	    return true;
 	}
     }
   return false;
@@ -1477,21 +1505,13 @@ mark_for_remove (pkgCache::PkgIterator &pkg, bool only_maybe)
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
 
-  /* 'unsigned', so that we can handle more than 2^31 broken packages.
-   */
-  unsigned int n_broken = cache.BrokenCount ();
-
-  /* XXX - the broken count is not a reliable indicator whether this
-           package is needed.  Removing this package might break
-           exactly one package that depends on it and fix exactly one
-           package that conflicts with it, thus balancing out the
-           broken count.
-  */
+  if (only_maybe && package_is_needed (pkg))
+    return;
 
   cache.MarkDelete (pkg);
   cache[pkg].Flags &= ~pkgCache::Flag::Auto;
 
-  if (!cache[pkg].Delete () || cache.BrokenCount () > n_broken)
+  if (!cache[pkg].Delete ())
     {
       if (only_maybe)
 	cache_reset_package (pkg);
@@ -2019,10 +2039,11 @@ encode_broken (pkgCache::PkgIterator &pkg,
 }
 
 void
-encode_package_and_version (const char *package, const char *version)
+encode_package_and_version (pkgCache::VerIterator ver)
 {
+  pkgCache::PkgIterator pkg = ver.ParentPkg();
   GString *str = g_string_new ("");
-  g_string_printf (str, "%s %s", package, version);
+  g_string_printf (str, "%s %s", pkg.Name(), ver.VerStr());
   response.encode_string (str->str);
   g_string_free (str, 1);
 }
@@ -2046,21 +2067,20 @@ encode_install_summary (const char *want)
        pkg.end() != true;
        pkg++)
     {
-      apt_proto_sumtype type;
-
       if (cache[pkg].NewInstall())
-	type = sumtype_installing;
-      else if (cache[pkg].Upgrade())
-	type = sumtype_upgrading;
-      else if (cache[pkg].Delete())
-	type = sumtype_removing;
-      else 
-	type = sumtype_end;
-
-      if (type != sumtype_end)
 	{
-	  response.encode_int (type);
-	  encode_package_and_version (pkg.Name(), cache[pkg].CandVersion);
+	  response.encode_int (sumtype_installing);
+	  encode_package_and_version (cache[pkg].CandidateVerIter(cache));
+	}
+      else if (cache[pkg].Upgrade())
+	{
+	  response.encode_int (sumtype_upgrading);
+	  encode_package_and_version (cache[pkg].CandidateVerIter(cache));
+	}
+      else if (cache[pkg].Delete())
+	{
+	  response.encode_int (sumtype_removing);
+	  encode_package_and_version (pkg.CurrentVer());
 	}
 
       if (cache[pkg].InstBroken())
@@ -2090,13 +2110,13 @@ encode_remove_summary (pkgCache::PkgIterator &want)
       if (cache[pkg].Delete())
 	{
 	  response.encode_int (sumtype_removing);
-	  encode_package_and_version (pkg.Name(), cache[pkg].CandVersion);
+	  encode_package_and_version (pkg.CurrentVer());
 	}
 
       if (cache[pkg].InstBroken())
 	{
 	  response.encode_int (sumtype_needed_by);
-	  encode_package_and_version (pkg.Name(), cache[pkg].CurVersion);
+	  encode_package_and_version (pkg.CurrentVer());
 	}
     }
 

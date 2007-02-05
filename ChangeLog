@@ -1,3 +1,12 @@
+2007-02-06  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker.cc (package_is_needed): New.
+	(mark_for_remove): Use it instead of relying on the broken count.
+	(encode_package_and_version): Take a VerIterator instead of
+	strings.  Changed all callers.
+	(encode_install_summary, encode_remove_summary): Encode the
+	current version for removals, not the candidate version.
+	
 2007-02-05  Marius Vollmer  <mvo@zagadka.de>
 
 	* src/apt-worker.cc (package_replaces): New.
