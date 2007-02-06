@@ -705,6 +705,22 @@ sort_all_packages ()
   show_view (cur_view_struct);
 }
 
+static void
+save_keys_callback (int cmd, apt_proto_decoder *dec, void *data)
+{
+  /* No action required */
+}
+
+/* Save the list of installed packages, in the Single-click
+   install file format. It's used to store a backup of installed files.
+*/
+static void
+save_installed_packages_file ()
+{
+  apt_worker_save_applications_install_file (save_keys_callback, NULL);
+}
+
+
 struct gpl_closure {
   int state;
   void (*cont) (void *data);

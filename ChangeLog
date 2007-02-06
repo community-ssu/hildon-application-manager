@@ -1,3 +1,25 @@
+2007-02-06  Jose Dapena Paz  <jdapena@igalia.com>
+
+	* src/instr.cc, src/instr.h, src/main.cc: move
+	save_installed_packages_file() from instr.cc to main.cc,
+	and remove apt-worker-client dependency from instr.cc this way.
+
+	* doc/repository.txt: removed references to multipackage
+	support in single-click install files, as implementation has
+	been disabled. Now multipackage support is only used for the
+	backup/restore case.
+
+	* doc/repository.txt: added reference to the applications.install
+	file function (it's used for backup/restore tool integration).
+
+	* Added hildon-application-manager.sh. Script for osso-backup
+	restore.d directory. It's used to run the application manager
+	in the restore process, and then, restore the installed
+	applications.
+
+	* Makefile.am: added hildon-application-manager.sh to the files to
+	install.
+
 2007-02-06  Marius Vollmer  <mvo@zagadka.de>
 
 	* src/apt-worker.cc (package_is_needed): New.

@@ -12,6 +12,9 @@ mime_DATA = hildon-application-manager.xml
 backupdir = $(sysconfdir)/osso-backup/applications/
 backup_DATA = hildon-application-manager.conf
 
+restoredir = $(sysconfdir)/osso-backup/restore.d/always/
+restore_DATA = hildon-application-manager.sh
+
 aptconfdir = $(sysconfdir)/apt/apt.conf.d/
 aptconf_DATA = 00-smallcache
 

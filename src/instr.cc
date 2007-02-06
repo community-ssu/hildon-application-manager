@@ -31,7 +31,6 @@
 #include "util.h"
 #include "log.h"
 #include "repo.h"
-#include "apt-worker-client.h"
 
 #define _(x) gettext (x)
 
@@ -288,14 +287,3 @@ open_local_install_instructions (const char *filename)
   g_key_file_free (keys);
 }
 
-void
-save_keys_callback (int cmd, apt_proto_decoder *dec, void *data)
-{
-  /* No action required */
-}
-
-void
-save_installed_packages_file ()
-{
-  apt_worker_save_applications_install_file (save_keys_callback, NULL);
-}

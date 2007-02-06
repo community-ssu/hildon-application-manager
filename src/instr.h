@@ -31,9 +31,4 @@
 */
 void open_local_install_instructions (const char *filename);
 
-/* Save the list of installed packages, in the Single-click
-   install file format. It's used to store a backup of installed files.
-*/
-void save_installed_packages_file ();
-
 #endif /* !INSTR_H */

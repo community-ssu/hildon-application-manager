@@ -81,19 +81,6 @@ downloaded from the given repository.  If the package is available
 with a later version from other repositories that are listed in
 sources.list, then it will be downloaded from there.
 
-More than one package can be installed from a .install file. Package names
-are separated with semicolons:
-
-<pre>
-[install]
-repo_name  = Foo Catalogue
-repo_deb_3 = deb http://foo.com/maemo bora user
-package    = foo-app;foo-app2
-</pre>
-
-This file will offer installation of foo-app and foo-app2 from the
-repository.
-
 The "repo_name" entry is optional.  If you omit it, the repository
 will have no name.  The name of a repository is only used in the UI;
 it has no effect on functionality.
@@ -112,7 +99,7 @@ number of them. A complete example, with two repositories and two packages:
 [install]
 repo_name  = Foo Catalogue;Bar Catalogue
 repo_deb_3 = deb http://foo.com/maemo bora user;deb http://bar.com/maemo bora user
-package    = foo-app;bar-app
+package    = foo-app
 </pre>
 
 Here is a table of the various key names:
@@ -130,7 +117,7 @@ locales:
 repo_name  = Foo Catalogue;Bar Catalogue
 repo_name[es_ES] = Repositorio Foo;Repositorio Bar
 repo_deb_3 = deb http://foo.com/maemo bora user;deb http://bar.com/maemo bora user
-package    = foo-app;bar-app
+package    = foo-app
 </pre>
 
 ### Single-click install from temporary repositories
@@ -147,11 +134,18 @@ temporary  = true
 repo_name  = Foo Catalogue;Bar Catalogue
 repo_name[es_ES] = Repositorio Foo;Repositorio Bar
 repo_deb_3 = deb http://foo.com/maemo bora user;deb http://bar.com/maemo bora user
-package    = foo-app;bar-app
+package    = foo-app
 </pre>
 
-This file will install foo-app and bar-app from the foo and bar catalogues just as if
+This file will install foo-app from the foo and bar catalogues just as if
 they were the only repositories present in the sources.list.
+
+### Integration with Backup/restore tool
+
+Hildon Application Manager maintains a file with Single-click install format
+at /var/lib/hildon-application-manager/applications.install, listing all the
+installed user packages and repositories. This file is used by the backup tool
+to restore the installed applications.
 
 ### Disabling repositories
 
