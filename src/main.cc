@@ -1406,8 +1406,6 @@ install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
   pi->unref ();
 
   get_package_list (APTSTATE_DEFAULT);
-
-  end_dialog_flow ();
 }
 
 struct ipc_closure2 {
@@ -1726,6 +1724,7 @@ install_packages_cont (void *data)
   else
     {
       delete closure;
+      end_dialog_flow ();
     }
 }
 
@@ -1737,6 +1736,8 @@ install_packages_response (gboolean res,
   install_packages_closure *closure = (install_packages_closure *) data;
   if (res)
     {
+      g_list_free (closure->package_list);
+      closure->package_list = package_list;
       install_packages_cont (closure);
     }
   else
@@ -1758,6 +1759,10 @@ install_packages_with_package_info (void *data)
     case INSTALL_TYPE_BACKUP:
       select_dialog_message = _("ai_ti_restore");
       break;
+    case INSTALL_TYPE_MEMORY_CARD:
+      select_dialog_message = _("ai_ti_memory");
+      break;
+      /* Shouldn't go to the branches below */
     case INSTALL_TYPE_STANDARD:
     default:
       select_dialog_message = "";

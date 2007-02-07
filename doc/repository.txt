@@ -147,6 +147,19 @@ at /var/lib/hildon-application-manager/applications.install, listing all the
 installed user packages and repositories. This file is used by the backup tool
 to restore the installed applications.
 
+### Install applications from a memory card
+
+Hildon Application Manager supports installing applications when user inserts
+a specially formated memory card. If the memory card has a specially formated
+Single-click install file called .auto.install in its root, this file will be
+run from the application manager.
+
+This file accepts a specific variation of the Single-click install file: it can
+store more than one package. The format of the entries is:
+<verbatim>
+package = app1;app2
+</verbatim>
+
 ### Disabling repositories
 
 The AM lets the user edit parts of the contents of

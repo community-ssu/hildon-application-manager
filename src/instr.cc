@@ -70,7 +70,9 @@ instr_cont3 (bool res, void *data)
     {
       switch (closure->install_type)
 	{
+	  /* These cases should offer the multipackage installation dialog */
 	case INSTALL_TYPE_BACKUP:
+	case INSTALL_TYPE_MEMORY_CARD:
 	  if (closure->package_list != NULL)
 	    {
 	      install_named_packages (closure->state, (const char **) closure->package_list, closure->install_type);
@@ -80,6 +82,10 @@ instr_cont3 (bool res, void *data)
 	      end_dialog_flow ();
 	    }
 	  break;
+	  /* And this case should other the standard single package installation dialog. If the
+	   * single-click install file contains more than one package, it should offer to install
+	   * only the first one.
+	   */
 	case INSTALL_TYPE_STANDARD:
 	default:
 	  install_named_package (closure->state, closure->package_list[0], NULL, NULL);
@@ -156,6 +162,8 @@ get_install_type_from_filename (const char *filename)
 {
   if (g_str_has_suffix (filename, "applications.install"))
     return INSTALL_TYPE_BACKUP;
+  else if (g_str_has_suffix (filename, "/media/mmc1/.auto.install"))
+    return INSTALL_TYPE_MEMORY_CARD;
   else
     return INSTALL_TYPE_STANDARD;
 }

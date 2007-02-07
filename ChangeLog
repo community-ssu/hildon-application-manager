@@ -1,3 +1,33 @@
+2007-02-07  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Auto install from memory card support:
+
+	* src/instr.cc (instr_cont3): add install from memory card case
+	to the set of types that should run the multipackage dialog
+	flow.
+
+	* src/instr.cc (get_install_type_from_filename): add detection
+	of memory card case.
+
+	* src/main.cc (install_packages_with_package_info): added
+	install from memory card case and string.
+
+	* doc/repository.txt: added documentation of autorun from memory
+	card functionality.
+
+	Bugs and fixes:
+
+	* src/main.cc (install_package_reply): fix bug "when app manager
+	is activated from mime_open and more than one package should be 
+	installed, it only installs one" (a bad end_dialog_flow call).
+
+	* src/main.cc (install_packages_cont): added a missing
+	end_dialog_flow.
+
+	* src/main.cc (install_packages_response): fixed a bug. Now
+	we use the list of packages returned by the select packages
+	dialog (previously we were ignoring this value).
+
 2007-02-06  Jose Dapena Paz  <jdapena@igalia.com>
 
 	* src/instr.cc, src/instr.h, src/main.cc: move
