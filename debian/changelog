@@ -1,3 +1,10 @@
+hildon-application-manager (5.0pre3) unstable; urgency=low
+
+  * Intermediate release with lots of unpolished features for .install
+    files.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu,  8 Feb 2007 18:25:19 +0200
+
 hildon-application-manager (5.0pre2) unstable; urgency=low
 
   * Fixed /var/lib/ migration a bit.
