@@ -1,5 +1,9 @@
 2007-02-08  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker.cc (cmd_save_applications_install_file): Don't
+	flag the repositories in the applications.install file as
+	temporary.
+
 	Released 5.0pre3
 
 2007-02-07  Jose Dapena Paz  <jdapena@igalia.com>

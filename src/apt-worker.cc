@@ -3446,9 +3446,6 @@ cmd_save_applications_install_file ()
 
   keys = g_key_file_new ();
 
-  /* It's a temporary file. Should completely replace repositories */
-  g_key_file_set_boolean (keys, "install", "temporary", TRUE);
-
   /* Store list of installed package names */
   g_key_file_set_string_list (keys, "install", "package", packages_list, n_packages);
   g_key_file_set_string_list (keys, "install", "repo_deb_3", deb_lines_list, n_repositories);
