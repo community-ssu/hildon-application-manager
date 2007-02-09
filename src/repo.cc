@@ -42,6 +42,12 @@
 
 #define _(x)       gettext (x)
 
+/* As apt limits the size of a line in sources.list , and fails to parse 
+ * if it finds a line longer than this limit, we try to avoid adding lines
+ * longer than this limit in sources.list
+ */
+#define SOURCES_LIST_MAX_LINE 299
+
 struct repo_closure;
 
 struct repo_line {
@@ -148,7 +154,8 @@ repo_line::repo_line (repo_closure *c, const char *l, bool e, char *n,
   GSList *cur_translation = NULL;
   
   clos = c;
-  line = g_strdup (l);
+  /* line limited. 5 = length of "#deb " */
+  line = g_strndup (l, SOURCES_LIST_MAX_LINE - 5);
   name = n;
   essential = e;
   deb_line = NULL;
@@ -537,7 +544,7 @@ repo_encode_loc_name (GQuark key_id, gpointer data, gpointer user_data)
 static void
 repo_encoder (apt_proto_encoder *enc, void *data)
 {
-  repo_closure *c = (repo_closure *)data;
+  repo_closure *c = (repo_closure *) data;
   for (repo_line *r = c->lines; r; r = r->next)
     {
       if (r->name)
@@ -855,6 +862,9 @@ maybe_add_new_repo_cont (bool res, void *data)
   else
     ac->cont (false, ac->cont_data);
 
+  if (ac->new_repo != NULL)
+    delete ac->new_repo;
+
   delete c;
   delete ac;
 }
@@ -887,9 +897,22 @@ sources_list_reply (int cmd, apt_proto_decoder *dec, void *data)
   char *next_name = NULL;
   GSList *next_name_locale_list = NULL;
   GSList *next_name_translation_list = NULL;
+  repo_add_closure *ac = (repo_add_closure *)data;
 
   if (dec == NULL)
-    return;
+    {
+      if (ac != NULL && ac->cont != NULL)
+	{
+	  ac->cont (FALSE, ac->cont_data);
+	}
+
+      if (ac->new_repo)
+	delete ac->new_repo;
+
+      delete ac;
+
+      return;
+    }
 
   repo_closure *c = new repo_closure;
   repo_line **rp = &c->lines;
@@ -940,8 +963,6 @@ sources_list_reply (int cmd, apt_proto_decoder *dec, void *data)
    */
 
   dec->decode_int ();
-
-  repo_add_closure *ac = (repo_add_closure *)data;
 
   if (ac)
     {
@@ -1068,13 +1089,36 @@ maybe_add_repo (repo_line *n, bool for_install,
 void
 maybe_add_repo_next (bool res, void * data)
 {
+  maybe_add_repo_next_closure *closure = (maybe_add_repo_next_closure *) data;
+
   if (res) 
     {
-      maybe_add_repo_next_closure *closure = (maybe_add_repo_next_closure *) data;
       maybe_add_repo_cont (closure->repo_list, closure->for_install, 
 			   closure->cont, closure->data);
-      delete closure;
     }
+  else
+    {
+      GSList *node = NULL;
+
+      /* First we free the repository list, as it won't be used */
+      for (node = closure->repo_list; node != NULL; node = g_slist_next (node))
+	{
+	  if (node->data != NULL)
+	    {
+	      repo_line * line = (repo_line *) node->data;
+	      delete line;
+	    }
+	}
+      g_slist_free (node);
+
+      /* Then we run the callback, telling it that repositories load
+       * failed */
+      if (closure->cont)
+	{
+	  closure->cont (FALSE, closure->data);
+	}
+    }
+  delete closure;
 }
 
 void 
@@ -1082,7 +1126,6 @@ maybe_add_repo_cont (GSList *repo_list, bool for_install,
 		     void (*cont) (bool res, void *data), void *data)
 {
   repo_line *n = NULL;
-  maybe_add_repo_next_closure *closure = new maybe_add_repo_next_closure;
 
   /* No remaining repositories. Then it should run the callback */
   if (repo_list == NULL) 
@@ -1092,6 +1135,7 @@ maybe_add_repo_cont (GSList *repo_list, bool for_install,
       return;
     }
 
+  maybe_add_repo_next_closure *closure = new maybe_add_repo_next_closure;
   n = (repo_line *) repo_list->data;
   repo_list = g_slist_delete_link(repo_list, repo_list);
   closure->repo_list = repo_list;
@@ -1141,15 +1185,18 @@ maybe_add_repos (const char **name_list,
       while (cur_loc != NULL && cur_translation != NULL)
 	{
 	  line_locs = 
-	    g_slist_prepend (line_locs, g_strdup ((gchar *) cur_loc->data));
+	    g_slist_prepend (line_locs, g_strdup ((gchar *) cur_loc->data) );
+	  /* we put enough lenght to try to avoid problems with line
+	   * lenghts */
 	  line_translations = 
-	    g_slist_prepend (line_translations, g_strdup ((gchar *) cur_translation->data));
+	    g_slist_prepend (line_translations, g_strndup ((gchar *) cur_translation->data, SOURCES_LIST_MAX_LINE - 26));
 	  cur_loc = g_slist_next (cur_loc);
 	  cur_translation = g_slist_next (cur_translation);
 	}
 
+      /* limit line lenght. 12 = size of "#maemo:name " */
       repo_line *n = new repo_line (NULL, current_line[0], false, 
-				    g_strdup (current_name[0]), 
+				    g_strndup (current_name[0], SOURCES_LIST_MAX_LINE - 12), 
 				    line_locs, line_translations);
       repo_line_list = g_slist_prepend (repo_line_list, n);
       if (current_name[0] != 0)
@@ -1181,7 +1228,7 @@ temporary_clean_reply (int cmd, apt_proto_decoder *dec, void *data)
 }
 
 void
-temporary_set_sources_list (GSList *repo_line_list,
+temporary_set_sources_list (GList *repo_line_list,
 			    void (*cont) (bool res, void *data),
 			    void *data)
 {

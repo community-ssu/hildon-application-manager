@@ -1,3 +1,20 @@
+2007-02-09  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Bugfixes:
+	
+	* src/apt-worker.cc (load_auto_flags): avoid crashing
+	when app manager starts and package cache load fails.
+
+	* src/repo.cc (maybe_add_new_repo_cont, sources_list_reply,
+	maybe_add_repo_next): fix some leaks
+
+	* src/util.cc (annoy_user_response): fix leak.
+
+	Other issues:
+	
+	* src/repo.cc: limit lines added to sources.list to 300
+	characters, as 	APT cannot handle longer lines.
+
 2007-02-08  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (cmd_save_applications_install_file): Don't

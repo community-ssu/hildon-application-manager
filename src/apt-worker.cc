@@ -949,7 +949,7 @@ load_auto_flags ()
   AptWorkerState *state = NULL;
 
   state = AptWorkerState::GetCurrent ();
-  if (state == NULL)
+  if ((state == NULL)||(state->cache == NULL))
     return;
 
   for (unsigned int i = 0; i < state->package_count; i++)

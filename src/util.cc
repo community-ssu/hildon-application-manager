@@ -307,9 +307,9 @@ annoy_user_response (GtkDialog *dialog, gint response, gpointer data)
 	}
       else
 	{
-	  delete closure_data;
 	  end_dialog_flow ();
 	}
+      delete closure_data;
     }
 }
 
