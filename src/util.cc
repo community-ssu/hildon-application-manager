@@ -1496,6 +1496,7 @@ make_select_package_list_store (GList *package_list, gint *total_size)
 			  COLUMN_SP_PACKAGE_INFO, pi,
 			  -1);
       acc_size += pi->info.install_user_size_delta;
+      pi->ref ();
     }
 
   if (total_size != NULL)
@@ -1575,6 +1576,8 @@ void select_package_list_response (GtkDialog *dialog,
 			  -1);
       if (selected)
 	package_list = g_list_prepend (package_list, pi);
+      else
+	pi->unref ();
       has_iter = gtk_tree_model_iter_next (GTK_TREE_MODEL(closure->list_store), &iter);
     }
   package_list = g_list_reverse (package_list);
@@ -1589,6 +1592,14 @@ void select_package_list_response (GtkDialog *dialog,
     }
   else
     {
+      GList *node = NULL;
+      for (node = package_list; node != NULL; node = g_list_next (node))
+	{
+	  if (node->data != NULL)
+	    {
+	      ((package_info *) (node->data))->unref ();
+	    }
+	}
       g_list_free (package_list);
       end_dialog_flow ();
     }

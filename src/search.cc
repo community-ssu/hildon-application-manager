@@ -179,4 +179,5 @@ show_search_dialog ()
 		    c);
 
   gtk_widget_show_all (dialog);
+  g_object_unref (group);
 }

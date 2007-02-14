@@ -1,3 +1,75 @@
+2007-02-14  Jose Dapena Paz  <jdapena@igalia.com>
+
+	Misc fixes:
+
+	* instr.cc (open_local_install_instructions): Now it doesn't
+	fail when descriptions do not match the deb lines in the
+	Single-click install file.
+
+	* instr.cc (open_local_install_instructions): some bugfixes in
+	conditions, better handling of cases in temporary files.
+
+	* repo.cc (temporary_set_repos): typo, was using GSList, and
+	but it should use GList. Fixed.
+
+	* main.cc (free_sections): style fix.
+
+	Leak fixes:
+	
+	* instr.cc (open_local_install_instructions): free the package
+	list if the file is incompatible and won't be processed.
+
+	* settings.cc (make_settings_tab): GtkSizeGroup is  now unref'd.
+
+	* search.cc (show_search_dialog): GtkSizeGroup is now unref'd.
+
+	* repo.cc (show_repo_edit_dialog): GtkSizeGroup is now unref'd.
+
+	* repo.cc (sources_list_reply): free translation lists after being
+	used.
+
+	* repo.cc (maybe_add_repos): free translation lists after being 
+	used.
+
+	* repo.cc (temporary_set_sources_list): free repo_line list after
+	setting the sources list.
+
+	* util.cc (make_select_package_list_store): increase the reference
+	counter of package_info's as it's been referenced by the list store.
+
+	* util.cc (select_package_response): if the package is not selected,
+	it should be unref'd. Also unref all packages if no callback is
+	called.
+
+	* main.cc (gpi_reply, call_with_package_list_info_cont,
+	get_next_package_info): always call the callback in gpi_reply, in
+	order to unref the objects taht should be disposed. Also some leaks
+	fixed.
+
+	* main.cc (get_intermediate_package_info): if there's no callback
+	and the info has been retrieved, package info should be unref'd.
+
+	* main.cc (install_package_reply): delete closure if it's not used.
+
+	* main.cc (install_package_cont3): remove allocation of closure2
+	as it wasn't used (and was leaking).
+
+	* main.cc (install_package_cont): unref package info after calling
+	install_package, as it gets its own reference.
+
+	* main.cc (install_packages_response): free input package list, and
+	also output package list if required.
+
+	* main.cc (available_package_selected): add a reference to package
+	info before calling get_intermediate_package_info.
+
+	* main.cc (install_named_package): unref the package info if it
+	was already installed (and then no processing is done for it).
+
+	* main.cc (install_named_packages): if there are more than one
+	package entries found by find_package_in_lists, it should free the
+	remaining references. It should also unref the installed packages.
+
 2007-02-09  Jose Dapena Paz  <jdapena@igalia.com>
 
 	Bugfixes:

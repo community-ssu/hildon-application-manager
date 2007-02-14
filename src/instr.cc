@@ -245,20 +245,27 @@ open_local_install_instructions (const char *filename)
       repo_name_size = repo_deb_size;
     }
 
-  if ((package_list == NULL && repo_deb_list == NULL)||
-      (repo_name_size != repo_deb_size))
+  if ((package_list == NULL && repo_deb_list == NULL))
     {
       annoy_user (_("ai_ni_operation_failed"));
     }
-
-  if (temporary_catalogues && repo_deb_list && package_list != NULL)
+  else if (temporary_catalogues)
     {
-      instr_closure *closure = new instr_closure;
-      closure->package_list = package_list;
-      closure->state = APTSTATE_TEMP;
-      closure->install_type = install_type;
-      temporary_set_repos ((const gchar **) repo_deb_list,
-		       instr_cont2, closure);
+      if (repo_deb_list && package_list != NULL)
+	{
+	  instr_closure *closure = new instr_closure;
+	  closure->package_list = package_list;
+	  closure->state = APTSTATE_TEMP;
+	  closure->install_type = install_type;
+	  temporary_set_repos ((const gchar **) repo_deb_list,
+			       instr_cont2, closure);
+	}
+      else
+	{
+	  g_strfreev (package_list);
+	  package_list = NULL;
+	  annoy_user (_("ai_ni_operation_failed"));
+	}
     }
   else if (repo_deb_list)
     {
@@ -275,6 +282,11 @@ open_local_install_instructions (const char *filename)
     }
   else
     {
+      if (package_list)
+	{
+	  g_strfreev (package_list);
+	  package_list = NULL;
+	}
       annoy_user (_("ai_ni_error_n770package_incompatible"));
     }
 

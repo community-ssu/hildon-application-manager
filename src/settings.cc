@@ -223,6 +223,8 @@ make_settings_tab (settings_closure *c)
 			   &red_pill_show_magic_sys);
     }
 
+  g_object_unref (group);
+
   return tab;
 }
 

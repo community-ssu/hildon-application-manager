@@ -499,6 +499,7 @@ show_repo_edit_dialog (repo_line *r, bool isnew, bool readonly)
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (repo_edit_response), c);
   gtk_widget_show_all (dialog);
+  g_object_unref (group);
 }
 
 static void
@@ -951,8 +952,17 @@ sources_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 	  rp = &(*rp)->next;
 	  next_is_essential = false;
 	  next_name = NULL;
-	  next_name_locale_list = NULL;
-	  next_name_translation_list = NULL;
+	  if (next_name_locale_list != NULL)
+	    {
+	      g_slist_foreach (next_name_locale_list, (GFunc) g_free, NULL);
+	      g_slist_free (next_name_locale_list);
+	      next_name_locale_list = NULL;
+	    }
+	  if (next_name_translation_list != NULL)
+	    {
+	      g_slist_free (next_name_translation_list);
+	      next_name_translation_list = NULL;
+	    }
 	}
     }
   *rp = NULL;
@@ -1203,6 +1213,13 @@ maybe_add_repos (const char **name_list,
 	current_name++;
       if (translation_index[0] != NULL)
 	translation_index++;
+      if (line_locs != NULL)
+	{
+	  g_slist_foreach (line_locs, (GFunc) g_free, NULL);
+	  g_slist_free (line_locs);
+	}
+      if (line_translations != NULL)
+	g_slist_free (line_translations);
     }
 
   maybe_add_repo_cont (repo_line_list, for_install, cont, data);
@@ -1232,11 +1249,18 @@ temporary_set_sources_list (GList *repo_line_list,
 			    void (*cont) (bool res, void *data),
 			    void *data)
 {
+  GList *node = NULL;
   tc_closure *closure = new tc_closure;
   closure->cont = cont;
   closure->data = data;
   apt_worker_set_sources_list (APTSTATE_TEMP, repo_temp_encoder, repo_line_list, 
 				    repo_reply, NULL);
+  for (node = repo_line_list; node != NULL; node = g_list_next (node))
+    {
+      if (node->data != NULL)
+	delete (repo_line *) node->data;
+    }
+  g_list_free (repo_line_list);
   apt_worker_clean (APTSTATE_TEMP, temporary_clean_reply, closure);
 }
 
@@ -1245,7 +1269,7 @@ temporary_set_repos (const char **deb_line_list,
 		     void (*cont) (bool res, void *data),
 		     void *data)
 {
-  GSList *repo_line_list = NULL;
+  GList *repo_line_list = NULL;
   char **current_line = NULL;
 
   /* Creates a list of repo_line objects from the catalogue strings.
@@ -1256,7 +1280,7 @@ temporary_set_repos (const char **deb_line_list,
     {
       repo_line *n = new repo_line (NULL, current_line[0], false,
 				    NULL, NULL, NULL);
-      repo_line_list = g_slist_prepend (repo_line_list, n);
+      repo_line_list = g_list_prepend (repo_line_list, n);
     }
   
   temporary_set_sources_list (repo_line_list, cont, data);

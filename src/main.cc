@@ -462,7 +462,10 @@ static void
 free_sections (GList *list)
 {
   for (GList *s = list; s; s = s->next)
-    ((section_info *)s->data)->unref ();
+    {
+      section_info *si = (section_info *) s->data;
+      si->unref ();
+    }
   g_list_free (list);
 }
 
@@ -944,16 +947,17 @@ gpi_reply  (int cmd, apt_proto_decoder *dec, void *clos)
   package_info *pi = c->pi;
   delete c;
 
+  pi->have_info = false;
   if (dec)
     {
       dec->decode_mem (&(pi->info), sizeof (pi->info));
       if (!dec->corrupted ())
 	{
 	  pi->have_info = true;
-	  func (pi, data, true);
 	}
     }
 
+  func (pi, data, true);
   pi->unref ();
 }
 
@@ -991,13 +995,20 @@ struct cwpl_closure
 };
 
 void
-call_with_package_list_info_cont (package_info *unused, void *data, bool unused2)
+call_with_package_list_info_cont (package_info *pi, void *data, bool unused2)
 {
   cwpl_closure *closure = (cwpl_closure *) data;
+
+  if (!pi->have_info)
+    {
+      pi->unref ();
+      return;
+    }
   
   if (closure->current_node == NULL)
     {
       closure->cont(closure->data);
+      delete closure;
     }
   else
     {
@@ -1044,6 +1055,12 @@ static void
 get_next_package_info (package_info *pi, void *unused, bool changed)
 {
   int state = APTSTATE_DEFAULT;
+
+  if (pi && !pi->have_info)
+    {
+      pi->unref ();
+      return;
+    }
 
   if (pi && changed)
     global_package_info_changed (pi);
@@ -1096,6 +1113,8 @@ get_intermediate_package_info (package_info *pi,
     {
       if (callback)
 	callback (pi, data, false);
+      else
+	pi->unref ();
     }
   else if (intermediate_info == NULL || intermediate_callback == NULL)
     {
@@ -1357,6 +1376,7 @@ install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
     {
       pi->unref ();
       end_dialog_flow ();
+      delete c;
       return;
     }
 
@@ -1403,6 +1423,8 @@ install_package_reply (int cmd, apt_proto_decoder *dec, void *data)
 	}
     }
 
+  delete c;
+
   pi->unref ();
 
   get_package_list (APTSTATE_DEFAULT);
@@ -1446,11 +1468,6 @@ install_package_cont3 (bool res, void *data)
     {
       if (res)
 	{
-	  ipc_closure2 * closure2 = new ipc_closure2;
-	  closure2->pi = c->pi;
-	  closure2->cont = c->cont;
-	  closure2->data = c->data;
-	  closure2->state = c->state;
 	  set_log_start ();
 	  apt_worker_install_package (c->state, c->pi->name,
 				      c->pi->installed_version != NULL,
@@ -1720,6 +1737,7 @@ install_packages_cont (void *data)
       pi = (package_info *) closure->package_list->data;
       closure->package_list = g_list_delete_link (closure->package_list, closure->package_list);
       install_package (closure->state, pi, install_packages_cont, closure);
+      pi->unref ();
     }
   else
     {
@@ -1733,15 +1751,32 @@ install_packages_response (gboolean res,
 			   GList *package_list,
 			   void *data)
 {
+  GList *node = NULL;
+  package_info *pi = NULL;
   install_packages_closure *closure = (install_packages_closure *) data;
+
+  for (node = closure->package_list; node != NULL; node = g_list_next (node))
+    {
+      if (node->data != NULL)
+	{
+	  pi = (package_info *) node->data;
+	  pi->unref ();
+	}
+    }
+  g_list_free (closure->package_list);
+
   if (res)
     {
-      g_list_free (closure->package_list);
       closure->package_list = package_list;
       install_packages_cont (closure);
     }
   else
     {
+      for (node = package_list; node != NULL; node = g_list_next (node))
+	{
+	  pi = (package_info *) node->data;
+	  pi->unref ();
+	}
       g_list_free (package_list);
       delete closure;
       end_dialog_flow ();
@@ -1807,6 +1842,7 @@ available_package_selected (package_info *pi)
     {
       set_details_callback (available_package_details, pi);
       set_operation_callback (install_operation_callback, pi);
+      pi->ref ();
       get_intermediate_package_info (pi, true, NULL, NULL, APTSTATE_DEFAULT);
     }
   else
@@ -2514,6 +2550,7 @@ void
 install_named_package (int state, const char *package, void (*cont) (void *data), void *data)
 {
   GList *p = NULL;
+  GList *node = NULL;
 
   find_package_in_lists (state, &p, package);
 
@@ -2521,16 +2558,23 @@ install_named_package (int state, const char *package, void (*cont) (void *data)
     annoy_user_with_cont (_("ai_ni_error_download_missing"), cont, data);
   else
     {
-      package_info *pi = (package_info *)p->data;
+      package_info *pi = (package_info *) p->data;
       if (pi->available_version == NULL)
 	{
 	  char *text = g_strdup_printf (_("ai_ni_package_installed"),
 					package);
 	  annoy_user_with_cont (text, cont, data);
+	  pi->unref ();
 	  g_free (text);
 	}
       else
 	install_package (state, pi, cont, data);
+      for (node = p->next; node != NULL; node = g_list_next (node))
+	{
+	  pi = (package_info *) node->data;
+	  pi->unref ();
+	}
+      g_list_free (p);
     }
 }
 
@@ -2544,6 +2588,8 @@ install_named_packages (int state, const char **packages, int install_type)
   for (current_package = (char **) packages; current_package != NULL && *current_package != NULL; current_package++)
     {
       GList *search_list = NULL;
+      GList *node = NULL;
+
       find_package_in_lists (state, &search_list, *current_package);
 
       if (search_list != NULL)
@@ -2554,7 +2600,17 @@ install_named_packages (int state, const char **packages, int install_type)
 	    {
 	      package_list = g_list_append (package_list, pi);
 	    }
+	  else
+	    {
+	      pi->unref ();
+	    }
+	  for (node = search_list->next; node != NULL; node = g_list_next (node))
+	    {
+	      pi = (package_info *) node->data;
+	      pi->unref ();
+	    }
 	}
+      g_list_free (search_list);
     }
   
   if (package_list == NULL)
