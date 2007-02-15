@@ -1,5 +1,7 @@
 2007-02-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 5.0pre4
+	
 	* src/main.cc (install_package): Added 'ask' parameter and
 	suppress confirmation dialog when it is false.  Changed all
 	callers so that we don't ask again after showing the multi-package
