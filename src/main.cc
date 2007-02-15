@@ -1695,6 +1695,7 @@ struct ipc_closure {
   void (*cont) (void *data);
   void *data;
   int state;
+  bool ask;
 };
 
 static void
@@ -1702,21 +1703,27 @@ install_package_cont (package_info *pi, void *data, bool changed)
 {
   ipc_closure *closure = (ipc_closure *) data;
   ipc_closure2 *closure2 = new ipc_closure2;
+  bool ask = closure->ask;
   closure2->pi = pi;
   closure2->cont = closure->cont;
   closure2->data = closure->data;
   closure2->state = closure->state;
   delete closure;
-  confirm_install (pi, install_package_cont2, closure2);
+  if (ask)
+    confirm_install (pi, install_package_cont2, closure2);
+  else
+    install_package_cont2 (true, closure2);
 }
 
 static void
-install_package (int state, package_info *pi, void (*cont) (void *data), void *data)
+install_package (int state, bool ask, package_info *pi,
+		 void (*cont) (void *data), void *data)
 {
   ipc_closure * closure = new ipc_closure;
   closure->cont = cont;
   closure->data = data;
   closure->state = state;
+  closure->ask = ask;
   pi->ref ();
   get_intermediate_package_info (pi, true, install_package_cont, closure, state);
 }
@@ -1736,7 +1743,8 @@ install_packages_cont (void *data)
     {
       pi = (package_info *) closure->package_list->data;
       closure->package_list = g_list_delete_link (closure->package_list, closure->package_list);
-      install_package (closure->state, pi, install_packages_cont, closure);
+      install_package (closure->state, false, pi,
+		       install_packages_cont, closure);
       pi->unref ();
     }
   else
@@ -1797,10 +1805,10 @@ install_packages_with_package_info (void *data)
     case INSTALL_TYPE_MEMORY_CARD:
       select_dialog_message = _("ai_ti_memory");
       break;
-      /* Shouldn't go to the branches below */
+      /* Should only go to the branches below in red pill mode */
     case INSTALL_TYPE_STANDARD:
     default:
-      select_dialog_message = "";
+      select_dialog_message = "The following applications are available:";
       break;
     };
 
@@ -1832,7 +1840,7 @@ available_package_details (gpointer data)
 static void
 install_operation_callback (gpointer data)
 {
-  install_package (APTSTATE_DEFAULT, (package_info *)data, NULL, NULL);
+  install_package (APTSTATE_DEFAULT, true, (package_info *)data, NULL, NULL);
 }
 
 void
@@ -1855,7 +1863,7 @@ available_package_selected (package_info *pi)
 static void
 available_package_activated (package_info *pi)
 {
-  install_package (APTSTATE_DEFAULT, pi, NULL, NULL);
+  install_package (APTSTATE_DEFAULT, true, pi, NULL, NULL);
 }
 
 static void
@@ -2568,7 +2576,7 @@ install_named_package (int state, const char *package, void (*cont) (void *data)
 	  g_free (text);
 	}
       else
-	install_package (state, pi, cont, data);
+	install_package (state, true, pi, cont, data);
       for (node = p->next; node != NULL; node = g_list_next (node))
 	{
 	  pi = (package_info *) node->data;
@@ -2615,7 +2623,10 @@ install_named_packages (int state, const char **packages, int install_type)
   
   if (package_list == NULL)
     {
-      end_dialog_flow ();
+      if (install_type == INSTALL_TYPE_BACKUP)
+	annoy_user ("No applications found in the Catalogue");
+      else
+	annoy_user ("All applications are up-to-date");
       return;
     }
 
