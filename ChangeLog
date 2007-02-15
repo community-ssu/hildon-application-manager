@@ -1,3 +1,19 @@
+2007-02-15  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (install_package): Added 'ask' parameter and
+	suppress confirmation dialog when it is false.  Changed all
+	callers so that we don't ask again after showing the multi-package
+	confirmation dialog.
+	(install_packages_with_package_info): Specify a message for
+	INSTALL_TYPE_STANDARD since it might be used in red-pill mode.
+	(install_named_packages): When there are no packages to install
+	left after filtering, annoy user approrpiately instead of silently
+	doing nothing.
+
+	* src/instr.cc (instr_cont3): Use multi-package flow for all
+	install types when in red-pill mode (and there is more than one
+	package).
+
 2007-02-14  Jose Dapena Paz  <jdapena@igalia.com>
 
 	Misc fixes:
