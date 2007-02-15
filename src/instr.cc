@@ -68,29 +68,18 @@ instr_cont3 (bool res, void *data)
 
   if (closure->package_list != NULL && closure->package_list[0] != NULL)
     {
-      switch (closure->install_type)
+      if (closure->install_type == INSTALL_TYPE_BACKUP
+	  || closure->install_type == INSTALL_TYPE_MEMORY_CARD
+	  || (closure->package_list[1] != NULL && red_pill_mode))
 	{
-	  /* These cases should offer the multipackage installation dialog */
-	case INSTALL_TYPE_BACKUP:
-	case INSTALL_TYPE_MEMORY_CARD:
-	  if (closure->package_list != NULL)
-	    {
-	      install_named_packages (closure->state, (const char **) closure->package_list, closure->install_type);
-	    }
-	  else
-	    {
-	      end_dialog_flow ();
-	    }
-	  break;
-	  /* And this case should other the standard single package installation dialog. If the
-	   * single-click install file contains more than one package, it should offer to install
-	   * only the first one.
-	   */
-	case INSTALL_TYPE_STANDARD:
-	default:
-	  install_named_package (closure->state, closure->package_list[0], NULL, NULL);
-	  break;
+	  install_named_packages (closure->state,
+				  (const char **) closure->package_list,
+				  closure->install_type);
 	}
+      else
+	install_named_package (closure->state,
+			       closure->package_list[0],
+			       NULL, NULL);
     }
   g_strfreev (closure->package_list);
   delete closure;
