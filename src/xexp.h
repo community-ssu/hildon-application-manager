@@ -84,6 +84,7 @@ xexp *xexp_rest (xexp *x);
 void xexp_set_rest (xexp *x, xexp *y);
 void xexp_free_1 (xexp *x);
 void xexp_free (xexp *x);
+xexp *xexp_copy (xexp *x);
 
 /* Lists
  */
@@ -107,10 +108,12 @@ int xexp_text_as_int (xexp *x);
 xexp *xexp_aref (xexp *x, const char *tag);
 const char *xexp_aref_text (xexp *x, const char *tag);
 int xexp_aref_bool (xexp *x, const char *tag);
+int xexp_aref_int (xexp *x, const char *tag, int def);
 void xexp_aset (xexp *x, xexp *val);
 void xexp_aset_text (xexp *x, const char *tag, const char *val);
 void xexp_aset_bool (xexp *x, const char *tag, int val);
 void xexp_adel (xexp *x, const char *tag);
+void xexp_adel_all (xexp *x, const char *tag);
 
 /* Reading and writing
  */

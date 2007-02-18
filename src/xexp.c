@@ -63,6 +63,26 @@ xexp_free (xexp *x)
     }
 }
 
+xexp *
+xexp_copy (xexp *x)
+{
+  xexp *y, *z, **zptr;
+
+  if (x == NULL)
+    return NULL;
+
+  y = g_new0 (xexp, 1);
+  y->tag = g_strdup (x->tag);
+  y->text = g_strdup (x->text);
+  
+  for (z = x->first, zptr = &y->first;
+       z;
+       z = z->rest, zptr = &(*zptr)->rest)
+    *zptr = xexp_copy (z);
+
+  return y;
+}
+
 const char *
 xexp_tag (xexp *x)
 {
@@ -228,6 +248,16 @@ xexp_aref_bool (xexp *x, const char *tag)
   return xexp_aref (x, tag) != NULL;
 }
 
+int
+xexp_aref_int (xexp *x, const char *tag, int def)
+{
+  const char *val = xexp_aref_text (x, tag);
+  if (val)
+    return atoi (val);
+  else
+    return def;
+}
+
 void
 xexp_aset (xexp *x, xexp *val)
 {
@@ -271,6 +301,27 @@ xexp_adel (xexp *x, const char *tag)
 	  return;
 	}
       yptr = &(*yptr)->rest;
+    }
+}
+
+void
+xexp_adel_all (xexp *x, const char *tag)
+{
+  xexp **yptr;
+
+  g_assert (xexp_is_list (x));
+  yptr = &x->first;
+  while (*yptr)
+    {
+      xexp *y = *yptr;
+      if (xexp_is (y, tag))
+	{
+	  *yptr = y->rest;
+	  y->rest = NULL;
+	  xexp_free (y);
+	}
+      else
+	yptr = &(*yptr)->rest;
     }
 }
 
