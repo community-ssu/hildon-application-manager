@@ -62,6 +62,8 @@
 #include <errno.h>
 #include <dirent.h>
 
+#include <fstream>
+
 #include <apt-pkg/init.h>
 #include <apt-pkg/error.h>
 #include <apt-pkg/tagfile.h>
@@ -122,6 +124,13 @@ using namespace std;
  */
 #define FIXED_REQUEST_BUF_SIZE 4096
 
+/* The file where we store our catalogues for ourselves.
+ */
+#define CATALOGUE_CONF "/etc/hildon-application-manager/catalogues"
+
+/* The file where we store our ctalogues for apt-pkg to read
+ */
+#define CATALOGUE_APT_SOURCE "/etc/apt/sources.list.d/hildon-application-manager.list"
 
 /* Temporary repositories APT cache and status directories */
 #define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
@@ -2357,12 +2366,113 @@ cmd_set_sources_list ()
 }
 
 /* APTCMD_GET_CATALOGUES
+ *
+ * We also return the non-comment lines from all sources.list files in
+ * order to let the user at least know that there are sources in use
+ * that are not controlled by us.  The code for this is copied from
+ * apt-pkg.
  */
+
+void
+append_system_sources (xexp *catalogues, string File)
+{
+   // Open the stream for reading
+   ifstream F(File.c_str(),ios::in /*| ios::nocreate*/);
+   if (!F != 0)
+     return;
+   
+   // CNC:2003-12-10 - 300 is too short.
+   char Buffer[1024];
+
+   int CurLine = 0;
+   while (F.eof() == false)
+     {
+       F.getline(Buffer,sizeof(Buffer));
+       CurLine++;
+       _strtabexpand(Buffer,sizeof(Buffer));
+       if (F.fail() && !F.eof())
+	 return;
+
+       char *I;
+       // CNC:2003-02-20 - Do not break if '#' is inside [].
+       for (I = Buffer; *I != 0 && *I != '#'; I++)
+         if (*I == '[')
+	   for (I++; *I != 0 && *I != ']'; I++);
+       *I = 0;
+       
+       const char *C = _strstrip(Buffer);
+      
+       // Comment or blank
+       if (C[0] == '#' || C[0] == 0)
+	 continue;
+      	    
+       xexp_append (catalogues, xexp_text_new ("source", C, NULL));
+     }
+}
+
+void
+append_system_source_dir (xexp *catalogues, string Dir)
+{
+   DIR *D = opendir(Dir.c_str());
+   if (D == 0)
+     return;
+
+   vector<string> List;
+   
+   for (struct dirent *Ent = readdir(D); Ent != 0; Ent = readdir(D))
+     {
+       if (Ent->d_name[0] == '.')
+	 continue;
+
+       // CNC:2003-12-02 Only accept .list files as valid sourceparts
+       if (flExtension(Ent->d_name) != "list")
+	 continue;
+      
+       // Skip bad file names ala run-parts
+       const char *C = Ent->d_name;
+       for (; *C != 0; C++)
+	 if (isalpha(*C) == 0 && isdigit(*C) == 0
+             && *C != '_' && *C != '-' && *C != '.')
+	   break;
+       if (*C != 0)
+	 continue;
+      
+       // Make sure it is a file and not something else
+       string File = flCombine(Dir,Ent->d_name);
+       struct stat St;
+       if (stat(File.c_str(),&St) != 0 || S_ISREG(St.st_mode) == 0)
+	 continue;
+
+       // skip our own file
+       if (File == CATALOGUE_APT_SOURCE)
+	 continue;
+
+       List.push_back(File);      
+     }
+   closedir(D);
+   
+   sort(List.begin(),List.end());
+
+   // Read the files
+   for (vector<string>::const_iterator I = List.begin(); I != List.end(); I++)
+     append_system_sources (catalogues, *I);
+}
+
 void
 cmd_get_catalogues ()
 {
-  xexp *catalogues =
-    xexp_read_file ("/etc/hildon-application-manager/catalogues");
+  xexp *catalogues;
+  
+  catalogues = xexp_read_file (CATALOGUE_CONF);
+  
+  string Main = _config->FindFile("Dir::Etc::sourcelist");
+  if (FileExists(Main) == true)
+    append_system_sources (catalogues, Main);   
+
+  string Parts = _config->FindDir("Dir::Etc::sourceparts");
+  if (FileExists(Parts) == true)
+    append_system_source_dir (catalogues, Parts);   
+
   response.encode_xexp (catalogues);
   xexp_free (catalogues);
 }
@@ -2373,13 +2483,13 @@ void
 cmd_set_catalogues ()
 {
   xexp *catalogues = request.decode_xexp ();
+  xexp_adel_all (catalogues, "source");
   int success = 
-    xexp_write_file ("/etc/hildon-application-manager/catalogues",
-		     catalogues);
+    xexp_write_file (CATALOGUE_CONF, catalogues);
 
   if (success)
     {
-      const char *name = "/etc/apt/sources.list.d/hildon-application-manager";
+      const char *name = CATALOGUE_APT_SOURCE;
       FILE *f = fopen (name, "w");
       if (f)
 	{
