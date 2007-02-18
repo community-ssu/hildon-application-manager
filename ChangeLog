@@ -1,5 +1,9 @@
 2007-02-18  Marius Vollmer  <mvo@zagadka.de>
 
+	* src/apt-worker.cc (cmd_set_catalogues): Ignore non-"catalogue"
+	entries when writing the sources for apt.
+	* src/repo.cc (set_cat_list): Likewise when filling the list widget.
+
 	Support for X-Expressions and initial rich catalogue
 	configurations based on them.
 	

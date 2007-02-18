@@ -1747,15 +1747,18 @@ set_cat_list (cat_dialog_closure *c)
   for (xexp *catx = xexp_first (c->catalogues_xexp); catx;
        catx = xexp_rest (catx))
     {
-      catcache *cat = make_catcache_from_xexp (c, catx);
-      *catptr = cat;
-      catptr = &cat->next;
-      GtkTreeIter iter;
-      gtk_list_store_insert_with_values (c->store, &iter,
-					 position,
-					 0, cat,
-					 -1);
-      position += 1;
+      if (xexp_is (catx, "catalogue"))
+	{
+	  catcache *cat = make_catcache_from_xexp (c, catx);
+	  *catptr = cat;
+	  catptr = &cat->next;
+	  GtkTreeIter iter;
+	  gtk_list_store_insert_with_values (c->store, &iter,
+					     position,
+					     0, cat,
+					     -1);
+	  position += 1;
+	}
     }
   *catptr = NULL;
 }

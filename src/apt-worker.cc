@@ -2384,7 +2384,8 @@ cmd_set_catalogues ()
       if (f)
 	{
 	  for (xexp *x = xexp_first (catalogues); x; x = xexp_rest (x))
-	    if (!xexp_aref_bool (x, "disabled"))
+	    if (xexp_is (x, "catalogue") 
+		&& !xexp_aref_bool (x, "disabled"))
 	      {
 		const char *uri = xexp_aref_text (x, "uri");
 		const char *dist = xexp_aref_text (x, "dist");
