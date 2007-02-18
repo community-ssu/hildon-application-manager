@@ -47,9 +47,15 @@ bool parse_quoted_word (char **start, char **end, bool term);
 /* XXX - emerging modernized catalogue handling below.  Stay tuned...
  */
 
-void with_catalogues (void (*cont) (xexp *catalogues, void *data),
-		      void *data);
+void get_catalogues (void (*cont) (xexp *catalogues, void *data),
+		     void *data);
 
-void set_catalogues (xexp *catalogues, bool refresh = true, bool ask = true);
+void set_catalogues (xexp *catalogues, bool refresh, bool ask,
+		     void (*cont) (bool res, void *data),
+		     void *data);
+
+void add_catalogues (xexp *catalogues, bool ask, bool for_install,
+		     void (*cont) (bool res, void *data),
+		     void *data);
 
 #endif /* !REPO_H */

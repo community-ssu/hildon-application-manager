@@ -1363,25 +1363,58 @@ get_catalogues (void (*cont) (xexp *catalogues, void *data),
   apt_worker_get_catalogues (get_catalogues_callback, c);
 }
 
+struct set_catalogues_closure {
+  bool refresh;
+  bool ask;
+  void (*cont) (bool res, void *data);
+  void *data;
+};
+
 static void
 set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
-  if (dec == NULL)
-    return;
+  set_catalogues_closure *c = (set_catalogues_closure *)data;
+  int success = 0;
 
-  int success = dec->decode_int ();
+  if (dec)
+    success = dec->decode_int ();
+
   if (!success)
-    annoy_user_with_log (_("ai_ni_operation_failed"));
+    {
+      if (dec)
+	annoy_user_with_log (_("ai_ni_operation_failed"));
+      c->cont (false, c->data);
+      delete c;
+      return;
+    }
+
+  if (c->refresh)
+    {
+      refresh_package_cache_with_cont (APTSTATE_DEFAULT, c->ask,
+				       c->cont, c->data);
+      delete c;
+    }
+  else
+    {
+      c->cont (true, c->data);
+      delete c;
+    }
 }
 
 void
-set_catalogues (xexp *catalogues, bool refresh, bool ask)
+set_catalogues (xexp *catalogues, bool refresh, bool ask,
+		void (*cont) (bool res, void *data),
+		void *data)
 {
+  set_catalogues_closure *c = new set_catalogues_closure;
+  c->ask =ask;
+  c->refresh = refresh;
+  c->cont = cont;
+  c->data = data;
+
   xexp_write (stderr, catalogues);
   apt_worker_set_catalogues (APTSTATE_DEFAULT, catalogues,
-			     set_catalogues_reply, NULL);
-  if (refresh)
-    refresh_package_cache (APTSTATE_DEFAULT, ask);
+			     set_catalogues_reply, c);
 }
 
 const char *
@@ -1422,7 +1455,7 @@ struct catcache {
   catcache *next;
   struct cat_dialog_closure *cat_dialog;
   xexp *catalogue_xexp;
-  bool enabled;
+  bool enabled, readonly, foreign;
   const char *name;
 };
 
@@ -1516,21 +1549,24 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
 static void
 show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
-		      bool isnew)
+		      bool isnew, bool readonly)
 {
   GtkWidget *dialog, *vbox, *caption;
   GtkSizeGroup *group;
 
+  if (!xexp_is_list (catalogue) || !xexp_is (catalogue, "catalogue"))
+    {
+      irritate_user (_("ai_ib_unable_edit"));
+      return;
+    }
+
   cat_edit_closure *c = new cat_edit_closure;
 
   c->isnew = isnew;
-  c->readonly = xexp_aref_bool (catalogue, "essential");
+  c->readonly = readonly;
   c->cat_dialog = cat_dialog;
   c->catalogue = catalogue;
   
-  if (c->readonly)
-    irritate_user (_("ai_ib_unable_edit"));
-
   const char *title;
   if (c->readonly)
     title = _("ai_ti_catalogue_details");
@@ -1652,7 +1688,7 @@ cat_icon_func (GtkTreeViewColumn *column,
   catcache *c;
   gtk_tree_model_get (model, iter, 0, &c, -1);
   g_object_set (cell,
-		"pixbuf", browser_pixbuf,
+		"pixbuf", (c && c->foreign)? NULL : browser_pixbuf,
 		"sensitive", c && c->enabled,
 		NULL);
 }
@@ -1685,7 +1721,8 @@ cat_row_activated (GtkTreeView *treeview,
       if (c == NULL)
 	return;
 
-      show_cat_edit_dialog (c->cat_dialog, c->catalogue_xexp, false);
+      show_cat_edit_dialog (c->cat_dialog, c->catalogue_xexp,
+			    false, c->readonly);
     }
 }
 
@@ -1703,10 +1740,8 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
       if (cat == NULL)
 	return;
 
-      gtk_widget_set_sensitive (c->edit_button, TRUE);
-      gtk_widget_set_sensitive (c->delete_button,
-				!xexp_aref (cat->catalogue_xexp,
-					    "essential"));
+      gtk_widget_set_sensitive (c->edit_button, !cat->foreign);
+      gtk_widget_set_sensitive (c->delete_button, !cat->readonly);
     }
   else
     {
@@ -1721,8 +1756,25 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
   catcache *cat = new catcache;
   cat->catalogue_xexp = x;
   cat->cat_dialog = c;
-  cat->enabled = (xexp_aref (x, "disabled") == NULL);
-  cat->name = catalogue_name (x);
+  if (xexp_is (x, "catalogue") && xexp_is_list (x))
+    {
+      cat->enabled = !xexp_aref_bool (x, "disabled");
+      cat->readonly = xexp_aref_bool (x, "essential");
+      cat->foreign = false;
+      cat->name = catalogue_name (x);
+    }
+  else if (xexp_is (x, "source") && xexp_is_text (x))
+    {
+      cat->enabled = true;
+      cat->readonly = true;
+      cat->foreign = true;
+      cat->name = xexp_text (x);
+    }
+  else
+    {
+      delete cat;
+      cat = NULL;
+    }
   return cat;
 }
 
@@ -1747,9 +1799,9 @@ set_cat_list (cat_dialog_closure *c)
   for (xexp *catx = xexp_first (c->catalogues_xexp); catx;
        catx = xexp_rest (catx))
     {
-      if (xexp_is (catx, "catalogue"))
+      catcache *cat = make_catcache_from_xexp (c, catx);
+      if (cat)
 	{
-	  catcache *cat = make_catcache_from_xexp (c, catx);
 	  *catptr = cat;
 	  catptr = &cat->next;
 	  GtkTreeIter iter;
@@ -1827,12 +1879,21 @@ remove_cat_cont (bool res, void *data)
 {
   remove_cat_clos *c = (remove_cat_clos *)data;
   cat_dialog_closure *d = c->cat_dialog;
+  
+  if (res)
+    {
+      reset_cat_list (d);
+      xexp_del (d->catalogues_xexp, c->catalogue);
+      set_cat_list (d);
+      d->dirty = true;
+    }
 
-  reset_cat_list (d);
-  xexp_del (d->catalogues_xexp, c->catalogue);
-  set_cat_list (d);
-  d->dirty = true;
   delete c;
+}
+
+static void
+ignore_result (bool res, void *data)
+{
 }
 
 static void
@@ -1845,7 +1906,7 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       xexp *x = xexp_list_new ("catalogue",
 			       xexp_text_new ("name", "", NULL),
 			       NULL);
-      show_cat_edit_dialog (c, x, true);
+      show_cat_edit_dialog (c, x, true, false);
       return;
     }
 
@@ -1855,7 +1916,10 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       if (cat == NULL)
 	return;
 
-      show_cat_edit_dialog (c, cat->catalogue_xexp, false);
+      if (cat->readonly)
+	irritate_user (_("ai_ib_unable_edit"));
+
+      show_cat_edit_dialog (c, cat->catalogue_xexp, false, cat->readonly);
       return;
     }
 
@@ -1876,7 +1940,8 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
   if (response == GTK_RESPONSE_CLOSE)
     {
       if (c->dirty)
-	set_catalogues (c->catalogues_xexp);
+	set_catalogues (c->catalogues_xexp, true, true,
+			ignore_result, NULL);
 
       reset_cat_list (c);
       xexp_free (c->catalogues_xexp);
@@ -1885,6 +1950,19 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       pop_dialog_parent ();
       gtk_widget_destroy (GTK_WIDGET (dialog));
     }
+}
+
+static void
+insensitive_cat_delete_press (GtkButton *button, gpointer data)
+{
+  cat_dialog_closure *c = (cat_dialog_closure *)data;
+
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+
+  if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (c->tree),
+				       &model, &iter))
+    irritate_user (_("ai_ni_unable_remove_repository"));
 }
 
 void
@@ -1914,12 +1992,12 @@ show_cat_dialog_with_catalogues (xexp *catalogues, void *unused)
   c->delete_button =
     gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			   _("ai_bd_repository_delete"), REPO_RESPONSE_REMOVE);
-  gtk_dialog_add_button (GTK_DIALOG (dialog), 
+  gtk_dialog_add_button (GTK_DIALOG (dialog),
 			 _("ai_bd_repository_close"), GTK_RESPONSE_CLOSE);
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
   
   g_signal_connect (c->delete_button, "insensitive_press",
-		    G_CALLBACK (insensitive_delete_press), c);
+		    G_CALLBACK (insensitive_cat_delete_press), c);
   
   set_dialog_help (dialog, AI_TOPIC ("repository"));
   
@@ -1940,4 +2018,194 @@ void
 show_repo_dialog ()
 {
   get_catalogues (show_cat_dialog_with_catalogues, NULL);
+}
+
+/* Adding catalogues 
+ */
+
+struct add_catalogues_closure {
+  xexp *catalogues;
+  xexp *cur;
+  xexp *rest;
+  bool ask, for_install;
+  bool added_any;
+
+  void (*cont) (bool res, void *data);
+  void *data;
+};
+
+static void add_catalogues_cont_1 (xexp *catalogues, void *data);
+static void add_catalogues_cont_2 (add_catalogues_closure *c);
+static void add_catalogues_cont_3 (bool res, void *data);
+static void add_catalogues_cont_4 (bool res, void *data);
+
+static xexp *
+find_catalogue (xexp *catalogues, xexp *cat)
+{
+  const char *tag = xexp_aref_text (cat, "tag");
+
+  if (tag == NULL)
+    return NULL;
+
+  for (xexp *c = xexp_first (catalogues); c; c = xexp_rest (c))
+    {
+      if (xexp_is_list (c))
+	{
+	  const char *c_tag = xexp_aref_text (c, "tag");
+	  if (c_tag && strcmp (c_tag, tag) == 0)
+	    return c;
+	}
+    }
+
+  return NULL;
+}
+
+static bool
+catalogue_is_newer (xexp *cat1, xexp *cat2)
+{
+  int version1 = xexp_aref_int (cat1, "version", 0);
+  int version2 = xexp_aref_int (cat2, "version", 0);
+
+  return version1 > version2;
+}
+
+static void
+add_catalogues_cont_3 (bool res, void *data)
+{
+  add_catalogues_closure *c = (add_catalogues_closure *)data;
+
+  if (res)
+    {
+      /* Add it.
+       */
+      if (c->cur)
+	xexp_del (c->catalogues, c->cur);
+      xexp_append (c->catalogues, xexp_copy (c->rest));
+      c->added_any = true;
+
+      /* Move to next
+       */
+      c->rest = xexp_rest (c->rest);
+      add_catalogues_cont_2 (c);
+    }
+  else
+    {
+      /* User cancelled.
+       */
+      xexp_free (c->catalogues);
+      c->cont (false, c->data);
+      delete c;
+    }
+}
+
+static void
+add_catalogues_details (void *data)
+{
+  add_catalogues_closure *c = (add_catalogues_closure *)data;
+  show_cat_edit_dialog (NULL, c->rest, true, true);
+}
+
+static void
+add_catalogues_cont_4 (bool res, void *data)
+{
+  add_catalogues_closure *c = (add_catalogues_closure *)data;
+
+  /* We ignore errors from refreshing the cache here since
+     installation of packages might continue.
+  */
+  c->cont (true, c->data);
+  xexp_free (c->catalogues);
+  delete c;
+}
+
+static void
+add_catalogues_cont_2 (add_catalogues_closure *c)
+{
+  if (c->rest == NULL)
+    {
+      if (c->added_any)
+	set_catalogues (c->catalogues, true, !c->for_install,
+			add_catalogues_cont_4, c);
+      else
+	add_catalogues_cont_4 (true, c);
+    }
+  else
+    {
+      c->cur = find_catalogue (c->catalogues, c->rest);
+      if (!c->for_install
+	  || c->cur == NULL
+	  || catalogue_is_newer (c->rest, c->cur)
+	  || xexp_aref_bool (c->cur, "disabled"))
+	{
+	  /* The catalogue is new.  If wanted, ask the user whether to
+	     add it.
+	   */
+
+	  if (c->ask)
+	    {
+	      char *str;
+	      const char *name = catalogue_name (c->rest);
+
+	      if (c->for_install)
+		str = g_strdup_printf (_("ai_ia_add_catalogue_text"),
+				       name);
+	      else
+		str = g_strdup_printf (_("ai_ia_add_catalogue_text2"),
+				       name);
+	    
+	      ask_yes_no_with_arbitrary_details (_("ai_ti_add_catalogue"),
+						 str,
+						 add_catalogues_cont_3,
+						 add_catalogues_details,
+						 c);
+	      g_free (str);
+	    }
+	  else
+	    add_catalogues_cont_3 (true, c);
+	}
+      else
+	{
+	  /* Nothing to be done for this catalogue, move to the next.
+	   */
+	  c->rest = xexp_rest (c->rest);
+	  add_catalogues_cont_2 (c);
+	}
+    }
+}
+
+static void
+add_catalogues_cont_1 (xexp *catalogues, void *data)
+{
+  add_catalogues_closure *c = (add_catalogues_closure *)data;
+
+  if (catalogues == NULL)
+    {
+      c->cont (false, c->data);
+      delete c;
+    }
+  else
+    {
+      c->catalogues = catalogues;
+      add_catalogues_cont_2 (c);
+    }
+}
+
+void
+add_catalogues (xexp *catalogues,
+		bool ask, bool for_install,
+		void (*cont) (bool res, void *data),
+		void *data)
+{
+  xexp_write (stderr, catalogues);
+
+  add_catalogues_closure *c = new add_catalogues_closure;
+  c->cur = NULL;
+  c->rest = xexp_first (catalogues);
+  c->ask = ask;
+  c->for_install = for_install;
+  c->added_any = false;
+  c->cont = cont;
+  c->data = data;
+
+  get_catalogues (add_catalogues_cont_1, c);
 }

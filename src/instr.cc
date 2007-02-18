@@ -157,6 +157,13 @@ get_install_type_from_filename (const char *filename)
     return INSTALL_TYPE_STANDARD;
 }
 
+static void
+xxx_instr_cont (bool res, void *data)
+{
+  fprintf (stderr, "%s\n", res? "YES" : "NO");
+  xexp_free ((xexp *)data);
+}
+  
 void
 open_local_install_instructions (const char *filename)
 {
@@ -166,6 +173,16 @@ open_local_install_instructions (const char *filename)
   GSList *loc_list = NULL;
   GSList *cur_loc = NULL;
   int install_type = INSTALL_TYPE_STANDARD;
+
+  xexp *x = xexp_read_file (filename);
+  if (x)
+    {
+      if (xexp_is (x, "catalogues"))
+	add_catalogues (x, true, false, xxx_instr_cont, x);
+      else
+	xexp_free (x);
+      return;
+    }
 
   install_type = get_install_type_from_filename (filename);
 
