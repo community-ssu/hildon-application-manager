@@ -573,6 +573,8 @@ void cmd_get_package_details ();
 void cmd_update_package_cache ();
 void cmd_get_sources_list ();
 void cmd_set_sources_list ();
+void cmd_get_catalogues ();
+void cmd_set_catalogues ();
 void cmd_install_check ();
 void cmd_install_package ();
 void cmd_get_packages_to_remove ();
@@ -674,6 +676,14 @@ handle_request ()
 
     case APTCMD_SET_SOURCES_LIST:
       cmd_set_sources_list ();
+      break;
+
+    case APTCMD_GET_CATALOGUES:
+      cmd_get_catalogues ();
+      break;
+
+    case APTCMD_SET_CATALOGUES:
+      cmd_set_catalogues ();
       break;
 
     case APTCMD_INSTALL_CHECK:
@@ -2344,6 +2354,55 @@ cmd_set_sources_list ()
       perror (name.c_str ());
       response.encode_int (0);
     }
+}
+
+/* APTCMD_GET_CATALOGUES
+ */
+void
+cmd_get_catalogues ()
+{
+  xexp *catalogues =
+    xexp_read_file ("/etc/hildon-application-manager/catalogues");
+  response.encode_xexp (catalogues);
+  xexp_free (catalogues);
+}
+
+/* APTCMD_SET_CATALOGUES
+ */
+void
+cmd_set_catalogues ()
+{
+  xexp *catalogues = request.decode_xexp ();
+  int success = 
+    xexp_write_file ("/etc/hildon-application-manager/catalogues",
+		     catalogues);
+
+  if (success)
+    {
+      const char *name = "/etc/apt/sources.list.d/hildon-application-manager";
+      FILE *f = fopen (name, "w");
+      if (f)
+	{
+	  for (xexp *x = xexp_first (catalogues); x; x = xexp_rest (x))
+	    if (!xexp_aref_bool (x, "disabled"))
+	      {
+		const char *uri = xexp_aref_text (x, "uri");
+		const char *dist = xexp_aref_text (x, "dist");
+		const char *comps = xexp_aref_text (x, "components");
+		if (!uri || !dist)
+		  continue;
+		fprintf (f, "deb %s %s %s\n", uri, dist, comps? comps : "");
+	      }
+	}
+      if (f == NULL || ferror (f) || fclose (f) < 0)
+	{
+	  fprintf (stderr, "%s: %s\n", name, strerror (errno));
+	  success = false;
+	}
+    }
+
+  xexp_free (catalogues);
+  response.encode_int (success);
 }
 
 int operation (bool only_check);

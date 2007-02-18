@@ -26,7 +26,11 @@
 
 #include <stdlib.h>
 
-/* No, this is not DBUS. */
+extern "C" {
+#include "xexp.h"
+}
+
+/* No, this is not D-Bus. */
 
 enum apt_command {
   APTCMD_NOOP,
@@ -40,6 +44,8 @@ enum apt_command {
   APTCMD_UPDATE_PACKAGE_CACHE,        // needs network
   APTCMD_GET_SOURCES_LIST,
   APTCMD_SET_SOURCES_LIST,
+  APTCMD_GET_CATALOGUES,
+  APTCMD_SET_CATALOGUES,
 
   APTCMD_INSTALL_CHECK,
   APTCMD_INSTALL_PACKAGE,             // needs network
@@ -106,6 +112,7 @@ struct apt_proto_encoder {
   void encode_int (int);
   void encode_string (const char *);
   void encode_stringn (const char *, int len);
+  void encode_xexp (xexp *x);
 
   char *get_buf ();
   int get_len ();
@@ -131,6 +138,7 @@ struct apt_proto_decoder {
   int decode_int ();
   const char *decode_string_in_place ();
   char *decode_string_dup ();
+  xexp *decode_xexp ();
 
   bool at_end ();
   bool corrupted ();
@@ -223,6 +231,26 @@ enum apt_proto_operation {
 // - source_lines (string)*,(null).
 //
 // Response:
+//
+// - success (int).
+
+// GET_CATALOGUES - read the system wide catalogue configuration
+//
+// No parameters.
+//
+// Response contains:
+//
+// - catalogues (xexp).
+//
+// The xexp is NULL on errors.
+
+// SET_CATALOGUES - write the system wide catalogue configuration
+//
+// Parameters.
+//
+// - catalogues (xexp).
+//
+// Response contains:
 //
 // - success (int).
 

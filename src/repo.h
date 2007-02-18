@@ -24,6 +24,10 @@
 #ifndef REPO_H
 #define REPO_H
 
+extern "C" {
+#include "xexp.h"
+}
+
 void show_repo_dialog ();
 
 void maybe_add_repos (const char **name, 
@@ -39,5 +43,13 @@ void temporary_set_repos (const char **deb_line_list,
 			  void *data);
 
 bool parse_quoted_word (char **start, char **end, bool term);
+
+/* XXX - emerging modernized catalogue handling below.  Stay tuned...
+ */
+
+void with_catalogues (void (*cont) (xexp *catalogues, void *data),
+		      void *data);
+
+void set_catalogues (xexp *catalogues, bool refresh = true, bool ask = true);
 
 #endif /* !REPO_H */

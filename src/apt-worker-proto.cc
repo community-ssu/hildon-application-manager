@@ -121,6 +121,33 @@ apt_proto_encoder::encode_stringn (const char *val, int len)
     }
 }
 
+void
+apt_proto_encoder::encode_xexp (xexp *x)
+{
+  if (x == NULL)
+    encode_string (NULL);
+  else
+    {
+      encode_string (xexp_tag (x));
+      if (xexp_is_list (x))
+	{
+	  xexp *y;
+	  encode_int (xexp_length (x));
+	  y = xexp_first (x);
+	  while (y)
+	    {
+	      encode_xexp (y);
+	      y = xexp_rest (y);
+	    }
+	}
+      else
+	{
+	  encode_int (-1);
+	  encode_string (xexp_text (x));
+	}
+    }
+}
+
 apt_proto_decoder::apt_proto_decoder ()
 {
   reset (NULL, 0);
@@ -221,4 +248,34 @@ apt_proto_decoder::decode_string_dup ()
       exit (1);
     }
   return str;
+}
+
+xexp *
+apt_proto_decoder::decode_xexp ()
+{
+  const char *tag;
+  int len;
+
+  tag = decode_string_in_place ();
+  if (tag == NULL)
+    return NULL;
+  len = decode_int ();
+  if (len >= 0)
+    {
+      xexp *x = xexp_list_new (tag, NULL, NULL);
+      xexp *y = NULL;
+      while (!corrupted () && len > 0)
+	{
+	  xexp *z = decode_xexp ();
+	  if (y)
+	    xexp_set_rest (y, z);
+	  else
+	    xexp_append (x, z);
+	  y = z;
+	  len--;
+	}
+      return x;
+    }
+  else
+    return xexp_text_new (tag, decode_string_in_place (), NULL);
 }

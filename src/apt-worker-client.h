@@ -79,6 +79,14 @@ void apt_worker_set_sources_list (int state,
 				  void *encoder_data,
 				  apt_worker_callback *callback, void *data);
 
+void apt_worker_get_catalogues (apt_worker_callback *callback,
+				void *data);
+
+void apt_worker_set_catalogues (int state,
+				xexp *catalogues,
+				apt_worker_callback *callback,
+				void *data);
+
 void apt_worker_get_package_info (int state,
 				  const char *package,
 				  bool only_installable_info,

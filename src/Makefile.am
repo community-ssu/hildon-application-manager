@@ -24,6 +24,8 @@ hildon_application_manager_launch_SOURCES = main.h			\
                                             instr.cc			\
 					    hildonbreadcrumbtrail.h	\
 					    hildonbreadcrumbtrail.c	\
+					    xexp.h                      \
+					    xexp.c                      \
 					    apt-worker-client.h		\
 					    apt-worker-client.cc	\
 					    apt-worker-proto.h		\
@@ -42,6 +44,8 @@ hildon_application_manager_run_CXXFLAGS = $(HAM_DEPS_CFLAGS)
 hildon_application_manager_run_LDADD =    $(HAM_DEPS_LIBS)
 
 apt_worker_SOURCES = apt-worker.cc \
+		     xexp.h \
+                     xexp.c \
                      apt-worker-proto.h \
                      apt-worker-proto.cc
 

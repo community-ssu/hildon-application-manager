@@ -1,3 +1,25 @@
+2007-02-18  Marius Vollmer  <mvo@zagadka.de>
+
+	Support for X-Expressions and initial rich catalogue
+	configurations based on them.
+	
+	* src/xexp.h, src/xexp.x: New.
+	* Makefile.am: Add them to both hildon-application-manager and
+	apt-worker.
+	* src/apt-worker-proto.cc (apt_proto_decoder::decode_xexp,
+	apt_proto_encoder::encode_xexp): New.
+	(APTCMD_GET_CATALOGUES, APTCMD_SET_CATALOGUES): New.
+	* src/apt-worker-client.h,
+	src/apt-worker-client.cc (apt_worker_get_catalogues,
+	apt_worker_set_catalogues): New.
+	(apt_worker_temp_set_sources_list): Removed, it was unused.
+	* src/apt-worker.cc (cmd_get_catalogues, cmd_set_catalogues): New.
+
+	* src/repo.h, src/repo.cc (get_catalogues, set_catalogues): New.
+	(show_repo_dialog): Rewritten with new X-Expression representation
+	of catalogues.
+	(add_entry): Handle end == NULL.
+	
 2007-02-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 5.0pre4

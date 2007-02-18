@@ -559,13 +559,20 @@ apt_worker_set_sources_list (int state,
 }
 
 void
-apt_worker_temp_set_sources_list (void (*encoder) (apt_proto_encoder *, void *),
-				  void *encoder_data,
-				  apt_worker_callback *callback, void *data)
+apt_worker_get_catalogues (apt_worker_callback *callback, void *data)
+{
+  call_apt_worker (APTCMD_GET_CATALOGUES, APTSTATE_DEFAULT, NULL, 0,
+		   callback, data);
+}
+
+void
+apt_worker_set_catalogues (int state, 
+			   xexp *catalogues,
+			   apt_worker_callback *callback, void *data)
 {
   request.reset ();
-  encoder (&request, encoder_data);
-  call_apt_worker (APTCMD_SET_SOURCES_LIST, APTSTATE_TEMP,
+  request.encode_xexp (catalogues);
+  call_apt_worker (APTCMD_SET_CATALOGUES, state,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
