@@ -1,3 +1,12 @@
+2007-02-19  Jose Dapena Paz  <jdapena@igalia.com>
+
+	* src/apt-worker.cc (cmd_save_applications_install_file): leak
+	fixes (string arrays of package names and deb lines were not
+	freed).
+
+	* src/util.cc (really_cancel_response): do gtk_main_quit instead
+	of exit(1) to do a cleaner close of the application.
+
 2007-02-18  Marius Vollmer  <mvo@zagadka.de>
 
 	* src/apt-worker.cc (appenappend_system_sources,

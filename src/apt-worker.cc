@@ -3557,6 +3557,7 @@ cmd_save_applications_install_file ()
 
   if (!ensure_cache ())
     {
+      g_strfreev (deb_lines_list);
       response.encode_int (0);
       return;
     }
@@ -3619,6 +3620,9 @@ cmd_save_applications_install_file ()
   /* Store list of installed package names */
   g_key_file_set_string_list (keys, "install", "package", packages_list, n_packages);
   g_key_file_set_string_list (keys, "install", "repo_deb_3", deb_lines_list, n_repositories);
+
+  g_strfreev (packages_list);
+  g_strfreev (deb_lines_list);
   
   keys_buffer = g_key_file_to_data (keys, NULL, NULL);
 

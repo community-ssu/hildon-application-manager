@@ -577,7 +577,7 @@ stop_pulsing ()
 static void
 really_cancel_response (bool res, void *unused)
 {
-  exit (1);
+  gtk_main_quit ();
 }
 
 static void
