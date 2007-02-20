@@ -1,3 +1,18 @@
+2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
+
+	More reliable startup of apt-worker:
+
+	* apt-worker-client.cc: added functions cancel_apt_worker_start
+	and try_apt_worker_start to make apt-worker initialisation
+	asynchronous. This prevents locks of app manager on startup.
+	Now it waits 3 seconds trying to start the apt-worker before
+	giving up. Then it returns to the GUI, letting user read the
+	log (all the other functions don't work).
+
+	* main.cc (main): added start_apt_worker_reply callback and added
+	asynchronous support for apt-worker initialization, as offered in
+	apt-worker-client.
+
 2007-02-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* Makefile.am (install-data-local): Create empty catalogues file

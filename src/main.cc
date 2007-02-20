@@ -52,6 +52,7 @@
 extern "C" {
   #include "hildonbreadcrumbtrail.h"
   #include <hildon-widgets/hildon-window.h>
+  #include <hildon-widgets/hildon-note.h>
   #include <libosso.h>
   #include <osso-helplib.h>
 }
@@ -3210,10 +3211,31 @@ call_refresh_package_cache (GtkWidget *button, gpointer data)
   refresh_package_cache (APTSTATE_DEFAULT, true);
 }
 
+static void
+start_apt_worker_reply (gboolean res, void *data)
+{
+  GtkWidget *note = GTK_WIDGET (data);
+
+  gtk_widget_destroy (note);
+  if (res)
+    {
+      apt_worker_set_status_callback (apt_status_callback, NULL);
+      add_apt_worker_handler ();
+      
+      get_package_list (APTSTATE_DEFAULT);
+    }
+  else
+    {
+      annoy_user (_("ai_ni_operation_failed"));
+    }
+}
+
 int
 main (int argc, char **argv)
 {
   GtkWidget *window;
+  GtkWidget *start_note;
+  GtkWidget *progressbar;
   GtkWidget *toolbar, *image;
   GtkMenu *main_menu;
   char *apt_worker_prog = "/usr/libexec/apt-worker";
@@ -3352,19 +3374,18 @@ main (int argc, char **argv)
   state.shutdown_ind = true;
   osso_hw_set_event_cb (osso_ctxt, &state, hw_state_handler, NULL);
 
-  if (start_apt_worker (apt_worker_prog))
-    {
-      apt_worker_set_status_callback (apt_status_callback, NULL);
-      add_apt_worker_handler ();
+  progressbar = gtk_progress_bar_new ();
+  gtk_progress_bar_set_pulse_step (GTK_PROGRESS_BAR (progressbar), 0.1);
+  start_note = hildon_note_new_cancel_with_progress_bar (GTK_WINDOW (window), "Starting", GTK_PROGRESS_BAR (progressbar));
+  g_signal_connect (G_OBJECT (start_note), "response", gtk_main_quit, NULL);
 
-      get_package_list (APTSTATE_DEFAULT);
-    }
-  else
-    annoy_user_with_log (_("ai_ni_operation_failed"));
+  start_apt_worker (apt_worker_prog, start_apt_worker_reply, (void *) start_note, 
+		    (apt_worker_start_callback_tick *) gtk_progress_bar_pulse, (void *) progressbar);
 
   osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);
 
   gtk_widget_show_all (window);
+  gtk_widget_show_all (start_note);
   push_dialog_parent (window);
 
   while (g_main_context_pending (NULL))
