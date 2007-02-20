@@ -46,6 +46,7 @@
 int apt_worker_out_fd = -1;
 int apt_worker_in_fd = -1;
 int apt_worker_cancel_fd = -1;
+int apt_worker_status_fd = -1;
 
 /* if apt-worker has started up properly */
 gboolean apt_worker_started = FALSE;
@@ -164,11 +165,15 @@ static int
 must_open (char *filename, int flags)
 {
   int fd = open (filename, flags);
+  int arg;
   if (fd < 0)
     {
       log_perror (filename);
       return -1;
     }
+  arg = fcntl (fd, F_GETFL, NULL);
+  arg ^= O_NONBLOCK;
+  fcntl (fd, F_SETFL, arg);
   return fd;
 }
 
@@ -184,6 +189,8 @@ struct try_apt_worker_closure
   guint timeout_id;
   /* time elapsed since start_apt_worker has been called */
   guint rounds_passed;
+  int stdout_fd;
+  int stderr_fd;
 };
 
 try_apt_worker_closure *start_closure = NULL;
@@ -210,7 +217,6 @@ try_apt_worker_start (void *data)
 {
   try_apt_worker_closure *closure = (try_apt_worker_closure *) data;
   gboolean end_loop = FALSE;
-  int status_fd;
 
   /* Iterates to open the files in the proper order */
   while (!end_loop && closure->start_step < 4)
@@ -230,7 +236,7 @@ try_apt_worker_start (void *data)
 	    end_loop = TRUE;
 	  break;
 	case 2:
-	  if ((status_fd = must_open ("/tmp/apt-worker.status", O_RDONLY|O_NONBLOCK)) >= 0)
+	  if ((apt_worker_status_fd = must_open ("/tmp/apt-worker.status", O_RDONLY|O_NONBLOCK)) >= 0)
 	    closure->start_step++;
 	  else
 	    end_loop = TRUE;
@@ -248,12 +254,15 @@ try_apt_worker_start (void *data)
   /* If all init steps were done, then call the finish callback and finish initialisation */
   if (closure->start_step == 4)
     {
+
       must_unlink ("/tmp/apt-worker.to");
       must_unlink ("/tmp/apt-worker.from");
       must_unlink ("/tmp/apt-worker.status");
       must_unlink ("/tmp/apt-worker.cancel");
 
-      setup_pmstatus_from_fd (status_fd);
+      log_from_fd (closure->stdout_fd);
+      log_from_fd (closure->stderr_fd);
+      setup_pmstatus_from_fd (apt_worker_status_fd);
       apt_worker_started = TRUE;
       if (closure->finished_cb)
 	closure->finished_cb (TRUE, closure->finished_data);
@@ -264,6 +273,7 @@ try_apt_worker_start (void *data)
   else if (closure->timeout_id == 0)
     {
       closure->timeout_id = g_timeout_add (100, try_apt_worker_start, data);
+      return FALSE;
     }
   else
     {
@@ -339,8 +349,6 @@ start_apt_worker (gchar *prog, apt_worker_start_callback *finished_cb, void *fin
       return false;
     }
 
-  log_from_fd (stdout_fd);
-  log_from_fd (stderr_fd);
   // The order here is important and must be the same as in apt-worker
   // to avoid a dead lock.
 
@@ -352,6 +360,8 @@ start_apt_worker (gchar *prog, apt_worker_start_callback *finished_cb, void *fin
   start_closure->tick_data = tick_data;
   start_closure->timeout_id = 0;
   start_closure->rounds_passed = 0;
+  start_closure->stdout_fd = stdout_fd;
+  start_closure->stderr_fd = stderr_fd;
   try_apt_worker_start (start_closure);
   
   return true;

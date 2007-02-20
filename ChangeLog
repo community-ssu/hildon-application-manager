@@ -1,5 +1,21 @@
 2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
 
+	* src/apt-worker-client.cc: now status_fd is global. This fixes
+	an error that happend when we couldn't get all the fd's in the 
+	same call to try_apt_worker (it happens frequently, at least
+	if you don't use valgrind and then startup and iterations
+	happen quickly).
+
+	* src/apt-worker-client.cc (must_open): now must_open removes
+	O_NONBLOCK, as app manager depends on blocking calls from now
+	on.
+
+	* src/apt-worker-client.cc (try_apt_worker_start, main):
+	now all initalization of fd's (statusfd, log_from_fd) is done
+	after success of apt-worker init.
+
+2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
+
 	* apt-worker-client.cc (try_apt_worker_start): fix a very silly
 	bug (bad parenthesis in conditions) that made startup
 	break completely. Now the feature is working again.
