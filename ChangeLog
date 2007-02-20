@@ -1,5 +1,14 @@
 2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
 
+	* apt-worker-client.cc (try_apt_worker_start): fix a very silly
+	bug (bad parenthesis in conditions) that made startup
+	break completely. Now the feature is working again.
+
+	* apt-worker-client.cc (start_apt_worker): removed comment
+	about using O_NONBLOCK, as now it's using it.
+
+2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
+
 	More reliable startup of apt-worker:
 
 	* apt-worker-client.cc: added functions cancel_apt_worker_start

@@ -218,28 +218,29 @@ try_apt_worker_start (void *data)
       switch (closure->start_step)
 	{
 	case 0:
-	  if (apt_worker_out_fd = must_open ("/tmp/apt-worker.to", O_WRONLY|O_NONBLOCK) >= 0)
+	  if ((apt_worker_out_fd = must_open ("/tmp/apt-worker.to", O_WRONLY|O_NONBLOCK)) >= 0)
 	    closure->start_step++;
 	  else
 	    end_loop = TRUE;
 	  break;
 	case 1:
-	  if (apt_worker_in_fd = must_open ("/tmp/apt-worker.from", O_RDONLY|O_NONBLOCK) >= 0)
+	  if ((apt_worker_in_fd = must_open ("/tmp/apt-worker.from", O_RDONLY|O_NONBLOCK)) >= 0)
 	    closure->start_step++;
 	  else
 	    end_loop = TRUE;
 	  break;
 	case 2:
-	  if (status_fd = must_open ("/tmp/apt-worker.status", O_RDONLY|O_NONBLOCK) >= 0)
+	  if ((status_fd = must_open ("/tmp/apt-worker.status", O_RDONLY|O_NONBLOCK)) >= 0)
 	    closure->start_step++;
 	  else
 	    end_loop = TRUE;
 	  break;
 	case 3:
-	  if (apt_worker_cancel_fd = must_open ("/tmp/apt-worker.cancel", O_WRONLY|O_NONBLOCK) >= 0)
+	  if ((apt_worker_cancel_fd = must_open ("/tmp/apt-worker.cancel", O_WRONLY|O_NONBLOCK)) >= 0)
 	    closure->start_step++;
 	  else
 	    end_loop = TRUE;
+	  break;
 	default:
 	  break;
 	}
@@ -342,9 +343,6 @@ start_apt_worker (gchar *prog, apt_worker_start_callback *finished_cb, void *fin
   log_from_fd (stderr_fd);
   // The order here is important and must be the same as in apt-worker
   // to avoid a dead lock.
-  //
-  // XXX - we should open the fifo with O_NONBLOCK to deal
-  //       with apt-worker startup failures.
 
   start_closure = new try_apt_worker_closure;
   start_closure->start_step = 0;
