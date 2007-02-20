@@ -22,6 +22,9 @@ etcdir = $(sysconfdir)/hildon-application-manager/
 
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(etcdir)
+	if [ ! -f $(DESTDIR)$(etcdir)/catalogues ]; then \
+          echo "<catalogues/>" >$(DESTDIR)$(etcdir)/catalogues; \
+        fi
 
 EXTRA_DIST = hildon-application-manager.desktop	                \
              com.nokia.hildon_application_manager.service	\
