@@ -1,3 +1,9 @@
+2007-02-21  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (make_padded_button): Removed attach_flags
+	parameter; view buttons will not be supported in the future.
+	Updated all callers.
+
 2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
 
 	* src/apt-worker-client.cc: now status_fd is global. This fixes
@@ -38,6 +44,7 @@
 	asynchronous support for apt-worker initialization, as offered in
 	apt-worker-client.
 
+>>>>>>> .r137
 2007-02-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* Makefile.am (install-data-local): Create empty catalogues file

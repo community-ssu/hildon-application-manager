@@ -195,15 +195,12 @@ show_parent_view ()
 }
 
 static GtkWidget *
-make_padded_button (const char *label,
-		    OssoGtkButtonAttachFlags attach_flags)
+make_padded_button (const char *label)
 {
   GtkWidget *l = gtk_label_new (label);
   gtk_misc_set_padding (GTK_MISC (l), 15, 15);
   GtkWidget *btn = gtk_button_new ();
   gtk_container_add (GTK_CONTAINER (btn), l);
-  osso_gtk_button_set_detail_from_attach_flags (GTK_BUTTON (btn),
-						attach_flags);
   return btn;
 }
 
@@ -279,12 +276,7 @@ make_main_view (view *v)
 
   // first button
   hbox = gtk_hbox_new (FALSE, 0);
-  btn = make_padded_button (_("ai_li_uninstall"),
-			    OssoGtkButtonAttachFlags
-			    (OSSO_GTK_BUTTON_ATTACH_NORTH |
-			     OSSO_GTK_BUTTON_ATTACH_EAST |
-			     OSSO_GTK_BUTTON_ATTACH_SOUTH |
-			     OSSO_GTK_BUTTON_ATTACH_WEST));
+  btn = make_padded_button (_("ai_li_uninstall"));
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &uninstall_applications_view);
@@ -307,11 +299,7 @@ make_main_view (view *v)
 
   // second button
   hbox = gtk_hbox_new (FALSE, 0);
-  btn = make_padded_button (_("ai_li_install"),
-			    OssoGtkButtonAttachFlags
-			    (OSSO_GTK_BUTTON_ATTACH_NORTH |
-			     OSSO_GTK_BUTTON_ATTACH_EAST |
-			     OSSO_GTK_BUTTON_ATTACH_WEST));
+  btn = make_padded_button (_("ai_li_install"));
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &install_applications_view);
@@ -322,11 +310,7 @@ make_main_view (view *v)
   
   // third button
   hbox = gtk_hbox_new (FALSE, 0);
-  btn = make_padded_button (_("ai_li_update"),
-			    OssoGtkButtonAttachFlags
-			    (OSSO_GTK_BUTTON_ATTACH_EAST |
-			     OSSO_GTK_BUTTON_ATTACH_SOUTH |
-			     OSSO_GTK_BUTTON_ATTACH_WEST));
+  btn = make_padded_button (_("ai_li_update"));
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &upgrade_applications_view);
