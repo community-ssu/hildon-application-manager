@@ -1,0 +1,23 @@
+## Scripting the Hildon Application Manager
+
+The Application Manager can be scripted in a limited way.  This
+ability is used to implement the "Single Click" install feature as
+used on the maemo Application Catalogue, when installing applications
+from a memory card, and also to control what happens when a backup is
+restored that contains a list of applications.  Hopefully new uses can
+be found.
+
+The scriptability is limited mainly for two reasons: to keep the
+implementation simple and to make the interaction with user simple.
+The user should have a good enough idea of what the script is going to
+do to his/her system.  There is no real security however; ultimately,
+you need to trust the scripts that you execute, just as you need to
+trust the packages that you install.
+
+### Basic syntax
+
+### Catalogues
+
+### Instructions
+
+### Compatability with IT OS 2007.
