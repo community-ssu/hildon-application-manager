@@ -21,7 +21,7 @@
  *
  */
 
-/* X-expressions are a bit like S-expression, but suitable for
+/* X-expressions are a bit like S-expressions, but suitable for
    encoding in XML.  They are used for various configuration files,
    the installation instructions, and as part of the protocol between
    the frontend and the backend.
@@ -53,9 +53,6 @@
 
        <TAG/>
 
-   NULL is not a valid xexp, but NULL is used to designate the end of
-   the list of children.
-
    Using lists and texts, some 'higher-level' constructs are defined:
 
    - A association list is a list that is meant to be used as a
@@ -64,21 +61,23 @@
    - An empty list is often used as a flag whose presence or absence
      in a association list is used to encode a boolean value.
 
+   Each xexp has a 'rest' pointer that is used to form the list of
+   childron of a list xexp.  Because of this way to form lists, a xexp
+   can only be the child of at most one other xexp, and can not appear
+   twice in a list.
+
+   NULL is not a valid xexp, but NULL is used to designate the end of
+   the list of children.
+
+   A 'free standing' xexp is a xexp that is not a child of another
+   xexp.  Free standing xexps have a 'rest' pointer of NULL.
+
    Memory management is very simplistic: X-expressions can not share
-   structure or form cycles.  Every xexp is referenced by at most one
-   other xexp, and when that references is broken, the xexp is freed.
-   In other words, as soon as you put a xexp into a list xexp, the
-   list assumes ownership of that xexp.  (Yes, I can see already that
-   I will add reference counting eventually, and then a tracing GC...)
-
-   Each xexp has a 'rest' pointer that is used to form lists, such as
-   the list of children of a list xexp. Because of this way to form
-   lists, a xexp can only be the child of at most one other xexp, and
-   can not appear twice in a list.
-
-   A common practice is to accumulate a list by 'consing' new nodes to
-   the front of it, and then maybe to reverse it to get the desired
-   order.
+   structure or form cycles.  Every xexp is either 'free standing' or
+   the child of exactly one other xexp.  In other words, as soon as
+   you put a xexp into a list xexp, the list assumes ownership of that
+   xexp.  (Yes, I can see already that I will add reference counting
+   eventually, and then a tracing GC...)
 
    The following reference states the pre-conditions for some
    functions.  When these conditions are not fulfilled, the
@@ -86,14 +85,11 @@
    safe.  For example, xexp_first is only defined for list xexps, but
    when you apply it to a text xexp, you simple get NULL (and a
    warning).  Thus, using xexps wrongly will not abort your program
-   (but you might of course end up losing user data anyway, so be
-   careful nevertheless).
+   (but you might of course end up losing or corrupting user data
+   anyway, so be careful nevertheless).
 
 
    GENERAL XEXPS
-
-   A 'free' xexp is a xexp that is not a child of another xexp.  Free
-   xexps have a 'rest' pointer of NULL.
 
    - const char *xexp_tag (xexp *X)
 
@@ -113,19 +109,22 @@
    - xexpr *xexp_copy (xexp *X)
 
    Return a deep-copy of X.  You should eventually put the result into
-   another xexp or free it with xexp_free.  The result is a free xexp.
+   another xexp or free it with xexp_free.  The result is a free
+   standing xexp.
 
    - xexpr *xexp_free (xexp *X)
 
-   Frees X and all its children, recursively.  X must be a free xexp.
+   Frees X and all its children, recursively.  X must be a free
+   standing xexp.
 
 
    LIST XEXPS
 
    - xexp *xexp_list_new (const char* TAG)
 
-   Create a new free list xexp with the given TAG.  TAG is copied and
-   need not remain valid after this call.
+   Create a new free standing list xexp with the given TAG.  TAG is
+   copied and need not remain valid after this call.  The new xexp has
+   no children initially.
 
    - int xexp_is_list (xexp *X)
 
@@ -138,17 +137,17 @@
 
    - int xexp_length (xexp *X)
 
-   Returns the number of children of X, which must be a list xexp.
+   Returns the number of children of X.  X must be a list xexp.
 
    - void xexp_cons (xexp *X, xexp *Y)
 
    Prepend Y to the list of children of X.  X must be a list xexp.  Y
-   must be a free xexp.
+   must be a free standing xexp.
 
    - void xexp_append_1 (xexp *X, xexp *Y)
 
    Append Y to the end of the list of children of X.  X must be a list
-   xexp.  Y must be a free xexp.
+   xexp.  Y must be a free standing xexp.
 
    - void xexp_reverse (xexp *X)
 
@@ -208,19 +207,19 @@
    - void xexp_aset (xexp *X, xexp *VAL)
 
    Modify the children of X so that VAL is included in it and no other
-   child has the same tag as Y.
+   child has the same tag as Y.  VAL must be free standing.
 
    - void xexp_aset_text (xexp *X, const char *TAG, const char *VAL)
 
    If VAL is NULL, remove all childrem of X that have tag TAG.
    Otherwise, call xexp_aset on X with the result of xexp_text_new
-   (TAG, VAL, NULL).
+   (TAG, VAL).
 
    - void xexp_aset_bool (xexp *x, const char *tag, int val)
 
    If VAL is false, remove all childrem of X that have tag TAG.
    Otherwise, call xexp_aset on X with the result of xexp_list_new
-   (TAG, NULL, NULL).
+   (TAG).
 
    - void xexp_adel (xexp *x, const char *tag);
 
