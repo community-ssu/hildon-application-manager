@@ -44,23 +44,21 @@ xexp_rest (xexp *x)
 }
 
 void
-xexp_free_1 (xexp *x)
+xexp_free (xexp *x)
 {
+  g_return_if_fail (x->rest == NULL);
+
+  xexp *c = x->first;
+  while (c)
+    {
+      xexp *r = c->rest;
+      c->rest = NULL;
+      xexp_free (c);
+      c = r;
+    }
   g_free (x->tag);
   g_free (x->text);
   g_free (x);
-}
-
-void
-xexp_free (xexp *x)
-{
-  while (x)
-    {
-      xexp *r = xexp_rest (x);
-      xexp_free (x->first);
-      xexp_free_1 (x);
-      x = r;
-    }
 }
 
 xexp *
@@ -96,15 +94,12 @@ xexp_is (xexp *x, const char *tag)
 }
 
 xexp *
-xexp_list_new (const char *tag, xexp *first, xexp *rest)
+xexp_list_new (const char *tag)
 {
   g_assert (tag);
 
   xexp *x = g_new0 (xexp, 1);
   x->tag = g_strdup (tag);
-  x->text = NULL;
-  x->first = first;
-  x->rest = rest;
   return x;
 }
 
@@ -117,33 +112,61 @@ xexp_is_list (xexp *x)
 xexp *
 xexp_first (xexp *x)
 {
-  g_assert (xexp_is_list (x));
+  g_return_val_if_fail (xexp_is_list (x), NULL);
   return x->first;
 }
 
-void
-xexp_prepend (xexp *x, xexp *y)
+int
+xexp_length (xexp *x)
 {
-  xexp **yptr;
-  g_assert (xexp_is_list (x));
-  
-  yptr = &y->rest;
-  while (*yptr)
-    yptr = &(*yptr)->rest;
-  *yptr = x->first;
+  int len;
+  xexp *y;
+
+  g_return_val_if_fail (xexp_is_list (x), 0);
+  for (len = 0, y = xexp_first (x); y; len++, y = xexp_rest (y))
+    ;
+  return len;
+}
+
+void
+xexp_cons (xexp *x, xexp *y)
+{
+  g_return_if_fail (xexp_is_list (x));
+  g_return_if_fail (xexp_rest (y) == NULL);
+  y->rest = x->first;
   x->first = y;
 }
 
 void
-xexp_append (xexp *x, xexp *y)
+xexp_append_1 (xexp *x, xexp *y)
 {
   xexp **yptr;
-  g_assert (xexp_is_list (x));
 
-  yptr = &x->first;
-  while (*yptr)
-    yptr = &(*yptr)->rest;
+  g_return_if_fail (xexp_is_list (x));
+  g_return_if_fail (xexp_rest (y) == NULL);
+
+  for (yptr = &x->first; *yptr; yptr = &(*yptr)->rest)
+    ;
   *yptr = y;
+}
+
+void
+xexp_reverse (xexp *x)
+{
+  xexp *y, *f;
+
+  g_return_if_fail (xexp_is_list (x));
+
+  y = x->first;
+  f = NULL;
+  while (y)
+    {
+      xexp *r = y->rest;
+      y->rest = f;
+      f = y;
+      y = r;
+    }
+  x->first = f;
 }
 
 void
@@ -151,7 +174,7 @@ xexp_del (xexp *x, xexp *z)
 {
   xexp **yptr;
 
-  g_assert (xexp_is_list (x));
+  g_return_if_fail (xexp_is_list (x));
   yptr = &x->first;
   while (*yptr)
     {
@@ -165,29 +188,11 @@ xexp_del (xexp *x, xexp *z)
 	}
       yptr = &(*yptr)->rest;
     }
-}
-
-void
-xexp_set_rest (xexp *x, xexp *y)
-{
-  xexp_free (x->rest);
-  x->rest = y;
-}
-
-int
-xexp_length (xexp *x)
-{
-  int len;
-  xexp *y;
-
-  g_assert (xexp_is_list (x));
-  for (len = 0, y = xexp_first (x); y; len++, y = xexp_rest (y))
-    ;
-  return len;
+  g_return_if_reached ();
 }
 
 xexp *
-xexp_text_new (const char *tag, const char *text, xexp *rest)
+xexp_text_new (const char *tag, const char *text)
 {
   g_assert (tag);
   g_assert (text);
@@ -195,8 +200,6 @@ xexp_text_new (const char *tag, const char *text, xexp *rest)
   xexp *x = g_new0 (xexp, 1);
   x->tag = g_strdup (tag);
   x->text = g_strdup (text);
-  x->first = NULL;
-  x->rest = rest;
   return x;
 }
 
@@ -209,7 +212,7 @@ xexp_is_text (xexp *x)
 const char *
 xexp_text (xexp *x)
 {
-  g_assert (xexp_is_text (x));
+  g_return_val_if_fail (xexp_is_text (x), NULL);
   return x->text;
 }
 
@@ -218,6 +221,9 @@ xexp_text_as_int (xexp *x)
 {
   return atoi (xexp_text (x));
 }
+
+/* Association lists
+ */
 
 xexp *
 xexp_aref (xexp *x, const char *tag)
@@ -236,7 +242,7 @@ const char *
 xexp_aref_text (xexp *x, const char *tag)
 {
   xexp *y = xexp_aref (x, tag);
-  if (y && xexp_is_text (y))
+  if (y)
     return xexp_text (y);
   else
     return NULL;
@@ -262,14 +268,14 @@ void
 xexp_aset (xexp *x, xexp *val)
 {
   xexp_adel (x, xexp_tag (val));
-  xexp_prepend (x, val);
+  xexp_cons (x, val);
 }
 
 void
 xexp_aset_bool (xexp *x, const char *tag, int val)
 {
   if (val)
-    xexp_aset (x, xexp_list_new (tag, NULL, NULL));
+    xexp_aset (x, xexp_list_new (tag));
   else
     xexp_adel (x, tag);
 }
@@ -278,7 +284,7 @@ void
 xexp_aset_text (xexp *x, const char *tag, const char *val)
 {
   if (val)
-    xexp_aset (x, xexp_text_new (tag, val, NULL));
+    xexp_aset (x, xexp_text_new (tag, val));
   else
     xexp_adel (x, tag);
 }
@@ -288,28 +294,7 @@ xexp_adel (xexp *x, const char *tag)
 {
   xexp **yptr;
 
-  g_assert (xexp_is_list (x));
-  yptr = &x->first;
-  while (*yptr)
-    {
-      xexp *y = *yptr;
-      if (xexp_is (y, tag))
-	{
-	  *yptr = y->rest;
-	  y->rest = NULL;
-	  xexp_free (y);
-	  return;
-	}
-      yptr = &(*yptr)->rest;
-    }
-}
-
-void
-xexp_adel_all (xexp *x, const char *tag)
-{
-  xexp **yptr;
-
-  g_assert (xexp_is_list (x));
+  g_return_if_fail (xexp_is_list (x));
   yptr = &x->first;
   while (*yptr)
     {
@@ -325,14 +310,14 @@ xexp_adel_all (xexp *x, const char *tag)
     }
 }
 
-void
+static void
 transmogrify_text_to_list (xexp *x)
 {
   g_free (x->text);
   x->text = NULL;
 }
 
-void
+static void
 transmogrify_list_to_text (xexp *x, const char *text)
 {
   g_assert (text);
@@ -371,7 +356,7 @@ xexp_parser_start_element (GMarkupParseContext *context,
 {
   xexp_parse_context *xp = (xexp_parse_context *)user_data;
 
-  xexp *x = xexp_list_new (element_name, NULL, NULL);
+  xexp *x = xexp_list_new (element_name);
   if (xp->stack)
     {
       /* If the current node is a text, it must be all whitespace and
@@ -384,7 +369,7 @@ xexp_parser_start_element (GMarkupParseContext *context,
 	  transmogrify_text_to_list (y);
 	}
 
-      xexp_append (y, x);
+      xexp_cons (y, x);
     }
   xp->stack = g_slist_prepend (xp->stack, x);
 }
@@ -401,6 +386,9 @@ xexp_parser_end_element (GMarkupParseContext *context,
   xexp *x = (xexp *)top->data;
   xp->stack = top->next;
   g_slist_free_1 (top);
+
+  if (xexp_is_list (x))
+    xexp_reverse (x);
 
   if (xp->stack == NULL)
     xp->result = x;
@@ -438,19 +426,20 @@ static GMarkupParser xexp_markup_parser = {
   NULL
 };
 
-xexp *
-xexp_read (FILE *f, GError **error)
+static xexp *
+xexp_read_1 (FILE *f, GError **error, int fuzzy)
 {
   xexp_parse_context xp;
   GMarkupParseContext *ctxt;
-  gchar buf[1];
+  gchar buf[1024];
+  size_t buf_size = fuzzy? sizeof (buf) : 1;
   size_t n;
 
   xp.stack = NULL;
   xp.result = NULL;
   ctxt = g_markup_parse_context_new (&xexp_markup_parser, 0, &xp, NULL);
 
-  while (xp.result == NULL && (n = fread (buf, 1, 1, f)) > 0)
+  while (xp.result == NULL && (n = fread (buf, 1, buf_size, f)) > 0)
     {
       if (!g_markup_parse_context_parse (ctxt, buf, n, error))
 	goto error;
@@ -459,7 +448,6 @@ xexp_read (FILE *f, GError **error)
   if (!g_markup_parse_context_end_parse (ctxt, error))
     goto error;
     
-
   g_assert (xp.result && xp.stack == NULL);
 		   
   return xp.result;
@@ -469,10 +457,17 @@ xexp_read (FILE *f, GError **error)
     {
       xexp *top = (xexp *) g_slist_last (xp.stack)->data;
       xexp_free (top);
+      g_slist_free (xp.stack);
     }
   else if (xp.result)
     xexp_free (xp.result);
   return NULL;
+}
+
+xexp *
+xexp_read (FILE *f, GError **error)
+{
+  return xexp_read_1 (f, error, FALSE);
 }
 
 xexp *
@@ -482,7 +477,7 @@ xexp_read_file (const char *filename)
   if (f)
     {
       GError *error = NULL;
-      xexp *x = xexp_read (f, &error);
+      xexp *x = xexp_read_1 (f, &error, TRUE);
       fclose (f);
       if (error)
 	{

@@ -1525,7 +1525,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       
       reset_cat_list (c->cat_dialog);
       if (c->isnew)
-	xexp_append (c->cat_dialog->catalogues_xexp, c->catalogue);
+	xexp_append_1 (c->cat_dialog->catalogues_xexp, c->catalogue);
       set_catalogue_name (c->catalogue, name);
       xexp_aset_bool (c->catalogue, "disabled", disabled);
       xexp_aset_text (c->catalogue, "components", comps);
@@ -1903,9 +1903,8 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
   
   if (response == REPO_RESPONSE_NEW)
     {
-      xexp *x = xexp_list_new ("catalogue",
-			       xexp_text_new ("name", "", NULL),
-			       NULL);
+      xexp *x = xexp_list_new ("catalogue");
+      xexp_cons (x, xexp_text_new ("name", ""));
       show_cat_edit_dialog (c, x, true, false);
       return;
     }
@@ -2080,7 +2079,7 @@ add_catalogues_cont_3 (bool res, void *data)
        */
       if (c->cur)
 	xexp_del (c->catalogues, c->cur);
-      xexp_append (c->catalogues, xexp_copy (c->rest));
+      xexp_append_1 (c->catalogues, xexp_copy (c->rest));
       c->added_any = true;
 
       /* Move to next

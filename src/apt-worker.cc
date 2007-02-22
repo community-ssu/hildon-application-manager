@@ -2406,7 +2406,7 @@ append_system_sources (xexp *catalogues, string File)
        if (C[0] == '#' || C[0] == 0)
 	 continue;
       	    
-       xexp_append (catalogues, xexp_text_new ("source", C, NULL));
+       xexp_append_1 (catalogues, xexp_text_new ("source", C));
      }
 }
 
@@ -2483,7 +2483,7 @@ void
 cmd_set_catalogues ()
 {
   xexp *catalogues = request.decode_xexp ();
-  xexp_adel_all (catalogues, "source");
+  xexp_adel (catalogues, "source");
   int success = 
     xexp_write_file (CATALOGUE_CONF, catalogues);
 

@@ -262,20 +262,15 @@ apt_proto_decoder::decode_xexp ()
   len = decode_int ();
   if (len >= 0)
     {
-      xexp *x = xexp_list_new (tag, NULL, NULL);
-      xexp *y = NULL;
+      xexp *x = xexp_list_new (tag);
       while (!corrupted () && len > 0)
 	{
-	  xexp *z = decode_xexp ();
-	  if (y)
-	    xexp_set_rest (y, z);
-	  else
-	    xexp_append (x, z);
-	  y = z;
+	  xexp_cons (x, decode_xexp ());
 	  len--;
 	}
+      xexp_reverse (x);
       return x;
     }
   else
-    return xexp_text_new (tag, decode_string_in_place (), NULL);
+    return xexp_text_new (tag, decode_string_in_place ());
 }

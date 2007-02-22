@@ -42,7 +42,7 @@ Documentation
 
 Technical documentation can be found in the doc/ directory.  It mostly
 explains how the apt technology is used in the context of maemo and
-how it has been extended.  There are two main documents:
+how it has been extended.  There are three main documents:
 
 - packaging.txt
 
@@ -54,6 +54,10 @@ how it has been extended.  There are two main documents:
 
   For repository maintainers; explains things like how to "certify"
   parts of a repository, etc.
+
+- scripting.txt
+
+  For people writing .install files.
 
 
 About the implementation
@@ -195,6 +199,14 @@ documented in the header files.
 
   These files also contain the implementation of the package list and
   section list functionality.
+
+- xexp.h, xexp.c
+
+  A implementation of a expressive, general purpose data structure,
+  inspired by S-Expressions but encoded in XML.  This data structure
+  is used for storing the catalogue settings and when scripting the
+  Application Manager via .install files.  Xexps can be exchanged
+  easily between the frontend and backend.
 
 - hildonbreadcrumbtrail.h, hildonbreadcrumbtrail.c
 
