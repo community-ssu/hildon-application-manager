@@ -8,16 +8,279 @@ restored that contains a list of applications.  Hopefully new uses can
 be found.
 
 The scriptability is limited mainly for two reasons: to keep the
-implementation simple and to make the interaction with user simple.
-The user should have a good enough idea of what the script is going to
-do to his/her system.  There is no real security however; ultimately,
-you need to trust the scripts that you execute, just as you need to
-trust the packages that you install.
+implementation simple and to make the interaction with the user
+simple.  The user should have a good enough idea of what the script is
+going to do to his/her system.  There is no real security however;
+ultimately, you need to trust the scripts that you execute, just as
+you need to trust the packages that you install.
 
 ### Basic syntax
 
+A installation script is made up of X-expressions.  X-expressions are
+a subset of XML that has been inspired by Lisp's S-expressions.  A
+X-expression is either a list or a text; both lists and tags have
+symbolic tags.
+
+A text X-expression is written like this:
+
+    <tag>text</tag>
+
+where TAG is the tag of the X-expression and TEXT is the text.
+
+A list X-expression is written like this:
+
+    <tag>elt1 elt2 ...</tag>
+
+where TAG is the tag of the X-expression and ELT1, ELT2, etc are the
+elements of the list.  The elements are all X-expressions themselves,
+of course.  There can be arbitrary whitespace around the elements.
+
+For example, the following is a 'foo' list with two 'bar' text
+elements.
+
+    <foo>
+     <bar>first text</bar>
+     <bar>second text</bar>
+    </foo>
+
+You can only put whitespace around list elements.  Thus, the following
+is not a legal X-expression, although it is legal XML:
+
+    <foo>
+     no text here
+     <bar>but this is ok</bar>
+     and not here either
+    </foo>
+
+Attributes are ignored.
+
+It is important to distinguish empty lists from empty texts.  An empty
+list is written as
+
+    <empty/>
+
+while an empty text is written as
+
+    <empty></empty>
+
+All text must be encoded in UTF-8.
+
 ### Catalogues
+
+One important element in .install scripts are catalogue descriptions.
+Such a catalogue description is a list X-expression with the tag
+"catalogue" and a number of children that specify the properties of
+the catalogue.  For example, the following is the description of a
+typical catalogue:
+
+    <catalogue>
+     <name>maemo bora extras</name>
+     <uri>http://repository.maemo.org/extras</uri>
+     <dist>bora</dist>
+     <components>free non-free</components>
+    </catalogue>
+
+The following properties can be used:
+
+  - name
+
+  The name of the catalogue, as displayed to the user in the
+  "Catalogues" dialog.  This X-expression can be a text, in which case
+  it is used directly for display.  It can also be a list of texts, in
+  which case the text to display is selected based in the current
+  language.  If there is a element whose tag matches the current
+  language code, it is used.  If not, the first element is used.
+
+  Thus, the following will provide a localized name for the "es_ES"
+  language code, and will use the "en_GB" variant otherwise:
+
+      <name>
+       <en_GB>Foo Catalogue</en_GB>
+       <es_ES>Repositorio Foo</es_ES>
+      </name>
+
+  - uri, dist, components
+
+  The texts to use when forming the "deb" line for sources.list.  The
+  "dist" property can be a text, or it can be a list that contains the
+  single element <automatic/>.  In that case, the symbolic
+  distribution name of the appropriate maemo release is used when
+  forming the "deb" line.
+
+  - tag, version
+
+  These two properties identify a catalogue and the version of its
+  description.  They are used when adding or updating catalogues from
+  installation scripts.
+
+  Tags should be globally unique, so it is recommended to form them
+  from a domain name, in reverse.  For example, a catalogue hosted on
+  maemo.org might use
+
+      <tag>org.maemo.repository.extras.bora</tag>
+
+  If the version property is omitted, it is treated as zero.
+
+  - filter-dist
+
+  This text property declares the the catalogue is for the given
+  distribution.  It will be used when the given distribution matches
+  the name that is substituted for a <dist><automatic/></dist
+  property.  It will be ignored on other distributions.
+
+The following two properties are filtered out when a catalogue
+description appears in a installation script, but they are used when
+storing catalogues.
+
+  - essential
+
+  When present, marks the catalogue as essential.  Essential
+  catalogues can not be removed or edited by the user.
+
+  - disabled
+
+  When present, marks the catalogue as disabled.  Disabled catalogues
+  are remembered but are not used by the Application Manager.
+
+The Application Manager allows the user to add new catalogues and to
+edit existing catalogues.
+
+When the user adds a new catalogue, that catalogue will have no tag
+and no version, and will not use a <automatic/> distribution.  It will
+have a single text as name.
+
+When the user changes the name of a catalogue, the element in its
+description is changed that provided the name in the first place.  The
+other elements are not changed.
+
+When showing a dialog to the user that has a <automatic/>
+distribution, the appropriate symbolic name is substituted in the
+display.  When the user changes the distribution, the new text will be
+used instead of <automatic/>, thus making the catalogue non-automatic.
+
+The tag and version of a catalogue are removed when the user changes
+the catalogue.
 
 ### Instructions
 
+An installation script is a simple sequence of instructions, with no
+loops or other control structures.
+
+The whole script is represented by a single "install-instructions"
+list X-expression that has the instructions as its elements.
+
+The following instructions can be used:
+
+  - install-packages
+
+      <install-packages>
+       <pkg>package1</pkg>
+       ...
+      <install-packages>
+
+  Install the listed packages, one after the other.
+
+  - update-catalogues
+  <pre><code>
+  &lt;update-catalogues>;
+   <catalogue>
+    ...
+   %lt;/catalogue%gt;
+   ...
+  %lt;/update-catalogues%gt;
+  </pre></code>
+
+  Adds the listed catalogues to the set of active catalogues, if
+  needed.  This instruction should be used as a preparation for a
+  %lt;install-packages%gt; instruction to make sure that the needed
+  repositories are configured.
+
+  If a listed catalogue has no tag property, it is always added (so
+  you should give each of the listed catalogues a tag).
+
+  Otherwise, if there is no configured catalogue with the given tag,
+  the listed catalogue is added.  If there is a configured catalogue
+  with the given tag, the listed catalogue is added when its version
+  is higher than the version of the configured catalogue.  The
+  configured catalogue is removed in this case.
+
+  If there is a configured catalogue with a higher or equal version,
+  it is not updated.  But if it is disabled, it is enabled.
+
+  - add-catalogues
+
+      %lt;add-catalogues%gt;
+       %lt;catalogue%gt;
+        ...
+       %lt;/catalogue%gt;
+       ...
+      %lt;/add-catalogues%gt;
+
+  Adds the listed catalogues to the set of active catalogues.  This
+  instruction should be used if the purpose of the script is to add
+  more catalogues to the Application Manager that the user can later
+  browse.  If a configured catalogue already exists with a tag of a
+  listed catalogue, it is removed, regardless of version.
+
+  - with-temporary-cataligues
+
+      %lt;with-temporary-catalogues%gt;
+       instruction
+       ...
+      %lt;/with-temporary-catalogues%gt;
+
+  Execute the subordinate instructions while switched to a temporary
+  catalogue state.  When entering this state, the old list of
+  catalogues is saved, and then the list of catalogues is set to be
+  empty.  When leaving the temporary catalogue state, the old list of
+  catalogues is restored.  You can not nest
+  %lt;with-temporary-catalogues%gt; instructions.
+
+The Application Manager will interact with the user as appropriate
+when carrying out these instructions.
+
+### Example
+
+The following X-expression is a installation script to install the
+maemofoo package from the maemo Foobar repository.
+
+    <install-instructions>
+     <update-catalogues>
+      <catalogue>
+       <tag>com.foobar.repository.automatic</tag>
+       <version>0</version>
+       <name>
+        <en_GB>Foobar Catalogue</en_GB>
+        <de_DE>Foobar Katalog</de_DE>
+       </name>
+       <uri>http://example.com/</uri>
+       <dist><automatic/></dist>
+       <components>main</components>
+      </catalogue>
+     </update-catalogues>
+     <install-packages>
+      <pkg>maemofoo</pkg>
+     </install-packages>
+    <install-instructions>
+
+(Yes, using a text markup language to represent data structures (let
+alone programs) gives pretty unreadable results.)
+
 ### Compatability with IT OS 2007.
+
+The old GKEyFile format used by IT OS 2007 is still supported.  You
+can embed a X-expression in it like so:
+
+    [install]
+    package=foo
+    
+    # <install-instructions>
+    #  ...
+    # </install-instructions>
+
+If the Hildon Application Manager encounters such a file with an
+embedded X-expression, it will use that and ignore the rest.  If there
+is no X-expression, it will transform the GKeyFile according to the
+following rules.
+
+TBW
