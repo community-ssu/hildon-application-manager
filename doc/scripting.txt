@@ -94,10 +94,10 @@ The following properties can be used:
   Thus, the following will provide a localized name for the "es_ES"
   language code, and will use the "en_GB" variant otherwise:
 
-      <name>
-       <en_GB>Foo Catalogue</en_GB>
-       <es_ES>Repositorio Foo</es_ES>
-      </name>
+        <name>
+         <en_GB>Foo Catalogue</en_GB>
+         <es_ES>Repositorio Foo</es_ES>
+        </name>
 
   - uri, dist, components
 
@@ -117,7 +117,7 @@ The following properties can be used:
   from a domain name, in reverse.  For example, a catalogue hosted on
   maemo.org might use
 
-      <tag>org.maemo.repository.extras.bora</tag>
+        <tag>org.maemo.repository.extras.bora</tag>
 
   If the version property is omitted, it is treated as zero.
 
