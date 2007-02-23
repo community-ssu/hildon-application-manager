@@ -173,22 +173,21 @@ The following instructions can be used:
 
   - install-packages
 
-      <install-packages>
-       <pkg>package1</pkg>
-       ...
-      <install-packages>
+        <install-packages>
+         <pkg>package1</pkg>
+         ...
+        <install-packages>
 
   Install the listed packages, one after the other.
 
   - update-catalogues
-  <pre><code>
-  &lt;update-catalogues>;
-   <catalogue>
-    ...
-   %lt;/catalogue%gt;
-   ...
-  %lt;/update-catalogues%gt;
-  </pre></code>
+
+        <update-catalogues>
+         <catalogue>
+          ...
+         </catalogue>
+         ...
+        </update-catalogues>
 
   Adds the listed catalogues to the set of active catalogues, if
   needed.  This instruction should be used as a preparation for a
@@ -209,12 +208,12 @@ The following instructions can be used:
 
   - add-catalogues
 
-      %lt;add-catalogues%gt;
-       %lt;catalogue%gt;
-        ...
-       %lt;/catalogue%gt;
-       ...
-      %lt;/add-catalogues%gt;
+        <add-catalogues>
+         <catalogue>
+          ...
+         </catalogue>
+         ...
+        </add-catalogues>
 
   Adds the listed catalogues to the set of active catalogues.  This
   instruction should be used if the purpose of the script is to add
@@ -224,10 +223,10 @@ The following instructions can be used:
 
   - with-temporary-cataligues
 
-      %lt;with-temporary-catalogues%gt;
-       instruction
-       ...
-      %lt;/with-temporary-catalogues%gt;
+        <with-temporary-catalogues>
+         instruction
+         ...
+        </with-temporary-catalogues>
 
   Execute the subordinate instructions while switched to a temporary
   catalogue state.  When entering this state, the old list of
