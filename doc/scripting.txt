@@ -35,7 +35,7 @@ where TAG is the tag of the X-expression and ELT1, ELT2, etc are the
 elements of the list.  The elements are all X-expressions themselves,
 of course.  There can be arbitrary whitespace around the elements.
 
-For example, the following is a 'foo' list with two 'bar' text
+For example, the following is a "foo" list with two "bar" text
 elements.
 
     <foo>
@@ -82,7 +82,7 @@ typical catalogue:
 
 The following properties can be used:
 
-  - name
+  - `name`
 
   The name of the catalogue, as displayed to the user in the
   "Catalogues" dialog.  This X-expression can be a text, in which case
@@ -91,15 +91,17 @@ The following properties can be used:
   language.  If there is a element whose tag matches the current
   language code, it is used.  If not, the first element is used.
 
-  Thus, the following will provide a localized name for the "es_ES"
-  language code, and will use the "en_GB" variant otherwise:
+  Thus, the following will provide a localized name for the "es\_ES"
+  language code, and will use the "en\_GB" variant otherwise:
 
         <name>
          <en_GB>Foo Catalogue</en_GB>
          <es_ES>Repositorio Foo</es_ES>
         </name>
 
-  - uri, dist, components
+  If you don't specify a name, the empty string will be used.
+
+  - `uri`, `dist`, `components`
 
   The texts to use when forming the "deb" line for sources.list.  The
   "dist" property can be a text, or it can be a list that contains the
@@ -107,7 +109,7 @@ The following properties can be used:
   distribution name of the appropriate maemo release is used when
   forming the "deb" line.
 
-  - tag, version
+  - `tag`, `version`
 
   These two properties identify a catalogue and the version of its
   description.  They are used when adding or updating catalogues from
@@ -121,23 +123,28 @@ The following properties can be used:
 
   If the version property is omitted, it is treated as zero.
 
-  - filter-dist
+  - `filter-dist`
 
   This text property declares the the catalogue is for the given
   distribution.  It will be used when the given distribution matches
   the name that is substituted for a <dist><automatic/></dist
   property.  It will be ignored on other distributions.
 
+  - `no-network`
+
+  When present, declares that this catalogue doesn't need a network
+  connection.
+
 The following two properties are filtered out when a catalogue
 description appears in a installation script, but they are used when
 storing catalogues.
 
-  - essential
+  - `essential`
 
   When present, marks the catalogue as essential.  Essential
   catalogues can not be removed or edited by the user.
 
-  - disabled
+  - `disabled`
 
   When present, marks the catalogue as disabled.  Disabled catalogues
   are remembered but are not used by the Application Manager.
@@ -171,7 +178,7 @@ list X-expression that has the instructions as its elements.
 
 The following instructions can be used:
 
-  - install-packages
+  - `install-packages`
 
         <install-packages>
          <pkg>package1</pkg>
@@ -180,7 +187,7 @@ The following instructions can be used:
 
   Install the listed packages, one after the other.
 
-  - update-catalogues
+  - `update-catalogues`
 
         <update-catalogues>
          <catalogue>
@@ -191,7 +198,7 @@ The following instructions can be used:
 
   Adds the listed catalogues to the set of active catalogues, if
   needed.  This instruction should be used as a preparation for a
-  %lt;install-packages%gt; instruction to make sure that the needed
+  `<install-packages>` instruction to make sure that the needed
   repositories are configured.
 
   If a listed catalogue has no tag property, it is always added (so
@@ -206,7 +213,7 @@ The following instructions can be used:
   If there is a configured catalogue with a higher or equal version,
   it is not updated.  But if it is disabled, it is enabled.
 
-  - add-catalogues
+  - `add-catalogues`
 
         <add-catalogues>
          <catalogue>
@@ -221,7 +228,7 @@ The following instructions can be used:
   browse.  If a configured catalogue already exists with a tag of a
   listed catalogue, it is removed, regardless of version.
 
-  - with-temporary-cataligues
+  - `with-temporary-catalogues`
 
         <with-temporary-catalogues>
          instruction
@@ -233,15 +240,47 @@ The following instructions can be used:
   catalogues is saved, and then the list of catalogues is set to be
   empty.  When leaving the temporary catalogue state, the old list of
   catalogues is restored.  You can not nest
-  %lt;with-temporary-catalogues%gt; instructions.
+  `<with-temporary-catalogues>` instructions.
 
 The Application Manager will interact with the user as appropriate
 when carrying out these instructions.
 
+When executing a `<update-catalogues>` or `<add-catalogues>`
+instruction, the listed catalogues are first filtered according to
+`<filter-dist>`.  If after filtering the remaining list of catalogues
+is empty, the installation script is declared incompatible with the
+current operating system and processing stops.
+
+When adding or updating a catalogue for the non-temporary state, the
+user is asked to confirm this for each change.  Adding catalogues to
+the temporary state is done silently.  If s/he declines any of the
+changes all changes that have so far been made since the last
+confirmed `<install-packages>` instruction will be undone and the
+processing of the installation script stops.
+
+When installing packages and any changes have been made to catalogues
+since the last confirmed `<install-packages>` instruction, the changes
+are comitted and the package cache is refreshed.  If this fails, the
+user is asked whether to continue or not.  The use is then asked to
+confirm the installation of the packages, and can select from the
+list.  If the user cancels the confirmation, processing of the script
+stops.  Otherwise, the selected packages are installed one after the
+other.  If a installation fails, the user is asked whether to continue
+or stop.
+
+If the installation script isn't executed from a memory card or when
+restoring the list of applications, you can only specify one package
+in a `<install-packages>` instruction.  The Application Manager will
+ignore the rest (because we don't want people to put more than one
+package behind a Single-Click install link).  If you want to test a
+multi-package installation script, put the Application Manager into
+red-pill mode; then it will use the multi-package confirmation dialog
+when there is more than one package to install.
+
 ### Example
 
 The following X-expression is a installation script to install the
-maemofoo package from the maemo Foobar repository.
+maemofoo package from the Foobar repository.
 
     <install-instructions>
      <update-catalogues>
@@ -265,18 +304,58 @@ maemofoo package from the maemo Foobar repository.
 (Yes, using a text markup language to represent data structures (let
 alone programs) gives pretty unreadable results.)
 
+Here is another, slightly more involved example.  This one can be used
+on a memory card.  It will offer to install the listed packages and
+will use a repository on the memory card for that.  Repositories for
+"bora" and "mistral" are supplied, and they are located relatively to
+installation script.  Afterwards, it will offer to add a automatic
+repository that might be used to deliver updates.
+
+    <install-instructions>
+     <with-temporary-catalogues>
+      <add-catalogues>
+       <catalogue>
+        <no-network>
+        <filter-dist>bora</filter-dist>
+        <uri><file-relative>.repository/bora</file-relative></uri>
+       </catalogue>
+       <catalogue>
+        <no-network>
+        <filter-dist>mistral</filter-dist>
+        <uri><file-relative>.repository/mistral</file-relative></uri>
+       </catalogue>
+      </add-catalogues>
+      <install-packages>
+       <pkg>frozen-bubble</pkg>
+       <pkg>crazy-parking</pkg>
+      </install-packages>
+     </with-temporary-repositories>
+     <add-catalogues>
+      <catalogue>
+       <name>
+        <en_GB>Foobar Games</en_GB>
+        <de_DE>Foobar Spiele</de_DE>
+       </name>
+       <uri>http://foobar.com/</uri>
+       <dist><automatic/></dist>
+       <components>main</components>
+      </catalogue>
+     </add-catalogues>      
+    <install-instructions>
+
 ### Compatability with IT OS 2007.
 
-The old GKEyFile format used by IT OS 2007 is still supported.  You
-can embed a X-expression in it like so:
+The old GKeyFile format used by IT OS 2007 is still supported.  You
+can embed a X-expression in it as comments like so:
 
-    [install]
-    package=foo
-    
     # <install-instructions>
     #  ...
     # </install-instructions>
 
+    [install]
+    repo_deb_3=deb http://foobar.com/ bora main
+    package=maemofoo
+    
 If the Hildon Application Manager encounters such a file with an
 embedded X-expression, it will use that and ignore the rest.  If there
 is no X-expression, it will transform the GKeyFile according to the
