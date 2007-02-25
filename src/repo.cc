@@ -2026,8 +2026,9 @@ struct add_catalogues_closure {
   xexp *catalogues;
   xexp *cur;
   xexp *rest;
-  bool ask, for_install;
-  bool added_any;
+  bool ask, update;
+
+  bool found_applicable_catalogue;
 
   void (*cont) (bool res, void *data);
   void *data;
@@ -2035,7 +2036,9 @@ struct add_catalogues_closure {
 
 static void add_catalogues_cont_1 (xexp *catalogues, void *data);
 static void add_catalogues_cont_2 (add_catalogues_closure *c);
-static void add_catalogues_cont_3 (bool res, void *data);
+static void add_catalogues_cont_3_add (bool res, void *data);
+static void add_catalogues_cont_3_enable (bool res, void *data);
+static void add_catalogues_cont_3 (bool res, bool enable, void *data);
 static void add_catalogues_cont_4 (bool res, void *data);
 
 static xexp *
@@ -2069,18 +2072,37 @@ catalogue_is_newer (xexp *cat1, xexp *cat2)
 }
 
 static void
-add_catalogues_cont_3 (bool res, void *data)
+add_catalogues_cont_3_add (bool res, void *data)
+{
+  add_catalogues_cont_3 (res, false, data);
+}
+
+static void
+add_catalogues_cont_3_enable (bool res, void *data)
+{
+  add_catalogues_cont_3 (res, true, data);
+}
+
+static void
+add_catalogues_cont_3 (bool res, bool enable, void *data)
 {
   add_catalogues_closure *c = (add_catalogues_closure *)data;
 
   if (res)
     {
-      /* Add it.
+      /* Add or enable it.
        */
-      if (c->cur)
-	xexp_del (c->catalogues, c->cur);
-      xexp_append_1 (c->catalogues, xexp_copy (c->rest));
-      c->added_any = true;
+      if (enable)
+	{
+	  g_assert (c->cur);
+	  xexp_aset_bool (c->cur, "disabled", false);
+	}
+      else 
+	{
+	  if (c->cur)
+	    xexp_del (c->catalogues, c->cur);
+	  xexp_append_1 (c->catalogues, xexp_copy (c->rest));
+	}
 
       /* Move to next
        */
@@ -2122,22 +2144,57 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 {
   if (c->rest == NULL)
     {
-      if (c->added_any)
-	set_catalogues (c->catalogues, true, !c->for_install,
-			add_catalogues_cont_4, c);
+      if (!c->found_suitable_catalogue)
+	{
+	  /* All catalogues were filtered out (or the list was empty
+	     to begin with, which we treat the same).  That means that
+	     this installation script was not for us.
+	  */
+	  annoy_user (_("ai_ni_error_install_incompatible"));
+	  c->cont (false, c->data);
+	  delete c;
+	}
       else
-	add_catalogues_cont_4 (true, c);
+	{
+	  /* We want to refresh the cache every time since we really want
+	     it to be uptodate now.  For a update-catalogues instructions,
+	     we even do it without asking since it doesn't make sense not
+	     to do it and the user can cancel the installation script
+	     later.
+	  */
+	  set_catalogues (c->catalogues, true, !c->update,
+			  add_catalogues_cont_4, c);
+	}
     }
   else
     {
+      void (*cont) (bool res, void *data);
+
+      /* XXX - do filtering.  For now w just accept all catalgues.
+       */
+      c->found_suitable_catalogue = true;
+
       c->cur = find_catalogue (c->catalogues, c->rest);
-      if (!c->for_install
+
+      if (!c->update
 	  || c->cur == NULL
-	  || catalogue_is_newer (c->rest, c->cur)
-	  || xexp_aref_bool (c->cur, "disabled"))
+	  || catalogue_is_newer (c->rest, c->cur))
 	{
-	  /* The catalogue is new.  If wanted, ask the user whether to
-	     add it.
+	  // New version should be added
+	  cont = add_catalogues_cont_3_add;
+	}
+      else if (c->cur && xexp_aref_bool (c->cur, "disabled"))
+	{
+	  // Old version should be enabled
+	  cont = add_catalogues_cont_3_enable;
+	}
+      else
+	cont = NULL;
+
+      if (cont)
+	{
+	  /* The catalogue is new or needs to be enabled.  If wanted,
+	     ask the user whether to add it.
 	   */
 
 	  if (c->ask)
@@ -2154,13 +2211,13 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 	    
 	      ask_yes_no_with_arbitrary_details (_("ai_ti_add_catalogue"),
 						 str,
-						 add_catalogues_cont_3,
+						 cont,
 						 add_catalogues_details,
 						 c);
 	      g_free (str);
 	    }
 	  else
-	    add_catalogues_cont_3 (true, c);
+	    cont (true, c);
 	}
       else
 	{
@@ -2191,7 +2248,7 @@ add_catalogues_cont_1 (xexp *catalogues, void *data)
 
 void
 add_catalogues (xexp *catalogues,
-		bool ask, bool for_install,
+		bool ask, bool update,
 		void (*cont) (bool res, void *data),
 		void *data)
 {
@@ -2201,8 +2258,8 @@ add_catalogues (xexp *catalogues,
   c->cur = NULL;
   c->rest = xexp_first (catalogues);
   c->ask = ask;
-  c->for_install = for_install;
-  c->added_any = false;
+  c->update = update;
+  c->found_suitable_catalogue = false;
   c->cont = cont;
   c->data = data;
 

@@ -54,7 +54,7 @@ void set_catalogues (xexp *catalogues, bool refresh, bool ask,
 		     void (*cont) (bool res, void *data),
 		     void *data);
 
-void add_catalogues (xexp *catalogues, bool ask, bool for_install,
+void add_catalogues (xexp *catalogues, bool ask, bool update,
 		     void (*cont) (bool res, void *data),
 		     void *data);
 
