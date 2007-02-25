@@ -1,3 +1,10 @@
+2007-02-26  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/repo.h, src/repo.cc (add_catalogues): Renamed 'for_install'
+	parameter to 'update'.  Always set the catalogues and refresh the
+	cache.  Detect and report when all catalogues have been filtered
+	out.
+
 2007-02-25  Marius Vollmer  <mvo@zagadka.de>
 
 	* src/xexp.h, src/xexp.c: Introduced the concept of empty xexps,
