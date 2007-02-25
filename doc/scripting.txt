@@ -52,18 +52,7 @@ is not a legal X-expression, although it is legal XML:
      and not here either
     </foo>
 
-Attributes are ignored.
-
-It is important to distinguish empty lists from empty texts.  An empty
-list is written as
-
-    <empty/>
-
-while an empty text is written as
-
-    <empty></empty>
-
-All text must be encoded in UTF-8.
+Attributes are ignored.  All text must be encoded in UTF-8.
 
 ### Catalogues
 
@@ -123,18 +112,6 @@ The following properties can be used:
 
   If the version property is omitted, it is treated as zero.
 
-  - `filter-dist`
-
-  This text property declares the the catalogue is for the given
-  distribution.  It will be used when the given distribution matches
-  the name that is substituted for a <dist><automatic/></dist
-  property.  It will be ignored on other distributions.
-
-  - `no-network`
-
-  When present, declares that this catalogue doesn't need a network
-  connection.
-
 The following two properties are filtered out when a catalogue
 description appears in a installation script, but they are used when
 storing catalogues.
@@ -168,6 +145,9 @@ used instead of <automatic/>, thus making the catalogue non-automatic.
 The tag and version of a catalogue are removed when the user changes
 the catalogue.
 
+### Catalogue filters
+
+
 ### Instructions
 
 An installation script is a simple sequence of instructions, with no
@@ -198,7 +178,7 @@ The following instructions can be used:
 
   Adds the listed catalogues to the set of active catalogues, if
   needed.  This instruction should be used as a preparation for a
-  `<install-packages>` instruction to make sure that the needed
+  `install-packages` instruction to make sure that the needed
   repositories are configured.
 
   If a listed catalogue has no tag property, it is always added (so
@@ -240,7 +220,7 @@ The following instructions can be used:
   catalogues is saved, and then the list of catalogues is set to be
   empty.  When leaving the temporary catalogue state, the old list of
   catalogues is restored.  You can not nest
-  `<with-temporary-catalogues>` instructions.
+  `with-temporary-catalogues` instructions.
 
 The Application Manager will interact with the user as appropriate
 when carrying out these instructions.
@@ -254,19 +234,21 @@ current operating system and processing stops.
 When adding or updating a catalogue for the non-temporary state, the
 user is asked to confirm this for each change.  Adding catalogues to
 the temporary state is done silently.  If s/he declines any of the
-changes all changes that have so far been made since the last
-confirmed `<install-packages>` instruction will be undone and the
-processing of the installation script stops.
+changes all changes that have so far been made during this instruction
+will be undone and the processing of the installation script stops.
+Otherwise, the package cache will be refreshed at the end of the
+instruction and execution of the script continues even when this
+fails.  For a `add-catalogues` instruction, the cache refreshing has
+to be confirmed by the user, but it is done without asking for the
+`update-catalogues` instruction.
 
-When installing packages and any changes have been made to catalogues
-since the last confirmed `<install-packages>` instruction, the changes
-are comitted and the package cache is refreshed.  If this fails, the
-user is asked whether to continue or not.  The use is then asked to
-confirm the installation of the packages, and can select from the
-list.  If the user cancels the confirmation, processing of the script
-stops.  Otherwise, the selected packages are installed one after the
-other.  If a installation fails, the user is asked whether to continue
-or stop.
+For a `install-packages` instruction, the user is asked to confirm the
+installation of the packages, and can select from a list.  Packages
+that are listed in the instruction but are already installed and
+uptodate are omitted from the list.  If the user cancels the
+confirmation, processing of the script stops.  Otherwise, the selected
+packages are installed one after the other.  If an installation fails,
+the script stops.
 
 If the installation script isn't executed from a memory card or when
 restoring the list of applications, you can only specify one package
@@ -301,26 +283,25 @@ maemofoo package from the Foobar repository.
      </install-packages>
     <install-instructions>
 
-(Yes, using a text markup language to represent data structures (let
-alone programs) gives pretty unreadable results.)
-
 Here is another, slightly more involved example.  This one can be used
 on a memory card.  It will offer to install the listed packages and
 will use a repository on the memory card for that.  Repositories for
-"bora" and "mistral" are supplied, and they are located relatively to
-installation script.  Afterwards, it will offer to add a automatic
-repository that might be used to deliver updates.
+"bora" and "mistral" are supplied, and they are located relative to
+the installation script.  Afterwards, it will offer to add an
+automatic repository that might be used to deliver updates.
 
     <install-instructions>
      <with-temporary-catalogues>
       <add-catalogues>
+       <if><and><dist>bora</dist>
+                <arch>armel</arch>
+           </and>
+        <catalogue>
+         <filter-dist>bora</filter-dist>
+         <uri><file-relative>.repository/bora</file-relative></uri>
+        </catalogue>
+       </if>
        <catalogue>
-        <no-network>
-        <filter-dist>bora</filter-dist>
-        <uri><file-relative>.repository/bora</file-relative></uri>
-       </catalogue>
-       <catalogue>
-        <no-network>
         <filter-dist>mistral</filter-dist>
         <uri><file-relative>.repository/mistral</file-relative></uri>
        </catalogue>
@@ -343,7 +324,7 @@ repository that might be used to deliver updates.
      </add-catalogues>      
     <install-instructions>
 
-### Compatability with IT OS 2007.
+### Compatibility with IT OS 2007.
 
 The old GKeyFile format used by IT OS 2007 is still supported.  You
 can embed a X-expression in it as comments like so:
@@ -355,6 +336,9 @@ can embed a X-expression in it as comments like so:
     [install]
     repo_deb_3=deb http://foobar.com/ bora main
     package=maemofoo
+
+    [install-instructions]
+    xexp = <install-instructions>...</install-instructions>
     
 If the Hildon Application Manager encounters such a file with an
 embedded X-expression, it will use that and ignore the rest.  If there
