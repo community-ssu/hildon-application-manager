@@ -31,34 +31,37 @@
    string.  There are utility functions for treating texts as
    integers, but all types must be inferred from the context.
 
+   Empty lists and empty texts are treated identically.  That is, a
+   list xexp without children is also a text xexp with an empty
+   string.  Those xexps are called "empty".
+
    The external representation of a xexp uses a subset of the subset
-   of XML supported by the glib XML parser.  For a text node, the text
-   is written with all the necessary escapes between its tag:
+   of XML supported by the glib XML parser.  For a non-empty text
+   node, the text is written with all the necessary escapes between
+   its tag:
 
        <TAG>TEXT</TAG>
 
-   For a list xexp, the format is
+   For a non-empty list xexp, the format is
    
        <TAG>CHILD1 CHILD2 ...</TAG>
 
    with optional white space around the representations of the
    children.
 
-   The ambiguity between text xexps with an empty string and empty
-   lists is resolved by writing empty strings as
-
-       <TAG></TAG>
-
-   and empty lists as
+   Empty xexps are written like this by xexp_write
 
        <TAG/>
+
+   but the equivalent <tag></tag> form is also understood by
+   xexp_read.
 
    Using lists and texts, some 'higher-level' constructs are defined:
 
    - A association list is a list that is meant to be used as a
      dictionary using xexp_aref et al.
 
-   - An empty list is often used as a flag whose presence or absence
+   - An empty xexp is often used as a flag whose presence or absence
      in a association list is used to encode a boolean value.
 
    Each xexp has a 'rest' pointer that is used to form the list of
@@ -100,6 +103,10 @@
 
    Returns true when X has the tag TAG, false otherwise.
 
+   - int xexp_is_empty (xexp *X)
+
+   Return true when X is empty, false otherwise.
+
    - xexp *xexp_rest (xexp *X)
 
    Return the 'rest' pointer of X.  By using xexp_first and xexp_rest
@@ -124,7 +131,7 @@
 
    Create a new free standing list xexp with the given TAG.  TAG is
    copied and need not remain valid after this call.  The new xexp has
-   no children initially.
+   no children initially and is thus a empty xexp.
 
    - int xexp_is_list (xexp *X)
 
@@ -133,7 +140,8 @@
    - xexp *xexp_first (xexp *X)
 
    Return the first child of X.  X must be a list xexp.  The returned
-   pointer is valid as long as X is.
+   pointer is valid as long as X is.  When X is empty, NULL is
+   returned.
 
    - int xexp_length (xexp *X)
 
@@ -164,7 +172,8 @@
    - xexp *xexp_text_new (const char *TAG, const char *TEXT)
 
    Create a new free text xexp with the given TAG and TEXT.  TAG and
-   TEXT are copied and need not remain valid after this call.
+   TEXT are copied and need not remain valid after this call.  If TEXT
+   is the empty string, a empty xexp is created.
 
    - int xexp_is_text (xexp *X)
    
@@ -173,7 +182,8 @@
    - const char *xexp_text (xexp *X)
 
    Return the text of X.  X must be a text xexp.  The returned pointer
-   is valid as long as X is.
+   is valid as long as X is.  When X is empty, the empty string is
+   returned, not NULL.
 
    - int xexp_text_as_int (xexp *X)
 
@@ -263,6 +273,7 @@ typedef struct xexp xexp;
  */
 const char *xexp_tag (xexp *x);
 int xexp_is (xexp *x, const char *tag);
+int xexp_is_empty (xexp *x);
 xexp *xexp_rest (xexp *x);
 xexp *xexp_copy (xexp *x);
 void xexp_free (xexp *x);

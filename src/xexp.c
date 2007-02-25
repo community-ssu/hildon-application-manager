@@ -93,6 +93,12 @@ xexp_is (xexp *x, const char *tag)
   return strcmp (x->tag, tag) == 0;
 }
 
+int
+xexp_is_empty (xexp *x)
+{
+  return x->first == NULL && x->text == NULL;
+}
+
 xexp *
 xexp_list_new (const char *tag)
 {
@@ -199,21 +205,25 @@ xexp_text_new (const char *tag, const char *text)
 
   xexp *x = g_new0 (xexp, 1);
   x->tag = g_strdup (tag);
-  x->text = g_strdup (text);
+  if (*text)
+    x->text = g_strdup (text);
   return x;
 }
 
 int
 xexp_is_text (xexp *x)
 {
-  return x->text != NULL;
+  return x->first == NULL;
 }
 
 const char *
 xexp_text (xexp *x)
 {
   g_return_val_if_fail (xexp_is_text (x), NULL);
-  return x->text;
+  if (x->text)
+    return x->text;
+  else
+    return "";
 }
 
 int
@@ -311,17 +321,16 @@ xexp_adel (xexp *x, const char *tag)
 }
 
 static void
-transmogrify_text_to_list (xexp *x)
+transmogrify_text_to_empty (xexp *x)
 {
   g_free (x->text);
   x->text = NULL;
 }
 
 static void
-transmogrify_list_to_text (xexp *x, const char *text)
+transmogrify_empty_to_text (xexp *x, const char *text)
 {
-  g_assert (text);
-  g_assert (x->first == NULL);
+  g_assert (text && *text);
   x->text = g_strdup (text);
 }
 
@@ -360,13 +369,13 @@ xexp_parser_start_element (GMarkupParseContext *context,
   if (xp->stack)
     {
       /* If the current node is a text, it must be all whitespace and
-	 we turn it into a list node.
+	 we turn it into a empty node.
       */
       xexp *y = (xexp *)xp->stack->data;
       if (xexp_is_text (y))
 	{
 	  ignore_text (xexp_text (y), error);
-	  transmogrify_text_to_list (y);
+	  transmogrify_text_to_empty (y);
 	}
 
       xexp_cons (y, x);
@@ -403,18 +412,17 @@ xexp_parser_text (GMarkupParseContext *context,
 {
   xexp_parse_context *xp = (xexp_parse_context *)user_data;
 
-  /* If the current xexp is has already children, TEXT must be all
-     whitespace and we ignore it.  Otherwise, we turn the current node
-     into text.
+  /* If the current xexp is not empty, TEXT must be all whitespace and
+     we ignore it.  Otherwise, we turn the current node into text.
   */
   
   if (xp->stack)
     {
       xexp *y = (xexp *)xp->stack->data;
-      if (xexp_first (y))
+      if (!xexp_is_empty (y))
 	ignore_text (text, error);
       else
-	transmogrify_list_to_text (y, text);
+	transmogrify_empty_to_text (y, text);
     }
 }
 
@@ -521,19 +529,16 @@ xexp_write_1 (FILE *f, xexp *x, int level)
 
   write_blanks (f, level);
 
-  if (xexp_is_list (x))
+  if (xexp_is_empty (x))
+    xexp_fprintf_escaped (f, "<%s/>\n", xexp_tag (x));
+  else if (xexp_is_list (x))
     {
       y = xexp_first (x);
-      if (y == NULL)
-	xexp_fprintf_escaped (f, "<%s/>\n", xexp_tag (x));
-      else 
-	{
-	  xexp_fprintf_escaped (f, "<%s>\n", xexp_tag (x));
-	  for (; y; y = xexp_rest (y))
-	    xexp_write_1 (f, y, level + 1);
-	  write_blanks (f, level);
-	  xexp_fprintf_escaped (f, "</%s>\n", xexp_tag (x));
-	}
+      xexp_fprintf_escaped (f, "<%s>\n", xexp_tag (x));
+      for (; y; y = xexp_rest (y))
+	xexp_write_1 (f, y, level + 1);
+      write_blanks (f, level);
+      xexp_fprintf_escaped (f, "</%s>\n", xexp_tag (x));
     }
   else
     xexp_fprintf_escaped (f, "<%s>%s</%s>\n",

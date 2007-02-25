@@ -1,3 +1,9 @@
+2007-02-25  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/xexp.h, src/xexp.c: Introduced the concept of empty xexps,
+	since our XML format can not readily distinguish between empty
+	list and empty text expressions.
+
 2007-02-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/xexp.h, src/xexp.c: Cleanup xexp API.  Changed all users.
