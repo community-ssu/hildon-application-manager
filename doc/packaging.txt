@@ -264,7 +264,7 @@ scripts to interact with the user:
     maemo-select-menu-location foo.desktop "Cute hacks"
 
   In order to use maemo-select-menu-location in postinst, you should
-  Pre-Depend on the "maemo-select-menu-location" package.
+  include a `Depends` on the "maemo-select-menu-location" package.
 
   You might want to skip calling maemo-select-menu-location when
   merely upgrading as opposed to installing from scratch.
@@ -294,7 +294,7 @@ scripts to interact with the user:
   [THE -d OPTION HAS NOT BEEN IMPLEMENTED YET.  SORRY.]
 
   In order to use maemo-application-running in postinst, you should
-  Pre-Depend on the "maemo-installer-utils" package.
+  include a `Depends` on the "maemo-installer-utils" package.
 
 
 - maemo-confirm-text [title] file
@@ -320,8 +320,8 @@ scripts to interact with the user:
   to agree to the license agreement again when the application is
   started and refuse to run when he disagrees.)
 
-  In order to use maemo-confirm-text in postinst, you should
-  Pre-Depend on the "maemo-installer-utils" package.
+  In order to use maemo-confirm-text in postinst, you should include a
+  `Depends` on the "maemo-installer-utils" package.
 
 
 ### Other utilities
