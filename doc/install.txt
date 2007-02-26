@@ -1,0 +1,248 @@
+## Controlling the Hildon Application Manager
+
+The Application Manager can be 'scripted' in a very limited way.  This
+ability is used to implement the "Single Click" install feature as
+used on the maemo Application Catalogue and when installing
+applications from a memory card.
+
+### Overview
+
+The Application Manager offers some pre-defined 'interaction flows'
+that can be controlled with a ".install" file.  Such a .install file
+is a text file following the GKeyfile format, as defined by glib.
+
+The following interaction flows are available:
+
+- Adding catalogues 
+
+  The .install file can contain a list of catalogues that will be
+  added to the catalogues that are used by the Application Manager.
+
+- Installing a package from the network catalogues
+
+  The .install file can specify one package to be installed from the
+  catalogues.  The .install file can also list the catalogues that are
+  needed for this package to be installed successfully and they will
+  be added first, similar to the "Adding catalogues" scenario.
+
+- Installing packages from a memory card
+
+  The .install file can be stored on a memory card and it can list the
+  packages that are installable from the memory card.  It can also
+  list a number of catalogues that are added after the installation
+  has been completed.  This might be useful to provide updates later
+  via these catalogues.
+
+A GKeyFile consists of a number of groups, and each group contains
+key/value pairs.  Each interaction flow has its own group; for example
+the "Installing a package" interaction flow uses the group with the
+name "install" as the main 'entry point'.  Other groups are used to
+provide additional information, mostly about catalogues.  When none of
+the supported entry points is found in the file, it is declared
+incompatible with the current IT OS release.
+
+For example, the following file will offer to install the `maemofoo`
+package from the Foobar catalogue:
+
+    [install]
+    catalogues = foobar
+    package = maemofoo
+
+    [foobar]
+    name = Foobar Catalogue
+    name[en_GB] = Foobar Catalogue
+    name[de_DE] = Foobar Katalog
+    uri = http://foobar.com/repository
+    components = main
+
+As explained below, omitting the "dist" key means that the 'current'
+distribution will be used.
+
+### Catalogues
+
+All of the interaction flows deal with catalogues.  They do that by
+referring to groups in the .install file by name, such as "foobar" in
+the example above.  Those names can be arbitrary but must be unique of
+course.
+
+A group describing a catalogue can contain the following keys:
+
+ - `name`
+
+ This key gives the display name of the catalogue as shown to the user
+ in the "Tool > Application catalogues" dialog.  This key can be
+ localised by following the GKeyFile conventions.  If you omit this
+ key, the catalogue will have an empty name.
+
+ - `uri`
+
+ The URI part of the `deb` line that will be added to `sources.list`
+ for this catalogue.  This key is required for all catalogues except
+ those used with the "card_catalogues" key.
+
+ - `file_uri`
+
+ When using `file_uri` instead of `uri`, the URI part of the `deb`
+ line will use the "file://" method and the `file_uri` gives the
+ actual pathname, relative to the location of the .install file.  This
+ key is required for all catalogues that are used with the
+ "card_catalogues" key.
+
+ - `dist`
+
+ The distribution of the `deb` line that will be added to
+ `sources.list` for this catalogue.  If you omit it, it will default
+ to the distribution corresponding to the IT OS release on the device.
+
+ The fact that the distribution should be selected automatically is
+ remembered by the Application Manager.  For example, if you make a
+ backup that contains a catalogue with automatic distribution
+ selection and restore it on a different IT OS release, the
+ distribution for the new version will be used automatically.
+
+ - `components`
+
+ The components part of the `deb` line that will be added to
+ `sources.list` for this catalogue.  If you omit it, the components
+ part will be empty.
+
+ - `filter_dist`
+
+ This catalogue will be ignored when the distribution corresponding to
+ the IT OS release on the device doesn't match.
+
+When catalogues are compared, they are considered equal when their
+`uri`, `dist` and `components` fields are equal.
+
+### Adding catalogues.
+
+This interaction flow is controlled by the "catalogues" group.  This
+group has one mandatory key, "catalogues", and no optional ones.  The
+"catalogues" key is a list of strings that refer to the catalogue
+groups that describe the catalogues to be added.
+
+Catalogues are filtered according to their `filter_*` keys.  When all
+of the listed catalogues are filtered out, the .install file is
+declared to be incompatible with the current IT OS release.
+
+Each catalogue is considered in turn and the user is asked whether to
+add it or not.  When it should be added and a catalogue is already
+configured in the Application Manager that is equal to the one
+considered, the configured catalogue is removed first.  When the user
+declines the adding, the next catalogue is considered.
+
+After considering every catalogue, the user is asked whether to
+"Refresh the list of applications".
+
+Example:
+
+    [catalogues]
+    catalogues = extras; sdk
+
+    [extras]
+    name = maemo Extras catalogue
+    uri = http://repository.maemo.org/extras
+    components = free non-free
+
+    [sdk]
+    name = maemo SDK catalogue
+    uri = http://repository.maemo.org/
+    components = free non-free
+
+### Installing a package
+
+This interaction flow is controlled by the "install" group.  This
+group has one mandatory key, "package", and a optional one,
+"catalogues".
+
+The "package" key gives the name of the package to install.
+
+The "catalogues" key, when present, is just like the "catalogues" key
+for the "Adding catalogues" case.  The catalogues are handled a bit
+differently, tho:
+
+Each catalogue is considered in turn and when it there isn't already a
+catalogue configured that is equal to it, the user is informed that it
+needs to be added and is asked for confirmation.  Alternatively, when
+a catalogue is already present but disabled, the user is informed that
+it needs to be enabled and is asked for confirmation.  When the user
+confirms, the catalogue is added and processing continues.  When s/he
+declines, processing of the .install file stops and the changes to the
+configured catalogues that have been made for it are reverted.
+
+After the catalogues have been handled, the a "Refresh list of
+applications" operation is performed without asking.  Processing
+continues regardless of whether it fails or not.
+
+Then, the given package is offered to the user for installing, as if
+s/he had requested this from the "Browse installable applications"
+view.
+
+### Installing from a memory card
+
+This interaction flow is controlled by the "card_install" group.  It
+has two mandatory keys, "packages" and "card_catalogues", and a
+optional one, "permanent_catalogues".
+
+The "packages" key lists the names of packages that can be installed
+from the memory card, using the "card_catalogues".
+
+Installation of the packages happens in a temporary environment: in
+this environment, the normally configured catalogues are not
+available, only the catalogues listed by the "card_catalogues" key are
+configured.  All of these catalogues must use "file_uri" instead of
+"uri".
+
+The packages are installed in this temporary environment.  The user
+gets to select them from a list.  Only packages that are not already
+installed or are not uptodate are offered.  When the offered list
+would be empty, processing stops with an appropriate note.
+
+When the user cancels the confirmation dialog or confirms with an
+empty selection, processing stops.  Otherwise, each selected package
+is installed in turn, one after the other.  If one of the
+installations fails, an error message is displayed and processing
+stops.
+
+When all selected packages have been installed successfully, the
+"permanent_catalogues" will be offered to the user for addition as
+with the "Adding catalogues" case.
+
+### Compatibility with IT OS 2007.
+
+In addition to the format described above, the Hildon Application
+Manager also understands the old .install files from IT OS 2007.
+
+A file like this:
+
+    [install]
+    repo_name = NAME
+    repo_deb = DEB
+    repo_deb_3 = DEB_3
+    package = PACKAGE
+
+is interpreted as if it were
+
+    [install]
+    catalogues = repo; repo_3
+    package = PACKAGE
+    
+    [repo]
+    filter_dist = mistral
+    name = NAME
+    uri = URI
+    dist = DIST
+    components = COMPONENTS
+
+    [repo_3]
+    filter_dist = bora
+    name = NAME
+    uri = URI_3
+    dist = DIST_3
+    components = COMPONENTS_3
+
+where URI, DIST, and COMPONENTS are parsed out of DEB, as
+appropriate.
+
+If the "package" key is omitted in the "install" group, it is treated
+as a "catalogues" group.
