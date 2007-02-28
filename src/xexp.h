@@ -170,6 +170,7 @@
    TEXT XEXPS
 
    - xexp *xexp_text_new (const char *TAG, const char *TEXT)
+   - xexp *xexp_text_newn (const char *TAG, const char *TEXT, int len)
 
    Create a new free text xexp with the given TAG and TEXT.  TAG and
    TEXT are copied and need not remain valid after this call.  If TEXT
@@ -292,6 +293,7 @@ void xexp_del (xexp *x, xexp *y);
 /* Texts
  */
 xexp *xexp_text_new (const char *tag, const char *text);
+xexp *xexp_text_newn (const char *tag, const char *text, int len);
 int xexp_is_text (xexp *x);
 const char *xexp_text (xexp *x);
 int xexp_text_as_int (xexp *x);

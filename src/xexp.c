@@ -46,6 +46,9 @@ xexp_rest (xexp *x)
 void
 xexp_free (xexp *x)
 {
+  if (x == NULL)
+    return;
+
   g_return_if_fail (x->rest == NULL);
 
   xexp *c = x->first;
@@ -207,6 +210,19 @@ xexp_text_new (const char *tag, const char *text)
   x->tag = g_strdup (tag);
   if (*text)
     x->text = g_strdup (text);
+  return x;
+}
+
+xexp *
+xexp_text_newn (const char *tag, const char *text, int len)
+{
+  g_assert (tag);
+  g_assert (text);
+
+  xexp *x = g_new0 (xexp, 1);
+  x->tag = g_strdup (tag);
+  if (*text)
+    x->text = g_strndup (text, len);
   return x;
 }
 
