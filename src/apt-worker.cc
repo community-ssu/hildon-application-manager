@@ -2500,9 +2500,15 @@ cmd_set_catalogues ()
 		const char *uri = xexp_aref_text (x, "uri");
 		const char *dist = xexp_aref_text (x, "dist");
 		const char *comps = xexp_aref_text (x, "components");
-		if (!uri || !dist)
+
+		if (uri == NULL)
 		  continue;
-		fprintf (f, "deb %s %s %s\n", uri, dist, comps? comps : "");
+		if (dist == NULL)
+		  dist = DEFAULT_DIST;
+		if (comps == NULL)
+		  comps = "";
+
+		fprintf (f, "deb %s %s %s\n", uri, dist, comps);
 	      }
 	}
       if (f == NULL || ferror (f) || fclose (f) < 0)
