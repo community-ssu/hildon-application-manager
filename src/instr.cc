@@ -304,7 +304,7 @@ open_local_install_instructions (const char *filename)
   g_key_file_free (keys);
 }
 
-/* New style .ini file handling below.
+/* New style .install file handling below.
  */
 
 static xexp *
@@ -348,6 +348,8 @@ convert_locale_string (const char *xname,
     }
   xexp_reverse (value);
 
+  g_strfreev (keys);
+
   if (def && xexp_is_empty (value))
     {
       xexp_free (value);
@@ -369,16 +371,28 @@ static xexp *
 convert_catalogue (GKeyFile *keyfile, const char *group)
 {
   gchar *val;
+
+  if (!g_key_file_has_group (keyfile, group))
+    {
+      add_log ("Catalogue '%s' not found", group);
+      return NULL;
+    }
+
+  val = g_key_file_get_string (keyfile, group, "filter_dist", NULL);
+  bool applicable = val == NULL || !strcmp (val, DEFAULT_DIST);
+  g_free (val);
+
+  if (!applicable)
+    return NULL;
+
   xexp *cat = xexp_list_new ("catalogue");
 
-  xexp_aset (cat, convert_locale_string ("name", keyfile, group, "name"));
+  xexp *name = convert_locale_string ("name", keyfile, group, "name");
+  if (name)
+    xexp_aset (cat, name);
 
   val = g_key_file_get_string (keyfile, group, "uri", NULL);
   xexp_aset_text (cat, "uri", val);
-  g_free (val);
-
-  val = g_key_file_get_string (keyfile, group, "file_uri", NULL);
-  xexp_aset_text (cat, "file-uri", val);
   g_free (val);
 
   val = g_key_file_get_string (keyfile, group, "dist", NULL);
@@ -393,6 +407,119 @@ convert_catalogue (GKeyFile *keyfile, const char *group)
   return cat;
 }
 
+static xexp *
+convert_catalogues (GKeyFile *keyfile, const char *group, const char *key)
+{
+  gchar **catalogue_names;
+  gsize n_catalogue_names;
+
+  catalogue_names = g_key_file_get_string_list (keyfile, group, key,
+						&n_catalogue_names, NULL);
+  if (catalogue_names == NULL)
+    return NULL;
+
+  xexp *catalogues = xexp_list_new ("catalogues");
+  for (int i = 0; i < n_catalogue_names; i++)
+    {
+      char *name = g_strchug (catalogue_names[i]);
+      xexp *cat = convert_catalogue (keyfile, name);
+      if (cat)
+	xexp_cons (catalogues, cat);
+    }
+  xexp_reverse (catalogues);
+
+  g_strfreev (catalogue_names);
+
+  return catalogues;
+}
+
+static void
+add_catalogues_done (bool res, void *data)
+{
+  xexp *catalogues = (xexp *)data;
+
+  xexp_free (catalogues);
+}
+
+static void
+execute_add_catalogues (GKeyFile *keyfile, const char *entry)
+{
+  xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues");
+  g_key_file_free (keyfile);
+  
+  if (catalogues == NULL)
+    {
+      annoy_user (_("ai_ni_operation_failed"));
+      return;
+    }
+
+  if (xexp_is_empty (catalogues))
+    {
+      /* All catalogues were filtered out (or the list was empty
+	 to begin with, which we treat the same).  That means that
+	 this installation script was not for us.
+      */
+      annoy_user (_("ai_ni_error_install_incompatible"));
+      xexp_free (catalogues);
+      return;
+    }
+    
+  add_catalogues (catalogues, true, false, add_catalogues_done, catalogues);
+}
+
+struct install_package_closure {
+  xexp *catalogues;
+  gchar *package;
+};
+
+static void
+install_package_cont (bool res, void *data)
+{
+  install_package_closure *c = (install_package_closure *)data;
+
+  fprintf (stderr, "CONT %d\n", res);
+
+  if (res)
+    install_named_package (APTSTATE_DEFAULT, c->package, NULL, NULL);
+
+  if (c->catalogues)
+    xexp_free (c->catalogues);
+  g_free (c->package);
+  delete c;
+}
+
+static void
+execute_install_package (GKeyFile *keyfile, const char *entry)
+{
+  gchar *package = g_key_file_get_string (keyfile, entry, "package", NULL);
+  xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues");
+
+  g_key_file_free (keyfile);
+  
+  install_package_closure *c = new install_package_closure;
+  c->catalogues = catalogues;
+  c->package = package;
+
+  if (catalogues)
+    {
+      if (xexp_is_empty (catalogues))
+	{
+	  /* All catalogues were filtered out (or the list was empty
+	     to begin with, which we treat the same).  That means that
+	     this installation script was not for us.
+	  */
+	  annoy_user (_("ai_ni_error_install_incompatible"));
+	  xexp_free (catalogues);
+	  return;
+	}
+
+      add_catalogues (catalogues, true, true,
+		      install_package_cont, c);
+    }
+  else
+    install_package_cont (true, c);
+}
+
 void
 xxx_open_local_install_instructions (const char *filename)
 {
@@ -401,23 +528,27 @@ xxx_open_local_install_instructions (const char *filename)
 
   install_type = get_install_type_from_filename (filename);
 
-  GKeyFile *keys = g_key_file_new ();
-  if (!g_key_file_load_from_file (keys, filename,
+  GKeyFile *keyfile = g_key_file_new ();
+  if (!g_key_file_load_from_file (keyfile, filename,
 				  GKeyFileFlags(G_KEY_FILE_KEEP_TRANSLATIONS),
 				  &error))
     {
       annoy_user_with_gerror (filename, error);
-      g_key_file_free (keys);
+      g_key_file_free (keyfile);
       cleanup_temp_file ();
       return;
     }
 
   cleanup_temp_file ();
 
-  xexp *catalogue = convert_catalogue (keys, "catalogue");
-
-  xexp_write (stderr, catalogue);
-  xexp_free (catalogue);
-
-  g_key_file_free (keys);
+  if (g_key_file_has_group (keyfile, "install"))
+    execute_install_package (keyfile, "install");
+  else if (g_key_file_has_group (keyfile, "catalogues"))
+    execute_add_catalogues (keyfile, "catalogues");
+  else
+    {
+      g_key_file_free (keyfile);
+      add_log ("Unrecognized .install file variant");
+      annoy_user (_("ai_ni_operation_failed"));
+    }
 }
