@@ -1,3 +1,20 @@
+2007-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Refined the "Add catalogues" interaction flow.
+	
+	* src/repo.cc (add_catalogues_cont_3): Cancel whole operation only
+	when this is an 'udate'.
+	(add_catalogues_cont_2): Set the catalogues and refresh when they
+	have been changed or this is an 'update'.
+
+	Initial support for new-style .install files.
+	
+	* src/instr.h, src/instr.cc (xxx_open_local_install_instructions,
+	convert_locale_string, convert_catalogue): New.
+	* src/main.cc (xxx_open_file_when_idle): New.
+	(main): Setup xxx_open_file_when_idle to be called when there is a
+	second argument on the command line.
+
 2007-02-26  Marius Vollmer  <mvo@zagadka.de>
 
 	* src/repo.h, src/repo.cc (add_catalogues): Renamed 'for_install'
