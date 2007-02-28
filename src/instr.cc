@@ -43,7 +43,7 @@
 static void
 annoy_user_with_gerror (const char *filename, GError *error)
 {
-  add_log ("%s: %s", filename, error->message);
+  add_log ("%s: %s\n", filename, error->message);
   g_error_free (error);
   annoy_user (_("ai_ni_operation_failed"));
 }
@@ -368,13 +368,14 @@ convert_locale_string (const char *xname,
 }
 
 static xexp *
-convert_catalogue (GKeyFile *keyfile, const char *group)
+convert_catalogue (GKeyFile *keyfile, const char *group,
+		   const char *file_uri_base)
 {
   gchar *val;
 
   if (!g_key_file_has_group (keyfile, group))
     {
-      add_log ("Catalogue '%s' not found", group);
+      add_log ("Catalogue '%s' not found\n", group);
       return NULL;
     }
 
@@ -391,9 +392,33 @@ convert_catalogue (GKeyFile *keyfile, const char *group)
   if (name)
     xexp_aset (cat, name);
 
-  val = g_key_file_get_string (keyfile, group, "uri", NULL);
-  xexp_aset_text (cat, "uri", val);
-  g_free (val);
+  if (file_uri_base == NULL)
+    {
+      val = g_key_file_get_string (keyfile, group, "uri", NULL);
+      if (val == NULL)
+	{
+	  add_log ("Catalogue must have 'uri' key: %s\n", group);
+	  xexp_free (cat);
+	  return NULL;
+	}
+      xexp_aset_text (cat, "uri", val);
+      g_free (val);
+    }
+  else
+    {
+      val = g_key_file_get_string (keyfile, group, "file_uri", NULL);
+      if (val == NULL)
+	{
+	  add_log ("Catalogue must have 'file_uri' key: %s\n", group);
+	  xexp_free (cat);
+	  return NULL;
+	}
+      
+      char *full_uri = g_strdup_printf ("file://%s/%s", file_uri_base, val);
+      xexp_aset_text (cat, "uri", full_uri);
+      g_free (full_uri);
+      g_free (val);
+    }
 
   val = g_key_file_get_string (keyfile, group, "dist", NULL);
   xexp_aset_text (cat, "dist", val);
@@ -408,7 +433,8 @@ convert_catalogue (GKeyFile *keyfile, const char *group)
 }
 
 static xexp *
-convert_catalogues (GKeyFile *keyfile, const char *group, const char *key)
+convert_catalogues (GKeyFile *keyfile, const char *group, const char *key,
+		    const char *file_uri_base)
 {
   gchar **catalogue_names;
   gsize n_catalogue_names;
@@ -421,8 +447,9 @@ convert_catalogues (GKeyFile *keyfile, const char *group, const char *key)
   xexp *catalogues = xexp_list_new ("catalogues");
   for (int i = 0; i < n_catalogue_names; i++)
     {
-      char *name = g_strchug (catalogue_names[i]);
-      xexp *cat = convert_catalogue (keyfile, name);
+      g_strchug (catalogue_names[i]);
+      xexp *cat = convert_catalogue (keyfile, catalogue_names[i],
+				     file_uri_base);
       if (cat)
 	xexp_cons (catalogues, cat);
     }
@@ -431,6 +458,82 @@ convert_catalogues (GKeyFile *keyfile, const char *group, const char *key)
   g_strfreev (catalogue_names);
 
   return catalogues;
+}
+
+static xexp *
+convert_compatibility_catalogue (const char *deb_line, const char *dist,
+				 const char *name)
+{
+  char *start, *end;
+
+  xexp *x = xexp_list_new ("catalogue");
+
+  start = (char *)deb_line;
+  parse_quoted_word (&start, &end, false);
+  if (end - start != 3 || strncmp (start, "deb", 3))
+    {
+    error:
+      add_log ("Unrecognized repository format: '%s'\n", deb_line);
+      xexp_free (x);
+      return NULL;
+    }
+
+  start = end;
+  parse_quoted_word (&start, &end, false);
+  if (start)
+    xexp_cons (x, xexp_text_newn ("uri", start, end - start));
+  else
+    goto error;
+
+  start = end;
+  parse_quoted_word (&start, &end, false);
+  if (start)
+    xexp_cons (x, xexp_text_newn ("dist", start, end - start));
+  else
+    goto error;
+
+  start = end;
+  parse_quoted_word (&start, &end, false);
+  if (start)
+    xexp_cons (x, xexp_text_new ("components", start));
+  else
+    goto error;
+
+  if (name)
+    xexp_cons (x, xexp_text_new ("name", name));
+
+  if (dist)
+    xexp_cons (x, xexp_text_new ("filter_dist", dist));
+
+  xexp_reverse (x);
+  return x;
+}
+
+static xexp *
+convert_compatibility_catalogues (GKeyFile *keyfile, const char *group)
+{
+  gchar *repo_name = g_key_file_get_string (keyfile, group, "repo_name", NULL);
+  gchar *repo_deb = g_key_file_get_string (keyfile, group, "repo_deb", NULL);
+  gchar *repo_deb_3 = g_key_file_get_string (keyfile, group, "repo_deb_3",
+					     NULL);
+  xexp *x = NULL;
+
+  if (repo_deb || repo_deb_3)
+    {
+      x = xexp_list_new ("catalogues");
+      if (repo_deb_3)
+	xexp_cons (x, convert_compatibility_catalogue (repo_deb_3, "bora",
+						       repo_name));
+      if (repo_deb)
+	xexp_cons (x, convert_compatibility_catalogue (repo_deb, "mistral",
+						       repo_name));
+    }
+
+  g_free (repo_name);
+  g_free (repo_deb);
+  g_free (repo_deb_3);
+
+  return x;
 }
 
 static void
@@ -444,7 +547,7 @@ add_catalogues_done (bool res, void *data)
 static void
 execute_add_catalogues (GKeyFile *keyfile, const char *entry)
 {
-  xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues");
+  xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues", NULL);
   g_key_file_free (keyfile);
   
   if (catalogues == NULL)
@@ -492,10 +595,28 @@ static void
 execute_install_package (GKeyFile *keyfile, const char *entry)
 {
   gchar *package = g_key_file_get_string (keyfile, entry, "package", NULL);
-  xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues");
+  xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues", NULL);
+  xexp *comp_catalogues = convert_compatibility_catalogues (keyfile, entry);
 
   g_key_file_free (keyfile);
-  
+
+  if (comp_catalogues)
+    {
+      /* Handle the old form of .install files and ignore any
+	 new-style catalogues.
+      */
+
+      xexp_free (catalogues);
+
+      if (package == NULL)
+	{
+	  add_catalogues (comp_catalogues, true, false,
+			  add_catalogues_done, comp_catalogues);
+	}
+      else
+	catalogues = comp_catalogues;
+    }
+
   install_package_closure *c = new install_package_closure;
   c->catalogues = catalogues;
   c->package = package;
@@ -518,6 +639,72 @@ execute_install_package (GKeyFile *keyfile, const char *entry)
     }
   else
     install_package_cont (true, c);
+}
+
+struct card_install_closure {
+  xexp *card_catalogues;
+  xexp *perm_catalogues;
+  gchar **packages;
+};
+
+void
+execute_card_install_cont (bool res, void *data)
+{
+  card_install_closure *c = (card_install_closure *)data;
+
+  if (res)
+    install_named_packages (APTSTATE_TEMP, (const char **)c->packages,
+			    INSTALL_TYPE_MEMORY_CARD);
+
+  xexp_free (c->card_catalogues);
+  xexp_free (c->perm_catalogues);
+  g_strfreev (c->packages);
+  delete c;
+}
+
+void
+execute_card_install (GKeyFile *keyfile, const char *entry,
+		      const char *filename)
+{
+  if (filename[0] != '/')
+    {
+      fprintf (stderr, "card-install filename must be absolute\n");
+      return;
+    }
+
+  gchar *dirname = g_path_get_dirname (filename);
+  xexp *card_catalogues = convert_catalogues (keyfile, entry,
+					      "card_catalogues", dirname);
+  xexp *perm_catalogues = convert_catalogues (keyfile, entry,
+					      "permanent_catalogues", NULL);
+  gchar **packages = g_key_file_get_string_list (keyfile, entry, "packages",
+						 NULL, NULL);
+  g_free (dirname);
+
+  if (card_catalogues == NULL
+      || xexp_is_empty (card_catalogues))
+    {
+      add_log ("Must specify non-empty 'card_catalogues' key\n");
+    error:
+      xexp_free (card_catalogues);
+      xexp_free (perm_catalogues);
+      g_strfreev (packages);
+      annoy_user (_("ai_ni_operation_failed"));
+      return;
+    }
+
+  if (packages == NULL || packages[0] == NULL)
+    {
+      add_log ("Must specify non-empty 'packages' key\n");
+      goto error;
+    }
+
+  card_install_closure *c = new card_install_closure;
+  c->card_catalogues = card_catalogues;
+  c->perm_catalogues = perm_catalogues;
+  c->packages = packages;
+
+  set_temp_catalogues (card_catalogues, execute_card_install_cont, c);
 }
 
 void
@@ -545,10 +732,12 @@ xxx_open_local_install_instructions (const char *filename)
     execute_install_package (keyfile, "install");
   else if (g_key_file_has_group (keyfile, "catalogues"))
     execute_add_catalogues (keyfile, "catalogues");
+  else if (g_key_file_has_group (keyfile, "card_install"))
+    execute_card_install (keyfile, "card_install", filename);
   else
     {
       g_key_file_free (keyfile);
-      add_log ("Unrecognized .install file variant");
+      add_log ("Unrecognized .install file variant\n");
       annoy_user (_("ai_ni_operation_failed"));
     }
 }
