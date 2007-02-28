@@ -192,16 +192,18 @@ class AptWorkerState
 {
 public:
   AptWorkerState (bool cache_generate, string dir_cache, 
-		  string dir_state, string source_list);
+		  string dir_state, string source_list, string _source_parts);
   AptWorkerState ();
   static void SetDefault ();
   static void SetTemp ();
+  static bool IsTemp ();
   void SetAsCurrent ();
   static AptWorkerState * GetCurrent ();
   static void Initialize ();
   string dir_cache;
   string dir_state;
   string source_list;
+  string source_parts;
   pkgCacheFile *cache;
   unsigned int package_count;
   bool cache_generate;
@@ -237,12 +239,13 @@ AptWorkerState *AptWorkerState::temp_state = 0;
  */
 bool AptWorkerState::global_initialized = false;
 
-AptWorkerState::AptWorkerState (bool _cache_generate, string _dir_cache, string _dir_state, string _source_list)
+AptWorkerState::AptWorkerState (bool _cache_generate, string _dir_cache, string _dir_state, string _source_list, string _source_parts)
 {
   cache_generate = _cache_generate;
   dir_cache = _dir_cache;
   dir_state = _dir_state;
   source_list = _source_list;
+  source_parts = _source_parts;
   InitializeValues ();
 }
 
@@ -256,6 +259,7 @@ AptWorkerState::AptWorkerState ()
   dir_cache = _config->Find ("Dir::Cache");
   dir_state = _config->Find ("Dir::State");
   source_list = _config->Find ("Dir::Etc::SourceList");
+  source_parts = _config->Find ("Dir::Etc::SourceParts");
   InitializeValues ();
 }
 
@@ -277,6 +281,12 @@ void
 AptWorkerState::SetTemp (void)
 {
   temp_state->SetAsCurrent ();
+}
+
+bool
+AptWorkerState::IsTemp (void)
+{
+  return current_state == temp_state;
 }
 
 AptWorkerState *
@@ -308,7 +318,7 @@ AptWorkerState::Initialize (void)
     }
   
   default_state = new AptWorkerState ();
-  temp_state = new AptWorkerState (false, TEMP_APT_CACHE, TEMP_APT_STATE, TEMP_APT_SOURCE_LIST);
+  temp_state = new AptWorkerState (false, TEMP_APT_CACHE, TEMP_APT_STATE, TEMP_APT_SOURCE_LIST, "");
   
   current_state = default_state;
 }
@@ -321,6 +331,7 @@ void AptWorkerState::SetAsCurrent ()
       _config->Set ("Dir::Cache", dir_cache);
       _config->Set ("Dir::State", dir_state);
       _config->Set ("Dir::Etc::SourceList", source_list);
+      _config->Set ("Dir::Etc::SourceParts", source_parts);
       current_state = this;
     }
 }
@@ -634,6 +645,29 @@ ensure_state (int state)
   AptWorkerState::GetCurrent ()->init_cache_after_request = false;
 }
 
+#ifdef DEBUG
+static char *cmd_names[] = {
+  "NOOP",
+  "STATUS",
+  "GET_PACKAGE_LIST",
+  "GET_PACKAGE_INFO",
+  "GET_PACKAGE_DETAILS",
+  "UPDATE_PACKAGE_CACHE",
+  "GET_SOURCES_LIST",
+  "SET_SOURCES_LIST",
+  "GET_CATALOGUES",
+  "SET_CATALOGUES",
+  "INSTALL_CHECK",
+  "INSTALL_PACKAGE",
+  "GET_PACKAGES_TO_REMOVE",
+  "REMOVE_PACKAGE",
+  "GET_FILE_DETAILS",
+  "INSTALL_FILE",
+  "CLEAN",
+  "SAVE_APPLICATIONS_INSTALL_FILE"
+};
+#endif
+
 void
 handle_request ()
 {
@@ -643,7 +677,8 @@ handle_request ()
   AptWorkerState * state = 0;
 
   must_read (&req, sizeof (req));
-  DBG ("got req %d/%d/%d", req.cmd, req.seq, req.len);
+  DBG ("got req %s/%d/%d state %d",
+       cmd_names[req.cmd], req.seq, req.len, req.state);
 
   reqbuf = alloc_buf (req.len, stack_reqbuf, FIXED_REQUEST_BUF_SIZE);
   must_read (reqbuf, req.len);
@@ -2479,43 +2514,58 @@ cmd_get_catalogues ()
 
 /* APTCMD_SET_CATALOGUES
  */
+
+static bool
+write_sources_list (const char *filename, xexp *catalogues)
+{
+  FILE *f = fopen (filename, "w");
+  if (f)
+    {
+      for (xexp *x = xexp_first (catalogues); x; x = xexp_rest (x))
+	if (xexp_is (x, "catalogue") 
+	    && !xexp_aref_bool (x, "disabled"))
+	  {
+	    const char *uri = xexp_aref_text (x, "uri");
+	    const char *dist = xexp_aref_text (x, "dist");
+	    const char *comps = xexp_aref_text (x, "components");
+	    
+	    if (uri == NULL)
+	      continue;
+	    if (dist == NULL)
+	      dist = DEFAULT_DIST;
+	    if (comps == NULL)
+	      comps = "";
+	    
+	    fprintf (f, "deb %s %s %s\n", uri, dist, comps);
+	  }
+    }
+  
+  if (f == NULL || ferror (f) || fclose (f) < 0)
+    {
+      fprintf (stderr, "%s: %s\n", filename, strerror (errno));
+      return false;
+    }
+
+  return true;
+}
+
 void
 cmd_set_catalogues ()
 {
+  int success;
+
   xexp *catalogues = request.decode_xexp ();
   xexp_adel (catalogues, "source");
-  int success = 
-    xexp_write_file (CATALOGUE_CONF, catalogues);
 
-  if (success)
+  if (AptWorkerState::IsTemp ())
     {
-      const char *name = CATALOGUE_APT_SOURCE;
-      FILE *f = fopen (name, "w");
-      if (f)
-	{
-	  for (xexp *x = xexp_first (catalogues); x; x = xexp_rest (x))
-	    if (xexp_is (x, "catalogue") 
-		&& !xexp_aref_bool (x, "disabled"))
-	      {
-		const char *uri = xexp_aref_text (x, "uri");
-		const char *dist = xexp_aref_text (x, "dist");
-		const char *comps = xexp_aref_text (x, "components");
-
-		if (uri == NULL)
-		  continue;
-		if (dist == NULL)
-		  dist = DEFAULT_DIST;
-		if (comps == NULL)
-		  comps = "";
-
-		fprintf (f, "deb %s %s %s\n", uri, dist, comps);
-	      }
-	}
-      if (f == NULL || ferror (f) || fclose (f) < 0)
-	{
-	  fprintf (stderr, "%s: %s\n", name, strerror (errno));
-	  success = false;
-	}
+      success = write_sources_list (TEMP_APT_SOURCE_LIST, catalogues);
+    }
+  else
+    {
+      success =
+	(xexp_write_file (CATALOGUE_CONF, catalogues)
+	 && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
     }
 
   xexp_free (catalogues);
