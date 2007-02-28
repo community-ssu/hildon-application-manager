@@ -984,7 +984,7 @@ call_with_package_list_info_cont (package_info *pi, void *data, bool unused2)
 {
   cwpl_closure *closure = (cwpl_closure *) data;
 
-  if (!pi->have_info)
+  if (pi && !pi->have_info)
     {
       pi->unref ();
       return;
@@ -2595,6 +2595,8 @@ install_named_packages (int state, const char **packages, int install_type)
       GList *search_list = NULL;
       GList *node = NULL;
 
+      g_strchug (*current_package);
+
       find_package_in_lists (state, &search_list, *current_package);
 
       if (search_list != NULL)
@@ -2615,6 +2617,9 @@ install_named_packages (int state, const char **packages, int install_type)
 	      pi->unref ();
 	    }
 	}
+      else
+	add_log ("Package %s not found\n", *current_package);
+
       g_list_free (search_list);
     }
   
