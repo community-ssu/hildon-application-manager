@@ -1,5 +1,41 @@
 2007-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker.cc (cmd_set_catalogues): Provide default value
+	for dist.
+
+	* src/instr.cc (convert_catalogue): Handle non-existent groups and
+	non-existent names.  Do not convert file_uri keys, they will be
+	handled differently.
+	(convert_catalogues, execute_add_catalogues,
+	execute_install_package): New.
+	(xxx_open_local_install_instructions): Dispatch to one of the
+	execute_* functions.
+	
+	* src/repo.h, src/repo.cc: Documented catalogue xexps.  Updated
+	code to comply with new format.
+	(catalogue_name): Use "default" language code instead of first
+	element.
+	(catalogue_dist, catalogue_components, set_catalogue_dist): New.
+	Use in appropriate places.
+	(cats_are_equal): New.
+	(find_catalogue): Use it, don't look at tags.
+	(catalogue_is_newer): Removed.
+	(add_catalogues): Do not filter here, we expect the list to be
+	filtered list already now.
+
+	* src/Makefile.am: Don't set CXXFLAGS, leave it to the user.
+
+	* configure.ac (DEFAULT_DIST): New define, hardcoded for now.
+	
+	* src/main.cc (refresh_package_cache_reply): Show error message
+	after list of apckages has been refreshed.  Call our continuation
+	after error message has been acknowledged.  This change has been
+	made to ensure that our continuation is only called when both the
+	refreshing and the interaction with the user has been completed so
+	that the continuation can then interact itself.
+	(refresh_package_cache_cont2, refresh_package_cache_cont3):
+	Updated for new control flow.
+	
 	Refined the "Add catalogues" interaction flow.
 	
 	* src/repo.cc (add_catalogues_cont_3): Cancel whole operation only
