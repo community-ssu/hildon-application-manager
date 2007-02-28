@@ -47,6 +47,35 @@ bool parse_quoted_word (char **start, char **end, bool term);
 /* XXX - emerging modernized catalogue handling below.  Stay tuned...
  */
 
+/* A 'catalogue' is an association xexp with the following elements:
+
+      - name
+
+      The display name for this catalogue.  This can be either a text,
+      in which case it gives the display name directly, or it can be
+      an association list tagged with language codes.  If it is such a
+      list, the "default" language code should be used as a fallback
+      when the current language is not found.
+
+      - uri, dist, components
+
+      The respective parts of the deb line inserted into sources.list.
+      When 'dist' is omitted, it defaults to the distribution of the
+      IT OS that we are running on.  When 'components' is omitted, it
+      defaults to the empty string.  'uri' is mandatory.
+
+      - disabled
+
+      When present, marks this catalogue as disabled.
+
+      - essential
+
+      When present, marks this catalogue as essential.
+
+  Note that 'file_uri' is not valid for a catalogue xexp; you have to
+  resolve this when reading the .install file.
+*/
+
 void get_catalogues (void (*cont) (xexp *catalogues, void *data),
 		     void *data);
 

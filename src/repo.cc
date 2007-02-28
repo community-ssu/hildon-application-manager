@@ -1420,7 +1420,7 @@ set_catalogues (xexp *catalogues, bool refresh, bool ask,
 const char *
 catalogue_name (xexp *x)
 {
-  const char *name = "(unamed)";
+  const char *name = "";
   xexp *n = xexp_aref (x, "name");
   if (n == NULL)
     ;
@@ -1431,7 +1431,7 @@ catalogue_name (xexp *x)
       char *current_locale = setlocale (LC_MESSAGES, "");
       xexp *t = xexp_aref (n, current_locale);
       if (t == NULL)
-	t = xexp_first (n);
+	t = xexp_aref (n, "default");
       if (t && xexp_is_text (t))
 	name = xexp_text (t);
     }
@@ -1449,6 +1449,33 @@ set_catalogue_name (xexp *x, const char *name)
       char *current_locale = setlocale (LC_MESSAGES, "");
       xexp_aset_text (n, current_locale, name);
     }
+}
+
+const char *
+catalogue_dist (xexp *x)
+{
+  xexp *d = xexp_aref (x, "dist");
+  if (d)
+    return xexp_text (d);
+  else
+    return DEFAULT_DIST;
+}
+void
+set_catalogue_dist (xexp *x, const char *dist)
+{
+  const char *old_dist = catalogue_dist (x);
+  if (strcmp (old_dist, dist))
+    xexp_aset_text (x, "dist", dist);
+}
+
+const char *
+catalogue_components (xexp *x)
+{
+  xexp *c = xexp_aref (x, "components");
+  if (c)
+    return xexp_text (c);
+  else
+    return "";
 }
 
 struct catcache {
@@ -1529,7 +1556,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       set_catalogue_name (c->catalogue, name);
       xexp_aset_bool (c->catalogue, "disabled", disabled);
       xexp_aset_text (c->catalogue, "components", comps);
-      xexp_aset_text (c->catalogue, "dist", dist);
+      set_catalogue_dist (c->catalogue, dist);
       xexp_aset_text (c->catalogue, "uri", uri);
       set_cat_list (c->cat_dialog);
       c->cat_dialog->dirty = true;
@@ -1623,12 +1650,12 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 
   c->dist_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_distribution"),
-			     xexp_aref_text (catalogue, "dist"),
+			     catalogue_dist (catalogue),
 			     NULL, false, c->readonly, true);
 
   c->components_entry = add_entry (vbox, group,
 				   _("ai_fi_new_repository_component"),
-				   xexp_aref_text (catalogue, "components"),
+				   catalogue_components (catalogue),
 				   NULL, false, c->readonly, false);
 
   c->disabled_button = gtk_check_button_new ();
@@ -2029,7 +2056,6 @@ struct add_catalogues_closure {
   bool ask, update;
 
   bool catalogues_changed;
-  bool found_applicable_catalogue;
 
   void (*cont) (bool res, void *data);
   void *data;
@@ -2042,34 +2068,32 @@ static void add_catalogues_cont_3_enable (bool res, void *data);
 static void add_catalogues_cont_3 (bool res, bool enable, void *data);
 static void add_catalogues_cont_4 (bool res, void *data);
 
+static bool
+cats_are_equal (xexp *cat1, xexp *cat2)
+{
+  fprintf (stderr, "EQUAL?\n");
+  xexp_write (stderr, cat1);
+  xexp_write (stderr, cat2);
+  bool res = (!strcmp (xexp_aref_text (cat1, "uri"),
+		       xexp_aref_text (cat2, "uri"))
+	      && !strcmp (catalogue_dist (cat1),
+			  catalogue_dist (cat2))
+	      && !strcmp (catalogue_components (cat1),
+			  catalogue_components (cat2)));
+  fprintf (stderr, "RES %d\n", res);
+  return res;
+}
+
 static xexp *
 find_catalogue (xexp *catalogues, xexp *cat)
 {
-  const char *tag = xexp_aref_text (cat, "tag");
-
-  if (tag == NULL)
-    return NULL;
-
   for (xexp *c = xexp_first (catalogues); c; c = xexp_rest (c))
     {
-      if (xexp_is_list (c))
-	{
-	  const char *c_tag = xexp_aref_text (c, "tag");
-	  if (c_tag && strcmp (c_tag, tag) == 0)
-	    return c;
-	}
+      if (xexp_is (c, "catalogue") && cats_are_equal (c, cat))
+	return c;
     }
 
   return NULL;
-}
-
-static bool
-catalogue_is_newer (xexp *cat1, xexp *cat2)
-{
-  int version1 = xexp_aref_int (cat1, "version", 0);
-  int version2 = xexp_aref_int (cat2, "version", 0);
-
-  return version1 > version2;
 }
 
 static void
@@ -2158,43 +2182,30 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 {
   if (c->rest == NULL)
     {
-      if (!c->found_applicable_catalogue)
-	{
-	  /* All catalogues were filtered out (or the list was empty
-	     to begin with, which we treat the same).  That means that
-	     this installation script was not for us.
-	  */
-	  annoy_user (_("ai_ni_error_install_incompatible"));
-	  c->cont (false, c->data);
-	  delete c;
-	}
+      /* We want to refresh the cache every time for an 'update'
+	 operation since we really want it to be uptodate now even
+	 if we didn't make any changes to the catalogue
+	 configuration.  We even do it without asking since it
+	 doesn't make sense not to do it and the user can cancel
+	 the installation script later.
+      */
+      if (c->catalogues_changed || c->update)
+	set_catalogues (c->catalogues, true, !c->update,
+			add_catalogues_cont_4, c);
       else
 	{
-	  /* We want to refresh the cache every time for an 'update'
-	     operation since we really want it to be uptodate now even
-	     if we didn't make any changes to the catalogue
-	     configuration.  We even do it without asking since it
-	     doesn't make sense not to do it and the user can cancel
-	     the installation script later.
-	  */
-	  if (c->catalogues_changed || c->update)
-	    set_catalogues (c->catalogues, true, !c->update,
-			  add_catalogues_cont_4, c);
+	  c->cont (true, c->data);
+	  xexp_free (c->catalogues);
+	  delete c;
 	}
     }
   else
     {
       void (*cont) (bool res, void *data);
 
-      /* XXX - do filtering.  For now we just accept all catalogues.
-       */
-      c->found_applicable_catalogue = true;
-
       c->cur = find_catalogue (c->catalogues, c->rest);
 
-      if (!c->update
-	  || c->cur == NULL
-	  || catalogue_is_newer (c->rest, c->cur))
+      if (!c->update || c->cur == NULL)
 	{
 	  // New version should be added
 	  cont = add_catalogues_cont_3_add;
@@ -2276,7 +2287,6 @@ add_catalogues (xexp *catalogues,
   c->ask = ask;
   c->update = update;
   c->catalogues_changed = false;
-  c->found_applicable_catalogue = false;
   c->cont = cont;
   c->data = data;
 
