@@ -1364,6 +1364,7 @@ get_catalogues (void (*cont) (xexp *catalogues, void *data),
 }
 
 struct set_catalogues_closure {
+  int state;
   bool refresh;
   bool ask;
   void (*cont) (bool res, void *data);
@@ -1390,7 +1391,7 @@ set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (c->refresh)
     {
-      refresh_package_cache_with_cont (APTSTATE_DEFAULT, c->ask,
+      refresh_package_cache_with_cont (c->state, c->ask,
 				       c->cont, c->data);
       delete c;
     }
@@ -1401,20 +1402,41 @@ set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
     }
 }
 
+static void
+set_catalogues_1 (int state,
+		  xexp *catalogues, bool refresh, bool ask,
+		  void (*cont) (bool res, void *data),
+		  void *data)
+{
+  set_catalogues_closure *c = new set_catalogues_closure;
+  c->state = state;
+  c->ask = ask;
+  c->refresh = refresh;
+  c->cont = cont;
+  c->data = data;
+
+  apt_worker_set_catalogues (state, catalogues,
+			     set_catalogues_reply, c);
+}
+
 void
 set_catalogues (xexp *catalogues, bool refresh, bool ask,
 		void (*cont) (bool res, void *data),
 		void *data)
 {
-  set_catalogues_closure *c = new set_catalogues_closure;
-  c->ask =ask;
-  c->refresh = refresh;
-  c->cont = cont;
-  c->data = data;
+  set_catalogues_1 (APTSTATE_DEFAULT, catalogues,
+		    refresh, ask,
+		    cont, data);
+}
 
-  xexp_write (stderr, catalogues);
-  apt_worker_set_catalogues (APTSTATE_DEFAULT, catalogues,
-			     set_catalogues_reply, c);
+void
+set_temp_catalogues (xexp *catalogues,
+		     void (*cont) (bool res, void *data),
+		     void *data)
+{
+  set_catalogues_1 (APTSTATE_TEMP, catalogues,
+		    true, false,
+		    cont, data);
 }
 
 const char *
