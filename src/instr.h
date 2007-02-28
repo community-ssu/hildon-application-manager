@@ -31,4 +31,6 @@
 */
 void open_local_install_instructions (const char *filename);
 
+void xxx_open_local_install_instructions (const char *filename);
+
 #endif /* !INSTR_H */

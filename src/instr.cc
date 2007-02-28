@@ -31,6 +31,7 @@
 #include "util.h"
 #include "log.h"
 #include "repo.h"
+#include "xexp.h"
 
 #define _(x) gettext (x)
 
@@ -174,16 +175,6 @@ open_local_install_instructions (const char *filename)
   GSList *cur_loc = NULL;
   int install_type = INSTALL_TYPE_STANDARD;
 
-  xexp *x = xexp_read_file (filename);
-  if (x)
-    {
-      if (xexp_is (x, "catalogues"))
-	add_catalogues (x, true, false, xxx_instr_cont, x);
-      else
-	xexp_free (x);
-      return;
-    }
-
   install_type = get_install_type_from_filename (filename);
 
   GKeyFile *keys = g_key_file_new ();
@@ -313,3 +304,120 @@ open_local_install_instructions (const char *filename)
   g_key_file_free (keys);
 }
 
+/* New style .ini file handling below.
+ */
+
+static xexp *
+convert_locale_string (const char *xname,
+		       GKeyFile *keyfile,
+		       const char *group, const char *name)
+{
+  gsize name_len = strlen (name);
+  gchar *def = NULL;
+  xexp *value = xexp_list_new (xname);
+
+  gsize n_keys;
+  gchar **keys;
+
+  keys = g_key_file_get_keys (keyfile, group, &n_keys, NULL);
+  if (keys == NULL)
+    {
+      xexp_free (value);
+      return NULL;
+    }
+
+  for (gsize i = 0; i < n_keys; i++)
+    {
+      if (g_str_has_prefix (keys[i], name))
+	{
+	  if (keys[i][name_len] == '[')
+	    {
+	      gchar *locale = g_strdup (keys[i]+name_len+1);
+	      gchar *locale_end = strchr (locale, ']');
+	      if (locale_end)
+		*locale_end = '\0';
+	      gchar *val = g_key_file_get_locale_string (keyfile, group,
+							 name, locale, NULL);
+	      xexp_cons (value, xexp_text_new (locale, val));
+	      g_free (locale);
+	      g_free (val);
+	    }
+	  else if (def == NULL)
+	    def = g_key_file_get_string (keyfile, group, name, NULL);
+	}
+    }
+  xexp_reverse (value);
+
+  if (def && xexp_is_empty (value))
+    {
+      xexp_free (value);
+      value = xexp_text_new (xname, def);
+      g_free (def);
+      return value;
+    }
+  
+  if (def)
+    {
+      xexp_cons (value, xexp_text_new ("default", def));
+      g_free (def);
+    }
+
+  return value;
+}
+
+static xexp *
+convert_catalogue (GKeyFile *keyfile, const char *group)
+{
+  gchar *val;
+  xexp *cat = xexp_list_new ("catalogue");
+
+  xexp_aset (cat, convert_locale_string ("name", keyfile, group, "name"));
+
+  val = g_key_file_get_string (keyfile, group, "uri", NULL);
+  xexp_aset_text (cat, "uri", val);
+  g_free (val);
+
+  val = g_key_file_get_string (keyfile, group, "file_uri", NULL);
+  xexp_aset_text (cat, "file-uri", val);
+  g_free (val);
+
+  val = g_key_file_get_string (keyfile, group, "dist", NULL);
+  xexp_aset_text (cat, "dist", val);
+  g_free (val);
+
+  val = g_key_file_get_string (keyfile, group, "components", NULL);
+  xexp_aset_text (cat, "components", val);
+  g_free (val);
+
+  xexp_reverse (cat);
+  return cat;
+}
+
+void
+xxx_open_local_install_instructions (const char *filename)
+{
+  GError *error = NULL;
+  int install_type = INSTALL_TYPE_STANDARD;
+
+  install_type = get_install_type_from_filename (filename);
+
+  GKeyFile *keys = g_key_file_new ();
+  if (!g_key_file_load_from_file (keys, filename,
+				  GKeyFileFlags(G_KEY_FILE_KEEP_TRANSLATIONS),
+				  &error))
+    {
+      annoy_user_with_gerror (filename, error);
+      g_key_file_free (keys);
+      cleanup_temp_file ();
+      return;
+    }
+
+  cleanup_temp_file ();
+
+  xexp *catalogue = convert_catalogue (keys, "catalogue");
+
+  xexp_write (stderr, catalogue);
+  xexp_free (catalogue);
+
+  g_key_file_free (keys);
+}

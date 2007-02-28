@@ -3214,6 +3214,14 @@ start_apt_worker_reply (gboolean res, void *data)
     }
 }
 
+static gboolean
+xxx_open_file_when_idle (gpointer data)
+{
+  char *filename = (char *)data;
+  xxx_open_local_install_instructions (filename);
+  return FALSE;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -3223,6 +3231,7 @@ main (int argc, char **argv)
   GtkWidget *toolbar, *image;
   GtkMenu *main_menu;
   char *apt_worker_prog = "/usr/libexec/apt-worker";
+  char *file_to_open = NULL;
 
   setlocale (LC_ALL, "");
   bind_textdomain_codeset ("osso-application-installer", "UTF-8");
@@ -3241,8 +3250,20 @@ main (int argc, char **argv)
 
   clear_log ();
 
+  // XXX - stupid option parsing, should be improved but options are
+  //       only used for testing right now.
+  //
   if (argc > 1)
-    apt_worker_prog = argv[1];
+    {
+      apt_worker_prog = argv[1];
+      argc--;
+      argv++;
+    }
+  if (argc > 1)
+    {
+      file_to_open = argv[1];
+      argc--;
+    }
 
   window = hildon_window_new ();
   gtk_window_set_title (GTK_WINDOW (window), _("ai_ap_application_installer"));
@@ -3387,6 +3408,9 @@ main (int argc, char **argv)
 
   g_signal_connect (G_OBJECT (window), "notify::is-topmost", 
 		    G_CALLBACK (window_property_topmost_notify_event), NULL);
+
+  if (file_to_open)
+    g_idle_add (xxx_open_file_when_idle, file_to_open);
 
   gtk_main ();
 }
