@@ -161,7 +161,7 @@ The "catalogues" key, when present, is just like the "catalogues" key
 for the "Adding catalogues" case.  The catalogues are handled a bit
 differently, tho:
 
-Each catalogue is considered in turn and when it there isn't already a
+Each catalogue is considered in turn and when there isn't already a
 catalogue configured that is equal to it, the user is informed that it
 needs to be added and is asked for confirmation.  Alternatively, when
 a catalogue is already present but disabled, the user is informed that
@@ -198,11 +198,9 @@ gets to select them from a list.  Only packages that are not already
 installed or are not uptodate are offered.  When the offered list
 would be empty, processing stops with an appropriate note.
 
-When the user cancels the confirmation dialog or confirms with an
-empty selection, processing stops.  Otherwise, each selected package
-is installed in turn, one after the other.  If one of the
-installations fails, an error message is displayed and processing
-stops.
+Each selected package is installed in turn, one after the other.  If
+one of the installations fails, an error message is displayed and
+processing stops.
 
 When all selected packages have been installed successfully, the
 "permanent_catalogues" will be offered to the user for addition as
