@@ -1,8 +1,36 @@
 2007-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
-	* src/apt-worker.cc (cmd_set_catalogues): Provide default value
-	for dist.
+	* src/main.cc (install_named_packages): Remove leading whitespace
+	from package names.
+	(call_with_package_list_info_cont): Only check pi->have_info when
+	pi is not NULL.
 
+	* src/instr.cc (convert_catalogue): Added file_uri_base parameter
+	and handle "file_uri" key.  Updated all callers.
+	(convert_compatibility_catalogue,
+	convert_compatibility_catalogues): New, to handle old .install
+	files.
+	(execute_install_package): Use them to detect and handle old
+	.install files.
+	(execute_card_install): New.
+	(xxx_open_local_install_instructions): Dispatch to it as
+	appropriate.
+	
+	* src/repo.h, src/repo.cc (set_temp_catalogues): New.
+	(set_catalogues_1): New, common code for set_catalogues and
+	set_temp_catalogues.
+
+	* src/xexp.h, src/xexp.c (xexp_free): Do nothing for NULL xexp.
+	(xexp_text_newn): New.
+
+	* src/apt-worker.cc (AptWorkerState::IsTemp): New.
+	(class AptWorker): Added source_parts configuration parameter for
+	"Dir::Etc::SourceParts".
+	(cmd_set_catalogues): Provide default value for dist.  Write the
+	correct file, depending on state.  Don't write main catalogues
+	file for temporary state.
+	(write_sources_list): New, factored out of cmd_set_catalogues,
+	
 	* src/instr.cc (convert_catalogue): Handle non-existent groups and
 	non-existent names.  Do not convert file_uri keys, they will be
 	handled differently.
