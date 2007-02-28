@@ -1,5 +1,3 @@
-CXXFLAGS = $(CFLAGS)
-
 bin_PROGRAMS = hildon-application-manager.launch
 noinst_PROGRAMS = hildon-application-manager.run
 libexec_PROGRAMS = apt-worker
