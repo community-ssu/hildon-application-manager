@@ -2028,6 +2028,7 @@ struct add_catalogues_closure {
   xexp *rest;
   bool ask, update;
 
+  bool catalogues_changed;
   bool found_applicable_catalogue;
 
   void (*cont) (bool res, void *data);
@@ -2104,6 +2105,8 @@ add_catalogues_cont_3 (bool res, bool enable, void *data)
 	  xexp_append_1 (c->catalogues, xexp_copy (c->rest));
 	}
 
+      c->catalogues_changed = true;
+
       /* Move to next
        */
       c->rest = xexp_rest (c->rest);
@@ -2111,11 +2114,22 @@ add_catalogues_cont_3 (bool res, bool enable, void *data)
     }
   else
     {
-      /* User cancelled.
+      /* User cancelled.  If this operation is for updating the
+	 catalogues before installing a package, we abort now.
+	 Otherwise, the user can still decide whether to add the
+	 remaining catalogues.
        */
-      xexp_free (c->catalogues);
-      c->cont (false, c->data);
-      delete c;
+      if (c->update)
+	{
+	  xexp_free (c->catalogues);
+	  c->cont (false, c->data);
+	  delete c;
+	}
+      else
+	{
+	  c->rest = xexp_rest (c->rest);
+	  add_catalogues_cont_2 (c);
+	}
     }
 }
 
@@ -2144,7 +2158,7 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 {
   if (c->rest == NULL)
     {
-      if (!c->found_suitable_catalogue)
+      if (!c->found_applicable_catalogue)
 	{
 	  /* All catalogues were filtered out (or the list was empty
 	     to begin with, which we treat the same).  That means that
@@ -2156,13 +2170,15 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 	}
       else
 	{
-	  /* We want to refresh the cache every time since we really want
-	     it to be uptodate now.  For a update-catalogues instructions,
-	     we even do it without asking since it doesn't make sense not
-	     to do it and the user can cancel the installation script
-	     later.
+	  /* We want to refresh the cache every time for an 'update'
+	     operation since we really want it to be uptodate now even
+	     if we didn't make any changes to the catalogue
+	     configuration.  We even do it without asking since it
+	     doesn't make sense not to do it and the user can cancel
+	     the installation script later.
 	  */
-	  set_catalogues (c->catalogues, true, !c->update,
+	  if (c->catalogues_changed || c->update)
+	    set_catalogues (c->catalogues, true, !c->update,
 			  add_catalogues_cont_4, c);
 	}
     }
@@ -2170,9 +2186,9 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
     {
       void (*cont) (bool res, void *data);
 
-      /* XXX - do filtering.  For now w just accept all catalgues.
+      /* XXX - do filtering.  For now we just accept all catalogues.
        */
-      c->found_suitable_catalogue = true;
+      c->found_applicable_catalogue = true;
 
       c->cur = find_catalogue (c->catalogues, c->rest);
 
@@ -2202,7 +2218,7 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 	      char *str;
 	      const char *name = catalogue_name (c->rest);
 
-	      if (c->for_install)
+	      if (c->update)
 		str = g_strdup_printf (_("ai_ia_add_catalogue_text"),
 				       name);
 	      else
@@ -2259,7 +2275,8 @@ add_catalogues (xexp *catalogues,
   c->rest = xexp_first (catalogues);
   c->ask = ask;
   c->update = update;
-  c->found_suitable_catalogue = false;
+  c->catalogues_changed = false;
+  c->found_applicable_catalogue = false;
   c->cont = cont;
   c->data = data;
 
