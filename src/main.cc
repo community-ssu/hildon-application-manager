@@ -1150,18 +1150,29 @@ annoy_user_with_result_code (int result_code, const char *failure,
 
 struct rpc_clos {
   bool res;
+  const char *message;
   int state;
   void (*cont) (bool res, void *data);
   void *data;
 };
 
 static void
-refresh_package_cache_cont2 (void *data)
+refresh_package_cache_cont3 (void *data)
 {
   rpc_clos *c = (rpc_clos *) data;
   if (c->cont)
     c->cont (c->res, c->data);
   delete c;
+}
+
+static void
+refresh_package_cache_cont2 (void *data)
+{
+  rpc_clos *c = (rpc_clos *) data;
+  if (!c->res && c->message)
+    annoy_user_with_cont (c->message, refresh_package_cache_cont3, c);
+  else
+    refresh_package_cache_cont3 (c);
 }
 
 static void
@@ -1189,6 +1200,7 @@ refresh_package_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
       /* Network connection failed or apt-worker crashed.  An error
 	 message has already been displayed.
       */
+      c->message = NULL;
       success = false;
     }
   else if (progress_was_cancelled ())
@@ -1196,7 +1208,7 @@ refresh_package_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
       /* The user hit cancel.  We don't care whether the operation was
 	 successful or not.
       */
-      annoy_user (_("ai_ni_update_list_cancelled"));
+      c->message = _("ai_ni_update_list_cancelled");
       success = false;
     }
   else
@@ -1205,12 +1217,12 @@ refresh_package_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
 
       if (result_code == rescode_download_failed)
 	{
-	  annoy_user (_("ai_ni_error_download_failed"));
+	  c->message = _("ai_ni_error_download_failed");
 	  success = false;
 	}
       else if (result_code != rescode_success)
 	{
-	  annoy_user (_("ai_ni_update_list_not_successful"));
+	  c->message = _("ai_ni_update_list_not_successful");
 	  success = false;
 	}
     }
@@ -3410,7 +3422,7 @@ main (int argc, char **argv)
 		    G_CALLBACK (window_property_topmost_notify_event), NULL);
 
   if (file_to_open)
-    g_idle_add (xxx_open_file_when_idle, file_to_open);
+    g_timeout_add (500, xxx_open_file_when_idle, file_to_open);
 
   gtk_main ();
 }
