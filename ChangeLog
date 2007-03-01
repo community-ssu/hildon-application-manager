@@ -1,3 +1,30 @@
+2007-03-01  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (xxx_open_file_when_idle): Call
+	open_local_install_instructions instead of
+	xxx_open_local_install_instructions.
+	(check_repositories, check_catalogues): Renamed former to latter.
+	Changed all callers.  Rewritten to use get_catalogues instead of
+	apt_worker_get_sources_list.
+	(check_repositories_reply, check_catalogues_reply): Likewise.
+
+	Dead code removal after rewriting catalogue handling.
+
+	* src/repo.h, src/repo.cc, src/instr.h, src/instr.cc
+	(maybe_add_repos, temporary_set_repos): Removed together with all
+	their subroutines.
+	(parse_quoted_word): Moved to instr.cc and made static.
+	(xxx_open_local_install_instructions,
+	open_local_install_instructions): Removed latter with all its
+	subroutines.  Renamed former to latter to hook new code into the
+	rest of the program.
+
+	* src/apt-worker-client.h, src/apt-worker-client.cc,
+	src/apt-worker-proto.h, src/apt-worker.cc
+	(APTCMD_GET_SOURCES_LIST, APTCMD_SET_SOURCES_LIST,
+	apt_worker_get_sources_list, apt_worker_set_sources_list,
+	cmd_get_sources_list, cmd_set_sources_list): Removed.
+	
 2007-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.cc (install_named_packages): Remove leading whitespace
