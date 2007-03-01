@@ -458,13 +458,15 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
     }
 
   gchar *dirname = g_path_get_dirname (filename);
+  gchar *esc_dirname = gnome_vfs_escape_string (dirname);
   xexp *card_catalogues = convert_catalogues (keyfile, entry,
-					      "card_catalogues", dirname);
+					      "card_catalogues", esc_dirname);
   xexp *perm_catalogues = convert_catalogues (keyfile, entry,
 					      "permanent_catalogues", NULL);
   gchar **packages = g_key_file_get_string_list (keyfile, entry, "packages",
 						 NULL, NULL);
   g_free (dirname);
+  g_free (esc_dirname);
 
   if (card_catalogues == NULL
       || xexp_is_empty (card_catalogues))
