@@ -1,5 +1,8 @@
 2007-03-01  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/instr.cc (execute_card_install): Use gnome_vfs_escape_string
+	before using the dirname in a URI.
+
 	* src/main.cc (xxx_open_file_when_idle): Call
 	open_local_install_instructions instead of
 	xxx_open_local_install_instructions.
