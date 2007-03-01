@@ -591,8 +591,6 @@ void cmd_get_package_list ();
 void cmd_get_package_info ();
 void cmd_get_package_details ();
 void cmd_update_package_cache ();
-void cmd_get_sources_list ();
-void cmd_set_sources_list ();
 void cmd_get_catalogues ();
 void cmd_set_catalogues ();
 void cmd_install_check ();
@@ -653,8 +651,6 @@ static char *cmd_names[] = {
   "GET_PACKAGE_INFO",
   "GET_PACKAGE_DETAILS",
   "UPDATE_PACKAGE_CACHE",
-  "GET_SOURCES_LIST",
-  "SET_SOURCES_LIST",
   "GET_CATALOGUES",
   "SET_CATALOGUES",
   "INSTALL_CHECK",
@@ -712,14 +708,6 @@ handle_request ()
 
     case APTCMD_UPDATE_PACKAGE_CACHE:
       cmd_update_package_cache ();
-      break;
-
-    case APTCMD_GET_SOURCES_LIST:
-      cmd_get_sources_list ();
-      break;
-
-    case APTCMD_SET_SOURCES_LIST:
-      cmd_set_sources_list ();
       break;
 
     case APTCMD_GET_CATALOGUES:
@@ -2335,69 +2323,6 @@ cmd_update_package_cache ()
   int result_code = update_package_cache ();
 
   response.encode_int (result_code);
-}
-
-/* APTCMD_GET_SOURCES_LIST
-*/
-
-void
-cmd_get_sources_list ()
-{
-  string name = _config->FindFile("Dir::Etc::sourcelist");
-  FILE *f = fopen (name.c_str(), "r");
-
-  if (f)
-    {
-      char *line = NULL;
-      size_t len = 0;
-      ssize_t n;
-
-      while ((n = getline (&line, &len, f)) != -1)
-	{
-	  if (n > 0 && line[n-1] == '\n')
-	    line[n-1] = '\0';
-
-	  response.encode_string (line);
-	}
-      response.encode_string (NULL);
-      response.encode_int (1);
-
-      free (line);
-      fclose (f);
-    }
-  else
-    {
-      perror (name.c_str());
-      response.encode_string (NULL);
-      response.encode_int (0);
-    }
-}
-
-/* APTCMD_SET_SOURCES_LIST
- */
-void
-cmd_set_sources_list ()
-{
-  string name = _config->FindFile("Dir::Etc::sourcelist");
-  FILE *f = fopen (name.c_str(), "w");
-  
-  if (f)
-    {
-      while (true)
-	{
-	  const char *str = request.decode_string_in_place ();
-	  if (str == NULL)
-	    break;
-	  fprintf (f, "%s\n", str);
-	}
-      fclose (f);
-      response.encode_int (1);
-    }
-  else
-    {
-      perror (name.c_str ());
-      response.encode_int (0);
-    }
 }
 
 /* APTCMD_GET_CATALOGUES

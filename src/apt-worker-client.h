@@ -74,15 +74,6 @@ void apt_worker_update_cache (int state,
 			      apt_worker_callback *callback,
 			      void *data);
 
-void apt_worker_get_sources_list (apt_worker_callback *callback,
-				  void *data);
-
-void apt_worker_set_sources_list (int state,
-				  void (*encoder) (apt_proto_encoder *,
-						   void *),
-				  void *encoder_data,
-				  apt_worker_callback *callback, void *data);
-
 void apt_worker_get_catalogues (apt_worker_callback *callback,
 				void *data);
 
