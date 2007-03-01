@@ -1983,40 +1983,33 @@ view_section (section_info *si)
 }
 
 static void
-check_repositories_reply (int cmd, apt_proto_decoder *dec, void *data)
+check_catalogues_reply (xexp *catalogues, void *data)
 {
   if (dec == NULL)
     return;
 
-  while (!dec->corrupted ())
-    {
-      const char *line = dec->decode_string_in_place ();
-      char *start, *end;
+  for (xexp *c = xexp_first (catalogues); c; c = xexp_rest (c))
+    if (xexp_is (c, "source")
+	|| (xexp_is (c, "catalogue") && !xexp_aref_bool (c, "disabled")))
+      {
+	/* Found something in sources.list or an active catalogue.
+	   Maybe we need to refresh the cache.
+	*/
+	maybe_refresh_package_cache ();
+	xexp_free (catalogues);
+	return;
+      }
 
-      if (line == NULL)
-	break;
-
-      start = (char *)line;
-      if (parse_quoted_word (&start, &end, false)
-	  && end - start == 3 && !strncmp (start, "deb", 3))
-	{
-	  /* Found one active repository.  Maybe we need to refresh
-	     it.
-	  */
-	  maybe_refresh_package_cache ();
-	  return;
-	}
-    }
-
-  /* No repositories active.
+  /* No catalogues active.
    */
   irritate_user (_("ai_ib_no_repositories"));
+  xexp_free (catalogues);
 }
 
 static void
-check_repositories ()
+check_catalogues ()
 {
-  apt_worker_get_sources_list (check_repositories_reply, NULL);
+  get_catalogues (check_catalogues_reply, NULL);
 }
 
 GtkWidget *
@@ -2024,7 +2017,7 @@ make_install_applications_view (view *v)
 {
   GtkWidget *list, *view, *label;
 
-  check_repositories ();
+  check_catalogues ();
 
   set_operation_label (_("ai_me_package_install"),
 		       _("ai_ib_nothing_to_install"));
@@ -2069,7 +2062,7 @@ make_upgrade_applications_view (view *v)
 {
   GtkWidget *view;
 
-  check_repositories ();
+  check_catalogues ();
 
   set_operation_label (_("ai_me_package_update"),
 		       _("ai_ib_nothing_to_update"));
@@ -3235,7 +3228,7 @@ static gboolean
 xxx_open_file_when_idle (gpointer data)
 {
   char *filename = (char *)data;
-  xxx_open_local_install_instructions (filename);
+  open_local_install_instructions (filename);
   return FALSE;
 }
 
