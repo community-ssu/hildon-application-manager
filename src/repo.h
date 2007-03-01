@@ -30,23 +30,6 @@ extern "C" {
 
 void show_repo_dialog ();
 
-void maybe_add_repos (const char **name, 
-		      const char **deb_line, 
-		      const GSList *loc_list,
-		      const GSList **translation_lists,
-		      bool for_install,
-		      void (*cont) (bool res, void *data), 
-		      void *data);
-
-void temporary_set_repos (const char **deb_line_list,
-			  void (*cont) (bool res, void *data),
-			  void *data);
-
-bool parse_quoted_word (char **start, char **end, bool term);
-
-/* XXX - emerging modernized catalogue handling below.  Stay tuned...
- */
-
 /* A 'catalogue' is an association xexp with the following elements:
 
       - name
