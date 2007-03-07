@@ -1,3 +1,9 @@
+hildon-application-manager (5.0pre5) unstable; urgency=low
+
+  * debian/rules: Set CXXFLAGS from CFLAGS and pass to configure.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu,  1 Mar 2007 18:37:51 +0200
+
 hildon-application-manager (5.0pre4) unstable; urgency=low
 
   * Intermediate release with lots of bugs fixes.

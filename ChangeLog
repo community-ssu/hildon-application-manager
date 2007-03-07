@@ -1,3 +1,7 @@
+2007-03-07  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 5.0pre5
+
 2007-03-01  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/instr.cc (execute_card_install): Use gnome_vfs_escape_string
