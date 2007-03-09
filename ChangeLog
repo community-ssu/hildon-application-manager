@@ -1,3 +1,14 @@
+2007-03-09  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 1.9.0pre0, which is violent change of upstream versions
+	to comply with the Hildon unified versioning scheme.  Sorry for
+	the confusion.
+
+2007-03-08  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (create_progress): Turn a NULL title into the empty
+	string.  This shouldn't happen, but it's the robust thing to do.
+
 2007-03-07  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 5.0pre5

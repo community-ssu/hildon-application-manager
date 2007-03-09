@@ -1,3 +1,9 @@
+hildon-application-manager (1:1.9.0pre0) unstable; urgency=low
+
+  * Moved to unified Hildon version scheme.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri,  9 Mar 2007 14:56:18 +0200
+
 hildon-application-manager (5.0pre5) unstable; urgency=low
 
   * debian/rules: Set CXXFLAGS from CFLAGS and pass to configure.
