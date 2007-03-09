@@ -625,6 +625,8 @@ create_progress (const gchar *title, bool with_cancel)
       progress_bar = NULL;
     }
 
+  if (title == NULL)
+    title = "";
 
   // XXX - we make the title slightly longer so that there is a bit
   //       room to grow without having to resize the dialog or risking
