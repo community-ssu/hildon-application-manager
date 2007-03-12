@@ -180,12 +180,12 @@ view.
 
 ### Installing from a memory card
 
-This interaction flow is controlled by the "card_install" group.  It
-has two mandatory keys, "packages" and "card_catalogues", and a
-optional one, "permanent_catalogues".
+This interaction flow is controlled by the "card\_install" group.  It
+has two mandatory keys, "packages" and "card\_catalogues", and a
+optional one, "permanent\_catalogues".
 
 The "packages" key lists the names of packages that can be installed
-from the memory card, using the "card_catalogues".
+from the memory card, using the "card\_catalogues".
 
 Installation of the packages happens in a temporary environment: in
 this environment, the normally configured catalogues are not
@@ -203,8 +203,56 @@ one of the installations fails, an error message is displayed and
 processing stops.
 
 When all selected packages have been installed successfully, the
-"permanent_catalogues" will be offered to the user for addition as
+"permanent\_catalogues" will be offered to the user for addition as
 with the "Adding catalogues" case.
+
+#### Automatic triggering of memory card installs
+
+Whenever a memory card is inserted that contains a file called
+`.auto.install`, that file is processed by the Application Manager.
+Usually, the `.auto.install` file contains a `card\_install` group, of
+course.
+
+#### Example instructions for making a auto-installing memory card
+
+The basic idea is that you make a memory card that contains a
+repository that is understood by Apt and provide a suitable .install
+file for it next to it.
+
+A simple way to make a apt-gettable repository is to just create a
+directory, copy all `.deb` files into that you want to include in the
+repository, and then run `apt-ftparchive` in a suitable way.
+
+For example:
+
+    $ mkdir .repo
+    $ cp somewhere/*.deb .repo/
+    $ (cd .repo && apt-ftparchive packages . >Packages)
+
+A matching `.install` file could look like this:
+
+    [card_install]
+    card_catalogues = repo
+    packages = app-1; app-2
+
+    [repo]
+    file_uri = .repo
+    dist = ./
+
+You need to put this `.install` file and the `.repo` directory next to
+each other so that the `file\_uri` path is correct.  Usually you would
+put both in the root folder of a memory card.  The `.install` file
+should get a nice descriptive display name so that the user can find
+it easily in the File Manager.
+
+To make the memory card auto-installing, copy the `.install` file so
+that it is also available with the `.auto.install` name in the root of
+the memory card.
+
+You can also sign repositories on a memory card, and the Application
+Manager will use such a signature like any other, e.g., when deciding
+whether to allow system package upgrades or whether to show certain
+disclaimers.
 
 ### Compatibility with IT OS 2007.
 
