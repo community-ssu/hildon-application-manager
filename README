@@ -1,23 +1,5 @@
-This is hildon-application-managerr, version 5
-==============================================
-
-[ About versions:
-
-  Versions 1 to 4 were called "osso-application-installer", versions 5
-  and later are called "hildon-application-manager".
-
-  1.x initial 'prototype'
-
-  2.x working version of 1.x series with app-installer tool
-
-  3.x intermediate version with the UI of 2.x that uses system-wide
-      package management tools
-
-  4.x completely new design that uses libapt-pkg and repositories
-
-  5.x renamed as hildon-application-manager and moved development to
-      garage.maemo.org, but no fundamental code changes.  
-]
+This is hildon-application-manager, version 2
+=============================================
 
 The Hildon Application Manager is a program to manage add-on software
 components for the Hildon Desktop.  It uses the Debian package
@@ -55,7 +37,7 @@ how it has been extended.  There are three main documents:
   For repository maintainers; explains things like how to "certify"
   parts of a repository, etc.
 
-- scripting.txt
+- install.txt
 
   For people writing .install files.
 
@@ -76,9 +58,9 @@ in the same way as apt-get, Synaptic and aptitude use it and its use
 integrates the Application installer seamlessly into the system-wide
 package management.
 
-The Application installer runs as two processes: The first process
+The Application manager runs as two processes: The first process
 implements the GUI and runs as the user who started the Application
-installer.  The second process is started in the background and is the
+Manager.  The second process is started in the background and is the
 one that actually links to libapt-pkg and does all the package
 management work.  It runs as "root".
 
@@ -225,9 +207,6 @@ BUGS
 - don't rely on apt-worker startup being successful.
 - https needs to be trusted, even without key.
 - use doubles for sizes, maybe
-- get_name might be called too much in repo.cc
-- we need a official, generic multi-package .install confirmation
-  dialog
 
 Cleanup
 -------
