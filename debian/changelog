@@ -1,3 +1,10 @@
+hildon-application-manager (1:1.9.1) unstable; urgency=low
+
+  * Build-Depend on libhildon1-dev insted of hildon-libs-dev, and
+    libhildonfm2-dev instead of hildon-fm-dev.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 16 Mar 2007 14:37:45 +0200
+
 hildon-application-manager (1:1.9.0pre0) unstable; urgency=low
 
   * Moved to unified Hildon version scheme.

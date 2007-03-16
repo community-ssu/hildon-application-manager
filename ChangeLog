@@ -1,5 +1,7 @@
 2007-03-16  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 1.9.1
+	
 	Hildon consolidation changes.  All header locations have been
 	changed from <hildon-widgets/...> to <hildon/...>.
 
