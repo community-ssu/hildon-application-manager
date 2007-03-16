@@ -1,5 +1,13 @@
 2007-03-16  Marius Vollmer  <marius.vollmer@nokia.com>
 
+        Released 1.9.2
+	
+	* configure.ac: Check for hildon-help instead of libossohelp.
+	* src/main.cc (set_dialog_help): Use
+	hildon_help_dialog_help_enable instead of
+	ossohelp_dialog_help_enable.
+	(show_help): Use hildon_help_show instead of ossohelp_show.
+
 	Released 1.9.1
 	
 	Hildon consolidation changes.  All header locations have been
