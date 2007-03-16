@@ -54,7 +54,7 @@ extern "C" {
   #include <hildon/hildon-window.h>
   #include <hildon/hildon-note.h>
   #include <libosso.h>
-  #include <osso-helplib.h>
+  #include <hildon/hildon-help.h>
 }
 
 using namespace std;
@@ -3181,7 +3181,7 @@ void
 set_dialog_help (GtkWidget *dialog, const char *topic)
 {
   if (osso_ctxt)
-    ossohelp_dialog_help_enable (GTK_DIALOG (dialog), topic, osso_ctxt);
+    hildon_help_dialog_help_enable (GTK_DIALOG (dialog), topic, osso_ctxt);
 }
 
 static const char *current_topic;
@@ -3190,7 +3190,7 @@ void
 show_help ()
 {
   if (osso_ctxt && current_topic)
-    ossohelp_show (osso_ctxt, current_topic, 0);
+    hildon_help_show (osso_ctxt, current_topic, 0);
 }
 
 static void
