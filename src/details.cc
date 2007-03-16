@@ -192,7 +192,7 @@ add_table_field (GtkWidget *table, int row,
 {
   GtkWidget *label;
 
-  if (value && !all_white_space (value))
+  if (value && !all_whitespace (value))
     {
       if (field)
 	{

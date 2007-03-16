@@ -1,3 +1,30 @@
+2007-03-16  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Hildon consolidation changes.  All header locations have been
+	changed from <hildon-widgets/...> to <hildon/...>.
+
+	* src/repo.cc (stripped_equal, catalogue_dist, set_catalogue_dist,
+	catalogue_components): Removed.  Changed all users to use
+	xexp_aref_text directly.
+	(cat_edit_response): Allow empty "Distribution" field.
+	(cats_are_equal): Use tokens_equal instead of strcmp.
+
+	* configure.ac: Check for hildon-1 instead of hildon-libs and
+	hildon-fm-2 instead of hildon-fm.
+
+	* src/util.h, src/util.cc (all_white_space, all_whitespace):
+	Renamed former to latter.  Changed all callers.
+	(tokens_equal): New.
+	(make_global_section_list): Do not use attach flags, they are
+	gone.
+	(irritate_user): Use hildon_banner_show_information instead of
+	gtk_info_print.
+	
+	* src/main.cc (main): Use HILDON_ICON_SIZE_TOOLBAR instead of
+	HILDON_ICON_SIZE_26.
+	(make_main_view): Use HILDON_ICON_SIZE_SMALL instead of
+	HILDON_ICON_SIZE_26.
+
 2007-03-09  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.0pre0, which is violent change of upstream versions

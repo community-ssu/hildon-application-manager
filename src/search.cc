@@ -25,8 +25,8 @@
 #include <libintl.h>
 
 #include <gtk/gtk.h>
-#include <hildon-widgets/hildon-caption.h>
-#include <hildon-widgets/gtk-infoprint.h>
+#include <hildon/hildon-caption.h>
+#include <hildon/hildon-banner.h>
 
 #include "search.h"
 #include "util.h"

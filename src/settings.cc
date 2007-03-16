@@ -26,8 +26,8 @@
 #include <libintl.h>
 
 #include <gtk/gtk.h>
-#include <hildon-widgets/hildon-sort-dialog.h>
-#include <hildon-widgets/hildon-caption.h>
+#include <hildon/hildon-sort-dialog.h>
+#include <hildon/hildon-caption.h>
 
 #include "settings.h"
 #include "util.h"

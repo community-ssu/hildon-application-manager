@@ -30,8 +30,8 @@
 #include <locale.h>
 
 #include <gtk/gtk.h>
-#include <hildon-widgets/hildon-note.h>
-#include <hildon-widgets/hildon-caption.h>
+#include <hildon/hildon-note.h>
+#include <hildon/hildon-caption.h>
 
 #include "repo.h"
 #include "settings.h"
@@ -40,18 +40,6 @@
 #include "log.h"
 
 #define _(x)       gettext (x)
-
-/* Determine whether two STR1 equals STR2 when ignoring leading and
-   trailing whitespace in STR1.
-*/
-static bool
-stripped_equal (const char *str1, const char *str2)
-{
-  size_t len = strlen (str2);
-
-  str1 = skip_whitespace (str1);
-  return !strncmp (str1, str2, len) && all_white_space (str1 + len);
-}
 
 static GtkWidget *
 add_entry (GtkWidget *box, GtkSizeGroup *group,
@@ -278,33 +266,6 @@ set_catalogue_name (xexp *x, const char *name)
     }
 }
 
-const char *
-catalogue_dist (xexp *x)
-{
-  xexp *d = xexp_aref (x, "dist");
-  if (d)
-    return xexp_text (d);
-  else
-    return DEFAULT_DIST;
-}
-void
-set_catalogue_dist (xexp *x, const char *dist)
-{
-  const char *old_dist = catalogue_dist (x);
-  if (strcmp (old_dist, dist))
-    xexp_aset_text (x, "dist", dist);
-}
-
-const char *
-catalogue_components (xexp *x)
-{
-  xexp *c = xexp_aref (x, "components");
-  if (c)
-    return xexp_text (c);
-  else
-    return "";
-}
-
 struct catcache {
   catcache *next;
   struct cat_dialog_closure *cat_dialog;
@@ -356,26 +317,22 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
 						    (c->disabled_button));
 
-      if (all_white_space (name))
+      if (all_whitespace (name))
 	{
 	  irritate_user (_("ai_ib_enter_name"));
 	  gtk_widget_grab_focus (c->name_entry);
 	  return;
 	}
 
-      if (all_white_space (uri) || stripped_equal (uri, "http://"))
+      if (all_whitespace (uri) || tokens_equal (uri, "http://"))
 	{
 	  irritate_user (_("ai_ib_enter_web_address"));
 	  gtk_widget_grab_focus (c->uri_entry);
 	  return;
 	}
 
-      if (all_white_space (dist))
-	{
-	  irritate_user (_("ai_ib_enter_distribution"));
-	  gtk_widget_grab_focus (c->dist_entry);
-	  return;
-	}
+      if (all_whitespace (dist))
+	dist = NULL;
       
       reset_cat_list (c->cat_dialog);
       if (c->isnew)
@@ -383,7 +340,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       set_catalogue_name (c->catalogue, name);
       xexp_aset_bool (c->catalogue, "disabled", disabled);
       xexp_aset_text (c->catalogue, "components", comps);
-      set_catalogue_dist (c->catalogue, dist);
+      xexp_aset_text (c->catalogue, "dist", dist);
       xexp_aset_text (c->catalogue, "uri", uri);
       set_cat_list (c->cat_dialog);
       c->cat_dialog->dirty = true;
@@ -477,12 +434,12 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 
   c->dist_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_distribution"),
-			     catalogue_dist (catalogue),
+			     xexp_aref_text (catalogue, "dist"),
 			     NULL, false, c->readonly, true);
 
   c->components_entry = add_entry (vbox, group,
 				   _("ai_fi_new_repository_component"),
-				   catalogue_components (catalogue),
+				   xexp_aref_text (catalogue, "components"),
 				   NULL, false, c->readonly, false);
 
   c->disabled_button = gtk_check_button_new ();
@@ -902,17 +859,12 @@ static void add_catalogues_cont_4 (bool res, void *data);
 static bool
 cats_are_equal (xexp *cat1, xexp *cat2)
 {
-  fprintf (stderr, "EQUAL?\n");
-  xexp_write (stderr, cat1);
-  xexp_write (stderr, cat2);
-  bool res = (!strcmp (xexp_aref_text (cat1, "uri"),
-		       xexp_aref_text (cat2, "uri"))
-	      && !strcmp (catalogue_dist (cat1),
-			  catalogue_dist (cat2))
-	      && !strcmp (catalogue_components (cat1),
-			  catalogue_components (cat2)));
-  fprintf (stderr, "RES %d\n", res);
-  return res;
+  return (tokens_equal (xexp_aref_text (cat1, "uri"),
+			xexp_aref_text (cat2, "uri"))
+	  && tokens_equal (xexp_aref_text (cat1, "dist"),
+		       xexp_aref_text (cat2, "dist"))
+	  && tokens_equal (xexp_aref_text (cat1, "components"),
+			   xexp_aref_text (cat2, "components")));
 }
 
 static xexp *

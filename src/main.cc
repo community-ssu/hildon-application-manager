@@ -51,8 +51,8 @@
 
 extern "C" {
   #include "hildonbreadcrumbtrail.h"
-  #include <hildon-widgets/hildon-window.h>
-  #include <hildon-widgets/hildon-note.h>
+  #include <hildon/hildon-window.h>
+  #include <hildon/hildon-note.h>
   #include <libosso.h>
   #include <osso-helplib.h>
 }
@@ -262,7 +262,7 @@ make_main_view (view *v)
   // first label
   hbox = gtk_hbox_new (FALSE, 10);
   image = gtk_image_new_from_icon_name ("qgn_list_filesys_divc_cls",
-					HILDON_ICON_SIZE_26);
+					HILDON_ICON_SIZE_SMALL);
   gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
 
   device_label = gtk_label_new (device_name ());
@@ -289,7 +289,7 @@ make_main_view (view *v)
   // second label
   hbox = gtk_hbox_new (FALSE, 10);
   image = gtk_image_new_from_icon_name ("qgn_list_browser",
-					HILDON_ICON_SIZE_26);
+					HILDON_ICON_SIZE_SMALL);
   gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
 
   label = gtk_label_new (_("ai_li_repository"));
@@ -3311,7 +3311,7 @@ main (int argc, char **argv)
 		      -1);
 
   image = gtk_image_new_from_icon_name ("qgn_toolb_gene_detailsbutton",
-					HILDON_ICON_SIZE_26);
+					HILDON_ICON_SIZE_TOOLBAR);
   details_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
   gtk_tool_item_set_expand (GTK_TOOL_ITEM (details_button), TRUE);
   gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (details_button), TRUE);
@@ -3326,7 +3326,7 @@ main (int argc, char **argv)
 		      -1);
 
   image = gtk_image_new_from_icon_name ("qgn_toolb_gene_findbutton",
-					HILDON_ICON_SIZE_26);
+					HILDON_ICON_SIZE_TOOLBAR);
   search_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
   gtk_tool_item_set_expand (GTK_TOOL_ITEM (search_button), TRUE);
   gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (search_button), TRUE);
@@ -3343,7 +3343,7 @@ main (int argc, char **argv)
   if (red_pill_mode)
     {
       image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
-					    HILDON_ICON_SIZE_26);
+					    HILDON_ICON_SIZE_TOOLBAR);
       GtkWidget *button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
       gtk_tool_item_set_expand (GTK_TOOL_ITEM (button), TRUE);
       gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (button), TRUE);

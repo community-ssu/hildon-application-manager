@@ -16,7 +16,7 @@ if test x$ac_cv_header_apt_pkg_configuration_h != xyes; then
   AC_ERROR([libapt-pkg not found.])
 fi
 
-PKG_CHECK_MODULES(HAM_DEPS, glib-2.0 gtk+-2.0 hildon-libs hildon-fm libosso
+PKG_CHECK_MODULES(HAM_DEPS, glib-2.0 gtk+-2.0 hildon-1 hildon-fm-2 libosso
                             conic gconf-2.0 gnome-vfs-2.0 libossohelp
                             obex-vfs-utils)
 AC_SUBST(HAM_DEPS_CFLAGS)

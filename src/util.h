@@ -401,7 +401,13 @@ const char *skip_whitespace (const char *str);
 /* Return true when STR contains only whitspace characters, as
    determined by isspace.
  */
-bool all_white_space (const char *str);
+bool all_whitespace (const char *str);
+
+/* NULL and empty strings are considered equal.  Whitespace at the
+   beginning and end is ignored.  Sequences of whitespaces are equal
+   to each other.
+*/
+bool tokens_equal (const char *str1, const char *str2);
 
 /* ENSURE_NETWORK requests an internet connection and calls CONT when
    it has been established or when the attempt failed.  SUCCESS

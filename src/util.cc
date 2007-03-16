@@ -36,12 +36,11 @@
 
 #include <gtk/gtk.h>
 #include <gconf/gconf-client.h>
-#include <hildon-widgets/hildon-note.h>
-#include <hildon-widgets/hildon-file-chooser-dialog.h>
-#include <hildon-widgets/gtk-infoprint.h>
-#include <hildon-widgets/hildon-banner.h>
+#include <hildon/hildon-note.h>
+#include <hildon/hildon-file-chooser-dialog.h>
+#include <hildon/hildon-banner.h>
 #include <gdk/gdkkeysyms.h>
-#include <hildon-widgets/hildon-defines.h>
+#include <hildon/hildon-defines.h>
 #include <conic.h>
 #include <libgnomevfs/gnome-vfs.h>
 
@@ -503,7 +502,8 @@ annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail)
 void
 irritate_user (const gchar *text)
 {
-  gtk_infoprintf (NULL, "%s", text);
+  hildon_banner_show_information (GTK_WIDGET (get_dialog_parent ()),
+				  NULL, text);
 }
 
 void
@@ -1427,15 +1427,6 @@ make_global_section_list (GList *sections, section_activated *act)
 	grab_focus_on_map (btn);
       first_button = false;
 
-      int f = OSSO_GTK_BUTTON_ATTACH_EAST | OSSO_GTK_BUTTON_ATTACH_WEST;
-      if (s == sections)
-	f |= OSSO_GTK_BUTTON_ATTACH_NORTH;
-      if (s->next == NULL)
-	f |= OSSO_GTK_BUTTON_ATTACH_SOUTH;
-
-      osso_gtk_button_set_detail_from_attach_flags
-	(GTK_BUTTON (btn), OssoGtkButtonAttachFlags (f));
-
       g_signal_connect (btn, "focus-in-event",
 			G_CALLBACK (scroll_to_widget), scroller);
     }
@@ -1966,7 +1957,6 @@ b64decode (const unsigned char *str, GdkPixbufLoader *loader)
     }
 }
 
-
 GdkPixbuf *
 pixbuf_from_base64 (const char *base64)
 {
@@ -2315,10 +2305,50 @@ skip_whitespace (const char *str)
 }
 
 bool
-all_white_space (const char *str)
+all_whitespace (const char *str)
 {
   return (*skip_whitespace (str)) == '\0';
 }
+
+  /* NULL and empty strings are considered equal.  Whitespace at the
+     beginning and end is ignored.  Sequences of white spaces are
+     equal to every other sequence of white space.
+  */
+
+bool
+tokens_equal (const char *str1, const char *str2)
+{
+  if (str1 == NULL)
+    str1 = "";
+
+  if (str2 == NULL)
+    str2 = "";
+
+  str1 = skip_whitespace (str1);
+  str2 = skip_whitespace (str2);
+
+  while (*str1 && *str2)
+    {
+      if (isspace (*str1) && isspace (*str2))
+	{
+	  str1 = skip_whitespace (str1);
+	  str2 = skip_whitespace (str2);
+	}
+      else if (*str1 == *str2)
+	{
+	  str1++;
+	  str2++;
+	}
+      else
+	break;
+    }
+  
+  str1 = skip_whitespace (str1);
+  str2 = skip_whitespace (str2);
+
+  return *str1 == '\0' && *str2 == '\0';
+}
+
 
 static ConIcConnection *connection_object = NULL;
 
