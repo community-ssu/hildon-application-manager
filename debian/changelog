@@ -1,3 +1,9 @@
+hildon-application-manager (1:1.9.3) unstable; urgency=low
+
+  * Redone frontend/backend handshake during startup.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  4 Apr 2007 16:25:10 +0300
+
 hildon-application-manager (1:1.9.2) unstable; urgency=low
 
   * Build-Depend on libhildonhelp-dev instead of libosso-help-dev.
