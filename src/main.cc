@@ -1983,7 +1983,7 @@ view_section (section_info *si)
 static void
 check_catalogues_reply (xexp *catalogues, void *data)
 {
-  if (dec == NULL)
+  if (catalogues == NULL)
     return;
 
   for (xexp *c = xexp_first (catalogues); c; c = xexp_rest (c))
