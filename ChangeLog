@@ -18,9 +18,10 @@
 	try_apt_worker_start): Removed.
 	(handle_apt_worker, add_apt_worker_handler): Moved here from
 	main.cc.
+	(apt_worker_watch): New.
 	(start_apt_worker): Removed all callbacks.  Open read fifos, do
 	that in non-blocking mode and setup the listeners, including
-	handle_apt_worker.
+	handle_apt_worker.  Install apt_worker_watch as a child watch.
 	(finish_apt_worker_startup): New, to complete the startup
 	handshake.
 	(handle_one_apt_worker_response): Call it when the first response
