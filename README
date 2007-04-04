@@ -205,8 +205,10 @@ BUGS
 ----
 
 - don't rely on apt-worker startup being successful.
-- https needs to be trusted, even without key.
 - use doubles for sizes, maybe
+- Don't backup pre-configured catalogues
+- Polish multi-package flow
+- "Unable to refresh all catalogues"
 
 Cleanup
 -------
@@ -250,38 +252,3 @@ External references
 
   window name in select-menu-location
   - switch to new name.
-
-S-expressions in .ini files?
-----------------------------
-
-    [install]
-    do = install_apps; add_catalogue_for_updates
-
-    [install_apps]
-    temporary = yes
-    do = add_card_repos; install_from_card
-
-    [add_card_repos]
-    add_catalogues = bora_catalogue; mistral_catalogue
-
-    [bora_catalogue]
-    filter_dist = bora
-    file_relative_uri = .repository/bora
-
-    [bora_catalogue]
-    filter_dist = mistral
-    file_relative_uri = .repository/mistral
-
-    [install_from_card]
-    install_packages = frozen-bubble; crazy-parking
-
-    [add_catalogue_for_updates]
-    add_catalogues = catalogue_for_updates
-
-    [catalogue_for_updates]
-    name = Foobar Games
-    name[en_GB] = Foobar Games
-    name[de_DE] = Foobar Spiele
-    uri = http://foobar.com
-    automatic_dist = yes
-    components = main
