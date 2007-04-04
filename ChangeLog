@@ -1,3 +1,51 @@
+2007-04-04  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Robustify against startup failures of apt-worker by not havong the
+	frontend block until the apt-worker is ready.
+	
+	* src/apt-worker.cc (must_set_flags, block_for_read): New.
+	(maybe_read_byte, read_byte): Renamed former to latter.  Do not
+	poll here, just use read directly.  Whether or not this blocks is
+	determined by the flags of the file descriptor now.  Changed all
+	callers.
+	(main): Open read fifos in non-blocking mode and perform the newly
+	required handshake with the frontend.
+
+	* src/apt-worker-client.h, src/apt-worker-client.cc
+	(must_open): Do not reset O_NONBLOCK here.
+	(must_open_nonblock): New, to handle O_NONBLOCK.
+	(try_apt_worker_closure, start_closure, cancel_apt_worker_start,
+	try_apt_worker_start): Removed.
+	(handle_apt_worker, add_apt_worker_handler): Moved here from
+	main.cc.
+	(start_apt_worker): Removed all callbacks.  Open read fifos, do
+	that in non-blocking mode and setup the listeners, including
+	handle_apt_worker.
+	(finish_apt_worker_startup): New, to complete the startup
+	handshake.
+	(handle_one_apt_worker_response): Call it when the first response
+	comes.
+	(apt_worker_is_running): Look at apt_worker_in_fd instead of
+	apt_worker_out_fd since the latter is only valid when the
+	apt-worker startup is complete.
+	(pending_request): Added enough extra fields to also keep requets
+	pending, not only responses.
+	(send_apt_worker_cmd): New, factored out of call_apt_worker.
+	(send_pending_apt_worker_cmds): New.
+	(call_apt_worker): Delay a request when the apt-worker startup has
+	not been completed yet.
+	(status_out_of_space, reset_client_error_status,
+	client_error_out_of_space): Removed, they are unused.
+
+	* src/main.cc (handle_apt_worker, add_apt_worker_handler): Moved
+	to apt-worker-client.cc.
+	(apt_status_callback): Ignore statuses with non-positive totals.
+	(start_apt_worker_reply): Removed.
+	(main): Do not create the startup progress dialog.  Call
+	get_package_list right after starting the apt-worker; the request
+	will automatically be delayed if necessary.  Removed magic for
+	determing whether we should show our main window or not.
+		
 2007-03-16  Marius Vollmer  <marius.vollmer@nokia.com>
 
         Released 1.9.2
