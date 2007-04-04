@@ -47,6 +47,7 @@ int apt_worker_out_fd = -1;
 int apt_worker_in_fd = -1;
 int apt_worker_cancel_fd = -1;
 int apt_worker_status_fd = -1;
+GPid apt_worker_pid;
 
 gboolean apt_worker_ready = FALSE;
 
@@ -185,6 +186,33 @@ add_apt_worker_handler ()
   g_io_channel_unref (channel);
 }
 
+static void
+notice_apt_worker_failure ()
+{
+  //close (apt_worker_in_fd);
+  //close (apt_worker_out_fd);
+  //close (apt_worker_cancel_fd);
+
+  g_spawn_close_pid (apt_worker_pid);
+
+  apt_worker_in_fd = -1;
+  apt_worker_out_fd = -1;
+  apt_worker_cancel_fd = -1;
+
+  cancel_all_pending_requests ();
+
+  annoy_user_with_log (_("ai_ni_operation_failed"));
+}
+
+static void
+apt_worker_watch (GPid pid, int status, gpointer data)
+{
+  /* Any exit of the apt-worker is a failure.
+   */
+  add_log ("apt-worker exited.\n");
+  notice_apt_worker_failure ();
+}
+
 bool
 start_apt_worker (gchar *prog)
 {
@@ -224,10 +252,10 @@ start_apt_worker (gchar *prog)
   if (!g_spawn_async_with_pipes (NULL,
 				 args,
 				 NULL,
-				 GSpawnFlags (G_SPAWN_LEAVE_DESCRIPTORS_OPEN),
+				 GSpawnFlags (G_SPAWN_DO_NOT_REAP_CHILD),
 				 NULL,
 				 NULL,
-				 NULL,
+				 &apt_worker_pid,
 				 NULL,
 				 &stdout_fd,
 				 &stderr_fd,
@@ -237,6 +265,8 @@ start_apt_worker (gchar *prog)
       g_error_free (error);
       return false;
     }
+
+  g_child_watch_add (apt_worker_pid, apt_worker_watch, NULL);
 
   apt_worker_in_fd = must_open_nonblock ("/tmp/apt-worker.from",
 					 O_RDONLY);
@@ -282,22 +312,6 @@ cancel_apt_worker ()
     }
 }
 
-static void
-notice_apt_worker_failure ()
-{
-  //close (apt_worker_in_fd);
-  //close (apt_worker_out_fd);
-  //close (apt_worker_cancel_fd);
-
-  apt_worker_in_fd = -1;
-  apt_worker_out_fd = -1;
-  apt_worker_cancel_fd = -1;
-
-  cancel_all_pending_requests ();
-
-  annoy_user_with_log (_("ai_ni_operation_failed"));
-}
-
 static bool
 must_read (void *buf, size_t n)
 {
@@ -313,7 +327,7 @@ must_read (void *buf, size_t n)
 	}
       else if (r == 0)
 	{
-	  add_log ("apt-worker exited.\n");
+	  add_log ("apt-worker closed connection.\n");
 	  return false;
 	}
       n -= r;
