@@ -204,11 +204,11 @@ documented in the header files.
 BUGS
 ----
 
-- don't rely on apt-worker startup being successful.
 - use doubles for sizes, maybe
 - Don't backup pre-configured catalogues
 - Polish multi-package flow
 - "Unable to refresh all catalogues"
+- Conflict reporting
 
 Cleanup
 -------
