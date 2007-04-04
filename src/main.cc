@@ -59,8 +59,6 @@ extern "C" {
 
 using namespace std;
 
-static guint apt_source_id;
-
 static void set_details_callback (void (*func) (gpointer), gpointer data);
 static void set_operation_label (const char *label, const char *insens);
 static void set_operation_callback (void (*func) (gpointer), gpointer data);
@@ -2934,29 +2932,8 @@ apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
   int already = dec->decode_int ();
   int total = dec->decode_int ();
 
-  set_progress ((apt_proto_operation)op, already, total);
-}
-
-static gboolean
-handle_apt_worker (GIOChannel *channel, GIOCondition cond, gpointer data)
-{
-  if (apt_worker_is_running ())
-    {
-      handle_one_apt_worker_response ();
-      return TRUE;
-    }
-  else
-    return FALSE;
-}
-
-void
-add_apt_worker_handler ()
-{
-  GIOChannel *channel = g_io_channel_unix_new (apt_worker_in_fd);
-  apt_source_id = g_io_add_watch (channel,
-				  GIOCondition (G_IO_IN | G_IO_HUP | G_IO_ERR),
-				  handle_apt_worker, NULL);
-  g_io_channel_unref (channel);
+  if (total > 0)
+    set_progress ((apt_proto_operation)op, already, total);
 }
 
 static GtkWindow *main_window = NULL;
@@ -3205,25 +3182,6 @@ call_refresh_package_cache (GtkWidget *button, gpointer data)
   refresh_package_cache (APTSTATE_DEFAULT, true);
 }
 
-static void
-start_apt_worker_reply (gboolean res, void *data)
-{
-  GtkWidget *note = GTK_WIDGET (data);
-
-  gtk_widget_destroy (note);
-  if (res)
-    {
-      apt_worker_set_status_callback (apt_status_callback, NULL);
-      add_apt_worker_handler ();
-      
-      get_package_list (APTSTATE_DEFAULT);
-    }
-  else
-    {
-      annoy_user (_("ai_ni_operation_failed"));
-    }
-}
-
 static gboolean
 xxx_open_file_when_idle (gpointer data)
 {
@@ -3236,8 +3194,6 @@ int
 main (int argc, char **argv)
 {
   GtkWidget *window;
-  GtkWidget *start_note;
-  GtkWidget *progressbar;
   GtkWidget *toolbar, *image;
   GtkMenu *main_menu;
   char *apt_worker_prog = "/usr/libexec/apt-worker";
@@ -3389,32 +3345,17 @@ main (int argc, char **argv)
   state.shutdown_ind = true;
   osso_hw_set_event_cb (osso_ctxt, &state, hw_state_handler, NULL);
 
-  progressbar = gtk_progress_bar_new ();
-  gtk_progress_bar_set_pulse_step (GTK_PROGRESS_BAR (progressbar), 0.1);
-  start_note = hildon_note_new_cancel_with_progress_bar (GTK_WINDOW (window), "Starting", GTK_PROGRESS_BAR (progressbar));
-  g_signal_connect (G_OBJECT (start_note), "response", gtk_main_quit, NULL);
+  if (!start_apt_worker (apt_worker_prog))
+    annoy_user (_("ai_ni_operation_failed"));
 
-  start_apt_worker (apt_worker_prog, start_apt_worker_reply, (void *) start_note, 
-		    (apt_worker_start_callback_tick *) gtk_progress_bar_pulse, (void *) progressbar);
+  apt_worker_set_status_callback (apt_status_callback, NULL);
+
+  get_package_list (APTSTATE_DEFAULT);
 
   osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);
 
   gtk_widget_show_all (window);
-  gtk_widget_show_all (start_note);
   push_dialog_parent (window);
-
-  while (g_main_context_pending (NULL))
-    g_main_context_iteration (NULL, FALSE);
-
-  if (!something_started)
-    {
-      something_started = TRUE;
-      mark_keep_running ();
-    }
-  else
-    {
-      gtk_window_iconify (GTK_WINDOW (window));
-    }
 
   g_signal_connect (G_OBJECT (window), "notify::is-topmost", 
 		    G_CALLBACK (window_property_topmost_notify_event), NULL);

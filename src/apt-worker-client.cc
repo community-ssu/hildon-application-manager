@@ -48,29 +48,10 @@ int apt_worker_in_fd = -1;
 int apt_worker_cancel_fd = -1;
 int apt_worker_status_fd = -1;
 
-/* if apt-worker has started up properly */
-gboolean apt_worker_started = FALSE;
-
-/* apt-worker start timeout in miliseconds. If apt-worker doesn't start in this time,
- * then an error is returned. */
-#define APT_WORKER_START_TIMEOUT 3000
+gboolean apt_worker_ready = FALSE;
 
 static void cancel_request (int cmd);
 static void cancel_all_pending_requests ();
-
-static bool status_out_of_space = false;
-
-void
-reset_client_error_status ()
-{
-  status_out_of_space = false;
-}
-
-bool
-client_error_out_of_space ()
-{
-  return status_out_of_space;
-}
 
 static GString *pmstatus_line;
 
@@ -165,139 +146,47 @@ static int
 must_open (char *filename, int flags)
 {
   int fd = open (filename, flags);
-  int arg;
   if (fd < 0)
     {
       log_perror (filename);
       return -1;
     }
-  arg = fcntl (fd, F_GETFL, NULL);
-  arg ^= O_NONBLOCK;
-  fcntl (fd, F_SETFL, arg);
   return fd;
 }
 
-struct try_apt_worker_closure
+static int
+must_open_nonblock (char *filename, int flags)
 {
-  /* current step of apt-worker file opening init */
-  int start_step;
-  apt_worker_start_callback *finished_cb;
-  void *finished_data;
-  apt_worker_start_callback_tick *tick_cb;
-  void *tick_data;
-  /* id of the timeout GSource */
-  guint timeout_id;
-  /* time elapsed since start_apt_worker has been called */
-  guint rounds_passed;
-  int stdout_fd;
-  int stderr_fd;
-};
-
-try_apt_worker_closure *start_closure = NULL;
-
-void
-cancel_apt_worker_start ()
-{
-  if (start_closure != NULL)
+  int fd = must_open (filename, flags | O_NONBLOCK);
+  if (fd >= 0)
     {
-      if (start_closure->timeout_id != 0)
-	{
-	  g_source_remove (start_closure->timeout_id);
-	  start_closure->timeout_id = 0;
-	}
-      if (start_closure->finished_cb)
-	start_closure->finished_cb (FALSE, start_closure->finished_data);
-      delete start_closure;
-      start_closure = NULL;
+      if (fcntl (fd, F_SETFL, flags) < 0)
+	perror ("fcntl");
     }
+  return fd;
 }
 
 static gboolean
-try_apt_worker_start (void *data)
+handle_apt_worker (GIOChannel *channel, GIOCondition cond, gpointer data)
 {
-  try_apt_worker_closure *closure = (try_apt_worker_closure *) data;
-  gboolean end_loop = FALSE;
+  handle_one_apt_worker_response ();
+  return apt_worker_is_running ();
+}
 
-  /* Iterates to open the files in the proper order */
-  while (!end_loop && closure->start_step < 4)
-    {
-      switch (closure->start_step)
-	{
-	case 0:
-	  if ((apt_worker_out_fd = must_open ("/tmp/apt-worker.to", O_WRONLY|O_NONBLOCK)) >= 0)
-	    closure->start_step++;
-	  else
-	    end_loop = TRUE;
-	  break;
-	case 1:
-	  if ((apt_worker_in_fd = must_open ("/tmp/apt-worker.from", O_RDONLY|O_NONBLOCK)) >= 0)
-	    closure->start_step++;
-	  else
-	    end_loop = TRUE;
-	  break;
-	case 2:
-	  if ((apt_worker_status_fd = must_open ("/tmp/apt-worker.status", O_RDONLY|O_NONBLOCK)) >= 0)
-	    closure->start_step++;
-	  else
-	    end_loop = TRUE;
-	  break;
-	case 3:
-	  if ((apt_worker_cancel_fd = must_open ("/tmp/apt-worker.cancel", O_WRONLY|O_NONBLOCK)) >= 0)
-	    closure->start_step++;
-	  else
-	    end_loop = TRUE;
-	  break;
-	default:
-	  break;
-	}
-    }
-  /* If all init steps were done, then call the finish callback and finish initialisation */
-  if (closure->start_step == 4)
-    {
+static guint apt_source_id;
 
-      must_unlink ("/tmp/apt-worker.to");
-      must_unlink ("/tmp/apt-worker.from");
-      must_unlink ("/tmp/apt-worker.status");
-      must_unlink ("/tmp/apt-worker.cancel");
-
-      log_from_fd (closure->stdout_fd);
-      log_from_fd (closure->stderr_fd);
-      setup_pmstatus_from_fd (apt_worker_status_fd);
-      apt_worker_started = TRUE;
-      if (closure->finished_cb)
-	closure->finished_cb (TRUE, closure->finished_data);
-      delete closure;
-      return FALSE;
-    }
-  /* setup timeout if it wasn't set up previously */
-  else if (closure->timeout_id == 0)
-    {
-      closure->timeout_id = g_timeout_add (100, try_apt_worker_start, data);
-      return FALSE;
-    }
-  else
-    {
-      /* If too much time has passed, end the attempts */
-      closure->rounds_passed += 100;
-      if (closure->rounds_passed > APT_WORKER_START_TIMEOUT)
-	{
-	  if (closure->finished_cb)
-	    closure->finished_cb (FALSE, closure->finished_data);
-	  delete closure;
-	  return FALSE;
-	}
-    }
-
-  /* call the ticker function (can be used for progress bars) */
-  if (closure->tick_cb)
-    closure->tick_cb (closure->tick_data);
-
-  return TRUE;	
+static void
+add_apt_worker_handler ()
+{
+  GIOChannel *channel = g_io_channel_unix_new (apt_worker_in_fd);
+  apt_source_id = g_io_add_watch (channel,
+				  GIOCondition (G_IO_IN | G_IO_HUP | G_IO_ERR),
+				  handle_apt_worker, NULL);
+  g_io_channel_unref (channel);
 }
 
 bool
-start_apt_worker (gchar *prog, apt_worker_start_callback *finished_cb, void *finished_data,
-		  apt_worker_start_callback_tick *tick_cb, void *tick_data)
+start_apt_worker (gchar *prog)
 {
   int stdout_fd, stderr_fd;
   GError *error = NULL;
@@ -349,22 +238,37 @@ start_apt_worker (gchar *prog, apt_worker_start_callback *finished_cb, void *fin
       return false;
     }
 
-  // The order here is important and must be the same as in apt-worker
-  // to avoid a dead lock.
+  apt_worker_in_fd = must_open_nonblock ("/tmp/apt-worker.from",
+					 O_RDONLY);
+  apt_worker_status_fd = must_open_nonblock ("/tmp/apt-worker.status", 
+					     O_RDONLY);
+  if (apt_worker_in_fd < 0 || apt_worker_status_fd < 0)
+    return false;
 
-  start_closure = new try_apt_worker_closure;
-  start_closure->start_step = 0;
-  start_closure->finished_cb = finished_cb;
-  start_closure->finished_data = finished_data;
-  start_closure->tick_cb = tick_cb;
-  start_closure->tick_data = tick_data;
-  start_closure->timeout_id = 0;
-  start_closure->rounds_passed = 0;
-  start_closure->stdout_fd = stdout_fd;
-  start_closure->stderr_fd = stderr_fd;
-  try_apt_worker_start (start_closure);
-  
+  log_from_fd (stdout_fd);
+  log_from_fd (stderr_fd);
+  setup_pmstatus_from_fd (apt_worker_status_fd);
+  add_apt_worker_handler ();
+
   return true;
+}
+
+static void send_pending_apt_worker_cmds ();
+
+static void
+finish_apt_worker_startup ()
+{
+  apt_worker_out_fd = must_open ("/tmp/apt-worker.to", O_WRONLY);
+  apt_worker_cancel_fd = must_open ("/tmp/apt-worker.cancel", O_WRONLY);
+
+  must_unlink ("/tmp/apt-worker.to");
+  must_unlink ("/tmp/apt-worker.from");
+  must_unlink ("/tmp/apt-worker.status");
+  must_unlink ("/tmp/apt-worker.cancel");
+
+  apt_worker_ready = TRUE;
+
+  send_pending_apt_worker_cmds ();
 }
 
 void
@@ -445,7 +349,7 @@ must_write (void *buf, int n)
 bool
 apt_worker_is_running ()
 {
-  return apt_worker_out_fd > 0;
+  return apt_worker_in_fd > 0;
 }
 
 bool
@@ -464,11 +368,44 @@ next_seq ()
 
 struct pending_request {
   int seq;
+  int state;
+
+  char *data;   // data != NULL means that this is a delayed command,
+  int len;      // see send_pending_apt_worker_cmds.
+
   apt_worker_callback *done_callback;
   void *done_data;
 };
 
 static pending_request pending[APTCMD_MAX];
+
+static void
+send_apt_worker_cmd (int cmd)
+{
+  if (!send_apt_worker_request (cmd,
+				pending[cmd].state,
+				pending[cmd].seq,
+				pending[cmd].data,
+				pending[cmd].len))
+    {
+      annoy_user_with_log (_("ai_ni_operation_failed"));
+      cancel_request (cmd);
+    }
+}
+
+static void
+send_pending_apt_worker_cmds ()
+{
+  for (int cmd = 0; cmd < APTCMD_MAX; cmd++)
+    {
+      if (pending[cmd].data)
+	{
+	  send_apt_worker_cmd (cmd);
+	  g_free (pending[cmd].data);
+	  pending[cmd].data = NULL;
+	}
+    }
+}
 
 void
 call_apt_worker (int cmd, int state, char *data, int len,
@@ -477,9 +414,9 @@ call_apt_worker (int cmd, int state, char *data, int len,
 {
   assert (cmd >= 0 && cmd < APTCMD_MAX);
 
-  if (!apt_worker_started)
+  if (!apt_worker_is_running ())
     {
-      fprintf (stderr, "apt-worker is not running\n");
+      add_log ("apt-worker is not running\n");
       done_callback (cmd, NULL, done_data);
     }
   else if (pending[cmd].done_callback)
@@ -490,12 +427,22 @@ call_apt_worker (int cmd, int state, char *data, int len,
   else
     {
       pending[cmd].seq = next_seq ();
+      pending[cmd].state = state;
       pending[cmd].done_callback = done_callback;
       pending[cmd].done_data = done_data;
-      if (!send_apt_worker_request (cmd, state, pending[cmd].seq, data, len))
+
+      if (apt_worker_ready)
 	{
-	  annoy_user_with_log (_("ai_ni_operation_failed"));
-	  cancel_request (cmd);
+	  pending[cmd].data = data;
+	  pending[cmd].len = len;
+	  send_apt_worker_cmd (cmd);
+	  pending[cmd].data = NULL;
+	}
+      else
+	{
+	  pending[cmd].data = (char *)g_malloc (len);
+	  pending[cmd].len = len;
+	  memcpy (pending[cmd].data, data, len);
 	}
     }
 }
@@ -560,6 +507,9 @@ handle_one_apt_worker_response ()
       fprintf (stderr, "unrecognized command %d\n", res.cmd);
       return;
     }
+
+  if (!apt_worker_ready)
+    finish_apt_worker_startup ();
 
   dec.reset (response_data, res.len);
 

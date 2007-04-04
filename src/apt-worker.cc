@@ -385,39 +385,45 @@ must_open (char *filename, int flags)
   return fd;
 }
 
-/* MAYBE_READ_BYTE reads a byte from FD if one is available without
-   blocking.  If there is one, it is returned (as an unsigned number).
-   Otherwise, -1 is returned.
-*/
-static int
-maybe_read_byte (int fd)
+static void
+must_set_flags (int fd, int flags)
+{
+  if (fcntl (fd, F_SETFL, flags) < 0)
+    {
+      perror ("apt-worker fcntl");
+      exit (1);
+    }
+}
+
+static void
+block_for_read (int fd)
 {
   fd_set set;
   FD_ZERO (&set);
   FD_SET (fd, &set);
-  struct timeval timeout;
-  timeout.tv_sec = 0;
-  timeout.tv_usec = 0;
 
-  if (select (fd+1, &set, NULL, NULL, &timeout) > 0)
+  if (select (fd+1, &set, NULL, NULL, NULL) < 0)
     {
-      if (FD_ISSET (fd, &set))
-	{
-	  unsigned char byte;
-	  if (read (fd, &byte, 1) == 1)
-	    return byte;
-	}
+      perror ("apt-worker select");
+      exit (1);
     }
+}
+
+static int
+read_byte (int fd)
+{
+  unsigned char byte;
+  if (read (fd, &byte, 1) == 1)
+    return byte;
   return -1;
 }
 
-/* DRAIN_FD reads all bytes from FD that are available without
-   blocking.
+/* DRAIN_FD reads all bytes from FD that are available.
 */
 static void
 drain_fd (int fd)
 {
-  while (maybe_read_byte (fd) >= 0)
+  while (read_byte (fd) >= 0)
     ;
 }
 
@@ -500,7 +506,7 @@ must_read (void *buf, size_t n)
       r = read (input_fd, buf, n);
       if (r < 0)
 	{
-	  perror ("read");
+	  perror ("apt-worker read");
 	  exit (1);
 	}
       else if (r == 0)
@@ -518,7 +524,7 @@ must_write (void *buf, ssize_t n)
 {
   if (n > 0 && write (output_fd, buf, n) != n)
     {
-      perror ("write");
+      perror ("apt-worker write");
       exit (1);
     }
 }
@@ -760,6 +766,9 @@ handle_request ()
   send_response_raw (req.cmd, req.seq,
 		     response.get_buf (), response.get_len ());
 
+  DBG ("sent resp %s/%d/%d",
+       cmd_names[req.cmd], req.seq, response.get_len ());
+
   free_buf (reqbuf, stack_reqbuf);
 
   if (state->init_cache_after_request)
@@ -784,12 +793,25 @@ main (int argc, char **argv)
 
   DBG ("starting up");
 
-  /* The order here is important to avoid deadlocks with the frontend.
-   */
-  input_fd = must_open (argv[1], O_RDONLY);
+  input_fd = must_open (argv[1], O_RDONLY | O_NONBLOCK);
+  cancel_fd = must_open (argv[4], O_RDONLY | O_NONBLOCK);
   output_fd = must_open (argv[2], O_WRONLY);
   status_fd = must_open (argv[3], O_WRONLY);
-  cancel_fd = must_open (argv[4], O_RDONLY);
+
+  /* This tells the frontend that the fifos are open.
+   */
+  send_status (op_general, 0, 0, -1);
+
+  /* This blocks until the frontend has opened our input fifo for
+     writing.
+  */
+  block_for_read (input_fd);
+
+  /* Reset the O_NONBLOCK flag for the input_fd since we want to block
+     until a new request arrives.  The cancel_fd remains in
+     non-blocking mode since we just poll it periodically.
+  */
+  must_set_flags (input_fd, O_RDONLY);
 
   options = argv[5];
 
@@ -909,7 +931,9 @@ class DownloadStatus : public pkgAcquireStatus
 
     send_status (op_downloading, (int)CurrentBytes, (int)TotalBytes, 1000);
 
-    if (maybe_read_byte (cancel_fd) >= 0)
+    /* The cancel_fd is in non-blocking mode.
+     */
+    if (read_byte (cancel_fd) >= 0)
       return false;
 
     return true;

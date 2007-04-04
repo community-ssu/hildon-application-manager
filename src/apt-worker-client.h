@@ -31,11 +31,8 @@
 
 extern int apt_worker_in_fd, apt_worker_out_fd;
 
-typedef void apt_worker_start_callback (gboolean res, void *data);
-typedef void apt_worker_start_callback_tick (void *data);
+bool start_apt_worker (gchar *prog);
 
-bool start_apt_worker (gchar *prog, apt_worker_start_callback *finished_cb, void *finished_data,
-		       apt_worker_start_callback_tick *tick_cb, void *tick_data);
 void cancel_apt_worker ();
 
 typedef void apt_worker_callback (int cmd,

@@ -473,12 +473,6 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
 				   problems_page);
 }
 
-static void
-show_with_details (package_info *pi, bool show_problems)
-{
-  show_with_details_with_cont(pi, show_problems, NULL, NULL);
-}
-
 void
 nicify_description_in_place (char *desc)
 {
