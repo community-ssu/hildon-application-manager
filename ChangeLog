@@ -1,5 +1,8 @@
 2007-04-04  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/main.cc (check_catalogues_reply): Test "catalogues" for
+	NULL, not "dec", stupid.
+
 	Robustify against startup failures of apt-worker by not havong the
 	frontend block until the apt-worker is ready.
 	
