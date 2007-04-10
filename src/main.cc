@@ -79,7 +79,6 @@ GtkWidget *device_label = NULL;
 GtkWidget *cur_view = NULL;
 view *cur_view_struct = NULL;
 GList *cur_path = NULL;
-gboolean something_started = FALSE;
 
 static GList *
 make_view_path (view *v)
@@ -2945,22 +2944,9 @@ mime_open_handler (gpointer raw_data, int argc, char **argv)
     {
       const char *filename = argv[0];
 
-//       if (something_started)
-// 	{
-// 	  present_main_window ();
-// 	}
-      push_no_parent ();
+      present_main_window ();
       install_from_file_cont (g_strdup (filename), NULL);
-      gtk_window_iconify (GTK_WINDOW(main_window));
-      something_started = TRUE;
     }
-}
-
-static void
-hw_state_handler (osso_hw_state_t *state, gpointer data)
-{
-  if (state->shutdown_ind)
-    gtk_main_quit ();
 }
 
 static GtkWidget *toolbar_operation_label = NULL;
@@ -3047,22 +3033,6 @@ set_toolbar_visibility (bool fullscreen, bool visibility)
 	set_current_toolbar_visibility (visibility);
     }
   save_settings ();
-}
-
-/* If application becomes topmost, app manager should be
- * marked to keep running even when there's a dialog flow
- * running and it finishes. */
-static void
-window_property_topmost_notify_event (GObject *object,
-				      GParamSpec *param_spec,
-				      gpointer user_data)
-{
-  gboolean is_topmost = FALSE;
-  
-  g_object_get (object, "is-topmost", &is_topmost, NULL);
-
-  if (is_topmost)
-    mark_keep_running ();
 }
 
 static gboolean
@@ -3233,7 +3203,6 @@ main (int argc, char **argv)
 
   window = hildon_window_new ();
   gtk_window_set_title (GTK_WINDOW (window), _("ai_ap_application_installer"));
-//   push_dialog_parent (window);
 
   main_window = GTK_WINDOW (window);
 
@@ -3332,18 +3301,9 @@ main (int argc, char **argv)
   create_menu (main_menu);
   hildon_window_set_menu (HILDON_WINDOW (window), GTK_MENU (main_menu));
 
-  osso_ctxt = osso_initialize ("hildon_application_manager",
-			       PACKAGE_VERSION, TRUE, NULL);
-
   show_view (&main_view);
   set_toolbar_visibility (true, fullscreen_toolbar);
   set_toolbar_visibility (false, normal_toolbar);
-
-  /* XXX - check errors.
-   */
-  osso_hw_state_t state = { 0 };
-  state.shutdown_ind = true;
-  osso_hw_set_event_cb (osso_ctxt, &state, hw_state_handler, NULL);
 
   if (!start_apt_worker (apt_worker_prog))
     annoy_user (_("ai_ni_operation_failed"));
@@ -3352,13 +3312,15 @@ main (int argc, char **argv)
 
   get_package_list (APTSTATE_DEFAULT);
 
+  /* XXX - check errors.
+   */
+  osso_ctxt = osso_initialize ("hildon_application_manager",
+			       PACKAGE_VERSION, TRUE, NULL);
+
   osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);
 
   gtk_widget_show_all (window);
   push_dialog_parent (window);
-
-  g_signal_connect (G_OBJECT (window), "notify::is-topmost", 
-		    G_CALLBACK (window_property_topmost_notify_event), NULL);
 
   if (file_to_open)
     g_timeout_add (500, xxx_open_file_when_idle, file_to_open);
