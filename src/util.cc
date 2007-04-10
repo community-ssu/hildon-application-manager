@@ -72,7 +72,6 @@ extern "C" {
                           "',member='" BTNAME_SIG_CHANGED "'"
 
 static GSList *dialog_parents = NULL;
-gboolean keep_running = FALSE;
 
 /* Obtain the current dialog parent for newly instantiated dialogs */
 GtkWindow *
@@ -123,13 +122,6 @@ void end_dialog_flow ()
       dialog_parents = dialog_parents->next;
       g_slist_free_1 (old);
     }
-
-  /* The dialog flow is the only reason for the app manager
-   * to be running. Then it should close the app manager when
-   * the dialog flow ends.
-   */
-  if (!keep_running)
-    gtk_main_quit ();
 }
 
 struct ayn_closure {
@@ -2732,11 +2724,5 @@ void
 grab_focus_on_map (GtkWidget *widget)
 {
   g_signal_connect (widget, "map", G_CALLBACK (grab_focus), NULL);
-}
-
-void
-mark_keep_running ()
-{
-  keep_running = TRUE;
 }
 

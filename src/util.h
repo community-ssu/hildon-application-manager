@@ -467,7 +467,4 @@ void respond_on_escape (GtkDialog *dialog, int response);
 */
 void grab_focus_on_map (GtkWidget *widget);
 
-/* Mark as the application should keep running when the dialog flows end */
-void mark_keep_running ();
-
 #endif /* !UTIL_H */
