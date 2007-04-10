@@ -435,7 +435,7 @@ call_apt_worker (int cmd, int state, char *data, int len,
     }
   else if (pending[cmd].done_callback)
     {
-      fprintf (stderr, "apt-worker command %d already pending\n", cmd);
+      add_log ("apt-worker command %d already pending\n", cmd);
       done_callback (cmd, NULL, done_data);
     }
   else
@@ -454,7 +454,12 @@ call_apt_worker (int cmd, int state, char *data, int len,
 	}
       else
 	{
-	  pending[cmd].data = (char *)g_malloc (len);
+	  /* We need to make sure that pending[cmd].data is not NULL,
+	     since that is the flag that tells
+	     send_pending_apt_worker_cmds that this command is indeed
+	     pending.
+	  */
+	  pending[cmd].data = (char *)g_malloc (len == 0? 1 : len);
 	  pending[cmd].len = len;
 	  memcpy (pending[cmd].data, data, len);
 	}
