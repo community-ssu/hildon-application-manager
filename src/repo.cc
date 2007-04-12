@@ -90,7 +90,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
 static void
 pill_response (GtkDialog *dialog, gint response, gpointer unused)
 {
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (red_pill_mode != (response == GTK_RESPONSE_YES))
@@ -354,7 +354,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
   delete c;
 
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 }
 
@@ -761,7 +761,7 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       xexp_free (c->catalogues_xexp);
 
       delete c;
-      pop_dialog_parent ();
+      pop_dialog_parent (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
     }
 }

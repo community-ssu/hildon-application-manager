@@ -108,7 +108,7 @@ search_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
       search_packages (pattern, in_descriptions);
     }
 
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
   delete c;
 }

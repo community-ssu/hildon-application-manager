@@ -158,7 +158,7 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
 
   if (response == GTK_RESPONSE_CLOSE)
     {
-      pop_dialog_parent ();
+      pop_dialog_parent (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
     }
 }

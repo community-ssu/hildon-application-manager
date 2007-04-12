@@ -249,7 +249,7 @@ settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
 
   delete c;
 
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));  
 }
 
@@ -297,7 +297,7 @@ sort_settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
       sort_all_packages ();
     }
 
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 }
 
