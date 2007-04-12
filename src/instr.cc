@@ -410,8 +410,11 @@ execute_install_package (GKeyFile *keyfile, const char *entry,
   c->cont = cont;
   c->data = data;
 
-  xexp_append (catalogues, comp_catalogues);
-
+  if (catalogues == NULL)
+    catalogues = comp_catalogues;
+  else if (comp_catalogues)
+    xexp_append (catalogues, comp_catalogues);
+  
   if (catalogues)
     {
       if (xexp_is_empty (catalogues))
