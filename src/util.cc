@@ -1987,31 +1987,44 @@ static char *copy_tempdir;
 static GnomeVFSHandle *copy_vfs_handle;
 
 static void
+fail_copy_cont (void *data)
+{
+  copy_cont (NULL, copy_cont_data);
+  copy_cont = NULL;
+}
+
+static void
 call_copy_cont (GnomeVFSResult result)
 {
   hide_progress ();
 
-  if (result == GNOME_VFS_ERROR_IO)
-    annoy_user (dgettext ("hildon-common-strings",
-			  "sfil_ni_cannot_open_no_connection"));
-  else if (result == GNOME_VFS_ERROR_CANCELLED)
-    ;
-  else if (result != GNOME_VFS_OK)
-    annoy_user (_("ai_ni_operation_failed"));
-
-  if (copy_cont)
+  if (result == GNOME_VFS_OK)
     {
-      if (result == GNOME_VFS_OK)
-	copy_cont (copy_target, copy_cont_data);
-      else
+      copy_cont (copy_target, copy_cont_data);
+      copy_cont = NULL;
+    }
+  else
+    {
+      cleanup_temp_file ();
+      g_free (copy_target);
+      
+      if (result == GNOME_VFS_ERROR_IO)
 	{
-	  cleanup_temp_file ();
-	  g_free (copy_target);
+	  annoy_user_with_cont (dgettext ("hildon-common-strings",
+					  "sfil_ni_cannot_open_no_connection"),
+				fail_copy_cont, NULL);
+	}
+      else if (result == GNOME_VFS_ERROR_CANCELLED)
+	{
 	  copy_cont (NULL, copy_cont_data);
+	  copy_cont = NULL;
+	}
+      else if (result != GNOME_VFS_OK)
+	{
+	  annoy_user_with_cont (_("ai_ni_operation_failed"),
+				fail_copy_cont, NULL);
 	}
     }
-
-  copy_cont = NULL;
 }
 
 static gboolean
