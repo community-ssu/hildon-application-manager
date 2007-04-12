@@ -88,6 +88,7 @@ void apt_worker_get_package_info (int state,
 void apt_worker_get_package_details (const char *package,
 				     const char *version,
 				     int summary_kind,
+				     int state,
 				     apt_worker_callback *callback,
 				     void *data);
 

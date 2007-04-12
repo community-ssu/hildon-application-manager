@@ -674,6 +674,7 @@ void
 apt_worker_get_package_details (const char *package,
 				const char *version,
 				int summary_kind,
+				int state,
 				apt_worker_callback *callback,
 				void *data)
 {
@@ -681,7 +682,7 @@ apt_worker_get_package_details (const char *package,
   request.encode_string (package);
   request.encode_string (version);
   request.encode_int (summary_kind);
-  call_apt_worker (APTCMD_GET_PACKAGE_DETAILS, APTSTATE_DEFAULT,
+  call_apt_worker (APTCMD_GET_PACKAGE_DETAILS, state,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
