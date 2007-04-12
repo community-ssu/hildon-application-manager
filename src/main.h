@@ -34,12 +34,6 @@ enum detail_kind {
   remove_details = 2
 };
 
-enum {
-  INSTALL_TYPE_STANDARD = 0,
-  INSTALL_TYPE_BACKUP = 1,
-  INSTALL_TYPE_MEMORY_CARD = 2
-};
-
 struct package_info {
 
   package_info ();
@@ -74,8 +68,6 @@ struct package_info {
 
   GtkTreeModel *model;
   GtkTreeIter iter;
-
-  char *filename;
 };
 
 void get_intermediate_package_info (package_info *pi,
@@ -102,18 +94,25 @@ struct section_info {
 };
 
 void get_package_list (int state);
-void get_package_list_with_cont (int state, void (*cont) (void *data), void *data);
+void get_package_list_with_cont (int state,
+				 void (*cont) (void *data), void *data);
 void show_current_details ();
 void do_current_operation ();
-void install_named_package (int state, const char *package, void (*cont) (void *data), void *data);
-void install_named_packages (int state, const char **package, int install_type);
+
+void install_named_package (int state, const char *package,
+			    void (*cont) (void *data), void *data);
+void install_named_packages (int state, const char **package, int install_type,
+			     void (*cont) (void *data), void *data);
+
 void refresh_package_cache (int state, 
 			    bool ask);
 void refresh_package_cache_with_cont (int state,
 				      bool ask,
 				      void (*cont) (bool res, void *data), 
 				      void *data);
-void install_from_file ();
+
+void install_from_file_flow (const char *filename);
+
 void sort_all_packages ();
 void show_main_view ();
 void show_parent_view ();
