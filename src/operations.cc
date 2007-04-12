@@ -116,6 +116,25 @@ installable_status_to_message (package_info *pi,
     msg = g_strdup (smsg);
 }
 
+/* Take a snapshot of the data we want to keep in a backup.
+*/
+
+static void save_backup_data_reply (int cmd, apt_proto_decoder *dec, 
+				    void *data);
+
+static void
+save_backup_data ()
+{
+  apt_worker_save_backup_data (save_backup_data_reply, NULL);
+}
+
+static void
+save_backup_data_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  /* No action required */
+}
+
+
 /* INSTALL_PACKAGES - Overview
 
    0. Filter out already installed packages.  When the list is empty
@@ -775,6 +794,7 @@ ip_end (void *data)
   ip_clos *c = (ip_clos *)data;
 
   get_package_list (APTSTATE_DEFAULT);
+  save_backup_data ();
 
   c->cont (c->data);
   delete c;
@@ -959,6 +979,7 @@ up_remove_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   int success = dec->decode_int ();
   get_package_list (APTSTATE_DEFAULT);
+  save_backup_data ();
 
   if (success)
     {
@@ -1163,6 +1184,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
   int success = dec->decode_int ();
 
   get_package_list (APTSTATE_DEFAULT);
+  save_backup_data ();
 
   if (success)
     {
