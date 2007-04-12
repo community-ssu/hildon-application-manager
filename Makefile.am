@@ -12,6 +12,9 @@ mime_DATA = hildon-application-manager.xml
 backupdir = $(sysconfdir)/osso-backup/applications/
 backup_DATA = hildon-application-manager.conf
 
+restoredir = $(sysconfdir)/osso-backup/restore.d/always/
+restore_DATA = hildon-application-manager.sh
+
 etcdir = $(sysconfdir)/hildon-application-manager/
 
 install-data-local:
@@ -20,10 +23,11 @@ install-data-local:
           echo "<catalogues/>" >$(DESTDIR)$(etcdir)/catalogues; \
         fi
 
-EXTRA_DIST = hildon-application-manager.desktop	                \
+EXTRA_DIST = hildon-application-manager.desktop			\
              com.nokia.hildon_application_manager.service	\
              hildon-application-manager.xml			\
-             hildon-application-manager.conf
+             hildon-application-manager.conf			\
+             hildon-application-manager.sh
 
 deb:
 	./make-package $(PACKAGE) $(VERSION) .
