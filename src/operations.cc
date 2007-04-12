@@ -126,7 +126,6 @@ installable_status_to_message (package_info *pi,
       except the first are ignored and a single package confirmation
       dialog is used.
 
-   XXX
    2. Make sure that the network is up when this is not a card install.
 
    3. Check for certified packages.  For each of the selected
@@ -355,7 +354,10 @@ ip_confirm_install_response (bool res, void *data)
 static void
 ip_ensure_network (ip_clos *c)
 {
-  ensure_network (ip_ensure_network_reply, c);
+  if (c->install_type != INSTALL_TYPE_MEMORY_CARD)
+    ensure_network (ip_ensure_network_reply, c);
+  else
+    ip_check_cert (c);
 }
 
 static void
