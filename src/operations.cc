@@ -357,7 +357,7 @@ ip_ensure_network (ip_clos *c)
   if (c->install_type != INSTALL_TYPE_MEMORY_CARD)
     ensure_network (ip_ensure_network_reply, c);
   else
-    ip_check_cert (c);
+    ip_check_cert_start (c);
 }
 
 static void
