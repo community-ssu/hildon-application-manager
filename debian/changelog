@@ -1,3 +1,9 @@
+hildon-application-manager (1:1.9.5) unstable; urgency=low
+
+  * Released again with all sources committed to svn.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 12 Apr 2007 17:27:55 +0300
+
 hildon-application-manager (1:1.9.4) unstable; urgency=low
 
   * Rewrite of interaction flows; still a bit incomplete.

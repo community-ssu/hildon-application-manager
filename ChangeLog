@@ -1,5 +1,9 @@
 2007-04-12  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 1.9.5
+	
+	* Makefile.am: Do not install restore script and 00-smallcache.
+
 	Released 1.9.4
 	
 	* src/instr.cc (execute_install_package): Merge catalogues
