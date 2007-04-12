@@ -812,11 +812,11 @@ apt_worker_get_file_details (bool only_user, const char *file,
 }
 
 void
-apt_worker_save_applications_install_file (apt_worker_callback *callback,
-					   void *data)
+apt_worker_save_backup_data (apt_worker_callback *callback,
+			     void *data)
 {
   request.reset ();
-  call_apt_worker (APTCMD_SAVE_APPLICATIONS_INSTALL_FILE, APTSTATE_DEFAULT,
+  call_apt_worker (APTCMD_SAVE_BACKUP_DATA, APTSTATE_DEFAULT,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
