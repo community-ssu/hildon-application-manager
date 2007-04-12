@@ -58,6 +58,10 @@ if [ ! -e /var/lib/osso-application-installer ]; then
   ln -s hildon-application-manager /var/lib/osso-application-installer
 fi
 
+## Clean away old configuration files
+
+rm -f /etc/osso-backup/applications/osso-application-manager.conf
+
 ## Add line to sudo so that "user" can run "apt-worker" as
 ## "root".
 ##
