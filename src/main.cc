@@ -688,22 +688,6 @@ sort_all_packages ()
   show_view (cur_view_struct);
 }
 
-static void
-save_keys_callback (int cmd, apt_proto_decoder *dec, void *data)
-{
-  /* No action required */
-}
-
-/* Save the list of installed packages, in the Single-click
-   install file format. It's used to store a backup of installed files.
-*/
-static void
-save_installed_packages_file ()
-{
-  apt_worker_save_applications_install_file (save_keys_callback, NULL);
-}
-
-
 struct gpl_closure {
   int state;
   void (*cont) (void *data);
@@ -805,8 +789,6 @@ get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
     }
 
   sort_all_packages ();
-
-  save_installed_packages_file ();
 
   /* We switch to the parent view if the current one is the search
      results view.
@@ -1980,6 +1962,78 @@ set_operation_callback (void (*func) (gpointer), gpointer data)
 		       insensitive_operation_press_label);
 }
 
+/* Reinstalling the packages form the recently restored backup.
+ */
+
+static void rp_restore (bool res, void *data);
+static void rp_end (void *data);
+
+void
+restore_packages_flow ()
+{
+  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
+    {
+      char *filename =
+	g_strdup_printf ("%s/.hildon-application-manager.backup",
+			 g_get_home_dir ());
+      xexp *backup = xexp_read_file (filename);
+      g_free (filename);
+      
+      if (backup)
+	{
+	  xexp *catalogues = xexp_aref (backup, "catalogues");
+	  if (catalogues)
+	    add_catalogues (catalogues, false, true,
+			    rp_restore, backup);
+	  else
+	    rp_restore (true, backup);
+	}
+      else
+	{
+	  annoy_user_with_cont (_("ai_ni_operation_failed"),
+				rp_end, backup);
+	}
+    }
+}
+
+static void
+rp_restore (bool res, void *data)
+{
+  xexp *backup = (xexp *)data;
+  xexp *packages = xexp_aref (backup, "packages");
+  if (packages)
+    {
+      int len = xexp_length (packages);
+      const char **names = (const char **)new char* [len+1];
+
+      xexp *p = xexp_first (packages);
+      int i = 0;
+      while (p)
+	{
+	  if (xexp_is (p, "pkg") && xexp_is_text (p))
+	    names[i++] = xexp_text (p);
+	  p = xexp_rest (p);
+	}
+      names[i] = NULL;
+      install_named_packages (APTSTATE_DEFAULT, names, INSTALL_TYPE_BACKUP,
+			      rp_end, backup);
+      delete names;
+    }
+  else
+    rp_end (backup);
+}
+
+static void
+rp_end (void *data)
+{
+  xexp *backup = (xexp *)data;
+
+  if (backup)
+    xexp_free (backup);
+
+  end_interaction_flow (GTK_WIDGET (get_main_window ()));
+}
+
 /* Installing from file
  */
 
@@ -2005,6 +2059,8 @@ install_from_local_file (char *filename, void *unused)
 	xxx_install_local_deb_file (filename,
 				    install_from_file_flow_end, filename);
     }
+  else
+    install_from_file_flow_end (filename);
 }
 
 static void
@@ -2069,7 +2125,10 @@ mime_open_handler (gpointer raw_data, int argc, char **argv)
       const char *filename = argv[0];
 
       present_main_window ();
-      install_from_file_flow (filename);
+      if (g_str_has_suffix (filename, ".backup"))
+	restore_packages_flow ();
+      else
+	install_from_file_flow (filename);
     }
 }
 
