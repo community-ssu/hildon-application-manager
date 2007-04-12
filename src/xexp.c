@@ -160,6 +160,22 @@ xexp_append_1 (xexp *x, xexp *y)
 }
 
 void
+xexp_append (xexp *x, xexp *y)
+{
+  xexp **yptr;
+
+  g_return_if_fail (xexp_is_list (x));
+  g_return_if_fail (xexp_is_list (y));
+  g_return_if_fail (xexp_rest (y) == NULL);
+
+  for (yptr = &x->first; *yptr; yptr = &(*yptr)->rest)
+    ;
+  *yptr = y->first;
+  y->first = NULL;
+  xexp_free (y);
+}
+
+void
 xexp_reverse (xexp *x)
 {
   xexp *y, *f;

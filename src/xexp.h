@@ -157,6 +157,11 @@
    Append Y to the end of the list of children of X.  X must be a list
    xexp.  Y must be a free standing xexp.
 
+   - void xexp_append (xexp *X, xexp *Y)
+
+   Append all children of Y to the end of the children of X.  X and Y
+   must be a list xexps.  Y must be a free standing xexp and is freed.
+
    - void xexp_reverse (xexp *X)
 
    Reverse the order of the children of X.  X must be a list xexp.
@@ -287,6 +292,7 @@ xexp *xexp_first (xexp *x);
 int xexp_length (xexp *x);
 void xexp_cons (xexp *x, xexp *y);
 void xexp_append_1 (xexp *x, xexp *y);
+void xexp_append (xexp *x, xexp *y);
 void xexp_reverse (xexp *x);
 void xexp_del (xexp *x, xexp *y);
 
