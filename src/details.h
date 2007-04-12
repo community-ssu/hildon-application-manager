@@ -27,11 +27,7 @@
 #include "main.h"
 
 void show_package_details (package_info *p, detail_kind kind,
-			   bool show_problems);
-void show_package_details_with_cont (package_info *pi, detail_kind kind,
-				     bool show_problems,
-				     void (*cont) (void *data),
-				     void *data);
+			   bool show_problems, int state);
 
 void decode_summary (apt_proto_decoder *dec,
 		     package_info *pi, detail_kind kind);

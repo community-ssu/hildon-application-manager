@@ -38,6 +38,7 @@ struct spd_closure {
   package_info *pi;
   detail_kind kind;
   bool show_problems;
+  int state;
   void (*cont) (void * data);
   void *data;
 };
@@ -259,7 +260,7 @@ static void
 details_response (GtkDialog *dialog, gint response, gpointer clos)
 {
   details_closure * closure = (details_closure *) clos;
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
   if (closure->cont)
     closure->cont(closure->data);
@@ -563,36 +564,27 @@ spd_cont (package_info *pi, void *data, bool changed)
     apt_worker_get_package_details (pi->name, (c->kind == remove_details
 					       ? pi->installed_version
 					       : pi->available_version),
-				    c->kind,
+				    c->kind, c->state,
 				    get_package_details_reply,
 				    data);
   else
     {
       show_with_details_with_cont (pi, c->show_problems, c->cont, c->data);
       delete c;
-
     }
 }
 
 void
 show_package_details (package_info *pi, detail_kind kind,
-		      bool show_problems)
-{
-  show_package_details_with_cont (pi, kind, show_problems, NULL, NULL);
-}
-
-void
-show_package_details_with_cont (package_info *pi, detail_kind kind,
-				bool show_problems,
-				void (*cont) (void *data),
-				void *data)
+		      bool show_problems, int state)
 {
   spd_closure *c = new spd_closure;
   c->pi = pi;
   c->kind = kind;
   c->show_problems = show_problems;
-  c->cont = cont;
-  c->data = data;
+  c->state = state;
+  c->cont = NULL;
+  c->data = NULL;
   pi->ref ();
-  get_intermediate_package_info (pi, false, spd_cont, c, APTSTATE_DEFAULT);
+  get_intermediate_package_info (pi, false, spd_cont, c, c->state);
 }
