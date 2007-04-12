@@ -26,9 +26,9 @@
 
 /* Carry out the instruction in FILENAME, which is assumed to refer to
    a local file as produced by 'localize_file_and_keep_it_open'.
-   OPEN_LOCAL_INSTALL_INSTRUCTIONS will call 'cleanup_temp_file' when
-   it is done with FILENAME.
+   FILENAME must remain valid until CONT is called.
 */
-void open_local_install_instructions (const char *filename);
+void open_local_install_instructions (const char *filename,
+				      void (*cont) (void *), void *data);
 
 #endif /* !INSTR_H */

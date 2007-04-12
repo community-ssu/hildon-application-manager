@@ -28,6 +28,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+#include "operations.h"
 #include "settings.h"
 #include "util.h"
 #include "log.h"
@@ -42,11 +43,12 @@
 #define LOC_END "]"
 
 static void
-annoy_user_with_gerror (const char *filename, GError *error)
+annoy_user_with_gerror (const char *filename, GError *error,
+			void (*cont) (void *), void *data)
 {
   add_log ("%s: %s\n", filename, error->message);
   g_error_free (error);
-  annoy_user (_("ai_ni_operation_failed"));
+  annoy_user_with_cont (_("ai_ni_operation_failed"), cont, data);
 }
 
 static xexp *
@@ -321,23 +323,31 @@ convert_compatibility_catalogues (GKeyFile *keyfile, const char *group)
   return x;
 }
 
+struct add_catalogues_closure {
+  xexp *catalogues;
+  void (*cont) (void *);
+  void *data;
+};
+
 static void
 add_catalogues_done (bool res, void *data)
 {
-  xexp *catalogues = (xexp *)data;
+  add_catalogues_closure *c = (add_catalogues_closure *)data;
 
-  xexp_free (catalogues);
+  xexp_free (c->catalogues);
+  c->cont (c->data);
 }
 
 static void
-execute_add_catalogues (GKeyFile *keyfile, const char *entry)
+execute_add_catalogues (GKeyFile *keyfile, const char *entry,
+			void (*cont) (void *data), void *data)
 {
   xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues", NULL);
   g_key_file_free (keyfile);
   
   if (catalogues == NULL)
     {
-      annoy_user (_("ai_ni_operation_failed"));
+      annoy_user_with_cont (_("ai_ni_operation_failed"), cont, data);
       return;
     }
 
@@ -347,17 +357,25 @@ execute_add_catalogues (GKeyFile *keyfile, const char *entry)
 	 to begin with, which we treat the same).  That means that
 	 this installation script was not for us.
       */
-      annoy_user (_("ai_ni_error_install_incompatible"));
+      annoy_user_with_cont (_("ai_ni_error_install_incompatible"),
+			    cont, data);
       xexp_free (catalogues);
       return;
     }
     
-  add_catalogues (catalogues, true, false, add_catalogues_done, catalogues);
+  add_catalogues_closure *c = new add_catalogues_closure;
+  c->catalogues = catalogues;
+  c->cont = cont;
+  c->data = data;
+
+  add_catalogues (catalogues, true, false, add_catalogues_done, c);
 }
 
 struct install_package_closure {
   xexp *catalogues;
   gchar *package;
+  void (*cont) (void *data);
+  void *data;
 };
 
 static void
@@ -365,10 +383,10 @@ install_package_cont (bool res, void *data)
 {
   install_package_closure *c = (install_package_closure *)data;
 
-  fprintf (stderr, "CONT %d\n", res);
-
-  if (res)
-    install_named_package (APTSTATE_DEFAULT, c->package, NULL, NULL);
+  if (res && c->package)
+    install_named_package (APTSTATE_DEFAULT, c->package, c->cont, c->data);
+  else
+    c->cont (c->data);
 
   if (c->catalogues)
     xexp_free (c->catalogues);
@@ -377,7 +395,8 @@ install_package_cont (bool res, void *data)
 }
 
 static void
-execute_install_package (GKeyFile *keyfile, const char *entry)
+execute_install_package (GKeyFile *keyfile, const char *entry,
+			 void (*cont) (void *data), void *data)
 {
   gchar *package = g_key_file_get_string (keyfile, entry, "package", NULL);
   xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues", NULL);
@@ -385,26 +404,13 @@ execute_install_package (GKeyFile *keyfile, const char *entry)
 
   g_key_file_free (keyfile);
 
-  if (comp_catalogues)
-    {
-      /* Handle the old form of .install files and ignore any
-	 new-style catalogues.
-      */
-
-      xexp_free (catalogues);
-
-      if (package == NULL)
-	{
-	  add_catalogues (comp_catalogues, true, false,
-			  add_catalogues_done, comp_catalogues);
-	}
-      else
-	catalogues = comp_catalogues;
-    }
-
   install_package_closure *c = new install_package_closure;
   c->catalogues = catalogues;
   c->package = package;
+  c->cont = cont;
+  c->data = data;
+
+  xexp_append (catalogues, comp_catalogues);
 
   if (catalogues)
     {
@@ -414,12 +420,13 @@ execute_install_package (GKeyFile *keyfile, const char *entry)
 	     to begin with, which we treat the same).  That means that
 	     this installation script was not for us.
 	  */
-	  annoy_user (_("ai_ni_error_install_incompatible"));
 	  xexp_free (catalogues);
+	  annoy_user_with_cont (_("ai_ni_error_install_incompatible"),
+				cont, data);
 	  return;
 	}
 
-      add_catalogues (catalogues, true, true,
+      add_catalogues (catalogues, true, c->package != NULL,
 		      install_package_cont, c);
     }
   else
@@ -430,6 +437,8 @@ struct card_install_closure {
   xexp *card_catalogues;
   xexp *perm_catalogues;
   gchar **packages;
+  void (*cont) (void *);
+  void *data;
 };
 
 void
@@ -439,7 +448,10 @@ execute_card_install_cont (bool res, void *data)
 
   if (res)
     install_named_packages (APTSTATE_TEMP, (const char **)c->packages,
-			    INSTALL_TYPE_MEMORY_CARD);
+			    INSTALL_TYPE_MEMORY_CARD,
+			    c->cont, c->data);
+  else
+    c->cont (c->data);
 
   xexp_free (c->card_catalogues);
   xexp_free (c->perm_catalogues);
@@ -449,11 +461,14 @@ execute_card_install_cont (bool res, void *data)
 
 void
 execute_card_install (GKeyFile *keyfile, const char *entry,
-		      const char *filename)
+		      const char *filename,
+		      void (*cont) (void *data), void *data)
+
 {
   if (filename[0] != '/')
     {
       fprintf (stderr, "card-install filename must be absolute\n");
+      cont (data);
       return;
     }
 
@@ -476,7 +491,7 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
       xexp_free (card_catalogues);
       xexp_free (perm_catalogues);
       g_strfreev (packages);
-      annoy_user (_("ai_ni_operation_failed"));
+      annoy_user_with_cont (_("ai_ni_operation_failed"), cont, data);
       return;
     }
 
@@ -490,12 +505,15 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
   c->card_catalogues = card_catalogues;
   c->perm_catalogues = perm_catalogues;
   c->packages = packages;
+  c->cont = cont;
+  c->data = data;
 
   set_temp_catalogues (card_catalogues, execute_card_install_cont, c);
 }
 
 void
-open_local_install_instructions (const char *filename)
+open_local_install_instructions (const char *filename,
+				 void (*cont) (void *data), void *data)
 {
   GError *error = NULL;
 
@@ -504,24 +522,26 @@ open_local_install_instructions (const char *filename)
 				  GKeyFileFlags(G_KEY_FILE_KEEP_TRANSLATIONS),
 				  &error))
     {
-      annoy_user_with_gerror (filename, error);
       g_key_file_free (keyfile);
-      cleanup_temp_file ();
+      annoy_user_with_gerror (filename, error, cont, data);
+      g_error_free (error);
       return;
     }
 
-  cleanup_temp_file ();
-
   if (g_key_file_has_group (keyfile, "install"))
-    execute_install_package (keyfile, "install");
+    execute_install_package (keyfile, "install",
+			     cont, data);
   else if (g_key_file_has_group (keyfile, "catalogues"))
-    execute_add_catalogues (keyfile, "catalogues");
+    execute_add_catalogues (keyfile, "catalogues",
+			    cont, data);
   else if (g_key_file_has_group (keyfile, "card_install"))
-    execute_card_install (keyfile, "card_install", filename);
+    execute_card_install (keyfile, "card_install", filename,
+			  cont, data);
   else
     {
       g_key_file_free (keyfile);
       add_log ("Unrecognized .install file variant\n");
-      annoy_user (_("ai_ni_operation_failed"));
+      annoy_user_with_cont (_("ai_ni_operation_failed"),
+			    cont, data);
     }
 }
