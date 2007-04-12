@@ -171,6 +171,12 @@ call_refresh_package_cache ()
   refresh_package_cache (APTSTATE_DEFAULT, true);
 }
 
+static void
+install_from_file_menu_callback ()
+{
+  install_from_file_flow (NULL);
+}
+
 void
 create_menu (GtkMenu *main)
 {
@@ -185,7 +191,7 @@ create_menu (GtkMenu *main)
 
   add_item (packages,
 	    _("ai_me_package_install_file"), NULL,
-	    install_from_file);
+	    install_from_file_menu_callback);
   details_menu_item = add_item (packages,
 				_("ai_me_package_details"),
 				_("ai_ib_nothing_to_view"),
