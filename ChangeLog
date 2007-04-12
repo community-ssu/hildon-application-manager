@@ -1,5 +1,10 @@
 2007-04-12  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 1.9.4
+	
+	* src/instr.cc (execute_install_package): Merge catalogues
+	correctly also when they are NULL.
+
 	Big rewrite of the interaction flows.  Functionality remains the
 	same, code is hopefully easier to maintain now.
 	

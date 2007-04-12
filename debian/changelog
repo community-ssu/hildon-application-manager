@@ -1,3 +1,9 @@
+hildon-application-manager (1:1.9.4) unstable; urgency=low
+
+  * Rewrite of interaction flows; still a bit incomplete.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 12 Apr 2007 15:48:22 +0300
+
 hildon-application-manager (1:1.9.3) unstable; urgency=low
 
   * Redone frontend/backend handshake during startup.
