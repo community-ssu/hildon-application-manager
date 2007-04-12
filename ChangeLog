@@ -1,3 +1,33 @@
+2007-04-12  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Big rewrite of the interaction flows.  Functionality remains the
+	same, code is hopefully easier to maintain now.
+	
+	* src/util.h (start_interaction_flow, end_interaction_flow): New,
+	use them as appropriate.
+	(pop_dialog_parent): Added window parameter for extra checking.
+	Changed all callers.
+	(start_dialog_flow, end_dialog_flow): Removed.  Changed callers to
+	use start_interaction_flow and end_interaction_flow instead.
+	
+	* src/operations.h, src/operations.cc: New.
+	* src/main.cc: Moved interaction flows from here to operations.cc.
+	* src/Makefile.am (hildon_application_manager_launch_SOURCES):
+	Added them.
+
+	* src/apt-worker-client.cc (apt_worker_get_package_details): Added
+	state parameter.
+
+	* src/details.h (show_package_details_with_cont): Removed.
+	 (show_package_details): Added state parameter.
+
+	* src/xexp.c, src/xep.h (xexp_append): New.
+
+	* src/instr.cc (open_local_install_instructions): Added
+	continuation.  Do not call cleanup_temp_file.
+
+	* src/menu.cc (create_menu): Use install_from_file_flow.
+
 2007-04-04  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.cc (check_catalogues_reply): Test "catalogues" for
