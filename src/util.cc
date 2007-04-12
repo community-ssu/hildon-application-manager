@@ -73,7 +73,6 @@ extern "C" {
 
 static GSList *dialog_parents = NULL;
 
-/* Obtain the current dialog parent for newly instantiated dialogs */
 GtkWindow *
 get_dialog_parent ()
 {
@@ -83,45 +82,52 @@ get_dialog_parent ()
     return NULL;
 }
 
-/* Adds a toplevel to the toplevels stack */
 void
 push_dialog_parent (GtkWidget *w)
 {
   dialog_parents = g_slist_prepend (dialog_parents, w);
 }
 
-/* Adds a NULL to the toplevels stack. It's used to run dialog flows
- * from other windows */
 void
-push_no_parent ()
+pop_dialog_parent (GtkWidget *w)
 {
-  dialog_parents = g_slist_prepend (dialog_parents, NULL);
+  g_assert (dialog_parents && dialog_parents->data == w);
+    
+  {
+    GSList *old = dialog_parents;
+    dialog_parents = dialog_parents->next;
+    g_slist_free_1 (old);
+  }
 }
 
-/* Removes the top dialog of the toplevels stack. */
-void
-pop_dialog_parent ()
+static void
+operation_in_progress_response (GtkDialog *dialog,
+				gint response, gpointer clos)
+{
+  gtk_widget_destroy (GTK_WIDGET (dialog));
+}
+
+bool
+start_interaction_flow (GtkWidget *w)
 {
   if (dialog_parents)
     {
-      GSList *old = dialog_parents;
-      dialog_parents = dialog_parents->next;
-      g_slist_free_1 (old);
-
+      GtkWidget *dialog = hildon_note_new_information 
+	(GTK_WINDOW (w), _("Operation in progress"));
+      g_signal_connect (dialog, "response",
+			G_CALLBACK (operation_in_progress_response), NULL);
+      gtk_widget_show_all (dialog);
+      return false;
     }
+
+  push_dialog_parent (w);
+  return true;
 }
 
-/* Should be run when a dialog flow ends. It checks if there's a NULL
- * in the top of  the toplevels stack and removes it in order to
- * restore the standard behavior of the stack */
-void end_dialog_flow ()
+void
+end_interaction_flow (GtkWidget *w)
 {
-  if ((dialog_parents)&&(dialog_parents->data == NULL))
-    {
-      GSList *old = dialog_parents;
-      dialog_parents = dialog_parents->next;
-      g_slist_free_1 (old);
-    }
+  pop_dialog_parent (w);
 }
 
 struct ayn_closure {
@@ -140,7 +146,7 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
   if (response == 1)
     {
       if (c->pi)
-	show_package_details (c->pi, c->kind, false);
+	show_package_details (c->pi, c->kind, false, APTSTATE_DEFAULT);
       else if (c->details)
 	c->details (c->data);
       return;
@@ -152,12 +158,10 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
     c->pi->unref ();
   delete c;
 
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
   if (cont)
     cont (response == GTK_RESPONSE_OK, data);
-  else
-    end_dialog_flow ();
 }
 
 void
@@ -287,19 +291,13 @@ annoy_user_response (GtkDialog *dialog, gint response, gpointer data)
 {
   auwc_closure * closure_data = (auwc_closure *) data;
 
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
   currently_annoying_user = false;
   if (closure_data != NULL) 
     {
       if (closure_data->cont != NULL)
-	{
-	  closure_data->cont(closure_data->data);
-	}
-      else
-	{
-	  end_dialog_flow ();
-	}
+	closure_data->cont (closure_data->data);
       delete closure_data;
     }
 }
@@ -312,14 +310,13 @@ void
 annoy_user_with_cont (const gchar *text, void (*cont) (void *data), void *data)
 {
 
-  if (currently_annoying_user) {
-    if (cont != NULL) {
-      cont(data);
-    } else {
-      end_dialog_flow ();
+  if (currently_annoying_user) 
+    {
+      if (cont != NULL)
+	cont(data);
       return;
     }
-  }
+
   GtkWidget *dialog;
   auwc_closure * closure_data = new auwc_closure;
 
@@ -348,11 +345,11 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
 
   if (response == 1)
     {
-      show_package_details_with_cont (c->pi, c->kind, true, c->cont, c->data);
+      show_package_details (c->pi, c->kind, true, APTSTATE_DEFAULT);
     }
   else
     {
-      pop_dialog_parent ();
+      pop_dialog_parent (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
       currently_annoying_user = false;
       c->pi->unref ();
@@ -420,7 +417,7 @@ static void
 annoy_user_with_log_response (GtkDialog *dialog, gint response,
 			      gpointer data)
 {
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
   currently_annoying_user = false;
 
@@ -611,7 +608,7 @@ create_progress (const gchar *title, bool with_cancel)
 {
   if (progress_dialog)
     {
-      pop_dialog_parent ();
+      pop_dialog_parent (GTK_WIDGET (progress_dialog));
       gtk_widget_destroy (progress_dialog);
       progress_dialog = NULL;
       progress_bar = NULL;
@@ -765,7 +762,7 @@ hide_progress ()
   if (progress_dialog)
     {
       stop_pulsing ();
-      pop_dialog_parent ();
+      pop_dialog_parent (GTK_WIDGET (progress_dialog));
       gtk_widget_destroy (GTK_WIDGET(progress_bar));
       gtk_widget_destroy (progress_dialog);
       progress_dialog = NULL;
@@ -889,7 +886,8 @@ make_small_text_view (const char *text)
   scroll = gtk_scrolled_window_new (NULL, NULL);
   view = gtk_text_view_new ();
   buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
-  gtk_text_buffer_set_text (buffer, text, -1);
+  if (text)
+    gtk_text_buffer_set_text (buffer, text, -1);
   gtk_text_view_set_editable (GTK_TEXT_VIEW (view), 0);
   gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (view), 0);
   g_signal_connect (view, "button-press-event",
@@ -1568,7 +1566,7 @@ void select_package_list_response (GtkDialog *dialog,
   package_list = g_list_reverse (package_list);
   g_object_unref(closure->list_store);
 
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (closure->cont)
@@ -1586,7 +1584,6 @@ void select_package_list_response (GtkDialog *dialog,
 	    }
 	}
       g_list_free (package_list);
-      end_dialog_flow ();
     }
 
   delete closure;
@@ -1783,7 +1780,7 @@ fcd_response (GtkDialog *dialog, gint response, gpointer clos)
 
   char *uri = gtk_file_chooser_get_uri (GTK_FILE_CHOOSER (dialog));
 
-  pop_dialog_parent ();
+  pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (response == GTK_RESPONSE_OK)

@@ -29,6 +29,38 @@
 
 #include "main.h"
 
+/** Interaction flows
+
+  The Application Manager can run one interaction flow at any single
+  time.  A flow is started with START_INTERACTION_FLOW and ended with
+  END_INTERACTION_FLOW.
+
+  When a new interaction flow is to be started while there is already
+  one active, an error message is displayed and START_INTERACTION_FLOW
+  returns false.  The interaction flow should be aborted in that case.
+
+  PUSH_DIALOG_PARENT and POP_DIALOG_PARENT are used to keep track of
+  the top-most window to be used as the parent for new dialogs.
+  GET_DIALOG_PARENT returns that window.  You can pass a NULL window
+  to PUSH_DIALOG_PARENT.  In that case, the flow is system modal,
+  which happens when the flow is started from another application.
+
+  START_INTERACTION_FLOW takes care of the initial PUSH_DIALOG_PARENT
+  and END_INTERACTION_FLOW does the final POP_DIALOG_PARENT.
+
+  You must take care to correctly balance calls to
+  START_INTERACTION_FLOW and END_INTERACTION_FLOW, as well as calls to
+  PUSH_DIALOG_PARENT and POP_DIALOG_PARENT.
+*/
+
+bool start_interaction_flow (GtkWidget *window);
+void end_interaction_flow (GtkWidget *window);
+
+void push_dialog_parent (GtkWidget *window);
+void pop_dialog_parent (GtkWidget *window);
+GtkWindow *get_dialog_parent ();
+
+
 /** General dialog helpers
 
   The following functions construct and show different kinds of
@@ -39,12 +71,6 @@
   usual fashion to pass arbitrary additional information to it.
 
   The dialogs are application modal.
-
-  PUSH_DIALOG_PARENT and POP_DIALOG_PARENT are used to keep track of
-  the top-most window to be used as the parent for new dialogs.
-  GET_DIALOG_PARENT returns that window. PUSH_NO_PARENT is used to
-  specify a non-parented flow. It happens when the flow is started
-  from another application. END_DIALOG_FLOW removes no parent mark.
 
   ASK_YES_NO shows QUESTION in a confirmation note.  The result RES
   passed to the continuation CONT is true when the user clicks "Ok",
@@ -91,13 +117,6 @@
   uncertified software.
 
 */
-
-void push_dialog_parent (GtkWidget *window);
-void push_no_parent ();
-void end_dialog_flow ();
-void pop_dialog_parent ();
-void print_dialog_stack ();
-GtkWindow *get_dialog_parent ();
 
 void ask_yes_no (const gchar *question,
 		 void (*cont) (bool res, void *data), void *data);
