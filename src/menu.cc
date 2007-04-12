@@ -172,7 +172,23 @@ call_refresh_package_cache ()
 }
 
 static void
-install_from_file_menu_callback ()
+call_restore_packages ()
+{
+  restore_packages_flow ();
+}
+
+static void
+simulate_backup_restore ()
+{
+  /* This simulates a backup/restore operation, for easy testing and
+     demonstration.
+   */
+  system ("cp /var/lib/hildon-application-installer/backup "
+	  "$HOME/.hildon-appliction-installer.backup");
+}
+
+static void
+call_install_from_file ()
 {
   install_from_file_flow (NULL);
 }
@@ -191,7 +207,7 @@ create_menu (GtkMenu *main)
 
   add_item (packages,
 	    _("ai_me_package_install_file"), NULL,
-	    install_from_file_menu_callback);
+	    call_install_from_file);
   details_menu_item = add_item (packages,
 				_("ai_me_package_details"),
 				_("ai_ib_nothing_to_view"),
@@ -220,6 +236,12 @@ create_menu (GtkMenu *main)
   g_signal_connect (item, "activate",
 		    G_CALLBACK (fullscreen_toolbar_activated), NULL);
 
+  add_item (tools,
+	    _("ai_me_tools_restore"), NULL,
+	    call_restore_packages);
+  add_item (tools,
+	    "Simulate Backup/Restore", NULL,
+	    simulate_backup_restore);
   add_item (tools,
 	    _("ai_me_tools_refresh"), NULL,
 	    call_refresh_package_cache);
