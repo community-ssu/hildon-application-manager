@@ -1,5 +1,30 @@
 2007-04-12  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* hildon-application-manager.sh: Only copy backup file into save
+	place, don't start Application Manager.
+	* Makefile.am (restoredir, restore_DATA): Reactivated restore script.
+
+	* src/apt-worker.cc (get_backup_catalogues, get_backup_packages,
+	cmd_save_backup_data): New.
+	(cmd_save_applications_install_file): Removed.
+	* src/apt-worker-proto.h, src/apt-worker-client.h,
+	src/apt-worker-client.c: Adapted to above change.
+	
+	* src/main.cc (restore_packages_flow): New.
+	(mime_open): Call it when appropriate.
+
+	* src/menu.cc (simulate_backup_restore): New.
+	(create_menu): Added "restore" item.
+
+	* src/operations.cc (save_backup_data): New.  Call it when the
+	list of installed packages might have changed.
+
+	* src/util.cc (call_copy_cont): Make sure that copy_cont is called
+	after the annoying dialog has been answered.
+
+	* src/main.cc (install_from_local_file): Make sure that the flow
+	always ends.
+
 	Released 1.9.5
 	
 	* Makefile.am: Do not install restore script and 00-smallcache.
