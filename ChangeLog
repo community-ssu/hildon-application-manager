@@ -1,3 +1,11 @@
+2007-04-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc, src/operations.cc (save_backup_data): Moved to main.cc.
+	(main): Call it on startup.
+
+	* src/menu.cc (simulate_backup_restore): Use correct file names,
+	stupid.
+
 2007-04-12  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* hildon-application-manager.sh: Only copy backup file into save
