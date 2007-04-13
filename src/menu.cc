@@ -183,8 +183,8 @@ simulate_backup_restore ()
   /* This simulates a backup/restore operation, for easy testing and
      demonstration.
    */
-  system ("cp /var/lib/hildon-application-installer/backup "
-	  "$HOME/.hildon-appliction-installer.backup");
+  system ("cp /var/lib/hildon-application-manager/backup "
+	  "$HOME/.hildon-application-manager.backup");
 }
 
 static void
