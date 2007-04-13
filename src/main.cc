@@ -2335,6 +2335,24 @@ call_refresh_package_cache (GtkWidget *button, gpointer data)
   refresh_package_cache (APTSTATE_DEFAULT, true);
 }
 
+/* Take a snapshot of the data we want to keep in a backup.
+*/
+
+static void save_backup_data_reply (int cmd, apt_proto_decoder *dec, 
+				    void *data);
+
+void
+save_backup_data ()
+{
+  apt_worker_save_backup_data (save_backup_data_reply, NULL);
+}
+
+static void
+save_backup_data_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  /* No action required */
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2480,6 +2498,7 @@ main (int argc, char **argv)
   apt_worker_set_status_callback (apt_status_callback, NULL);
 
   get_package_list (APTSTATE_DEFAULT);
+  save_backup_data ();
 
   /* XXX - check errors.
    */

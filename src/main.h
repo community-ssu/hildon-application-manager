@@ -114,6 +114,8 @@ void refresh_package_cache_with_cont (int state,
 void install_from_file_flow (const char *filename);
 void restore_packages_flow ();
 
+void save_backup_data ();
+
 void sort_all_packages ();
 void show_main_view ();
 void show_parent_view ();
