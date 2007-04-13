@@ -1,5 +1,7 @@
 2007-04-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
+        Released 1.9.6
+	
 	* src/main.cc, src/operations.cc (save_backup_data): Moved to main.cc.
 	(main): Call it on startup.
 
