@@ -58,7 +58,6 @@
 #include <sys/statvfs.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <dirent.h>
 
@@ -1816,7 +1815,7 @@ get_pretty_name (const pkgCache::VerIterator &ver)
     return g_strdup (name);
 }
 
-static off_t
+static int64_t
 get_required_free_space (pkgCache::VerIterator &ver)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
@@ -1838,7 +1837,7 @@ get_required_free_space (pkgCache::VerIterator &ver)
   if (!section.Scan (start, stop-start+1))
     return 0;
 
-  return 1024 * section.FindI ("Maemo-Required-Free-Space", 0);
+  return 1024 * (int64_t)section.FindI ("Maemo-Required-Free-Space", 0);
 }
 
 static void
@@ -1848,7 +1847,7 @@ encode_version_info (pkgCache::VerIterator &ver, bool include_size)
 
   response.encode_string (ver.VerStr ());
   if (include_size)
-    response.encode_int (ver->InstalledSize);
+    response.encode_int64 (ver->InstalledSize);
   response.encode_string (ver.Section ());
   pretty = get_pretty_name (ver);
   response.encode_string (pretty);
@@ -1866,7 +1865,7 @@ encode_empty_version_info (bool include_size)
 {
   response.encode_string (NULL);
   if (include_size)
-    response.encode_int (0);
+    response.encode_int64 (0);
   response.encode_string (NULL);
   response.encode_string (NULL);
   response.encode_string (NULL);
@@ -2121,8 +2120,8 @@ cmd_get_package_info ()
 	info.installable_status = installable_status ();
       else
 	info.installable_status = status_able;
-      info.download_size = (off_t) cache.DebSize ();
-      info.install_user_size_delta = (off_t) cache.UsrSize ();
+      info.download_size = (int64_t) cache.DebSize ();
+      info.install_user_size_delta = (int64_t) cache.UsrSize ();
 
       for (pkgCache::PkgIterator pkg = cache.PkgBegin();
 	   pkg.end() != true;
@@ -2174,7 +2173,7 @@ cmd_get_package_info ()
 		  else
 		    info.removable_status = status_able;
 		}
-	      info.remove_user_size_delta = (off_t) cache.UsrSize ();
+	      info.remove_user_size_delta = (int64_t) cache.UsrSize ();
 	      cache_reset ();
 	    }
 	}
@@ -3580,12 +3579,12 @@ cmd_get_file_details ()
       response.encode_string (basename (filename));
       response.encode_string (basename (filename));
       response.encode_string (NULL);      // installed_version
-      response.encode_int (0);            // installed_size
+      response.encode_int64 (0);          // installed_size
       response.encode_string ("");        // version
       response.encode_string ("");        // maintainer
       response.encode_string ("");        // section
       response.encode_int (status_corrupted);
-      response.encode_int (0);            // installed size
+      response.encode_int64 (0);          // installed size
       response.encode_string ("");        // description
       response.encode_string (NULL);      // icon
       response.encode_int (sumtype_end);
@@ -3595,7 +3594,7 @@ cmd_get_file_details ()
   int installable_status = check_installable (section, only_user);
 
   const char *installed_version = NULL;
-  int installed_size = 0;
+  int64_t installed_size = 0;
 
   if (ensure_cache ())
     {
@@ -3616,12 +3615,12 @@ cmd_get_file_details ()
   encode_field (&section, "Package");
   encode_field (&section, "Maemo-Display-Name");
   response.encode_string (installed_version);
-  response.encode_int (installed_size);
+  response.encode_int64 (installed_size);
   encode_field (&section, "Version");
   encode_field (&section, "Maintainer");
   encode_field (&section, "Section");
   response.encode_int (installable_status);
-  response.encode_int (1024 * get_field_int (&section, "Installed-Size", 0)
+  response.encode_int64 (1024LL * get_field_int (&section, "Installed-Size", 0)
 		       - installed_size);
   encode_field (&section, "Description");
   encode_field (&section, "Maemo-Icon-26", NULL);

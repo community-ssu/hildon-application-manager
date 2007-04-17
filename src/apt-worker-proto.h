@@ -109,7 +109,7 @@ struct apt_proto_encoder {
 
   void encode_mem (const void *, int);
   void encode_int (int);
-  void encode_off_t (off_t);
+  void encode_int64 (int64_t);
   void encode_string (const char *);
   void encode_stringn (const char *, int len);
   void encode_xexp (xexp *x);
@@ -136,7 +136,7 @@ struct apt_proto_decoder {
 
   void decode_mem (void *, int);
   int decode_int ();
-  off_t decode_off_t ();
+  int64_t decode_int64 ();
   const char *decode_string_in_place ();
   char *decode_string_dup ();
   xexp *decode_xexp ();
@@ -189,7 +189,7 @@ enum apt_proto_operation {
 // - name (string) 
 // - broken (int)
 // - installed_version or null (string) 
-// - installed_size (int)
+// - installed_size (int64)
 // - installed_section or null (string)
 // - installed_pretty_name or null (string)
 // - installed_short_description or null (string)
@@ -295,13 +295,13 @@ enum apt_proto_install_flags {
 
 struct apt_proto_package_info {
   int installable_status;
-  off_t download_size;
-  off_t install_user_size_delta;
-  off_t required_free_space;
+  int64_t download_size;
+  int64_t install_user_size_delta;
+  int64_t required_free_space;
   int install_flags;
 
   int removable_status;
-  off_t remove_user_size_delta;
+  int64_t remove_user_size_delta;
 };
 
 // GET_PACKAGE_DETAILS - get a lot of details about a specific

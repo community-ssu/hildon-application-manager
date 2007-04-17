@@ -729,7 +729,7 @@ get_package_list_entry (apt_proto_decoder *dec)
   info->name = dec->decode_string_dup ();
   info->broken = dec->decode_int ();
   info->installed_version = dec->decode_string_dup ();
-  info->installed_size = dec->decode_int ();
+  info->installed_size = dec->decode_int64 ();
   info->installed_section = dec->decode_string_dup ();
   info->installed_pretty_name = dec->decode_string_dup ();
   info->installed_short_description = dec->decode_string_dup ();

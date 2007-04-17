@@ -102,9 +102,9 @@ apt_proto_encoder::encode_int (int val)
 }
 
 void
-apt_proto_encoder::encode_off_t (off_t val)
+apt_proto_encoder::encode_int64 (int64_t val)
 {
-  encode_mem (&val, sizeof (off_t));
+  encode_mem (&val, sizeof (int64_t));
 }
 
 void
@@ -219,11 +219,11 @@ apt_proto_decoder::decode_int ()
   return val;
 }
 
-off_t
-apt_proto_decoder::decode_off_t ()
+int64_t
+apt_proto_decoder::decode_int64 ()
 {
-  off_t val = 0;
-  decode_mem (&val, sizeof (off_t));
+  int64_t val = 0;
+  decode_mem (&val, sizeof (int64_t));
   return val;
 }
 
