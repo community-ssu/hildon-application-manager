@@ -102,6 +102,12 @@ apt_proto_encoder::encode_int (int val)
 }
 
 void
+apt_proto_encoder::encode_off_t (off_t val)
+{
+  encode_mem (&val, sizeof (off_t));
+}
+
+void
 apt_proto_encoder::encode_string (const char *val)
 {
   encode_stringn (val, -1);
@@ -210,6 +216,14 @@ apt_proto_decoder::decode_int ()
 {
   int val = 0;
   decode_mem (&val, sizeof (int));
+  return val;
+}
+
+off_t
+apt_proto_decoder::decode_off_t ()
+{
+  off_t val = 0;
+  decode_mem (&val, sizeof (off_t));
   return val;
 }
 

@@ -760,12 +760,12 @@ apt_worker_install_package (int state, const char *package, bool updating,
 }
 
 void
-apt_worker_get_packages_to_remove (const char *package,
-				   apt_worker_callback *callback, void *data)
+apt_worker_remove_check (const char *package,
+			 apt_worker_callback *callback, void *data)
 {
   request.reset ();
   request.encode_string (package);
-  call_apt_worker (APTCMD_GET_PACKAGES_TO_REMOVE, APTSTATE_DEFAULT,
+  call_apt_worker (APTCMD_REMOVE_CHECK, APTSTATE_DEFAULT,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }

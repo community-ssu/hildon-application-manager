@@ -146,7 +146,7 @@ using namespace std;
 
 /* You know what this means.
  */
-//#define DEBUG
+#define DEBUG
 
 
 /** RUN-TIME CONFIGURATION
@@ -602,7 +602,7 @@ void cmd_get_catalogues ();
 void cmd_set_catalogues ();
 void cmd_install_check ();
 void cmd_install_package ();
-void cmd_get_packages_to_remove ();
+void cmd_remove_check ();
 void cmd_remove_package ();
 void cmd_clean ();
 void cmd_get_file_details ();
@@ -662,7 +662,7 @@ static char *cmd_names[] = {
   "SET_CATALOGUES",
   "INSTALL_CHECK",
   "INSTALL_PACKAGE",
-  "GET_PACKAGES_TO_REMOVE",
+  "REMOVE_CHECK",
   "REMOVE_PACKAGE",
   "GET_FILE_DETAILS",
   "INSTALL_FILE",
@@ -733,8 +733,8 @@ handle_request ()
       cmd_install_package ();
       break;
 
-    case APTCMD_GET_PACKAGES_TO_REMOVE:
-      cmd_get_packages_to_remove ();
+    case APTCMD_REMOVE_CHECK:
+      cmd_remove_check ();
       break;
 
     case APTCMD_REMOVE_PACKAGE:
@@ -1688,15 +1688,171 @@ get_icon (pkgCache::VerIterator &ver)
     return icon;
 }
 
+static const char *
+skip_whitespace (const char *str)
+{
+  while (isspace (*str))
+    str++;
+  return str;
+}
+
+/* NULL and empty strings are considered equal.  Whitespace at the
+   beginning and end is ignored.  Sequences of white spaces are
+   equal to every other sequence of white space.
+*/
+
+static bool
+tokens_equal (const char *str1, const char *str2)
+{
+  if (str1 == NULL)
+    str1 = "";
+
+  if (str2 == NULL)
+    str2 = "";
+
+  str1 = skip_whitespace (str1);
+  str2 = skip_whitespace (str2);
+
+  while (*str1 && *str2)
+    {
+      if (isspace (*str1) && isspace (*str2))
+	{
+	  str1 = skip_whitespace (str1);
+	  str2 = skip_whitespace (str2);
+	}
+      else if (*str1 == *str2)
+	{
+	  str1++;
+	  str2++;
+	}
+      else
+	break;
+    }
+  
+  str1 = skip_whitespace (str1);
+  str2 = skip_whitespace (str2);
+
+  return *str1 == '\0' && *str2 == '\0';
+}
+
+struct {
+  const char *name;
+  int flag;
+} flag_names[] = {
+  { "close-apps", pkgflag_close_apps },
+  { "suggest-backup", pkgflag_suggest_backup },
+  { "reboot", pkgflag_reboot },
+  { "system-update", pkgflag_system_update },
+  NULL
+};
+
+// XXX - factor out all the record parsing.
+
+static int
+get_flags (const pkgCache::VerIterator &ver)
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgRecords Recs (*(state->cache));
+  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
+  pkgCache::PkgIterator pkg = ver.ParentPkg();
+
+  const char *start, *stop;
+  P.GetRec (start, stop);
+
+  /* NOTE: pkTagSection::Scan only succeeds when the record ends in
+           two newlines, but pkgRecords::Parser::GetRec does not
+           include the second newline in its returned region.
+           However, that second newline is always there, so we just
+           pass one more character to Scan.
+  */
+
+  pkgTagSection section;
+  if (!section.Scan (start, stop-start+1))
+    return 0;
+
+  int flags = 0;
+  char *flag_string = g_strdup (section.FindS ("Maemo-Flags").c_str());
+  char *ptr = flag_string, *tok;
+  while (tok = strsep (&ptr, ","))
+    {
+      for (int i = 0; flag_names[i].name != NULL; i++)
+	if (tokens_equal (flag_names[i].name, tok))
+	  {
+	    flags |= flag_names[i].flag;
+	    break;
+	  }
+    }
+  g_free (flag_string);
+
+  return flags;
+}
+
+static char *
+get_display_name (const pkgCache::VerIterator &ver)
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgRecords Recs (*(state->cache));
+  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
+  pkgCache::PkgIterator pkg = ver.ParentPkg();
+
+  const char *start, *stop;
+  P.GetRec (start, stop);
+
+  /* NOTE: pkTagSection::Scan only succeeds when the record ends in
+           two newlines, but pkgRecords::Parser::GetRec does not
+           include the second newline in its returned region.
+           However, that second newline is always there, so we just
+           pass one more character to Scan.
+  */
+
+  pkgTagSection section;
+  if (!section.Scan (start, stop-start+1))
+    return 0;
+
+  const char *name = section.FindS ("Maemo-Display-Name").c_str();
+  if (all_white_space (name))
+    return NULL;
+  else
+    return g_strdup (name);
+}
+
+static off_t
+get_required_free_space (pkgCache::VerIterator &ver)
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgRecords Recs (*(state->cache));
+  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
+  pkgCache::PkgIterator pkg = ver.ParentPkg();
+
+  const char *start, *stop;
+  P.GetRec (start, stop);
+
+  /* NOTE: pkTagSection::Scan only succeeds when the record ends in
+           two newlines, but pkgRecords::Parser::GetRec does not
+           include the second newline in its returned region.
+           However, that second newline is always there, so we just
+           pass one more character to Scan.
+  */
+
+  pkgTagSection section;
+  if (!section.Scan (start, stop-start+1))
+    return 0;
+
+  return 1024 * section.FindI ("Maemo-Required-Free-Space", 0);
+}
+
 static void
 encode_version_info (pkgCache::VerIterator &ver, bool include_size)
 {
-  char *desc, *icon;
+  char *pretty, *desc, *icon;
 
   response.encode_string (ver.VerStr ());
   if (include_size)
     response.encode_int (ver->InstalledSize);
   response.encode_string (ver.Section ());
+  pretty = get_display_name (ver);
+  response.encode_string (pretty);
+  g_free (pretty);
   desc = get_short_description (ver);
   response.encode_string (desc);
   g_free (desc);
@@ -1711,6 +1867,7 @@ encode_empty_version_info (bool include_size)
   response.encode_string (NULL);
   if (include_size)
     response.encode_int (0);
+  response.encode_string (NULL);
   response.encode_string (NULL);
   response.encode_string (NULL);
   response.encode_string (NULL);
@@ -1823,8 +1980,8 @@ cmd_get_package_list ()
   if (show_magic_sys)
     {
       // Append the "magic:sys" package that represents all system
-      // packages This artificial package is identified by its name and
-      // handled specially by MARK_NAMED_PACKAGE_FOR_INSTALL, etc.
+      // packages.  This artificial package is identified by its name
+      // and handled specially by MARK_NAMED_PACKAGE_FOR_INSTALL, etc.
       
       // Name
       response.encode_string ("magic:sys");
@@ -1836,13 +1993,15 @@ cmd_get_package_list ()
       response.encode_string ("");
       response.encode_int (1000);
       response.encode_string ("system");
+      response.encode_string ("Operating System");
       response.encode_string ("All system packages");
       response.encode_string (NULL);
       
       // Available version
       response.encode_string ("");
       response.encode_string ("system");
-      response.encode_string (NULL);
+      response.encode_string ("Operating System");
+      response.encode_string ("Updates to all system packages");
       response.encode_string (NULL);
     }
 }
@@ -1943,6 +2102,8 @@ cmd_get_package_info ()
   info.installable_status = status_unknown;
   info.download_size = 0;
   info.install_user_size_delta = 0;
+  info.required_free_space = 0;
+  info.install_flags = 0;
   info.removable_status = status_unknown;
   info.remove_user_size_delta = 0;
 
@@ -1960,8 +2121,21 @@ cmd_get_package_info ()
 	info.installable_status = installable_status ();
       else
 	info.installable_status = status_able;
-      info.download_size = (int) cache.DebSize ();
-      info.install_user_size_delta = (int) cache.UsrSize ();
+      info.download_size = (off_t) cache.DebSize ();
+      info.install_user_size_delta = (off_t) cache.UsrSize ();
+
+      for (pkgCache::PkgIterator pkg = cache.PkgBegin();
+	   pkg.end() != true;
+	   pkg++)
+	{
+	  if (cache[pkg].Upgrade())
+	    {
+	      pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
+	      info.install_flags |= get_flags (ver);
+	      info.required_free_space += get_required_free_space (ver);
+	    }
+	}
+
       cache_reset ();
 
       if (!only_installable_info)
@@ -1970,17 +2144,37 @@ cmd_get_package_info ()
 	  
 	  if (!strcmp (package, "magic:sys"))
 	    {
-	      info.removable_status = status_unable;
+	      info.removable_status = status_system_update_unremovable;
 	    }
 	  else
 	    {
 	      old_broken_count = cache.BrokenCount();
 	      mark_for_remove (pkg);
-	      if (cache.BrokenCount() > old_broken_count)
-		info.removable_status = removable_status ();
-	      else
-		info.removable_status = status_able;
-	      info.remove_user_size_delta = (int) cache.UsrSize ();
+
+	      for (pkgCache::PkgIterator pkg = cache.PkgBegin();
+		   pkg.end() != true;
+		   pkg++)
+		{
+		  if (cache[pkg].Delete())
+		    {
+		      int flags = get_flags (pkg.CurrentVer ());
+		      if (flags & pkgflag_system_update)
+			{
+			  info.removable_status =
+			    status_system_update_unremovable;
+			  break;
+			}
+		    }
+		}
+
+	      if (info.removable_status == status_unknown)
+		{
+		  if (cache.BrokenCount() > old_broken_count)
+		    info.removable_status = removable_status ();
+		  else
+		    info.removable_status = status_able;
+		}
+	      info.remove_user_size_delta = (off_t) cache.UsrSize ();
 	      cache_reset ();
 	    }
 	}
@@ -2585,7 +2779,7 @@ cmd_install_package ()
 }
 
 void
-cmd_get_packages_to_remove ()
+cmd_remove_check ()
 {
   const char *package = request.decode_string_in_place ();
 
@@ -3356,6 +3550,7 @@ cmd_get_file_details ()
   if (record == NULL || !section.Scan (record, strlen (record)))
     {
       response.encode_string (basename (filename));
+      response.encode_string (basename (filename));
       response.encode_string (NULL);      // installed_version
       response.encode_int (0);            // installed_size
       response.encode_string ("");        // version
@@ -3391,6 +3586,7 @@ cmd_get_file_details ()
     }
 
   encode_field (&section, "Package");
+  encode_field (&section, "Maemo-Display-Name");
   response.encode_string (installed_version);
   response.encode_int (installed_size);
   encode_field (&section, "Version");
@@ -3447,55 +3643,12 @@ cmd_install_file ()
   response.encode_int (res == 0);
 }
 
-/* APTCMD_SAVE_APPLICATIONS_INSTALL_FILE
+/* APTCMD_SAVE_BACKUP_DATA
 
    This method is used to store the list of installed packages. It's
    used in backup machinery to restore the installed applications
    from their repositories.
  */
-
-static bool
-parse_quoted_word (char **start, char **end, bool term)
-{
-  char *ptr = *start;
-
-  while (isspace (*ptr))
-    ptr++;
-
-  *start = ptr;
-  *end = ptr;
-
-  if (*ptr == 0)
-    return false;
-
-  // Jump to the next word, handling double quotes and brackets.
-
-  while (*ptr && !isspace (*ptr))
-   {
-     if (*ptr == '"')
-      {
-	for (ptr++; *ptr && *ptr != '"'; ptr++);
-	if (*ptr == 0)
-	  return false;
-      }
-     if (*ptr == '[')
-      {
-	for (ptr++; *ptr && *ptr != ']'; ptr++);
-	if (*ptr == 0)
-	  return false;
-      }
-     ptr++;
-   }
-
-  if (term)
-    {
-      if (*ptr)
-	*ptr++ = '\0';
-    }
-  
-  *end = ptr;
-  return true;
-}
 
 static xexp *
 get_backup_catalogues ()

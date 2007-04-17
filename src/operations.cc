@@ -141,36 +141,39 @@ installable_status_to_message (package_info *pi,
    4. Check if the package is actually installable, and abort it when
       not.
 
-   XXX
-   5. Check if enough storage is available and decide where to
-      download the packages to.
+   5. Gather which packages will be upgraded and the flags and storage
+   requirements of all packages that are going to be installed.
 
    XXX
-   6. Download the packages.
+   6. Check if enough storage is available and decide where to
+   download the packages to.
 
    XXX
-   7. If the package has the 'suggest-backup' flag, suggest a backup
+   7. Download the packages.
+
+   XXX
+   8. If the package has the 'suggest-backup' flag, suggest a backup
       to be taken.
 
    XXX
-   8. Check the free storage again.
+   9. Check the free storage again.
 
    xxx (close-apps flag)
-   9. If the package doesn't have the 'close-apps' flag, run the
-      'checkrm' scripts of the updated packages and abort this package
+  10. If the package doesn't have the 'close-apps' flag, run the
+      'checkrm' scripts of the upgraded packages and abort this package
       if the scripts asks for it.  Otherwise close all applications.
 
-  10. Do the actual install, aborting this package if it fails.  The
+  11. Do the actual install, aborting this package if it fails.  The
       downloaded archive files are removed in any case.
 
    XXX
-  11. If the package has the 'reboot' flag, reboot here and now.
+  12. If the package has the 'reboot' flag, reboot here and now.
 
-  12. If there are more packages to install, go back to 3.
+  13. If there are more packages to install, go back to 3.
 
-   At the end, the following happens.
+   At the end:
 
-  13. Refresh the lists of packages.
+  14. Refresh the lists of packages.
 */
 
 struct ip_clos {
@@ -181,6 +184,9 @@ struct ip_clos {
   GList *packages;       // the ones that are not installed or uptodate
   GList *cur;            // the one currently under consideration
 
+  // per installation iteration
+  int flags;
+  off_t free_space;         // the required free storage space in bytes
   GSList *upgrade_names;    // the packages and versions that we are going
   GSList *upgrade_versions; // to upgrade to.
 
@@ -527,6 +533,12 @@ ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   int success = dec->decode_int ();
 
+  {
+    package_info *pi = (package_info *)(c->cur->data);
+    printf ("FLAGS: %x\n", pi->info.install_flags);
+    printf ("SPACE: %lu\n", pi->info.required_free_space);
+  }
+
   if (success)
     ip_check_upgrade_loop (c);
   else
@@ -693,7 +705,6 @@ ip_abort_cur_with_status_details (ip_clos *c)
 static void
 ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 {
-  package_info *pi = (package_info *)(c->cur->data);
   bool is_last = (c->cur->next == NULL);
 
   GtkWidget *dialog;
@@ -796,6 +807,7 @@ ip_end (void *data)
 struct up_clos {
   package_info *pi;
 
+  int flags;
   GSList *remove_names;
 
   void (*cont) (void *);
@@ -850,8 +862,8 @@ up_checkrm_start (bool res, void *data)
   up_clos *c = (up_clos *)data;
 
   if (res)
-    apt_worker_get_packages_to_remove (c->pi->name,
-				       up_checkrm_reply, c);
+    apt_worker_remove_check (c->pi->name,
+			     up_checkrm_reply, c);
   else
     up_end (c);
 }
@@ -930,6 +942,9 @@ up_remove (up_clos *c)
     }
   else
     {
+      if (c->pi->info.removable_status == status_system_update_unremovable)
+	annoy_user_with_cont
+	  (_("ai_ni_error_system"), up_end, c);
       if (c->pi->info.removable_status == status_needed)
 	annoy_user_with_details_with_cont
 	  (_("ai_ni_error_uninstall_packagesneeded"),
@@ -1065,6 +1080,7 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
   c->pi = pi;
 
   pi->name = dec->decode_string_dup ();
+  pi->available_pretty_name = dec->decode_string_dup ();
   pi->broken = false;
   pi->installed_version = dec->decode_string_dup ();
   pi->installed_size = dec->decode_int ();;

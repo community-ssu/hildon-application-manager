@@ -988,6 +988,14 @@ global_name_func (GtkTreeViewColumn *column,
   if (!pi)
     return;
 
+  char *name;
+  if (global_installed)
+    name = pi->installed_pretty_name;
+  else
+    name = pi->available_pretty_name;
+  if (name == NULL)
+    name = pi->name;
+
   if (gtk_tree_selection_iter_is_selected (selection, iter))
     {
       const gchar *desc;
@@ -1001,12 +1009,12 @@ global_name_func (GtkTreeViewColumn *column,
 	    desc = pi->installed_short_description;
 	}
       markup = g_markup_printf_escaped ("%s\n<small>%s</small>",
-					pi->name, desc);
+					name, desc);
       g_object_set (cell, "markup", markup, NULL);
       g_free (markup);
     }
   else
-    g_object_set (cell, "text", pi->name, NULL);
+    g_object_set (cell, "text", name, NULL);
 }
 
 static void

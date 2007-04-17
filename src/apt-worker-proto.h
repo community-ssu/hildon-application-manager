@@ -47,7 +47,8 @@ enum apt_command {
 
   APTCMD_INSTALL_CHECK,
   APTCMD_INSTALL_PACKAGE,             // needs network
-  APTCMD_GET_PACKAGES_TO_REMOVE,
+
+  APTCMD_REMOVE_CHECK,
   APTCMD_REMOVE_PACKAGE,
 
   APTCMD_GET_FILE_DETAILS,
@@ -108,6 +109,7 @@ struct apt_proto_encoder {
 
   void encode_mem (const void *, int);
   void encode_int (int);
+  void encode_off_t (off_t);
   void encode_string (const char *);
   void encode_stringn (const char *, int len);
   void encode_xexp (xexp *x);
@@ -134,6 +136,7 @@ struct apt_proto_decoder {
 
   void decode_mem (void *, int);
   int decode_int ();
+  off_t decode_off_t ();
   const char *decode_string_in_place ();
   char *decode_string_dup ();
   xexp *decode_xexp ();
@@ -188,12 +191,14 @@ enum apt_proto_operation {
 // - installed_version or null (string) 
 // - installed_size (int)
 // - installed_section or null (string)
-// - installed_short_description or null (string).
+// - installed_pretty_name or null (string)
+// - installed_short_description or null (string)
 // - installed_icon or null (string).
 // - available_version or null (string) 
 // - available_section (string)
-// - available_short_description or null (string).
-// - available_icon or null (string).
+// - available_pretty_name or null (string)
+// - available_short_description or null (string)
+// - available_icon or null (string)
 //
 // When the available_short_description would be identical to the
 // installed_short_description, it is set to null.  Likewise for the
@@ -271,22 +276,32 @@ enum apt_proto_operation {
 enum apt_proto_able_status {
   status_unknown,
   status_able,
-  status_unable,                 // unknown reason
+  status_unable,                   // unknown reason
   status_conflicting,
   status_missing,
   status_needed,
   status_corrupted,
-  status_incompatible,           // incompatible in general
-  status_incompatible_current    // incompatible with current OS
+  status_incompatible,             // incompatible in general
+  status_incompatible_current,     // incompatible with current OS
+  status_system_update_unremovable // could be removed but it's a bad idea
+};
+
+enum apt_proto_install_flags {
+  pkgflag_close_apps     = 1,
+  pkgflag_suggest_backup = 2,
+  pkgflag_reboot         = 4,
+  pkgflag_system_update  = 8
 };
 
 struct apt_proto_package_info {
   int installable_status;
-  int download_size;
-  int install_user_size_delta;
+  off_t download_size;
+  off_t install_user_size_delta;
+  off_t required_free_space;
+  int install_flags;
 
   int removable_status;
-  int remove_user_size_delta;
+  off_t remove_user_size_delta;
 };
 
 // GET_PACKAGE_DETAILS - get a lot of details about a specific
@@ -324,12 +339,14 @@ enum apt_proto_sumtype {
 };
 
 // INSTALL_CHECK - Check for non-authenticated and non-certified
-//                 packages.
+//                 packages and gather information about the
+//                 installation.
 //
 // This will setup the download operation and figure out whether there
 // are any not-authenticated or not-certified packages.  It will also
 // report information about which packages will be upgraded to which
-// version.
+// version and the union of the flags from the to-be-installed
+// packages.
 //
 // Parameters:
 //
@@ -361,11 +378,10 @@ enum apt_proto_preptype {
 // - result_code (int).
 
 
-// GET_PACKAGES_TO_REMOVE - Return the names of packages that would be
-//                          removed if the given package would be
-//                          removed with REMOVE_PACKAGE.  If the given
-//                          package can not be removed, the returned
-//                          list is empty.
+// REMOVE_CHECK - Return the names of packages that would be removed
+//                if the given package would be removed with
+//                REMOVE_PACKAGE.  Also, the union of all the flags of
+//                the to-be-removed packages is returned.
 //
 // Parameters:
 //
@@ -410,6 +426,7 @@ enum apt_proto_preptype {
 // Response:
 //
 // - name (string).
+// - pretty_name (string).
 // - installed_version (string).
 // - installed_size (int).
 // - available_version (string).
