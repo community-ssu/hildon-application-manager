@@ -392,6 +392,19 @@ package_info::~package_info ()
   g_free (dependencies);
 }
 
+const char *
+package_info::get_display_name (bool installed)
+{
+  const char *n;
+  if (installed || available_pretty_name == NULL)
+    n = installed_pretty_name;
+  else
+    n = available_pretty_name;
+  if (n == NULL)
+    n = name;
+  return n;
+}
+
 void
 package_info::ref ()
 {
@@ -580,12 +593,21 @@ compare_section_names (gconstpointer a, gconstpointer b)
 }
 
 static gint
-compare_package_names (gconstpointer a, gconstpointer b)
+compare_package_installed_names (gconstpointer a, gconstpointer b)
 {
-  package_info *pi_a = (package_info *)a;
-  package_info *pi_b = (package_info *)b;
+  const char *name_a = ((package_info *)a)->get_display_name (true);
+  const char *name_b = ((package_info *)b)->get_display_name (true);
+  
+  return package_sort_sign * g_ascii_strcasecmp (name_a, name_b);
+}
 
-  return package_sort_sign * g_ascii_strcasecmp (pi_a->name, pi_b->name);
+static gint
+compare_package_available_names (gconstpointer a, gconstpointer b)
+{
+  const char *name_a = ((package_info *)a)->get_display_name (false);
+  const char *name_b = ((package_info *)b)->get_display_name (false);
+  
+  return package_sort_sign * g_ascii_strcasecmp (name_a, name_b);
 }
 
 static gint
@@ -636,7 +658,7 @@ compare_package_download_sizes (gconstpointer a, gconstpointer b)
     return (package_sort_sign * 
 	    (pi_a->info.download_size - pi_b->info.download_size));
   else
-    return compare_package_names (a, b);
+    return compare_package_available_names (a, b);
 }
 
 void
@@ -655,8 +677,8 @@ sort_all_packages ()
 
   *section_ptr = g_list_sort (*section_ptr, compare_section_names);
 
-  GCompareFunc compare_packages_inst = compare_package_names;
-  GCompareFunc compare_packages_avail = compare_package_names;
+  GCompareFunc compare_packages_inst = compare_package_installed_names;
+  GCompareFunc compare_packages_avail = compare_package_available_names;
   if (package_sort_key == SORT_BY_VERSION)
     {
       compare_packages_inst = compare_package_installed_versions;
@@ -1636,14 +1658,14 @@ make_search_results_view (view *v)
 
 static void
 search_package_list (GList **result,
-		     GList *packages, const char *pattern)
+		     GList *packages, const char *pattern, bool installed)
 {
   while (packages)
     {
       package_info *pi = (package_info *)packages->data;
       
       // XXX
-      if (strcasestr (pi->name, pattern))
+      if (strcasestr (pi->get_display_name (installed), pattern))
 	{
 	  pi->ref ();
 	  *result = g_list_append (*result, pi);
@@ -1794,15 +1816,15 @@ search_packages (const char *pattern, bool in_descriptions)
 	  if (install_sections)
 	    {
 	      section_info *si = (section_info *)install_sections->data;
-	      search_package_list (&result, si->packages, pattern);
+	      search_package_list (&result, si->packages, pattern, false);
 	    }
 	}
       else if (parent == &upgrade_applications_view)
 	search_package_list (&result,
-			     upgradeable_packages, pattern);
+			     upgradeable_packages, pattern, false);
       else if (parent == &uninstall_applications_view)
 	search_package_list (&result,
-			     installed_packages, pattern);
+			     installed_packages, pattern, true);
 
       if (result)
 	{

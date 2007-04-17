@@ -108,7 +108,7 @@ installable_status_to_message (package_info *pi,
       msg = g_strdup_printf ((pi->installed_version
 			      ? _("ai_ni_error_update_failed")
 			      : _("ai_ni_error_installation_failed")),
-			     pi->name);
+			     pi->get_display_name (false));
       with_details = true;
     }
 
@@ -300,7 +300,8 @@ xxx_install_packages (GList *packages,
 		       (pi->installed_version
 			? _("ai_nc_update")
 			: _("ai_nc_install")),
-		       pi->name, pi->available_version, download_buf);
+		       pi->get_display_name (false),
+		       pi->available_version, download_buf);
   
       ask_yes_no_with_arbitrary_details ((pi->installed_version
 					  ? _("ai_ti_confirm_update")
@@ -642,7 +643,7 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 	  char *str = g_strdup_printf ((pi->installed_version != NULL
 					? _("ai_ni_update_successful")
 					: _("ai_ni_install_successful")),
-				       pi->name);
+				       pi->get_display_name (false));
 	  annoy_user_with_cont (str, ip_install_next, c);
 	  g_free (str);
 	}
@@ -663,7 +664,7 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 	    msg = g_strdup_printf ((pi->installed_version != NULL
 				    ? _("ai_ni_error_update_failed")
 				    : _("ai_ni_error_installation_failed")),
-				   pi->name);
+				   pi->get_display_name (false));
 
 	  ip_abort_cur (c, msg, false);
 	  g_free (msg);
@@ -848,7 +849,8 @@ up_confirm (package_info *pi, void *data, bool changed)
   
   size_string_general (size_buf, 20, c->pi->installed_size);
   g_string_printf (text, _("ai_nc_uninstall"),
-		   c->pi->name, c->pi->installed_version, size_buf);
+		   c->pi->get_display_name (true),
+		   c->pi->installed_version, size_buf);
 
   ask_yes_no_with_details (_("ai_ti_confirm_uninstall"), text->str,
 			   c->pi, remove_details,
@@ -921,7 +923,7 @@ up_checkrm_cmd_done (int status, void *data)
 
       char *str =
 	g_strdup_printf (_("ai_ni_error_uninstall_applicationrunning"),
-			 c->pi->name);
+			 c->pi->get_display_name (true));
       annoy_user_with_cont (str, up_end, c);
       g_free (str);
     }
@@ -952,7 +954,7 @@ up_remove (up_clos *c)
       else
 	{
 	  char *str = g_strdup_printf (_("ai_ni_error_uninstallation_failed"),
-				       c->pi->name);
+				       c->pi->get_display_name (true));
 	  annoy_user_with_details_with_cont (str, c->pi, remove_details,
 					     up_end, c);
 	  g_free (str);
@@ -980,14 +982,14 @@ up_remove_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (success)
     {
       char *str = g_strdup_printf (_("ai_ni_uninstall_successful"),
-				   c->pi->name);
+				   c->pi->get_display_name (true));
       annoy_user_with_cont (str, up_end, c);
       g_free (str);
     }
   else
     {
       char *str = g_strdup_printf (_("ai_ni_error_uninstallation_failed"),
-				   c->pi->name);
+				   c->pi->get_display_name (true));
       annoy_user_with_cont (str, up_end, c);
       g_free (str);
     }
@@ -1115,10 +1117,12 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
   size_string_general (size_buf, 20, pi->info.install_user_size_delta);
   if (pi->installed_version)
     g_string_printf (text, _("ai_nc_update"),
-		     pi->name, pi->available_version, size_buf);
+		     pi->get_display_name (false),
+		     pi->available_version, size_buf);
   else
     g_string_printf (text, _("ai_nc_install"),
-		     pi->name, pi->available_version, size_buf);
+		     pi->get_display_name (false),
+		     pi->available_version, size_buf);
 
   void (*cont) (bool res, void *);
 
@@ -1188,7 +1192,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
       char *str = g_strdup_printf (c->pi->installed_version
 				   ? _("ai_ni_update_successful")
 				   : _("ai_ni_install_successful"),
-				   c->pi->name);
+				   c->pi->get_display_name (false));
       annoy_user_with_cont (str, if_end, c);
       g_free (str);
     }
@@ -1203,7 +1207,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 	msg = g_strdup_printf (c->pi->installed_version
 			       ? _("ai_ni_error_update_failed")
 			       : _("ai_ni_error_installation_failed"),
-			       c->pi->name);
+			       c->pi->get_display_name (false));
 
       annoy_user_with_cont (msg, if_end, c);
       g_free (msg);

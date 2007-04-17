@@ -70,6 +70,8 @@ struct package_info {
 
   GtkTreeModel *model;
   GtkTreeIter iter;
+
+  const char *get_display_name (bool installed);
 };
 
 void get_intermediate_package_info (package_info *pi,

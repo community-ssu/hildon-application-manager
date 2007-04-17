@@ -109,23 +109,27 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
   bool possible = true;
   if (kind == remove_details)
     {
+      const char *name = pi->get_display_name (true);
+
       if (pi->info.removable_status == status_able)
 	{
 	  size_string_detailed (size_buf, 20,
 				-pi->info.remove_user_size_delta);
 	  pi->summary =
 	    g_strdup_printf (_("ai_va_details_uninstall_frees"),
-			     pi->name, size_buf);
+			     name, size_buf);
 	}
       else
 	{
 	  pi->summary =
-	    g_strdup_printf (_("ai_va_details_unable_uninstall"), pi->name);
+	    g_strdup_printf (_("ai_va_details_unable_uninstall"), name);
 	  possible = false;
 	}
     }
   else
     {
+      const char *name = pi->get_display_name (false);
+
       if (pi->installed_version)
 	{
 	  if (pi->info.installable_status == status_able)
@@ -136,7 +140,7 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
 					pi->info.install_user_size_delta);
 		  pi->summary =
 		    g_strdup_printf (_("ai_va_details_update_requires"),
-				     pi->name, size_buf);
+				     name, size_buf);
 		}
 	      else
 		{
@@ -144,13 +148,13 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
 					-pi->info.install_user_size_delta);
 		  pi->summary =
 		    g_strdup_printf (_("ai_va_details_update_frees"),
-				     pi->name, size_buf);
+				     name, size_buf);
 		}
 	    }
 	  else
 	    {
 	      pi->summary =
-		g_strdup_printf (_("ai_va_details_unable_update"), pi->name);
+		g_strdup_printf (_("ai_va_details_unable_update"), name);
 	      possible = false;
 	    }
 	}
@@ -164,7 +168,7 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
 					pi->info.install_user_size_delta);
 		  pi->summary =
 		    g_strdup_printf (_("ai_va_details_install_requires"),
-				     pi->name, size_buf);
+				     name, size_buf);
 		}
 	      else
 		{
@@ -172,14 +176,14 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
 					-pi->info.install_user_size_delta);
 		  pi->summary =
 		    g_strdup_printf (_("ai_va_details_install_frees"),
-				     pi->name, size_buf);
+				     name, size_buf);
 		}
 	    }
 	  else
 	    {
 	      pi->summary =
 		g_strdup_printf (_("ai_va_details_unable_install"),
-				 pi->name, size_buf);
+				 name, size_buf);
 	      possible = false;
 	    }
 	}
@@ -317,7 +321,9 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
   gtk_table_set_row_spacings (GTK_TABLE (table), 0);
 
   add_table_field (table, 0,
-		   _("ai_fi_details_package"), pi->name);
+		   _("ai_fi_details_package"),
+		   pi->get_display_name (pi->have_detail_kind
+					 == remove_details));
 
   gchar *short_description = (pi->have_detail_kind == remove_details
 			      ? pi->installed_short_description

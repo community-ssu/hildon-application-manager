@@ -988,13 +988,7 @@ global_name_func (GtkTreeViewColumn *column,
   if (!pi)
     return;
 
-  char *name;
-  if (global_installed)
-    name = pi->installed_pretty_name;
-  else
-    name = pi->available_pretty_name;
-  if (name == NULL)
-    name = pi->name;
+  const char *name = pi->get_display_name (global_installed);
 
   if (gtk_tree_selection_iter_is_selected (selection, iter))
     {
