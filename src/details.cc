@@ -232,29 +232,6 @@ add_table_list (GtkWidget *table, int row,
   return row;
 }
 
-/* Same as add_table_list, but when there is only one entry and it is
-   equal to MYSELF, the list is not shown.
-*/
-
-static int
-add_table_list_1 (GtkWidget *table, int row,
-		  const char *title,
-		  gchar *myself_name, gchar *myself_version,
-		  GList *list)
-{
-  if (list && list->next == NULL)
-    {
-      gchar *myself_target = g_strdup_printf ("%s %s",
-					      myself_name, myself_version);
-      bool only_me = !g_ascii_strcasecmp ((gchar *)list->data, myself_target);
-      g_free (myself_target);
-      if (only_me)
-	return row;
-    }
-
-  return add_table_list (table, row, title, list);
-}
-
 struct details_closure {
   void (*cont) (void *data);
   void *data;
@@ -400,18 +377,15 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
   int r = 1;
   if (possible)
     {
-      r = add_table_list_1 (summary_table, r,
-			    _("ai_fi_details_packages_install"),
-			    pi->name, pi->available_version,
-			    pi->summary_packages[sumtype_installing]);
-      r = add_table_list_1 (summary_table, r,
-			    _("ai_fi_details_packages_update"),
-			    pi->name, pi->available_version,
-			    pi->summary_packages[sumtype_upgrading]);
-      r = add_table_list_1 (summary_table, r,
-			    _("ai_fi_details_packages_uninstall"),
-			    pi->name, pi->installed_version,
-			    pi->summary_packages[sumtype_removing]);
+      r = add_table_list (summary_table, r,
+			  _("ai_fi_details_packages_install"),
+			  pi->summary_packages[sumtype_installing]);
+      r = add_table_list (summary_table, r,
+			  _("ai_fi_details_packages_update"),
+			  pi->summary_packages[sumtype_upgrading]);
+      r = add_table_list (summary_table, r,
+			  _("ai_fi_details_packages_uninstall"),
+			  pi->summary_packages[sumtype_removing]);
     }
   else
     {
