@@ -1788,7 +1788,7 @@ get_flags (const pkgCache::VerIterator &ver)
 }
 
 static char *
-get_display_name (const pkgCache::VerIterator &ver)
+get_pretty_name (const pkgCache::VerIterator &ver)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgRecords Recs (*(state->cache));
@@ -1850,7 +1850,7 @@ encode_version_info (pkgCache::VerIterator &ver, bool include_size)
   if (include_size)
     response.encode_int (ver->InstalledSize);
   response.encode_string (ver.Section ());
-  pretty = get_display_name (ver);
+  pretty = get_pretty_name (ver);
   response.encode_string (pretty);
   g_free (pretty);
   desc = get_short_description (ver);
@@ -2190,6 +2190,26 @@ cmd_get_package_info ()
    information about the package and what is happening.
 */
 
+static char *get_pretty_name (const pkgCache::VerIterator &ver);
+
+static void
+append_display_name (GString *str, const pkgCache::PkgIterator &pkg)
+{
+  pkgCache::VerIterator ver = pkg.CurrentVer();
+  if (!ver.end())
+    {
+      char *pretty_name = get_pretty_name (ver);
+      if (pretty_name)
+	{
+	  g_string_append (str, pretty_name);
+	  g_free (pretty_name);
+	  return;
+	}
+    }
+  
+  g_string_append (str, pkg.Name());
+}
+
 void
 encode_dependencies (pkgCache::VerIterator &ver)
 {
@@ -2275,11 +2295,12 @@ encode_broken (pkgCache::PkgIterator &pkg,
 	  /* Never blame conflicts on the package that we want to
 	     install.
 	  */
-	  if (target.Name() == want && Start->Type == pkgCache::Dep::Conflicts)
-	    g_string_append_printf (str, "%s", pkg.Name());
+	  if (strcmp (target.Name(), want) == 0
+	      && Start->Type == pkgCache::Dep::Conflicts)
+	    append_display_name (str, pkg);
 	  else
 	    {
-	      g_string_append_printf (str, "%s", target.Name());
+	      append_display_name (str, target);
 	      if (Start.TargetVer() != 0)
 		g_string_append_printf (str, " (%s %s)",
 					Start.CompType(), Start.TargetVer());
@@ -2302,9 +2323,16 @@ encode_broken (pkgCache::PkgIterator &pkg,
 void
 encode_package_and_version (pkgCache::VerIterator ver)
 {
-  pkgCache::PkgIterator pkg = ver.ParentPkg();
   GString *str = g_string_new ("");
-  g_string_printf (str, "%s %s", pkg.Name(), ver.VerStr());
+  char *pretty = get_pretty_name (ver);
+  if (pretty)
+    {
+      g_string_append (str, pretty);
+      g_free (pretty);
+    }
+  else
+    g_string_append (str, ver.ParentPkg().Name());
+  g_string_append_printf (str, " (%s)", ver.VerStr());
   response.encode_string (str->str);
   g_string_free (str, 1);
 }
