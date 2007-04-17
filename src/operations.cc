@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <iostream>
 #include <libintl.h>
+#include <errno.h>
 
 #include <gtk/gtk.h>
 #include <hildon/hildon-note.h>
@@ -141,39 +142,36 @@ installable_status_to_message (package_info *pi,
    4. Check if the package is actually installable, and abort it when
       not.
 
-   5. Gather which packages will be upgraded and the flags and storage
-   requirements of all packages that are going to be installed.
+   xxx (download location)
+   5. Check if enough storage is available and decide where to
+      download the packages to.
 
    XXX
-   6. Check if enough storage is available and decide where to
-   download the packages to.
+   6. Download the packages.
 
    XXX
-   7. Download the packages.
-
-   XXX
-   8. If the package has the 'suggest-backup' flag, suggest a backup
+   7. If the package has the 'suggest-backup' flag, suggest a backup
       to be taken.
 
    XXX
-   9. Check the free storage again.
+   8. Check the free storage again.
 
    xxx (close-apps flag)
-  10. If the package doesn't have the 'close-apps' flag, run the
+   9. If the package doesn't have the 'close-apps' flag, run the
       'checkrm' scripts of the upgraded packages and abort this package
       if the scripts asks for it.  Otherwise close all applications.
 
-  11. Do the actual install, aborting this package if it fails.  The
+  10. Do the actual install, aborting this package if it fails.  The
       downloaded archive files are removed in any case.
 
    XXX
-  12. If the package has the 'reboot' flag, reboot here and now.
+  11. If the package has the 'reboot' flag, reboot here and now.
 
-  13. If there are more packages to install, go back to 3.
+  12. If there are more packages to install, go back to 3.
 
    At the end:
 
-  14. Refresh the lists of packages.
+  13. Refresh the lists of packages.
 */
 
 struct ip_clos {
@@ -186,7 +184,7 @@ struct ip_clos {
 
   // per installation iteration
   int flags;
-  off_t free_space;         // the required free storage space in bytes
+  int64_t free_space;         // the required free storage space in bytes
   GSList *upgrade_names;    // the packages and versions that we are going
   GSList *upgrade_versions; // to upgrade to.
 
@@ -407,7 +405,7 @@ static void
 ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   /* XXX - we always show the "not-so-sure" variant of the legalese.
-           The 'trust-system' will be redone later.
+           The 'trust system' will be redone later.
   */
 
   ip_clos *c = (ip_clos *)data;
@@ -463,7 +461,6 @@ ip_install_loop (ip_clos *c)
   else
     {
       package_info *pi = (package_info *)(c->cur->data);
-      printf ("HAVE INFO %d, STATE %d\n", pi->have_info, c->state);
       get_intermediate_package_info (pi, true,
 				     ip_install_with_info, c, c->state);
     }
@@ -474,8 +471,6 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 {
   ip_clos *c = (ip_clos *)data;
   
-  printf ("STATUS: %d\n", pi->info.installable_status);
-
   if (pi->info.installable_status == status_able)
     {
       add_log ("-----\n");
@@ -484,11 +479,29 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 		 pi->installed_version, pi->available_version);
       else
 	add_log ("Installing %s %s\n", pi->name, pi->available_version);
-      
-      printf ("CHECK UPGRADE: %s\n", pi->name);
-      
-      apt_worker_install_check (c->state, pi->name,
-				ip_check_upgrade_reply, c);
+
+      int64_t free_space = get_free_space ();
+      if (free_space < 0)
+	annoy_user_with_errno (errno, "get_free_space",
+			       ip_end, c);
+			       
+      if (pi->info.required_free_space + pi->info.download_size >= free_space)
+	{
+	  char free_string[20];
+	  char required_string[20];
+	  size_string_detailed (free_string, 20, free_space);
+	  size_string_detailed (required_string, 20,
+				pi->info.required_free_space
+				+ pi->info.download_size);
+
+	  char *msg = g_strdup_printf ("Not enough storage\n%s < %s",
+				       free_string, required_string);
+
+	  ip_abort_cur (c, msg, false);
+	}
+      else
+	apt_worker_install_check (c->state, pi->name,
+				  ip_check_upgrade_reply, c);
     }
   else
     ip_abort_cur_with_status_details (c);
