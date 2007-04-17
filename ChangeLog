@@ -310,7 +310,7 @@
 	parameter; view buttons will not be supported in the future.
 	Updated all callers.
 
-2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-20  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	* src/apt-worker-client.cc: now status_fd is global. This fixes
 	an error that happend when we couldn't get all the fd's in the 
@@ -326,7 +326,7 @@
 	now all initalization of fd's (statusfd, log_from_fd) is done
 	after success of apt-worker init.
 
-2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-20  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	* apt-worker-client.cc (try_apt_worker_start): fix a very silly
 	bug (bad parenthesis in conditions) that made startup
@@ -335,7 +335,7 @@
 	* apt-worker-client.cc (start_apt_worker): removed comment
 	about using O_NONBLOCK, as now it's using it.
 
-2007-02-20  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-20  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	More reliable startup of apt-worker:
 
@@ -355,7 +355,7 @@
 	* Makefile.am (install-data-local): Create empty catalogues file
 	when it doesn't exist.
 
-2007-02-19  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-19  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	* src/apt-worker.cc (cmd_save_applications_install_file): leak
 	fixes (string arrays of package names and deb lines were not
@@ -427,7 +427,7 @@
 	install types when in red-pill mode (and there is more than one
 	package).
 
-2007-02-14  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-14  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Misc fixes:
 
@@ -499,7 +499,7 @@
 	package entries found by find_package_in_lists, it should free the
 	remaining references. It should also unref the installed packages.
 
-2007-02-09  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-09  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Bugfixes:
 	
@@ -524,7 +524,7 @@
 
 	Released 5.0pre3
 
-2007-02-07  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-07  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Auto install from memory card support:
 
@@ -554,7 +554,7 @@
 	we use the list of packages returned by the select packages
 	dialog (previously we were ignoring this value).
 
-2007-02-06  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-06  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	* src/instr.cc, src/instr.h, src/main.cc: move
 	save_installed_packages_file() from instr.cc to main.cc,
@@ -620,7 +620,7 @@
 	to be used with package list widget instead of install_package and
 	uninstall_package, which are now incompatible.
 	
-2007-02-02  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-02  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Added preliminar support for integration with backup system:
 
@@ -644,7 +644,7 @@
 	* hildon-application-manager.conf: added applications.install file to
 	the list of locations that should be backed up.
 
-2007-02-01  Jose Dapena Paz  <jdapena@igalia.com>
+2007-02-01  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Some fixes for running dialog flows on top of other applications
 	calling app manager with mime_open calls.
@@ -697,7 +697,7 @@
 	* debian/control: Build-Depend on libconic0-dev instead of
 	osso-ic-dev.
 
-2007-01-31  Jose Dapena Paz  <jdapena@igalia.com>
+2007-01-31  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Refactored support of temporary repositories in Single-click
 	install files:
@@ -748,7 +748,7 @@
 	make it think there's no parent (and then run on top of current 
 	application.
 
-2007-01-23  Jose Dapena Paz  <jdapena@igalia.com>
+2007-01-23  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Added support of temporary repositories in Single-click
 	install files:
@@ -786,7 +786,7 @@
 	it does not return a boolean).
 	* Minor code style changes.
 	
-2007-01-15  Jose Dapena Paz  <jdapena@igalia.com>
+2007-01-15  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Implementation of support of l10n in catalogue names in
 	.install files:
@@ -813,7 +813,7 @@
 	the localisation names list.
 
 	
-2007-01-12  Jose Dapena Paz  <jdapena@igalia.com>
+2007-01-12  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	Implementation of support of l10n in catalogue names in
 	sources.list:
@@ -834,7 +834,7 @@
 	* doc/repository.txt: add description of sources.list
 	repository names localisation support.
 	
-2007-01-11  Jose Dapena Paz  <jdapena@igalia.com>
+2007-01-11  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	* src/instr.cc, src/repo.h, src/repo.cc: coding style review.
 	Fixed many typos.
@@ -847,7 +847,7 @@
 	* doc/repository.txt: add description of multicatalogue
 	.install file feature.
 
-2007-01-10  Jose Dapena Paz  <jdapena@igalia.com>
+2007-01-10  Jose Dapena Paz  <jdapena@iga\lia.com>
 
 	* src/instr.cc (instr_select_packages_next, 
 	instr_select_packages_cont, instr_select_packages): added
