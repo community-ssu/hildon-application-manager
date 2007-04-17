@@ -98,6 +98,23 @@ in your control information.  If you want to put it into "Ringtones"
 Section: user/Ringtones
 </pre>
 
+### Pretty names
+
+A package can specify a _pretty name_ for itself.  This name is
+displayed in the UI instead of the real package name.
+
+The pretty name is specified with the `Maemo-Display-Name` field.
+
+### Upgrade descriptions
+
+A package can specify a separate description to be used when it is
+displayed in the "Check for updates" view.  This description should
+talk about what is new in this version of the package.
+
+The upgrade description is specified with the
+`Maemo-Upgrade-Description` field.  It is formatted like the normal
+`Description` field.
+
 ### Icons
 
 A package can have an icon that is displayed next to its name by the
@@ -136,6 +153,60 @@ with a "XB-" prefix in your debian/control file, see the [Debian
 Policy Manual, section
 5.7](http://www.debian.org/doc/debian-policy/ch-controlfields.html#s5.7).
 
+### Flags
+
+A package can specify certain flags, using the `Maemo-Flags` field.
+Most of these flags are intended for system upgrades.
+
+The value of the Maemo-Flags field should be a comma separated list of
+one or more of the following words:
+
+- close-apps
+
+  Specifying this flag will make the Application Manager close all
+  applications before installing this package.
+
+- suggest-backup
+
+  Specifying this flag will make the Application Manager suggest to
+  the user that a backup should be taken before installing this
+  package.
+
+- reboot
+
+  Specifying this flag will reboot the device cleanly after the
+  package has been installed.
+
+- system-update
+
+  Specifying this flag will tell the AM that this is a meta package
+  that controls operating system updates.  The AM will adjust some
+  parts of its UI such as the text in the confirmation dialog.  It
+  will also not allow the removal of this package.
+
+A operation usually involves more than one package and the flags of
+all packages are merged.
+
+### Required free space for installing
+
+The AM does check if there is enough space before downloading the
+packages files.
+
+It does not usually check if there is enough free space before
+installing a package, however.  Doing so on a file system
+implementation that is compressed and very different from the one that
+has been used to compute the Installed-Size of a package is quite
+unreliable.  Also, installation can take an unknown amount of storage
+space temporarily.  The problem thus is that the Installed-Size
+doesn't really talk about how much space must be free in order for the
+installation to succeed.
+
+As a fix, the AM allows you to explicitly specify how much space must
+be free by using the `Maemo-Required-Free-Space` field.  When
+performing an installation or update, the values of the
+`Maemo-Required-Free-Space` fields of all involved packages is summed
+and the AM refuses to start the operation when the root partition
+doesn't have enough free space.
 
 ### Installation and removal policy
 
