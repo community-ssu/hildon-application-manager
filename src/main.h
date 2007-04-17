@@ -49,8 +49,10 @@ struct package_info {
   char *installed_version;
   int installed_size;
   char *installed_section;
+  char *installed_pretty_name;
   char *available_version;
   char *available_section;
+  char *available_pretty_name;
   char *installed_short_description;
   GdkPixbuf *installed_icon;
   char *available_short_description;

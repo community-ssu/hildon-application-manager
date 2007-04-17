@@ -344,8 +344,10 @@ package_info::package_info ()
   name = NULL;
   installed_version = NULL;
   installed_section = NULL;
+  installed_pretty_name = NULL;
   available_version = NULL;
   available_section = NULL;
+  available_pretty_name = NULL;
   installed_short_description = NULL;
   available_short_description = NULL;
   installed_icon = NULL;
@@ -369,8 +371,10 @@ package_info::~package_info ()
   g_free (name);
   g_free (installed_version);
   g_free (installed_section);
+  g_free (installed_pretty_name);
   g_free (available_version);
   g_free (available_section);
+  g_free (available_pretty_name);
   g_free (installed_short_description);
   g_free (available_short_description);
   if (installed_icon)
@@ -705,10 +709,12 @@ get_package_list_entry (apt_proto_decoder *dec)
   info->installed_version = dec->decode_string_dup ();
   info->installed_size = dec->decode_int ();
   info->installed_section = dec->decode_string_dup ();
+  info->installed_pretty_name = dec->decode_string_dup ();
   info->installed_short_description = dec->decode_string_dup ();
   installed_icon = dec->decode_string_in_place ();
   info->available_version = dec->decode_string_dup ();
   info->available_section = dec->decode_string_dup ();
+  info->available_pretty_name = dec->decode_string_dup ();
   info->available_short_description = dec->decode_string_dup ();
   available_icon = dec->decode_string_in_place ();
   
@@ -1725,10 +1731,12 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
       dec->decode_int ();             // broken
       dec->decode_int ();             // installed_size
       dec->decode_string_in_place (); // installed_section
+      dec->decode_string_in_place (); // installed_pretty_name
       dec->decode_string_in_place (); // installed_short_description
       dec->decode_string_in_place (); // installed_icon
       dec->decode_string_in_place (); // available_version
       dec->decode_string_in_place (); // available_section
+      dec->decode_string_in_place (); // available_pretty_name
       dec->decode_string_in_place (); // available_short_description
       dec->decode_string_in_place (); // available_icon
 
