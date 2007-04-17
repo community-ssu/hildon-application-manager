@@ -1,3 +1,34 @@
+2007-04-17  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Pretty display names (partly), flags and required free space for
+	packages.
+
+	* src/apt-worker-proto.h, src/apt-worker-proto.cc,
+	src/apt-worker.cc, src/apt-worker-client.cc: Renamed
+	APTCMD_GET_PACKAGES_TO_REMOVE to APTCMD_REMOVE_CHECK.  Changed all
+	occurences.
+	(APTCMD_GET_PACKAGE_LIST): Include pretty names in reply.
+	(status_system_update_unremovable): New.
+	(APTCMD_GET_PACKAGE_INFO): Include required free space and
+	installation flags in reply.  Report sizes as off_t instead of as
+	int.
+	(APTCMD_GET_FILE_DETAILS): Include pretty name in reply.
+
+	* src/main.h, src/main.cc (package_info): Added
+	installed_pretty_name and available_pretty_name.  Updated
+	constructor and desctructor.
+	(search_packages_reply, get_package_list_entry): Retrieve pretty
+	names from reply.
+
+	* src/operations.cc (if_details_reply): Retrieve pretty name from
+	reply.
+
+	* src/util.cc (global_name_func): Get the right pretty name for
+	display.
+
+	* src/instr.cc (convert_catalogues): Use gsize instead of int for
+	catalogue index.
+
 2007-04-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
         Released 1.9.6
