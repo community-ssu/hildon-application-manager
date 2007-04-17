@@ -1,6 +1,20 @@
 2007-04-17  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker-proto.cc, src/apt-worker-proto.cc,
+	src/apt-worker.cc, src/main.cc, src/operations.cc: Use int64_t for
+	sizes instead of off_t or int.
+	(ip_install_with_info): Check free space.
 	
-	Pretty display names, flags and required free space (partly) for
+	* src/details.cc (add_table_list_1): Removed for now.  The
+	smartness will return later.
+	(show_with_details_with_cont): Use add_table_list instead for now.
+
+	* src/util.cc (get_free_space): New.
+	(annoy_user_with_errno): Added continuation.
+	(size_string_detailed, size_string_general): Use int64_t instead
+	of int for the size.
+	
+	Pretty display names, flags and required free space for
 	packages.
 
 	* src/apt-worker-proto.h, src/apt-worker-proto.cc,
