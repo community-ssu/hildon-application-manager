@@ -144,7 +144,8 @@ void annoy_user_with_details_with_cont (const gchar *text,
 					package_info *pi, detail_kind kind,
 					void (*cont) (void *data), void *data);
 void annoy_user_with_log (const gchar *text);
-void annoy_user_with_errno (int err, const gchar *detail);
+void annoy_user_with_errno (int err, const gchar *detail,
+			    void (*cont) (void *), void *data);
 void annoy_user_with_gnome_vfs_result (GnomeVFSResult result,
 				       const gchar *detail);
 
@@ -343,8 +344,8 @@ void select_package_list (GList *package_list,
   SIZE_STRING_GENERAL uses less space than SIZE_STRING_DETAILED.
 */
 
-void size_string_general (char *buf, size_t n, int bytes);
-void size_string_detailed (char *buf, size_t n, int bytes);
+void size_string_general (char *buf, size_t n, int64_t bytes);
+void size_string_detailed (char *buf, size_t n, int64_t bytes);
 
 /* SHOW_DEB_FILE_CHOOSER shows a file chooser dialog for choosing a
    .deb file.  CONT is called with the selected URI, or NULL when
@@ -485,5 +486,9 @@ void respond_on_escape (GtkDialog *dialog, int response);
    screen.
 */
 void grab_focus_on_map (GtkWidget *widget);
+
+/* Get the number of free bytes in the root filesystem.
+ */
+int64_t get_free_space ();
 
 #endif /* !UTIL_H */

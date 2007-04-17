@@ -33,6 +33,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <sys/statvfs.h>
 
 #include <gtk/gtk.h>
 #include <gconf/gconf-client.h>
@@ -446,24 +447,28 @@ annoy_user_with_log (const gchar *text)
 }
 
 void
-annoy_user_with_errno (int err, const gchar *detail)
+annoy_user_with_errno (int err, const gchar *detail,
+		       void (*cont) (void *), void *data)
 {
   add_log ("%s: %s\n", detail, strerror (err));
 
+  const char *msg;
   if (err == ENAMETOOLONG)
-    annoy_user (dgettext ("hildon-common-strings",
-			  "file_ib_name_too_long"));
+    msg = dgettext ("hildon-common-strings",
+		    "file_ib_name_too_long");
   else if (err == EPERM || err == EACCES)
-    annoy_user (dgettext ("hildon-fm",
-			  "sfil_ib_saving_not_allowed"));
+    msg = dgettext ("hildon-fm",
+		    "sfil_ib_saving_not_allowed");
   else if (err == ENOENT)
-    annoy_user (dgettext ("hildon-common-strings",
-			  "sfil_ni_cannot_continue_target_folder_deleted"));
+    msg = dgettext ("hildon-common-strings",
+		    "sfil_ni_cannot_continue_target_folder_deleted");
   else if (err == ENOSPC)
-    annoy_user (dgettext ("hildon-common-strings",
-			  "sfil_ni_not_enough_memory"));
+    msg = dgettext ("hildon-common-strings",
+		    "sfil_ni_not_enough_memory");
   else
-    annoy_user (_("ai_ni_operation_failed"));
+    msg = _("ai_ni_operation_failed");
+  
+  annoy_user_with_cont (msg, cont, data);
 }
 
 void
@@ -1472,7 +1477,8 @@ make_select_package_list_store (GList *package_list, gint *total_size)
       package_info *pi = (package_info *) node->data;
       GtkTreeIter iter;
       char package_size_str[20];
-      size_string_general (package_size_str, 20, pi->info.install_user_size_delta);
+      size_string_general (package_size_str, 20,
+			   pi->info.install_user_size_delta);
       gtk_list_store_append (list_store, &iter);
       gtk_list_store_set (list_store, &iter,
 			  COLUMN_SP_SELECTED, TRUE,
@@ -1695,9 +1701,9 @@ void select_package_list (GList *package_list,
 #define KILO 1000
 
 void
-size_string_general (char *buf, size_t n, int bytes)
+size_string_general (char *buf, size_t n, int64_t bytes)
 {
-  size_t num = bytes;
+  uint64_t num = bytes;
 
   if (num == 0)
     snprintf (buf, n, _("ai_li_size_max_99kb"), 0);
@@ -1709,7 +1715,7 @@ size_string_general (char *buf, size_t n, int bytes)
       // bytes ~ num * KILO
       num = (bytes + KILO/2) / KILO;
       if (num < 100)
-	snprintf (buf, n, _("ai_li_size_max_99kb"), num);
+	snprintf (buf, n, _("ai_li_size_max_99kb"), (int)num);
       else
 	{
 	  // round to nearest 100 KILO
@@ -1723,7 +1729,7 @@ size_string_general (char *buf, size_t n, int bytes)
 	      // bytes ~ num * KILO * KILO
 	      num = (bytes + KILO*KILO/2) / (KILO*KILO);
 	      if (num < KILO)
-		snprintf (buf, n, _("ai_li_size_10mb_1gb"), num);
+		snprintf (buf, n, _("ai_li_size_10mb_1gb"), (int)num);
 	      else
 		snprintf (buf, n, _("ai_li_size_larger_than_1gb"),
 			  ((float)num)/KILO);
@@ -1733,9 +1739,9 @@ size_string_general (char *buf, size_t n, int bytes)
 }
 
 void
-size_string_detailed (char *buf, size_t n, int bytes)
+size_string_detailed (char *buf, size_t n, int64_t bytes)
 {
-  size_t num = bytes;
+  uint64_t num = bytes;
 
   if (num == 0)
     snprintf (buf, n, _("ai_li_de_size_max_999kb"), 0);
@@ -1747,7 +1753,7 @@ size_string_detailed (char *buf, size_t n, int bytes)
       // bytes ~ num * KILO
       num = (bytes + KILO/2) / KILO;
       if (num < 1000)
-	snprintf (buf, n, _("ai_li_de_size_max_999kb"), num);
+	snprintf (buf, n, _("ai_li_de_size_max_999kb"), (int)num);
       else
 	{
 	  // round to nearest 10 KILO
@@ -2738,3 +2744,15 @@ grab_focus_on_map (GtkWidget *widget)
   g_signal_connect (widget, "map", G_CALLBACK (grab_focus), NULL);
 }
 
+int64_t
+get_free_space ()
+{
+  struct statvfs buf;
+
+  if (statvfs("/", &buf) != 0)
+    return -1;
+  
+  int64_t res = (int64_t)buf.f_bfree * (int64_t)buf.f_bsize;
+  printf ("FREE: %Ld\n", res);
+  return res;
+}
