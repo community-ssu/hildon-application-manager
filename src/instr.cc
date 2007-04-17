@@ -189,7 +189,7 @@ convert_catalogues (GKeyFile *keyfile, const char *group, const char *key,
     return NULL;
 
   xexp *catalogues = xexp_list_new ("catalogues");
-  for (int i = 0; i < n_catalogue_names; i++)
+  for (gsize i = 0; i < n_catalogue_names; i++)
     {
       g_strchug (catalogue_names[i]);
       xexp *cat = convert_catalogue (keyfile, catalogue_names[i],
