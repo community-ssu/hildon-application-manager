@@ -1,6 +1,6 @@
 2007-04-17  Marius Vollmer  <marius.vollmer@nokia.com>
-
-	Pretty display names (partly), flags and required free space for
+	
+	Pretty display names, flags and required free space (partly) for
 	packages.
 
 	* src/apt-worker-proto.h, src/apt-worker-proto.cc,
@@ -13,12 +13,15 @@
 	installation flags in reply.  Report sizes as off_t instead of as
 	int.
 	(APTCMD_GET_FILE_DETAILS): Include pretty name in reply.
+	
+	* src/apt-worker.cc (append_display_name): New, use when reporting
+	summaries.
 
 	* src/main.h, src/main.cc (package_info): Added
 	installed_pretty_name and available_pretty_name.  Updated
 	constructor and desctructor.
-	(search_packages_reply, get_package_list_entry): Retrieve pretty
-	names from reply.
+	(package_info::get_display_name): New.  Use instead of
+	package_info::name where appropriate.
 
 	* src/operations.cc (if_details_reply): Retrieve pretty name from
 	reply.
