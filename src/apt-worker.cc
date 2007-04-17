@@ -1990,7 +1990,7 @@ cmd_get_package_list ()
 
       // Installed version
       response.encode_string ("");
-      response.encode_int (1000);
+      response.encode_int64 (1000);
       response.encode_string ("system");
       response.encode_string ("Operating System");
       response.encode_string ("All system packages");
