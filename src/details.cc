@@ -377,15 +377,28 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
   int r = 1;
   if (possible)
     {
-      r = add_table_list (summary_table, r,
-			  _("ai_fi_details_packages_install"),
-			  pi->summary_packages[sumtype_installing]);
-      r = add_table_list (summary_table, r,
-			  _("ai_fi_details_packages_update"),
-			  pi->summary_packages[sumtype_upgrading]);
-      r = add_table_list (summary_table, r,
-			  _("ai_fi_details_packages_uninstall"),
-			  pi->summary_packages[sumtype_removing]);
+      /* When there is exactly one package in all of the lists, we
+	 show nothing for the summary since it would look stupid and
+	 it is the common case.
+      */
+      
+      int n_entries =
+	(g_list_length (pi->summary_packages[sumtype_installing]) +
+	 g_list_length (pi->summary_packages[sumtype_upgrading]) +
+	 g_list_length (pi->summary_packages[sumtype_removing]));
+
+      if (n_entries > 1)
+	{
+	  r = add_table_list (summary_table, r,
+			      _("ai_fi_details_packages_install"),
+			      pi->summary_packages[sumtype_installing]);
+	  r = add_table_list (summary_table, r,
+			      _("ai_fi_details_packages_update"),
+			      pi->summary_packages[sumtype_upgrading]);
+	  r = add_table_list (summary_table, r,
+			      _("ai_fi_details_packages_uninstall"),
+			      pi->summary_packages[sumtype_removing]);
+	}
     }
   else
     {
