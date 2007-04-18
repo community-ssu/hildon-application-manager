@@ -1,3 +1,11 @@
+2007-04-18  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* hildon-application-manager.conf: Removed /etc/apt/sources.list.
+	Use applications category for the state file.
+
+	* src/details.cc (show_with_details_with_cont): Omit summary when
+	it would contain exactly one package.
+
 2007-04-17  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker-proto.cc, src/apt-worker-proto.cc,
