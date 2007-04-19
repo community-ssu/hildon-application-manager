@@ -129,10 +129,12 @@ installable_status_to_message (package_info *pi,
 
    2. Make sure that the network is up when this is not a card install.
 
-   3. Check for certified packages.  For each of the selected
-      packages, a 'check_install' operation is performed and when one
-      of them would install non-certified packages, the Notice dialog
-      is shown.
+   3. Check for the trust status of all installed packages.  For each
+      of the selected packages, a 'check_install' operation is
+      performed and when one of them would install packages from a
+      non-trusted source, the Notice dialog is shown.  Also, when a
+      package would be upgraded from a different 'trust domain' than
+      it was originally installed from, the operation is aborted.
 
    The following is repeated for each selected package, as indicated.
    "Aborting this package" means that an error message is shown and
@@ -156,7 +158,7 @@ installable_status_to_message (package_info *pi,
    XXX
    8. Check the free storage again.
 
-   xxx (close-apps flag)
+   xxx (actually closing all apps)
    9. If the package doesn't have the 'close-apps' flag, run the
       'checkrm' scripts of the upgraded packages and abort this package
       if the scripts asks for it.  Otherwise close all applications.
@@ -164,12 +166,12 @@ installable_status_to_message (package_info *pi,
   10. Do the actual install, aborting this package if it fails.  The
       downloaded archive files are removed in any case.
 
-   XXX
-  11. If the package has the 'reboot' flag, reboot here and now.
-
-  12. If there are more packages to install, go back to 3.
+  11. If there are more packages to install, go back to 3.
 
    At the end:
+
+   xxx (actually rebooting)
+  12. If any of the packages had the 'reboot' flag, reboot here and now.
 
   13. Refresh the lists of packages.
 */
@@ -184,10 +186,13 @@ struct ip_clos {
 
   // per installation iteration
   int flags;
-  int64_t free_space;         // the required free storage space in bytes
+  int64_t free_space;       // the required free storage space in bytes
   GSList *upgrade_names;    // the packages and versions that we are going
   GSList *upgrade_versions; // to upgrade to.
 
+  // at the end
+  bool reboot;              // whether to reboot
+  
   void (*cont) (void *);
   void *data;
 };
@@ -210,7 +215,7 @@ static void ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec,
 				    void *data);
 static void ip_check_upgrade_loop (ip_clos *c);
 static void ip_check_upgrade_cmd_done (int status, void *data);
-static void ip_install_cur (ip_clos *c);
+static void ip_install_cur (void *data);
 static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
@@ -246,10 +251,10 @@ xxx_install_packages (GList *packages,
   c->all_packages = packages;
   c->cont = cont;
   c->data = data;
-
   c->upgrade_names = NULL;
   c->upgrade_versions = NULL;
-
+  c->reboot = false;
+  
   // Filter packages, stopping after the first when this is a standard
   // install.
 
@@ -404,10 +409,6 @@ ip_check_cert_loop (ip_clos *c)
 static void
 ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
-  /* XXX - we always show the "not-so-sure" variant of the legalese.
-           The 'trust system' will be redone later.
-  */
-
   ip_clos *c = (ip_clos *)data;
 
   if (dec == NULL)
@@ -416,8 +417,33 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
       return;
     }
 
-  apt_proto_preptype prep = apt_proto_preptype (dec->decode_int ());
-  if (prep != preptype_end)
+  /* XXX - any exceptional package causes us to show the 'not-so-sure'
+           version of the dialog.  This needs to be rethought once
+           apt-worker provides more details about the trust.
+  */
+
+  bool trusted_upgrade_path_broken = false;
+  bool some_from_untrusted_sources = false;
+
+  while (!dec->corrupted ())
+    {
+      apt_proto_pkgtrust trust = apt_proto_pkgtrust (dec->decode_int ());
+      if (trust == pkgtrust_end)
+	break;
+
+      some_from_untrusted_sources = true;
+      if (trust == pkgtrust_no_longer_trusted)
+	trusted_upgrade_path_broken = true;
+
+      dec->decode_string_in_place ();  // name
+    }
+
+  // XXX - L10N
+
+  if (trusted_upgrade_path_broken)
+    annoy_user_with_cont (_("Trusted upgrade path broken"),
+			  ip_end, c);
+  else if (some_from_untrusted_sources)
     scare_user_with_legalese (false, ip_legalese_response, c);
   else
     {
@@ -484,7 +510,15 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
       if (free_space < 0)
 	annoy_user_with_errno (errno, "get_free_space",
 			       ip_end, c);
-			       
+
+      /* XXX - What is the right thing to do when a packages that asks
+    	       for a reboot fails during installation?  Is it better
+    	       to reboot or not?
+      */
+
+      if (pi->info.install_flags & pkgflag_reboot)
+	c->reboot = true;
+
       if (pi->info.required_free_space + pi->info.download_size >= free_space)
 	{
 	  char free_string[20];
@@ -499,9 +533,17 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 
 	  ip_abort_cur (c, msg, false);
 	}
+      else if (pi->info.install_flags & pkgflag_close_apps)
+	{
+	  // XXX - L10N
+	  annoy_user_with_cont (_("You should close all Applications now."),
+				ip_install_cur, c);
+	}
       else
-	apt_worker_install_check (c->state, pi->name,
-				  ip_check_upgrade_reply, c);
+	{
+	  apt_worker_install_check (c->state, pi->name,
+				    ip_check_upgrade_reply, c);
+	}
     }
   else
     ip_abort_cur_with_status_details (c);
@@ -526,8 +568,8 @@ ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   while (!dec->corrupted ())
     {
-      apt_proto_preptype prep = apt_proto_preptype (dec->decode_int ());
-      if (prep == preptype_end)
+      apt_proto_pkgtrust trust = apt_proto_pkgtrust (dec->decode_int ());
+      if (trust == pkgtrust_end)
 	break;
       
       dec->decode_string_in_place ();  // name
@@ -617,8 +659,9 @@ ip_check_upgrade_cmd_done (int status, void *data)
 }
 
 static void
-ip_install_cur (ip_clos *c)
+ip_install_cur (void *data)
 {
+  ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
   printf ("INSTALL %s\n", pi->name);
@@ -802,7 +845,11 @@ ip_end (void *data)
   get_package_list (APTSTATE_DEFAULT);
   save_backup_data ();
 
-  c->cont (c->data);
+  if (c->reboot)
+    annoy_user_with_cont (_("You should reboot now"),
+			  c->cont, c->data);
+  else
+    c->cont (c->data);
   delete c;
 }
 

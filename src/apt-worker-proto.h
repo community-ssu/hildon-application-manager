@@ -342,11 +342,11 @@ enum apt_proto_sumtype {
 //                 packages and gather information about the
 //                 installation.
 //
-// This will setup the download operation and figure out whether there
-// are any not-authenticated or not-certified packages.  It will also
-// report information about which packages will be upgraded to which
-// version and the union of the flags from the to-be-installed
-// packages.
+// This will setup the download operation and figure out the kind of
+// trust we have in the packages that will be installed.  Only those
+// packages that are not from a trusted source will be listed.  It
+// will also report information about which packages will be upgraded
+// to which version.
 //
 // Parameters:
 //
@@ -354,15 +354,18 @@ enum apt_proto_sumtype {
 //
 // Response:
 //
-// - summary (preptype,string)*,(preptype_end)
+// - summary (pkgtrust,string)*,(pktrust_end)
 // - upgrades (string,string)*,(null)   First string is package name,
 //                                      second is version.
 // - success (int).
 
-enum apt_proto_preptype {
-  preptype_end,
-  preptype_notauth,
-  preptype_notcert
+enum apt_proto_pkgtrust {
+  pkgtrust_end,
+  pkgtrust_not_signed,
+  pkgtrust_signed_but_no_key,
+  pkgtrust_signed_but_invalid,
+  pkgtrust_signed_but_not_trusted,
+  pkgtrust_no_longer_trusted
 };
 
 // INSTALL_PACKAGE - Do the actual installation of a package

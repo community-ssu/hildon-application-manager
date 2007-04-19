@@ -180,8 +180,9 @@ log_stderr (const char *fmt, ...)
  */
 typedef struct package_flag_struct
 {
-  bool autoinst;
-  bool related;
+  bool autoinst : 1;
+  bool related : 1;
+  bool not_from_trusted_source : 1;
 };
 
 /* This class implements state and cache switching of apt-worker. With
@@ -778,8 +779,6 @@ handle_request ()
     }
 }
 
-void read_certified_conf ();
-
 int
 main (int argc, char **argv)
 {
@@ -829,7 +828,6 @@ main (int argc, char **argv)
 
   AptWorkerState::Initialize ();
   cache_init (false);
-  read_certified_conf ();
 
   while (true)
     handle_request ();
@@ -965,14 +963,14 @@ is_user_package (const pkgCache::VerIterator &ver)
   return is_user_section (section, section + strlen (section));
 }
 
-/* Save the 'Auto' flags of the cache.  Libapt-pkg does not seem to
-   save it so we do it.  We also make a copy of the Auto flags in our
-   own PACKAGE_FLAGS storage so that CACHE_RESET will reset the Auto
-   flags to the state last saved with this function.
+/* Save the 'auto' and 'not_from_trusted_source' flags of the cache.
+   We also make a copy of the Auto flags in our own PACKAGE_FLAGS
+   storage so that CACHE_RESET will reset the Auto flags to the state
+   last saved with this function.
 */
 
 void
-save_auto_flags ()
+save_package_flags ()
 {
   AptWorkerState * state = AptWorkerState::GetCurrent ();
   if (state == NULL)
@@ -984,8 +982,9 @@ save_auto_flags ()
       return;
     }
 
-  FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "w");
-  if (f)
+  FILE *f_auto = fopen ("/var/lib/hildon-application-manager/autoinst", "w");
+  FILE *f_trust = fopen ("/var/lib/hildon-application-manager/notrust", "w");
+  if (f_auto && f_trust)
     {
       pkgDepCache &cache = *(state->cache);
 
@@ -994,22 +993,26 @@ save_auto_flags ()
 	  if (cache[pkg].Flags & pkgCache::Flag::Auto)
 	    {
 	      state->package_flags[pkg->ID].autoinst = true;
-	      fprintf (f, "%s\n", pkg.Name ());
+	      fprintf (f_auto, "%s\n", pkg.Name ());
 	    }
 	  else
 	    state->package_flags[pkg->ID].autoinst = false;
+
+	  if (state->package_flags[pkg->ID].not_from_trusted_source)
+	    fprintf (f_trust, "%s\n", pkg.Name ());
 	}
-      fclose (f);
+      fclose (f_auto);
+      fclose (f_trust);
     }
 }
 
-/* Load the Auto flags and put them into our own PACKAGE_FLAGS
-   storage.  You need to call CACHE_RESET to transfer them into the
-   actual cache.
+/* Load the auto and not_from_trusted_source flags and put them into
+   our own PACKAGE_FLAGS storage.  You need to call CACHE_RESET to
+   transfer the auto flag into the actual cache.
 */
 
 void
-load_auto_flags ()
+load_package_flags ()
 {
   // XXX - log errors.
   AptWorkerState *state = NULL;
@@ -1019,7 +1022,10 @@ load_auto_flags ()
     return;
 
   for (unsigned int i = 0; i < state->package_count; i++)
-    state->package_flags[i].autoinst = false;
+    {
+      state->package_flags[i].autoinst = false;
+      state->package_flags[i].not_from_trusted_source = false;
+    }
 
   FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "r");
   if (f)
@@ -1040,6 +1046,32 @@ load_auto_flags ()
 	    {
 	      DBG ("auto: %s", pkg.Name ());
 	      state->package_flags[pkg->ID].autoinst = true;
+	    }
+	}
+
+      free (line);
+      fclose (f);
+    }
+
+  f = fopen ("/var/lib/hildon-application-manager/notrust", "r");
+  if (f)
+    {
+      pkgDepCache &cache = *(state->cache);
+
+      char *line = NULL;
+      size_t len = 0;
+      ssize_t n;
+
+      while ((n = getline (&line, &len, f)) != -1)
+	{
+	  if (n > 0 && line[n-1] == '\n')
+	    line[n-1] = '\0';
+
+	  pkgCache::PkgIterator pkg = cache.FindPkg (line);
+	  if (!pkg.end ())
+	    {
+	      DBG ("notrust: %s", pkg.Name ());
+	      state->package_flags[pkg->ID].not_from_trusted_source = true;
 	    }
 	}
 
@@ -1235,7 +1267,7 @@ cache_init (bool with_status)
       state->package_flags = new package_flag_struct[state->package_count];
     }
 
-  load_auto_flags ();
+  load_package_flags ();
   cache_reset ();
 }
 
@@ -2858,91 +2890,45 @@ cmd_remove_package ()
   response.encode_int (result_code == rescode_success);
 }
 
-static GList *certified_uri_prefixes = NULL;
-
-void
-read_certified_conf ()
-{
-  const char *name = "/etc/hildon-application-manager/certified.list";
-
-  FILE *f = fopen (name, "r");
-
-  if (f)
-    {
-      char *line = NULL;
-      size_t len = 0;
-      ssize_t n;
-
-      while ((n = getline (&line, &len, f)) != -1)
-	{
-	  if (n > 0 && line[n-1] == '\n')
-	    line[n-1] = '\0';
-
-	  char *hash = strchr (line, '#');
-	  if (hash)
-	    *hash = '\0';
-
-	  char *saveptr;
-	  char *type = strtok_r (line, " \t", &saveptr);
-	  if (type)
-	    {
-	      if (!strcmp (type, "uri-prefix"))
-		{
-		  char *prefix = strtok_r (NULL, " \t", &saveptr);
-		  DBG ("certified: %s", prefix);
-		  certified_uri_prefixes =
-		    g_list_append (certified_uri_prefixes,
-				   g_strdup (prefix));
-		}
-	      else
-		fprintf (stderr, "unsupported type in certified.list: %s\n",
-			 type);
-	    }
-	}
-
-      free (line);
-      fclose (f);
-    }
-  else if (errno != ENOENT)
-    perror (name);
-}
-
-static bool
-is_certified_source (string uri)
-{
-  for (GList *p = certified_uri_prefixes; p; p = p->next)
-    {
-      if (g_str_has_prefix (uri.c_str(), (char *)p->data))
-	return true;
-    }
-  return false;
-}
-
 static void
-encode_prep_summary (pkgAcquire& Fetcher)
+encode_trust_summary (pkgAcquire& Fetcher)
 {
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgDepCache &cache = *(state->cache);
+
   for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
        I < Fetcher.ItemsEnd(); ++I)
     {
-      if (!is_certified_source ((*I)->DescURI ()))
-	{
-#ifdef DEBUG
-	  cerr << "notcert: " << (*I)->DescURI () << "\n";
-#endif
-	  response.encode_int (preptype_notcert);
-	  response.encode_string ((*I)->ShortDesc().c_str());
-	}
-      
+      // XXX - get more details out of apt about which key has signed
+      //       the repo and whether or not the signature could be
+      //       verified.
+
       if (!(*I)->IsTrusted())
 	{
 #ifdef DEBUG
-	  cerr << "notauth: " << (*I)->DescURI () << "\n";
+	  cerr << "not trusted: " << (*I)->DescURI () << "\n";
 #endif
-	  response.encode_int (preptype_notauth);
+	  response.encode_int (pkgtrust_not_signed);
 	  response.encode_string ((*I)->ShortDesc().c_str());
+
+	  pkgCache::PkgIterator pkg =
+	    cache.FindPkg ((*I)->ShortDesc().c_str());
+	  if (!pkg.end () &&
+	      state->package_flags[pkg->ID].not_from_trusted_source == false)
+	    {
+	      DBG ("no longer trusted: %s", pkg.Name ());
+	      response.encode_int (pkgtrust_no_longer_trusted);
+	      response.encode_string ((*I)->ShortDesc().c_str());
+	    }
+	}
+      else
+	{
+#ifdef DEBUG
+	  cerr << "trusted: " << (*I)->DescURI () << "\n";
+#endif
 	}
     }
-  response.encode_int (preptype_end);
+  response.encode_int (pkgtrust_end);
 }
 
 static void
@@ -2966,6 +2952,33 @@ encode_upgrades ()
     }
 
   response.encode_string (NULL);
+}
+
+static void
+collect_trust_information (pkgAcquire& Fetcher)
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgDepCache &cache = *(state->cache);
+
+  for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
+       I < Fetcher.ItemsEnd(); ++I)
+    {
+      // XXX - get more details out of apt about which key has signed
+      //       the repo and whether or not the signature could be
+      //       verified.
+
+      pkgCache::PkgIterator pkg = cache.FindPkg ((*I)->ShortDesc().c_str());
+      if (!pkg.end ())
+	{
+	  state->package_flags[pkg->ID].not_from_trusted_source =
+	    !(*I)->IsTrusted();
+	  DBG ("collect notrust: %s %d",
+	       pkg.Name(),
+	       state->package_flags[pkg->ID].not_from_trusted_source);
+	}
+      else
+	DBG ("NOT FOUND: %s", (*I)->ShortDesc().c_str());
+    }
 }
 
 /* We modify the pkgDPkgPM package manager so that we can provide our
@@ -3130,10 +3143,12 @@ operation (bool check_only)
 
    if (check_only)
      {
-       encode_prep_summary (Fetcher);
+       encode_trust_summary (Fetcher);
        encode_upgrades ();
        return rescode_success;
      }
+
+   collect_trust_information (Fetcher);
 
    /* Check for enough free space. */
    {
@@ -3206,7 +3221,7 @@ operation (bool check_only)
    pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
    _system->Lock();
 
-   save_auto_flags ();
+   save_package_flags ();
 
    if (Res == pkgPackageManager::Failed || _error->PendingError() == true)
      return rescode_failure;
