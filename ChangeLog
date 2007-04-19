@@ -1,3 +1,28 @@
+2007-04-19  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Keep track of which packages are from non-trusted sources.
+	Removed concept of certified sources.
+
+	* src/apt-worker-proto.h (apt_proto_preptype): Removed.
+	(apt_proto_pkgtrust): Added.
+	
+	* src/apt-worker.cc (package_flag_struct): Added
+	not_from_trusted_source.
+	(load_auto_flags, save_auto_flags, load_package_flags,
+	save_package_flags): Renamed former two to latter two.  Also save
+	the "notrust" file.
+	(collect_trust_information): New.
+	(operation): Call it.
+	(encode_prep_summary, encode_trust_summary): Renamed former to
+	latter.  Use new pkgtrust enumeration.  Discover broken trusted
+	upgrade paths.
+	(read_certified_conf, is_certified_source): Removed.
+	
+	* src/operations.cc (ip_install_with_info): Record reboot request.
+	Ask for application closing when requested.
+	(ip_end): Ask for reboot when requested.
+	(ip_check_cert_reply): Handle new pkgtrust reply.
+	
 2007-04-18  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* hildon-application-manager.conf: Removed /etc/apt/sources.list.
