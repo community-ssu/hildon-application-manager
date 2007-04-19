@@ -2914,6 +2914,7 @@ encode_trust_summary (pkgAcquire& Fetcher)
 	  pkgCache::PkgIterator pkg =
 	    cache.FindPkg ((*I)->ShortDesc().c_str());
 	  if (!pkg.end () &&
+	      cache[pkg].Upgrade() && !cache[pkg].NewInstall() &&
 	      state->package_flags[pkg->ID].not_from_trusted_source == false)
 	    {
 	      DBG ("no longer trusted: %s", pkg.Name ());
