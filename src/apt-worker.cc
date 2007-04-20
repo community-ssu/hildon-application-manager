@@ -140,7 +140,8 @@ using namespace std;
 
 /* The file where we store our backup data.
  */
-#define BACKUP_DATA "/var/lib/hildon-application-manager/backup"
+#define BACKUP_CATALOGUES "/var/lib/hildon-application-manager/catalogues.backup"
+#define BACKUP_PACKAGES "/var/lib/hildon-application-manager/packages.backup"
 
 
 /* You know what this means.
@@ -3720,7 +3721,7 @@ get_backup_packages ()
   if (!ensure_cache ())
     return NULL;
 
-  xexp *packages = xexp_list_new ("packages");
+  xexp *packages = xexp_list_new ("backup");
 
   pkgDepCache &cache = *(state->cache);
 
@@ -3749,14 +3750,16 @@ void
 cmd_save_backup_data ()
 {
   xexp *catalogues = get_backup_catalogues ();
-  xexp *packages = get_backup_packages ();
-
-  if (catalogues && packages)
+  if (catalogues)
     {
-      xexp *data = xexp_list_new ("backup");
-      xexp_append_1 (data, catalogues);
-      xexp_append_1 (data, packages);
-      xexp_write_file (BACKUP_DATA, data);
-      xexp_free (data);
+      xexp_write_file (BACKUP_CATALOGUES, catalogues);
+      xexp_free (catalogues);
+    }
+  
+  xexp *packages = get_backup_packages ();
+  if (packages)
+    {
+      xexp_write_file (BACKUP_PACKAGES, packages);
+      xexp_free (packages);
     }
 }
