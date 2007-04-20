@@ -178,16 +178,6 @@ call_restore_packages ()
 }
 
 static void
-simulate_backup_restore ()
-{
-  /* This simulates a backup/restore operation, for easy testing and
-     demonstration.
-   */
-  system ("cp /var/lib/hildon-application-manager/backup "
-	  "$HOME/.hildon-application-manager.backup");
-}
-
-static void
 call_install_from_file ()
 {
   install_from_file_flow (NULL);
@@ -239,9 +229,6 @@ create_menu (GtkMenu *main)
   add_item (tools,
 	    _("ai_me_tools_restore"), NULL,
 	    call_restore_packages);
-  add_item (tools,
-	    "Simulate Backup/Restore", NULL,
-	    simulate_backup_restore);
   add_item (tools,
 	    _("ai_me_tools_refresh"), NULL,
 	    call_refresh_package_cache);
