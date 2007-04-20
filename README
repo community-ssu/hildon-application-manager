@@ -213,6 +213,7 @@ BUGS
 - check autoremoval
 - Implement real trust domains
 - Implement smart download location chosing.
+- Implement catalogue filtering in instr.cc
 
 Cleanup
 -------
