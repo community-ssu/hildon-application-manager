@@ -1,7 +1,9 @@
 #!/bin/sh
 #
-# osso-backup restore.d script. This script rescues the restored
-# backup data to a place where the Application Manager can find them.
+# osso-backup restore.d script.
+#
+# We merge the restored catalogues right here and copy the list of
+# packages to a place where the AM can find them.
 
 if [ ! $1 ]
 then
@@ -13,9 +15,18 @@ then
   exit 0
 fi
 
-if grep "/var/lib/hildon-application-manager/backup" "$1"
+cats="/var/lib/hildon-application-manager/catalogues.backup"
+pkgs="/var/lib/hildon-application-manager/packages.backup"
+upkgs="$HOME/.hildon-application-manager.backup"
+
+if grep -q "$cats" "$1"
 then
-  cp /var/lib/hildon-application-manager/backup $HOME/.hildon-application-manager.backup
+  hildon-application-manager-merge-catalogues "$cats"
+fi
+
+if grep -q "$pkgs" "$1"
+then
+  cp "$pkgs" "$upkgs"
 fi
 
 exit 0
