@@ -1,3 +1,27 @@
+2007-04-20  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/hildon-application-manager-merge-catalogues.cc: New.
+	* src/Makefile.am: Build it.
+
+	* src/apt-worker.cc (cmd_save_backup_data): Save catalogues and
+	packages to separate files.
+	* hildon-application-manager.conf, hildon-application-manager.sh:
+	Handle catalogues and apckages separately.
+
+	* src/main.cc (restore_packages_flow, rp_restore): Don't expect
+	catalogues to be in the backup data.  Don't add them, just refresh
+	the caches.
+	(mime_open_handler): Run the restore flow for all files ending in
+	backup.install, for now.
+
+	* src/repo.cc (set_catalogues_reply): Call save_backup_data to
+	save the changes to the catalogues.
+
+	* src/xexp.c, src/xexp.h (xexp_pop): New.
+
+	* src/menu.cc (simulate_backup_restore, create_menu): Removed
+	backup/restore simulation, it's not that simple anymore...
+
 2007-04-19  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Keep track of which packages are from non-trusted sources.
