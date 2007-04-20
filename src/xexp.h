@@ -171,6 +171,10 @@
    Deletes Y from the list of children of X and frees it.  X must be a
    list xexp.  Y must be a child of X.
 
+   - void xexp_pop (xexp *X)
+
+   Removes the first child from X and returns it.  The returned xexp
+   is free standing.
 
    TEXT XEXPS
 
@@ -295,6 +299,7 @@ void xexp_append_1 (xexp *x, xexp *y);
 void xexp_append (xexp *x, xexp *y);
 void xexp_reverse (xexp *x);
 void xexp_del (xexp *x, xexp *y);
+xexp *xexp_pop (xexp *x);
 
 /* Texts
  */

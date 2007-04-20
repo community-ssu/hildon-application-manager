@@ -217,6 +217,22 @@ xexp_del (xexp *x, xexp *z)
 }
 
 xexp *
+xexp_pop (xexp *x)
+{
+  xexp *y;
+
+  g_return_val_if_fail (xexp_is_list (x), NULL);
+
+  y = x->first;
+  if (y)
+    {
+      x->first = y->rest;
+      y->rest = NULL;
+    }
+  return y;
+}
+
+xexp *
 xexp_text_new (const char *tag, const char *text)
 {
   g_assert (tag);
