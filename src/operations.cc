@@ -119,6 +119,10 @@ installable_status_to_message (package_info *pi,
 
 /* INSTALL_PACKAGES - Overview
 
+   XXX - system updates should be handled specially: they should be
+   installed first with their own special confirmation dialog, and
+   then the rest of the packages should be processed.
+
    0. Filter out already installed packages.  When the list is empty
       after this, an appropriate note is shown and the process aborts.
 
