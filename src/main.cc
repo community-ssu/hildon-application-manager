@@ -2011,12 +2011,8 @@ restore_packages_flow ()
       
       if (backup)
 	{
-	  xexp *catalogues = xexp_aref (backup, "catalogues");
-	  if (catalogues)
-	    add_catalogues (catalogues, false, true,
-			    rp_restore, backup);
-	  else
-	    rp_restore (true, backup);
+	  refresh_package_cache_with_cont (APTSTATE_DEFAULT, false,
+					   rp_restore, backup);
 	}
       else
 	{
@@ -2030,27 +2026,22 @@ static void
 rp_restore (bool res, void *data)
 {
   xexp *backup = (xexp *)data;
-  xexp *packages = xexp_aref (backup, "packages");
-  if (packages)
-    {
-      int len = xexp_length (packages);
-      const char **names = (const char **)new char* [len+1];
 
-      xexp *p = xexp_first (packages);
-      int i = 0;
-      while (p)
-	{
-	  if (xexp_is (p, "pkg") && xexp_is_text (p))
-	    names[i++] = xexp_text (p);
-	  p = xexp_rest (p);
-	}
-      names[i] = NULL;
-      install_named_packages (APTSTATE_DEFAULT, names, INSTALL_TYPE_BACKUP,
-			      rp_end, backup);
-      delete names;
+  int len = xexp_length (backup);
+  const char **names = (const char **)new char* [len+1];
+
+  xexp *p = xexp_first (backup);
+  int i = 0;
+  while (p)
+    {
+      if (xexp_is (p, "pkg") && xexp_is_text (p))
+	names[i++] = xexp_text (p);
+      p = xexp_rest (p);
     }
-  else
-    rp_end (backup);
+  names[i] = NULL;
+  install_named_packages (APTSTATE_DEFAULT, names, INSTALL_TYPE_BACKUP,
+			  rp_end, backup);
+  delete names;
 }
 
 static void
@@ -2155,7 +2146,7 @@ mime_open_handler (gpointer raw_data, int argc, char **argv)
       const char *filename = argv[0];
 
       present_main_window ();
-      if (g_str_has_suffix (filename, ".backup"))
+      if (strcmp (filename, "backup.install") == 0)
 	restore_packages_flow ();
       else
 	install_from_file_flow (filename);
