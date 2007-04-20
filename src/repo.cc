@@ -193,6 +193,8 @@ set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
       c->cont (true, c->data);
       delete c;
     }
+
+  save_backup_data ();
 }
 
 static void
