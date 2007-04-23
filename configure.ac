@@ -1,6 +1,6 @@
 # configure.ac for hildon-application-manager
 
-AC_INIT(hildon-application-manager, 1.9.6)
+AC_INIT(hildon-application-manager, 1.9.7)
 AC_CONFIG_SRCDIR([src/main.cc])
 AM_INIT_AUTOMAKE
 
@@ -17,8 +17,7 @@ if test x$ac_cv_header_apt_pkg_configuration_h != xyes; then
 fi
 
 PKG_CHECK_MODULES(HAM_DEPS, glib-2.0 gtk+-2.0 hildon-1 hildon-fm-2 libosso
-                            conic gconf-2.0 gnome-vfs-2.0 hildon-help
-                            obex-vfs-utils)
+                            conic gconf-2.0 gnome-vfs-2.0 hildon-help)
 AC_SUBST(HAM_DEPS_CFLAGS)
 AC_SUBST(HAM_DEPS_LIBS)
 

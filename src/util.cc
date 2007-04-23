@@ -45,10 +45,6 @@
 #include <conic.h>
 #include <libgnomevfs/gnome-vfs.h>
 
-extern "C" {
-#include <obex-vfs-utils/ovu-xfer.h>
-}
-
 #include "util.h"
 #include "details.h"
 #include "log.h"
@@ -2056,9 +2052,9 @@ copy_progress (GnomeVFSAsyncHandle *handle,
       if (stat (copy_target, &buf) < 0)
 	{
 	  /* If a obex connection is refused before the downloading is
-	     started, ovu_async_xfer seems to report success without
-	     actually creating the file.  We treat that situation as
-	     an I/O error.
+	     started, gnome_vfs_async_xfer seems to report success
+	     without actually creating the file.  We treat that
+	     situation as an I/O error.
 	  */
 	  call_copy_cont (GNOME_VFS_ERROR_IO);
 	}
@@ -2111,17 +2107,17 @@ do_copy (const char *source, GnomeVFSURI *source_uri,
   show_progress (dgettext ("hildon-fm",
 			   "docm_nw_opening_file"));
 
-  result = ovu_async_xfer (&handle,
-			   source_uri_list,
-			   target_uri_list,
-			   GNOME_VFS_XFER_DEFAULT,
-			   GNOME_VFS_XFER_ERROR_MODE_QUERY,
-			   GNOME_VFS_XFER_OVERWRITE_MODE_REPLACE,
-			   GNOME_VFS_PRIORITY_DEFAULT,
-			   copy_progress,
-			   NULL,
-			   NULL,
-			   NULL);
+  result = gnome_vfs_async_xfer (&handle,
+				 source_uri_list,
+				 target_uri_list,
+				 GNOME_VFS_XFER_DEFAULT,
+				 GNOME_VFS_XFER_ERROR_MODE_QUERY,
+				 GNOME_VFS_XFER_OVERWRITE_MODE_REPLACE,
+				 GNOME_VFS_PRIORITY_DEFAULT,
+				 copy_progress,
+				 NULL,
+				 NULL,
+				 NULL);
 
   if (result != GNOME_VFS_OK)
     call_copy_cont (result);
