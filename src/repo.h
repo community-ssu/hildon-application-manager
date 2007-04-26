@@ -55,6 +55,11 @@ void show_repo_dialog ();
 
       When present, marks this catalogue as essential.
 
+      - nobackup
+
+      When present, prevents this catalogue from ending up in a
+      backup.
+
   Note that 'file_uri' is not valid for a catalogue xexp; you have to
   resolve this when reading the .install file.
 */
