@@ -1,3 +1,39 @@
+2007-04-26  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* configure.ac: Check for
+	apt_set_index_trust_level_for_package_hook.
+
+	* srtc/apt-worker.cc: Implemented domains.
+	(DOMAIN_CONF, domain_t, domain_info, domain_conf, domains,
+	default_domain, read_domain_conf, find_domain,
+	index_trust_level_for_package, cur_source, find_deb_meta_index,
+	get_domain, domain_dominates_or_is_equal, reset_new_domains,
+	collect_new_domains): New.
+	(encode_trust_summary): Rewritten.
+	(collect_trust_information): Removed.
+	(package_flags_struct, extra_info_struct): Renamed former to
+	latter, added domain information, changed all users.
+	(load_package_flags, load_extra_info): Renamed former to latter,
+	load all extra information.  Changed all callers.
+	(save_package_flags, save_extra_info): Likewise.
+	(main): Call read_domain_conf and install
+	index_trust_level_for_package.
+	
+	* src/apt-worker-proto.h (apt_proto_pkgtrust): Reduced trust
+	indicators to pkgtrust_not_certified and
+	pkgtrust_domains_violated.
+	* src/operations.cc (ip_check_cert_reply): Changed acoordingly.
+
+	* src/util.cc: Removed DBUS_API_SUBJECT_TO_CHANGE.
+
+2007-04-23  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (do_copy): Use gnome_vfs_async_xfer instead of
+	ovu_async_xfer.
+	* configure.ac: Don't check for obex-vfs-utils.
+	* debian/control: Removed osso-gnomevfs-extra-dev from
+	Build-Depends.
+
 2007-04-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/hildon-application-manager-merge-catalogues.cc: New.
