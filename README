@@ -209,9 +209,7 @@ BUGS
 - "Unable to refresh all catalogues"
 - Explain non-removable system updates in Details dialog.
 - Implement Maemo-Upgrade-Description
-- check filter_dist 
 - check autoremoval
-- Implement real trust domains
 - Implement smart download location chosing.
 - Implement catalogue filtering in instr.cc
 
