@@ -1,5 +1,18 @@
 2007-04-26  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/Makefile.am (hildon_application_manager_launch_SOURCES,
+	apt_worker_SOURCES): Added confutils.cc and confutils.h.
+
+	* src/apt-worker.cc (DOMAIN_CONF, CATALOGUE_CONF,
+	CATALOGUE_APT_SOURCE, write_sources_list): Removed, they are in
+	confutils now.
+
+	* src/repo.cc: (cats_are_equal, find_catalogue): Removed, use
+	confutils.h instead.
+
+	* src/util.h, src/util.cc (tokens_equal): Removed, it's in
+	confutils now.
+
 	* hildon-application-manager.sh: Use
 	hildon-application-manager-config instead of
 	hildon-application-manager-merge-catalogues.
