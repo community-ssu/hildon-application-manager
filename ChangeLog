@@ -1,5 +1,14 @@
 2007-04-26  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* hildon-application-manager.sh: Use
+	hildon-application-manager-config instead of
+	hildon-application-manager-merge-catalogues.
+
+	* src/confutils.h, src/confutils.cc,
+	src/hildon-application-manager-config.cc: New.
+	* src/Makefile.am: Added hildon-application-manager-config program,
+	removed hildon-application-manager-merge-catalogues program.
+	
 	* configure.ac: Check for
 	apt_set_index_trust_level_for_package_hook.
 
