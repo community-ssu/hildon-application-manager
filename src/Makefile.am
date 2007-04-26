@@ -30,7 +30,9 @@ hildon_application_manager_launch_SOURCES = main.h			\
 					    apt-worker-client.h		\
 					    apt-worker-client.cc	\
 					    apt-worker-proto.h		\
-					    apt-worker-proto.cc
+					    apt-worker-proto.cc		\
+                                            confutils.h			\
+                                            confutils.cc
 
 hildon_application_manager_launch_CFLAGS =   $(HAM_DEPS_CFLAGS) -shared
 hildon_application_manager_launch_CXXFLAGS = $(HAM_DEPS_CFLAGS) -shared \
@@ -54,11 +56,13 @@ hildon_application_manager_config_CFLAGS = $(AW_DEPS_CFLAGS)
 hildon_application_manager_config_CXXFLAGS = $(AW_DEPS_CFLAGS)
 hildon_application_manager_config_LDADD = $(AW_DEPS_LIBS)
 
-apt_worker_SOURCES = apt-worker.cc \
-		     xexp.h \
-                     xexp.c \
-                     apt-worker-proto.h \
-                     apt-worker-proto.cc
+apt_worker_SOURCES = apt-worker.cc		\
+		     xexp.h			\
+                     xexp.c			\
+                     apt-worker-proto.h		\
+                     apt-worker-proto.cc	\
+                     confutils.h		\
+                     confutils.cc
 
 apt_worker_CFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)
