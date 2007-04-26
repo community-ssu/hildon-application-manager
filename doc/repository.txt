@@ -31,17 +31,57 @@ How to actually setup a repository is explained in the [Debian
 Repository
 HOWTO](http://www.debian.org/doc/manuals/repository-howto/repository-howto).
 
-### Trusted package sources
+### Package domains
 
-The AM can recognize certain package sources as 'trusted'.  Packages
-coming from those sources are installed without showing the big fat
-warning dialog to the user.  Also, updates to packages that have
-originally been installed from a trusted source must come from the
-same trusted source.
+The AM classifies the package repositories into 'domains' and upgrades
+to already installed packages must (usually) come from the same domain
+that the package was originally installed from.
 
-Right now, the AM knows only about one trusted source: signed
-repositories.  Each repository that is signed with a known key is part
-of the one trusted source.
+Also, some domains are considered 'certified', and installing packages
+from these domains will not show the big fat warning dialog to the
+user.
 
-In the future, the concept of a trusted source will likely be more
-flexible.
+Repositories are associated with domains based on the key that they
+have been signed with.  Multiple repositories that have been signed
+with the same key will thus automatically belong to the same domain.
+
+Domains have a 'trust level' associated with them.  Domains with a
+higher trust level are considered to dominate other domains and the AM
+will allow a package to silently move from a domain to a dominating
+one.
+
+Domains are configured in /etc/hildon-application-manager/domains
+using a simple XML format:
+
+    <domains>
+     <domain>
+      <name>demodomain</name>
+      <key>ABCDEFABCDEFABCDEFABCDEFABCDEFABCDEF</key>
+      <trust-level>2</trust-level>
+      <default/>
+      <certified/>
+     </domain>
+    <domains>
+
+The `key` element specifies the fingerprint of the key that defines
+this domain.
+
+When a domain is marked as `default`, every installed package that
+isn't already known to belong to a certain domain is put into this
+domain.
+
+There are two implicitly defined domains: `signed` and `unsigned`.
+Repositories that are signed but have no explicitly defined domain
+associated with them are put into the `signed` domain.  The rest is
+put into the `unsigned` domain.
+
+The `signed` domain has a trust level of one, the `unsigned` domain
+has a trust level of zero.  If there is no other default domain,
+`signed` will be the default domain.
+
+The AM logs domain changes in "Tools > Log".  When a package is about
+to change its domain, the AM will usually abort its installation.  In
+red-pill mode, it will ask whether to continue.
+
+You can use the `hildon-application-manager-config` utility to add,
+change and remove domains.
