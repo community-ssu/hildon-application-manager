@@ -190,6 +190,12 @@ documented in the header files.
   Application Manager via .install files.  Xexps can be exchanged
   easily between the frontend and backend.
 
+- confutils.h, confutils.cc
+
+  Utilities for handling configuration related tasks.  Used in the
+  frontend, backend, and the hildon-application-manager-config utility
+  program.
+
 - hildonbreadcrumbtrail.h, hildonbreadcrumbtrail.c
 
   A throw-away implementation of the breadcrumb trail 'widget'.  These
@@ -200,6 +206,10 @@ documented in the header files.
 
   Support for starting the backend and communicating with it.
 
+- hildon-application-manager-config.cc
+
+  A command line utility for managing the configuration data of the
+  Application Manager.
 
 BUGS
 ----
