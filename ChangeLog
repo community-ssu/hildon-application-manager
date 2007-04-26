@@ -1,5 +1,7 @@
 2007-04-26  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 1.9.7
+	
 	* src/Makefile.am (hildon_application_manager_launch_SOURCES,
 	apt_worker_SOURCES): Added confutils.cc and confutils.h.
 

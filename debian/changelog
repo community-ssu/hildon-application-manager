@@ -1,3 +1,14 @@
+hildon-application-manager (1:1.9.7) unstable; urgency=low
+
+  * The big feature release.
+  
+  Implemented: NR#153487, NR#159766, NR#159854, NR#159858, NR#153488,
+  NR#159768, NR#159864, NR#159865, NR#159866, NR#159867, NR#159869,
+  NR#159871, NR#167580, NR#153489, NR#153508, NR#159761, NR#159762,
+  NR#159763, NR#159764, NR#159769, NR#167566, NR#167565, NR#167795.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 17 Apr 2007 20:52:31 +0300
+
 hildon-application-manager (1:1.9.6) unstable; urgency=low
 
   * Implemented "restore packages" flow.  Clean away old conffiles in
