@@ -426,8 +426,8 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
            apt-worker provides more details about the trust.
   */
 
-  bool trusted_upgrade_path_broken = false;
-  bool some_from_untrusted_sources = false;
+  bool some_domains_violated = false;
+  bool some_not_certfied = false;
 
   while (!dec->corrupted ())
     {
@@ -435,19 +435,27 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
       if (trust == pkgtrust_end)
 	break;
 
-      some_from_untrusted_sources = true;
-      if (trust == pkgtrust_no_longer_trusted)
-	trusted_upgrade_path_broken = true;
+      if (trust == pkgtrust_not_certified)
+	some_not_certfied = true;
+      if (trust == pkgtrust_domains_violated)
+	some_domains_violated = true;
 
       dec->decode_string_in_place ();  // name
     }
 
   // XXX - L10N
 
-  if (trusted_upgrade_path_broken)
-    annoy_user_with_cont (_("Trusted upgrade path broken"),
-			  ip_end, c);
-  else if (some_from_untrusted_sources)
+  if (some_domains_violated)
+    {
+      if (red_pill_mode)
+	ask_custom (_("Trusted upgrade path broken"),
+		    "Continue anyway", "Stop",
+		    ip_legalese_response, c);
+      else
+	annoy_user_with_cont (_("Trusted upgrade path broken"),
+			      ip_end, c);
+    }
+  else if (some_not_certfied)
     scare_user_with_legalese (false, ip_legalese_response, c);
   else
     {

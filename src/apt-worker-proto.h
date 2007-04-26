@@ -343,10 +343,9 @@ enum apt_proto_sumtype {
 //                 installation.
 //
 // This will setup the download operation and figure out the kind of
-// trust we have in the packages that will be installed.  Only those
-// packages that are not from a trusted source will be listed.  It
-// will also report information about which packages will be upgraded
-// to which version.
+// trust we have in the packages that will be installed.  It will also
+// report information about which packages will be upgraded to which
+// version.
 //
 // Parameters:
 //
@@ -361,11 +360,8 @@ enum apt_proto_sumtype {
 
 enum apt_proto_pkgtrust {
   pkgtrust_end,
-  pkgtrust_not_signed,
-  pkgtrust_signed_but_no_key,
-  pkgtrust_signed_but_invalid,
-  pkgtrust_signed_but_not_trusted,
-  pkgtrust_no_longer_trusted
+  pkgtrust_not_certified,
+  pkgtrust_domains_violated,
 };
 
 // INSTALL_PACKAGE - Do the actual installation of a package
