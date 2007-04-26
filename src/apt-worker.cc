@@ -81,6 +81,8 @@
 #include <apt-pkg/debsystem.h>
 #include <apt-pkg/orderlist.h>
 #include <apt-pkg/algorithms.h>
+#include <apt-pkg/metaindex.h>
+#include <apt-pkg/debmetaindex.h>
 
 #include <glib/glist.h>
 #include <glib/gstring.h>
@@ -122,6 +124,10 @@ using namespace std;
 /* Requests up to this size are put into a stack allocated buffer.
  */
 #define FIXED_REQUEST_BUF_SIZE 4096
+
+/* The file where we store the domain definitions.
+ */
+#define DOMAIN_CONF "/etc/hildon-application-manager/domains"
 
 /* The file where we store our catalogues for ourselves.
  */
@@ -175,15 +181,102 @@ log_stderr (const char *fmt, ...)
 /** APT WORKER MULTI STATE MANAGEMENT
  */
 
+/* Inside this process, domains are identified with small integers.
+ */
+
+typedef signed char domain_t;
+
+struct domain_info {
+  const char *name;
+  const char *key;
+  int trust_level;
+  bool is_certified;
+};
+
+xexp *domain_conf = NULL;
+domain_info *domains = NULL;
+int default_domain = -1;
+
+#define DOMAIN_INVALID  -1
+#define DOMAIN_UNSIGNED  0
+#define DOMAIN_SIGNED    1 
+
+static void
+read_domain_conf ()
+{
+  delete[] domains;
+  xexp_free (domain_conf);
+
+  domain_conf = xexp_read_file (DOMAIN_CONF);
+
+  int n_domains = 2;
+  if (domain_conf)
+    n_domains += xexp_length (domain_conf);
+
+  domains = new domain_info[n_domains+1];
+
+  /* Setup the two implicit domains.
+   */
+  domains[0].name = "unsigned";
+  domains[0].key = NULL;
+  domains[0].trust_level = 0;
+  domains[0].is_certified = false;
+    
+  domains[1].name = "signed";
+  domains[1].key = NULL;
+  domains[1].trust_level = 1;
+  domains[1].is_certified = false;
+
+  default_domain = 1;
+
+  int i = 2;
+  if (domain_conf)
+    {
+      for (xexp *d = xexp_first (domain_conf); d; d = xexp_rest (d))
+	{
+	  if (!xexp_is (d, "domain"))
+	    continue;
+
+	  domains[i].name = xexp_aref_text (d, "name");
+	  if (domains[i].name == NULL)
+	    continue;
+
+	  domains[i].trust_level = xexp_aref_int (d, "trust-level", 2);
+	  domains[i].is_certified = xexp_aref_bool (d, "certified");
+	  domains[i].key = xexp_aref_text (d, "key");
+	  if (xexp_aref_bool (d, "default"))
+	    default_domain = i;
+
+	  i += 1;
+	}
+    }
+  domains[i].name = NULL;
+}
+
+static domain_t
+find_domain (const char *key)
+{
+  for (int i = 0; domains[i].name; i++)
+    {
+      if (domains[i].key == NULL)
+	continue;
+      
+      if (strcmp (domains[i].key, key) == 0)
+	return i;
+    }
+
+  return DOMAIN_SIGNED;
+}
+
 /* This struct describes some status flags for specific packages.
  * AptWorkerState includes an array of these, with an entry per
  * package.
  */
-typedef struct package_flag_struct
+typedef struct extra_info_struct
 {
   bool autoinst : 1;
   bool related : 1;
-  bool not_from_trusted_source : 1;
+  domain_t cur_domain, new_domain;
 };
 
 /* This class implements state and cache switching of apt-worker. With
@@ -210,7 +303,7 @@ public:
   unsigned int package_count;
   bool cache_generate;
   bool init_cache_after_request;
-  package_flag_struct *package_flags;
+  extra_info_struct *extra_info;
   void InitializeValues ();
   static AptWorkerState *current_state;
   static AptWorkerState *default_state;
@@ -780,6 +873,9 @@ handle_request ()
     }
 }
 
+static int index_trust_level_for_package (pkgIndexFile *index,
+					  const pkgCache::VerIterator &ver);
+
 int
 main (int argc, char **argv)
 {
@@ -827,8 +923,14 @@ main (int argc, char **argv)
   if (nice (20) == -1 && errno != 0)
     log_stderr ("nice: %m");
 
+  read_domain_conf ();
+
   AptWorkerState::Initialize ();
   cache_init (false);
+
+#ifdef HAVE_APT_TRUST_HOOK
+  apt_set_index_trust_level_for_package_hook (index_trust_level_for_package);
+#endif
 
   while (true)
     handle_request ();
@@ -964,14 +1066,14 @@ is_user_package (const pkgCache::VerIterator &ver)
   return is_user_section (section, section + strlen (section));
 }
 
-/* Save the 'auto' and 'not_from_trusted_source' flags of the cache.
-   We also make a copy of the Auto flags in our own PACKAGE_FLAGS
-   storage so that CACHE_RESET will reset the Auto flags to the state
-   last saved with this function.
+/* Save the 'extra_info' of the cache.  We first make a copy of the
+   Auto flags in our own extra_info storage so that CACHE_RESET
+   will reset the Auto flags to the state last saved with this
+   function.
 */
 
 void
-save_package_flags ()
+save_extra_info ()
 {
   AptWorkerState * state = AptWorkerState::GetCurrent ();
   if (state == NULL)
@@ -983,9 +1085,8 @@ save_package_flags ()
       return;
     }
 
-  FILE *f_auto = fopen ("/var/lib/hildon-application-manager/autoinst", "w");
-  FILE *f_trust = fopen ("/var/lib/hildon-application-manager/notrust", "w");
-  if (f_auto && f_trust)
+  FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "w");
+  if (f)
     {
       pkgDepCache &cache = *(state->cache);
 
@@ -993,27 +1094,43 @@ save_package_flags ()
 	{
 	  if (cache[pkg].Flags & pkgCache::Flag::Auto)
 	    {
-	      state->package_flags[pkg->ID].autoinst = true;
-	      fprintf (f_auto, "%s\n", pkg.Name ());
+	      state->extra_info[pkg->ID].autoinst = true;
+	      fprintf (f, "%s\n", pkg.Name ());
 	    }
 	  else
-	    state->package_flags[pkg->ID].autoinst = false;
-
-	  if (state->package_flags[pkg->ID].not_from_trusted_source)
-	    fprintf (f_trust, "%s\n", pkg.Name ());
+	    state->extra_info[pkg->ID].autoinst = false;
 	}
-      fclose (f_auto);
-      fclose (f_trust);
+      fclose (f);
+    }
+
+  for (domain_t i = 0; domains[i].name != NULL; i++)
+    {
+      char *name =
+	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
+			 domains[i].name);
+      
+      FILE *f = fopen (name, "w");
+      if (f)
+	{
+	  pkgDepCache &cache = *(state->cache);
+
+	  for (pkgCache::PkgIterator pkg = cache.PkgBegin();
+	       !pkg.end (); pkg++)
+	    {
+	      if (state->extra_info[pkg->ID].cur_domain == i)
+		fprintf (f, "%s\n", pkg.Name ());
+	    }
+	}
+      fclose (f);
     }
 }
 
-/* Load the auto and not_from_trusted_source flags and put them into
-   our own PACKAGE_FLAGS storage.  You need to call CACHE_RESET to
-   transfer the auto flag into the actual cache.
+/* Load the 'extra_info'.  You need to call CACHE_RESET to transfer
+   the auto flag into the actual cache.
 */
 
 void
-load_package_flags ()
+load_extra_info ()
 {
   // XXX - log errors.
   AptWorkerState *state = NULL;
@@ -1024,8 +1141,8 @@ load_package_flags ()
 
   for (unsigned int i = 0; i < state->package_count; i++)
     {
-      state->package_flags[i].autoinst = false;
-      state->package_flags[i].not_from_trusted_source = false;
+      state->extra_info[i].autoinst = false;
+      state->extra_info[i].cur_domain = default_domain;
     }
 
   FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "r");
@@ -1046,7 +1163,7 @@ load_package_flags ()
 	  if (!pkg.end ())
 	    {
 	      DBG ("auto: %s", pkg.Name ());
-	      state->package_flags[pkg->ID].autoinst = true;
+	      state->extra_info[pkg->ID].autoinst = true;
 	    }
 	}
 
@@ -1054,30 +1171,37 @@ load_package_flags ()
       fclose (f);
     }
 
-  f = fopen ("/var/lib/hildon-application-manager/notrust", "r");
-  if (f)
+  for (domain_t i = 0; domains[i].name != NULL; i++)
     {
-      pkgDepCache &cache = *(state->cache);
-
-      char *line = NULL;
-      size_t len = 0;
-      ssize_t n;
-
-      while ((n = getline (&line, &len, f)) != -1)
+      char *name =
+	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
+			 domains[i].name);
+      
+      FILE *f = fopen (name, "r");
+      if (f)
 	{
-	  if (n > 0 && line[n-1] == '\n')
-	    line[n-1] = '\0';
+	  pkgDepCache &cache = *(state->cache);
 
-	  pkgCache::PkgIterator pkg = cache.FindPkg (line);
-	  if (!pkg.end ())
+	  char *line = NULL;
+	  size_t len = 0;
+	  ssize_t n;
+	  
+	  while ((n = getline (&line, &len, f)) != -1)
 	    {
-	      DBG ("notrust: %s", pkg.Name ());
-	      state->package_flags[pkg->ID].not_from_trusted_source = true;
-	    }
-	}
+	      if (n > 0 && line[n-1] == '\n')
+		line[n-1] = '\0';
 
-      free (line);
-      fclose (f);
+	      pkgCache::PkgIterator pkg = cache.FindPkg (line);
+	      if (!pkg.end ())
+		{
+		  DBG ("%s: %s", domains[i].name, pkg.Name ());
+		  state->extra_info[pkg->ID].cur_domain = i;
+		}
+	    }
+
+	  free (line);
+	  fclose (f);
+	}
     }
 }
 
@@ -1223,9 +1347,9 @@ cache_init (bool with_status)
       DBG ("closing");
       AptWorkerState::default_state->cache->Close ();
       delete AptWorkerState::default_state->cache;
-      delete[] AptWorkerState::default_state->package_flags;
+      delete[] AptWorkerState::default_state->extra_info;
       AptWorkerState::default_state->cache = NULL;
-      AptWorkerState::default_state->package_flags = NULL;
+      AptWorkerState::default_state->extra_info = NULL;
       DBG ("done");
     }
 
@@ -1234,9 +1358,9 @@ cache_init (bool with_status)
       DBG ("closing");
       AptWorkerState::temp_state->cache->Close ();
       delete AptWorkerState::temp_state->cache;
-      delete[] AptWorkerState::temp_state->package_flags;
+      delete[] AptWorkerState::temp_state->extra_info;
       AptWorkerState::temp_state->cache = NULL;
-      AptWorkerState::temp_state->package_flags = NULL;
+      AptWorkerState::temp_state->extra_info = NULL;
       DBG ("done");
     }
 
@@ -1265,10 +1389,10 @@ cache_init (bool with_status)
     {
       pkgDepCache &cache = *state->cache;
       state->package_count = cache.Head ().PackageCount;
-      state->package_flags = new package_flag_struct[state->package_count];
+      state->extra_info = new extra_info_struct[state->package_count];
     }
 
-  load_package_flags ();
+  load_extra_info ();
   cache_reset ();
 }
 
@@ -1302,17 +1426,17 @@ bool
 is_related (pkgCache::PkgIterator &pkg)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
-  return state->package_flags[pkg->ID].related;
+  return state->extra_info[pkg->ID].related;
 }
 
 void
 mark_related (pkgCache::PkgIterator &pkg)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
-  if (state->package_flags[pkg->ID].related)
+  if (state->extra_info[pkg->ID].related)
     return;
 
-  state->package_flags[pkg->ID].related = true;
+  state->extra_info[pkg->ID].related = true;
 
   pkgDepCache &cache = *state->cache;
 
@@ -1334,12 +1458,12 @@ cache_reset_package (pkgCache::PkgIterator &pkg)
 
   cache.MarkKeep (pkg);
 
-  if (state->package_flags[pkg->ID].autoinst)
+  if (state->extra_info[pkg->ID].autoinst)
     cache[pkg].Flags |= pkgCache::Flag::Auto;
   else
     cache[pkg].Flags &= ~pkgCache::Flag::Auto;
   
-  state->package_flags[pkg->ID].related = false;
+  state->extra_info[pkg->ID].related = false;
 }
 
 void
@@ -2891,45 +3015,251 @@ cmd_remove_package ()
   response.encode_int (result_code == rescode_success);
 }
 
+/* Package source domains.
+
+   Package sources are classified into domains, depending on which key
+   was used to sign their Release file.  When upgrading a package, the
+   update must come from the same domain as the installed package, or
+   from one that 'dominates' it.
+
+   Domains are identified by symbolic names.  The defining property of
+   a domain is the list of keys.  Any source that is signed by one of
+   these keys is associated with that domain.
+
+   In addition to the explicitly defined domains (see below), there
+   are two implicitly defined domains, "signed" and "unsigned".  The
+   "signed" domain includes all sources that are signed but are not
+   associated with any of the explicit domains.  The "unsigned" domain
+   includes all the unsigned sources.
+
+   The explicitly defined domains can be declared to be "certified".
+   When a package is installed or upgraded from such a domain, the
+   does not need to agree to a legal disclaimer.
+
+   No explicit domain dominates any other explicit domain.  All trust
+   domains dominate the "signed" and "unsigned" domains, and "signed"
+   dominates "unsigned".  Thus, the dominance rules are hard coded.
+
+   Domains are also used when installing a package for the first time:
+   when a given package version is available from more than one
+   source, sources belonging to any explicit domain or the "signed"
+   domain are preferred over the "unsigned" domain.  You can influence
+   which source is used via the normal apt source priorities.
+
+   One domain is designated as the default domain (usually the Nokia
+   certified domain).  When storing and reporting information about
+   domains, only the non-default domains are explicitly mentioned.
+   This saves some space and time when most of the packages are in the
+   default domain, which they usually are.
+*/
+
+static pkgSourceList *cur_sources = NULL;
+
+static debReleaseIndex *
+find_deb_meta_index (pkgIndexFile *index)
+{
+  if (cur_sources == NULL)
+    return NULL;
+
+  for (pkgSourceList::const_iterator I = cur_sources->begin();
+       I != cur_sources->end(); I++)
+    {
+      vector<pkgIndexFile *> *Indexes = (*I)->GetIndexFiles();
+      for (vector<pkgIndexFile *>::const_iterator J = Indexes->begin();
+	   J != Indexes->end(); J++)
+	{
+	  if ((*J) == index)
+	    {
+	      if (strcmp ((*I)->GetType(), "deb") == 0)
+		return (debReleaseIndex *)(*I);
+	      else
+		return NULL;
+	    }
+	}
+    }
+  
+  return NULL;
+}
+
+static int
+get_domain (pkgCache::PkgIterator pkg)
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+
+  return state->extra_info[pkg->ID].cur_domain;
+}
+
+static char *
+get_meta_info_key (debReleaseIndex *meta)
+{
+  string file = meta->MetaIndexFile ("Release.gpg.info");
+  char *key = NULL;
+
+  FILE *f = fopen (file.c_str(), "r");
+  if (f)
+    {
+      char *line = NULL;
+      size_t len = 0;
+      ssize_t n;
+
+      while ((n = getline (&line, &len, f)) != -1)
+	{
+	  if (n > 0 && line[n-1] == '\n')
+	    line[n-1] = '\0';
+
+	  if (g_str_has_prefix (line, "VALIDSIG"))
+	    {
+	      key = g_strchug (g_strdup (line + 8)); // *Cough*
+	      break;
+	    }
+	}
+
+      free (line);
+      fclose (f);
+    }
+
+  return key;
+}
+
+static int
+get_domain (pkgIndexFile *index)
+{
+  if (index->IsTrusted ())
+    {
+      debReleaseIndex *meta = find_deb_meta_index (index);
+      if (meta)
+	{
+	  char *key = get_meta_info_key (meta);
+	  if (key)
+	    {
+	      domain_t d = find_domain (key);
+	      g_free (key);
+	      return d;
+	    }
+	}
+      return DOMAIN_SIGNED;
+    }
+  else
+    return DOMAIN_UNSIGNED;
+}
+
+static bool
+domain_dominates_or_is_equal (int a, int b)
+{
+  return domains[a].trust_level >= domains[b].trust_level;
+}
+
 static void
-encode_trust_summary (pkgAcquire& Fetcher)
+reset_new_domains ()
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+
+  for (unsigned int i = 0; i < state->package_count; i++)
+    state->extra_info[i].new_domain = DOMAIN_UNSIGNED;
+}
+
+static void
+collect_new_domains ()
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+
+  for (unsigned int i = 0; i < state->package_count; i++)
+    if (state->extra_info[i].related)
+      state->extra_info[i].cur_domain = state->extra_info[i].new_domain;
+}
+
+static int
+index_trust_level_for_package (pkgIndexFile *index,
+			       const pkgCache::VerIterator &ver)
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgDepCache &cache = *(state->cache);
+  pkgCache::PkgIterator pkg = ver.ParentPkg();
+
+  int cur_level = domains[state->extra_info[pkg->ID].cur_domain].trust_level;
+
+  int index_domain = get_domain (index);
+  int index_level = domains[index_domain].trust_level;
+
+  DBG ("trust_level: cur %d index %d (%s)",
+       cur_level, index_level, domains[index_domain].name);
+
+  /* If we have already found a good domain, accept this one only if
+     it is the same domain, or strictly better.
+   */
+  if (state->extra_info[pkg->ID].new_domain != DOMAIN_UNSIGNED)
+    {
+      int new_level =
+	domains[state->extra_info[pkg->ID].new_domain].trust_level;
+
+      if (index_domain == state->extra_info[pkg->ID].new_domain
+	  || index_level > new_level)
+	{
+	  state->extra_info[pkg->ID].new_domain = index_domain;
+	  return index_level;
+	}
+      else
+	return -1;
+    }
+
+  /* If this is a new install, accept the first domain that comes
+     along.
+   */
+  if (cache[pkg].NewInstall())
+    {
+      DBG ("new: accept index");
+      state->extra_info[pkg->ID].new_domain = index_domain;
+      return index_level;
+    }
+
+  /* This is an upgrade, only accept the current domain, or ones that
+     dominate it.
+  */
+  if (index_level >= cur_level)
+    {
+      DBG ("upgrade: accept better");
+      state->extra_info[pkg->ID].new_domain = index_domain;
+      return index_level;
+    }
+
+  /* This index is as good as any other.
+   */
+  DBG ("Hmm");
+  return cur_level;
+}
+
+static void
+encode_trust_summary ()
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
 
-  for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
-       I < Fetcher.ItemsEnd(); ++I)
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin();
+       pkg.end() != true;
+       pkg++)
     {
-      // XXX - get more details out of apt about which key has signed
-      //       the repo and whether or not the signature could be
-      //       verified.
+      domain_t cur_domain = state->extra_info[pkg->ID].cur_domain;
+      domain_t new_domain = state->extra_info[pkg->ID].new_domain;
 
-      if (!(*I)->IsTrusted())
+      if (cache[pkg].Upgrade() && !domains[new_domain].is_certified)
 	{
-#ifdef DEBUG
-	  cerr << "not trusted: " << (*I)->DescURI () << "\n";
-#endif
-	  response.encode_int (pkgtrust_not_signed);
-	  response.encode_string ((*I)->ShortDesc().c_str());
-
-	  pkgCache::PkgIterator pkg =
-	    cache.FindPkg ((*I)->ShortDesc().c_str());
-	  if (!pkg.end () &&
-	      cache[pkg].Upgrade() && !cache[pkg].NewInstall() &&
-	      state->package_flags[pkg->ID].not_from_trusted_source == false)
-	    {
-	      DBG ("no longer trusted: %s", pkg.Name ());
-	      response.encode_int (pkgtrust_no_longer_trusted);
-	      response.encode_string ((*I)->ShortDesc().c_str());
-	    }
+	  DBG ("not certified: %s", pkg.Name());
+	  response.encode_int (pkgtrust_not_certified);
+	  response.encode_string (pkg.Name());
 	}
-      else
+
+      if (cache[pkg].Upgrade() && !cache[pkg].NewInstall()
+	  && !domain_dominates_or_is_equal (new_domain, cur_domain))
 	{
-#ifdef DEBUG
-	  cerr << "trusted: " << (*I)->DescURI () << "\n";
-#endif
+	  log_stderr ("domain change: %s (%s -> %s)",
+		      pkg.Name(),
+		      domains[cur_domain].name,
+		      domains[new_domain].name);
+	  response.encode_int (pkgtrust_domains_violated);
+	  response.encode_string (pkg.Name());
 	}
     }
+
   response.encode_int (pkgtrust_end);
 }
 
@@ -2954,33 +3284,6 @@ encode_upgrades ()
     }
 
   response.encode_string (NULL);
-}
-
-static void
-collect_trust_information (pkgAcquire& Fetcher)
-{
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
-
-  for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
-       I < Fetcher.ItemsEnd(); ++I)
-    {
-      // XXX - get more details out of apt about which key has signed
-      //       the repo and whether or not the signature could be
-      //       verified.
-
-      pkgCache::PkgIterator pkg = cache.FindPkg ((*I)->ShortDesc().c_str());
-      if (!pkg.end ())
-	{
-	  state->package_flags[pkg->ID].not_from_trusted_source =
-	    !(*I)->IsTrusted();
-	  DBG ("collect notrust: %s %d",
-	       pkg.Name(),
-	       state->package_flags[pkg->ID].not_from_trusted_source);
-	}
-      else
-	DBG ("NOT FOUND: %s", (*I)->ShortDesc().c_str());
-    }
 }
 
 /* We modify the pkgDPkgPM package manager so that we can provide our
@@ -3120,6 +3423,8 @@ operation (bool check_only)
        return rescode_failure;
      }
    
+   cur_sources = &List;
+
    // Create the package manager
    //
    SPtr<myDPkgPM> Pm = new myDPkgPM (Cache);
@@ -3132,6 +3437,7 @@ operation (bool check_only)
 
    // Prepare to download
    //
+   reset_new_domains ();
    if (Pm->GetArchives(&Fetcher,&List,&Recs) == false || 
        _error->PendingError() == true)
      return rescode_failure;
@@ -3145,12 +3451,12 @@ operation (bool check_only)
 
    if (check_only)
      {
-       encode_trust_summary (Fetcher);
+       encode_trust_summary ();
        encode_upgrades ();
        return rescode_success;
      }
 
-   collect_trust_information (Fetcher);
+   collect_new_domains ();
 
    /* Check for enough free space. */
    {
@@ -3223,7 +3529,7 @@ operation (bool check_only)
    pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
    _system->Lock();
 
-   save_package_flags ();
+   save_extra_info ();
 
    if (Res == pkgPackageManager::Failed || _error->PendingError() == true)
      return rescode_failure;
