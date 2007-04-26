@@ -40,6 +40,10 @@ extern "C" {
  */
 #define DOMAIN_CONF "/etc/hildon-application-manager/domains"
 
+/* NULL and empty strings are considered equal.  Whitespace at the
+   beginning and end is ignored.  Sequences of whitespaces are equal
+   to each other.
+*/
 bool tokens_equal (const char *str1, const char *str2);
 
 /* Catalogues
