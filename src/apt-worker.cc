@@ -93,6 +93,7 @@
 #include <glib/gkeyfile.h>
 
 #include "apt-worker-proto.h"
+#include "confutils.h"
 
 using namespace std;
 
@@ -124,18 +125,6 @@ using namespace std;
 /* Requests up to this size are put into a stack allocated buffer.
  */
 #define FIXED_REQUEST_BUF_SIZE 4096
-
-/* The file where we store the domain definitions.
- */
-#define DOMAIN_CONF "/etc/hildon-application-manager/domains"
-
-/* The file where we store our catalogues for ourselves.
- */
-#define CATALOGUE_CONF "/etc/hildon-application-manager/catalogues"
-
-/* The file where we store our ctalogues for apt-pkg to read
- */
-#define CATALOGUE_APT_SOURCE "/etc/apt/sources.list.d/hildon-application-manager.list"
 
 /* Temporary repositories APT cache and status directories */
 #define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
@@ -1844,53 +1833,6 @@ get_icon (pkgCache::VerIterator &ver)
     return icon;
 }
 
-static const char *
-skip_whitespace (const char *str)
-{
-  while (isspace (*str))
-    str++;
-  return str;
-}
-
-/* NULL and empty strings are considered equal.  Whitespace at the
-   beginning and end is ignored.  Sequences of white spaces are
-   equal to every other sequence of white space.
-*/
-
-static bool
-tokens_equal (const char *str1, const char *str2)
-{
-  if (str1 == NULL)
-    str1 = "";
-
-  if (str2 == NULL)
-    str2 = "";
-
-  str1 = skip_whitespace (str1);
-  str2 = skip_whitespace (str2);
-
-  while (*str1 && *str2)
-    {
-      if (isspace (*str1) && isspace (*str2))
-	{
-	  str1 = skip_whitespace (str1);
-	  str2 = skip_whitespace (str2);
-	}
-      else if (*str1 == *str2)
-	{
-	  str1++;
-	  str2++;
-	}
-      else
-	break;
-    }
-  
-  str1 = skip_whitespace (str1);
-  str2 = skip_whitespace (str2);
-
-  return *str1 == '\0' && *str2 == '\0';
-}
-
 struct {
   const char *name;
   int flag;
@@ -2842,40 +2784,6 @@ cmd_get_catalogues ()
 
 /* APTCMD_SET_CATALOGUES
  */
-
-static bool
-write_sources_list (const char *filename, xexp *catalogues)
-{
-  FILE *f = fopen (filename, "w");
-  if (f)
-    {
-      for (xexp *x = xexp_first (catalogues); x; x = xexp_rest (x))
-	if (xexp_is (x, "catalogue") 
-	    && !xexp_aref_bool (x, "disabled"))
-	  {
-	    const char *uri = xexp_aref_text (x, "uri");
-	    const char *dist = xexp_aref_text (x, "dist");
-	    const char *comps = xexp_aref_text (x, "components");
-	    
-	    if (uri == NULL)
-	      continue;
-	    if (dist == NULL)
-	      dist = DEFAULT_DIST;
-	    if (comps == NULL)
-	      comps = "";
-	    
-	    fprintf (f, "deb %s %s %s\n", uri, dist, comps);
-	  }
-    }
-  
-  if (f == NULL || ferror (f) || fclose (f) < 0)
-    {
-      fprintf (stderr, "%s: %s\n", filename, strerror (errno));
-      return false;
-    }
-
-  return true;
-}
 
 void
 cmd_set_catalogues ()
