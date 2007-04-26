@@ -2315,46 +2315,6 @@ all_whitespace (const char *str)
   return (*skip_whitespace (str)) == '\0';
 }
 
-  /* NULL and empty strings are considered equal.  Whitespace at the
-     beginning and end is ignored.  Sequences of white spaces are
-     equal to every other sequence of white space.
-  */
-
-bool
-tokens_equal (const char *str1, const char *str2)
-{
-  if (str1 == NULL)
-    str1 = "";
-
-  if (str2 == NULL)
-    str2 = "";
-
-  str1 = skip_whitespace (str1);
-  str2 = skip_whitespace (str2);
-
-  while (*str1 && *str2)
-    {
-      if (isspace (*str1) && isspace (*str2))
-	{
-	  str1 = skip_whitespace (str1);
-	  str2 = skip_whitespace (str2);
-	}
-      else if (*str1 == *str2)
-	{
-	  str1++;
-	  str2++;
-	}
-      else
-	break;
-    }
-  
-  str1 = skip_whitespace (str1);
-  str2 = skip_whitespace (str2);
-
-  return *str1 == '\0' && *str2 == '\0';
-}
-
-
 static ConIcConnection *connection_object = NULL;
 
 struct en_closure {
