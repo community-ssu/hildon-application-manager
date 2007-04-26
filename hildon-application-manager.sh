@@ -21,7 +21,7 @@ upkgs="$HOME/.hildon-application-manager.backup"
 
 if grep -q "$cats" "$1"
 then
-  hildon-application-manager-merge-catalogues "$cats"
+  hildon-application-manager-config add "$cats"
 fi
 
 if grep -q "$pkgs" "$1"
