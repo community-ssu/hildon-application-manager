@@ -38,6 +38,7 @@
 #include "apt-worker-client.h"
 #include "util.h"
 #include "log.h"
+#include "confutils.h"
 
 #define _(x)       gettext (x)
 
@@ -857,29 +858,6 @@ static void add_catalogues_cont_3_add (bool res, void *data);
 static void add_catalogues_cont_3_enable (bool res, void *data);
 static void add_catalogues_cont_3 (bool res, bool enable, void *data);
 static void add_catalogues_cont_4 (bool res, void *data);
-
-static bool
-cats_are_equal (xexp *cat1, xexp *cat2)
-{
-  return (tokens_equal (xexp_aref_text (cat1, "uri"),
-			xexp_aref_text (cat2, "uri"))
-	  && tokens_equal (xexp_aref_text (cat1, "dist"),
-		       xexp_aref_text (cat2, "dist"))
-	  && tokens_equal (xexp_aref_text (cat1, "components"),
-			   xexp_aref_text (cat2, "components")));
-}
-
-static xexp *
-find_catalogue (xexp *catalogues, xexp *cat)
-{
-  for (xexp *c = xexp_first (catalogues); c; c = xexp_rest (c))
-    {
-      if (xexp_is (c, "catalogue") && cats_are_equal (c, cat))
-	return c;
-    }
-
-  return NULL;
-}
 
 static void
 add_catalogues_cont_3_add (bool res, void *data)
