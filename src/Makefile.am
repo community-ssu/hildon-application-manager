@@ -1,5 +1,5 @@
 bin_PROGRAMS = hildon-application-manager.launch \
-               hildon-application-manager-merge-catalogues
+               hildon-application-manager-config
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server
 libexec_PROGRAMS = apt-worker
 
@@ -44,14 +44,15 @@ hildon_application_manager_run_CFLAGS =   $(HAM_DEPS_CFLAGS)
 hildon_application_manager_run_CXXFLAGS = $(HAM_DEPS_CFLAGS)
 hildon_application_manager_run_LDADD =    $(HAM_DEPS_LIBS)
 
-hildon_application_manager_merge_catalogues_SOURCES =		\
-               hildon-application-manager-merge-catalogues.cc	\
-               xexp.h						\
-               xexp.c
-
-hildon_application_manager_merge_catalogues_CFLAGS = $(AW_DEPS_CFLAGS)
-hildon_application_manager_merge_catalogues_CXXFLAGS = $(AW_DEPS_CFLAGS)
-hildon_application_manager_merge_catalogues_LDADD = $(AW_DEPS_LIBS)
+hildon_application_manager_config_SOURCES =		\
+               hildon-application-manager-config.cc	\
+               xexp.h					\
+               xexp.c					\
+               confutils.h				\
+               confutils.cc
+hildon_application_manager_config_CFLAGS = $(AW_DEPS_CFLAGS)
+hildon_application_manager_config_CXXFLAGS = $(AW_DEPS_CFLAGS)
+hildon_application_manager_config_LDADD = $(AW_DEPS_LIBS)
 
 apt_worker_SOURCES = apt-worker.cc \
 		     xexp.h \
