@@ -1,7 +1,16 @@
-2007-04-26  Marius Vollmer  <marius.vollmer@nokia.com>
+2007-04-27  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.7
 	
+	* src/hildon-application-manager-config.cc (xexp_read_stdin):
+	Return the xexp instead of always NULL, stupid.
+	(handle_generic_element): Also report elements that should be
+	deleted but are not found.
+	
+	* Makefile.am: Create empty "domains" config file.
+
+2007-04-26  Marius Vollmer  <marius.vollmer@nokia.com>
+
 	* src/Makefile.am (hildon_application_manager_launch_SOURCES,
 	apt_worker_SOURCES): Added confutils.cc and confutils.h.
 
