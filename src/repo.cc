@@ -307,6 +307,8 @@ static void set_cat_list (cat_dialog_closure *c);
 static void
 cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 {
+  bool should_ask_the_pill_question = false;
+
   cat_edit_closure *c = (cat_edit_closure *)clos;
 
   if (c->readonly)
@@ -352,13 +354,16 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
     {
       xexp_free (c->catalogue);
       if (!strcmp (gtk_entry_get_text (GTK_ENTRY (c->uri_entry)), "matrix"))
-	ask_the_pill_question ();
+	should_ask_the_pill_question = true;
     }
 
   delete c;
-
+ 
   pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
+
+  if (should_ask_the_pill_question)
+    ask_the_pill_question ();
 }
 
 static void
