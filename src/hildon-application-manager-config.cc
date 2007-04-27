@@ -62,7 +62,10 @@ static void
 DBG (const char *str, xexp *cat)
 {
   fprintf (stderr, "%s:\n", str);
-  xexp_write (stderr, cat);
+  if (cat)
+    xexp_write (stderr, cat);
+  else
+    fprintf (stderr, "NULL\n");
 }
 #else
 static void
@@ -146,6 +149,8 @@ handle_generic_element (xexp *conf, xexp *element,
 	printf ("Adding %s\n", element_description (element));
       else if (old_element && !add)
 	printf ("Removing %s\n", element_description (element));
+      else
+	printf ("Not found: %s\n", element_description (element));
     }
 
   if (old_element)
@@ -191,7 +196,7 @@ xexp_read_stdin ()
   xexp *x = xexp_read (stdin, &error);
   if (x == NULL)
     fprintf (stderr, "stdin: %s\n", error->message);
-  return NULL;
+  return x;
 }
 
 void
