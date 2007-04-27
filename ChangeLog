@@ -2,6 +2,10 @@
 
 	Released 1.9.7
 	
+	* src/repo.cc (cat_edit_response): Ask the pill question after
+	destroying this dialog so that the dialog parents don't get out of
+	sync.
+
 	* src/hildon-application-manager-config.cc (xexp_read_stdin):
 	Return the xexp instead of always NULL, stupid.
 	(handle_generic_element): Also report elements that should be
