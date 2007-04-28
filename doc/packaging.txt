@@ -6,7 +6,7 @@ later, but not for the old Internet Tablet OS 2005.
 
 The main point to take away is that the Hildon Application Manager
 ("AM") is a graphical frontend to the standard Debian package
-management infrastructure, similar to Synpatic, but aimed at a
+management infrastructure, similar to Synaptic, but aimed at a
 different clientele.
 
 The AM uses the same backend tools as Synaptic, Aptitude, or apt-get
