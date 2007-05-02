@@ -1,7 +1,10 @@
 #! /bin/sh
 
-set -e
+# We never exit non-zero since it is not worth aborting the install
+# just because this stupid hack fails.  And yes, copying into /tmp can
+# fail.  I have seen it.
 
 if [ -f /etc/apt/sources.list ]; then
   cp /etc/apt/sources.list /tmp/sources.list-preinst-backup
 fi
+exit 0
