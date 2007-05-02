@@ -11,12 +11,12 @@ set -e
 
 if [ ! -f /etc/apt/sources.list ]; then
   if [ -f /tmp/sources.list-preinst-backup ]; then
-    mv /tmp/sources.list-preinst-backup /etc/apt/sources.list
+    mv -f /tmp/sources.list-preinst-backup /etc/apt/sources.list
   else
     touch /etc/apt/sources.list
   fi
 else
-  rm /tmp/sources.list-preinst-backup || true
+  rm -f /tmp/sources.list-preinst-backup || true
 fi
 
 add_sudoer ()
@@ -38,7 +38,7 @@ migrate ()
     new="$2"
     if [ -e "$old" -a ! -e "$new" ]; then
 	echo "Migrating $old to $new"
-	mv "$old" "$new"
+	mv -f "$old" "$new"
     fi
 }
 
