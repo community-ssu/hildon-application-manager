@@ -1,3 +1,9 @@
+hildon-application-manager (1:1.9.9) unstable; urgency=low
+
+  * Use "-f" with rm and mv to avoid interaction.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed,  2 May 2007 15:21:34 +0300
+
 hildon-application-manager (1:1.9.8) unstable; urgency=low
 
   * Never fail in preinst, for extra installation robustness.

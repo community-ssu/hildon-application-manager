@@ -1,8 +1,9 @@
 2007-05-02  Marius Vollmer  <marius.vollmer@nokia.com>
 
-	Released 1.9.8
+	Released 1.9.9
 
 	* debian/preinst: Never fail.
+	* debian/postinst: Use "-f" with rm and mv.
 
 2007-04-27  Marius Vollmer  <marius.vollmer@nokia.com>
 
