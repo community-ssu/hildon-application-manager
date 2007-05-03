@@ -1,3 +1,13 @@
+2007-05-03  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 1.9.10
+	
+	* src/apt-worker.cc (cmd_get_file_details): Report NULL when there
+	is no Maemo-Display-Name field instead of the empty string.
+	
+	* src/operations.cc (if_details_reply): Decode sizes as int64 to
+	correspond to protocol, stupid.
+
 2007-05-02  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.9

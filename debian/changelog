@@ -1,3 +1,9 @@
+hildon-application-manager (1:1.9.10) unstable; urgency=low
+
+  * Fixed crasher when installing .deb files.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu,  3 May 2007 17:21:54 +0300
+
 hildon-application-manager (1:1.9.9) unstable; urgency=low
 
   * Use "-f" with rm and mv to avoid interaction.
