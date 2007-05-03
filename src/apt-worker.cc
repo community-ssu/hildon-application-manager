@@ -3844,7 +3844,7 @@ cmd_get_file_details ()
     }
 
   encode_field (&section, "Package");
-  encode_field (&section, "Maemo-Display-Name");
+  encode_field (&section, "Maemo-Display-Name", NULL);
   response.encode_string (installed_version);
   response.encode_int64 (installed_size);
   encode_field (&section, "Version");
