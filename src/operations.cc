@@ -1157,12 +1157,12 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
   pi->available_pretty_name = dec->decode_string_dup ();
   pi->broken = false;
   pi->installed_version = dec->decode_string_dup ();
-  pi->installed_size = dec->decode_int ();;
+  pi->installed_size = dec->decode_int64 ();;
   pi->available_version = dec->decode_string_dup ();
   pi->maintainer = dec->decode_string_dup ();
   pi->available_section = dec->decode_string_dup ();
   pi->info.installable_status = dec->decode_int ();
-  pi->info.install_user_size_delta = dec->decode_int ();
+  pi->info.install_user_size_delta = dec->decode_int64 ();
   pi->info.removable_status = status_unable; // not used
   pi->info.remove_user_size_delta = 0;
   pi->info.download_size = 0;
