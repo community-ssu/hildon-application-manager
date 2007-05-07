@@ -1,5 +1,7 @@
 2007-05-07  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* configure.ac (DEFAULT_DIST): Changed to "unstable".
+
 	* src/apt-worker.cc (cmd_install_file): Do not remove the package
 	when the installation failed.
 
