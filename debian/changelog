@@ -1,3 +1,10 @@
+hildon-application-manager (1:1.9.11) unstable; urgency=low
+
+  * Handle Conflicts/Replaces correctly when updating the magic:sys
+    package.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon,  7 May 2007 19:04:16 +0300
+
 hildon-application-manager (1:1.9.10) unstable; urgency=low
 
   * Fixed crasher when installing .deb files.
