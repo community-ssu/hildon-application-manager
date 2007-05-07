@@ -1,3 +1,14 @@
+2007-05-07  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (get_domain for pkgCache::PkgIterator):
+	Removed, it was unused.
+	(mark_sys_upgrades): Do not try to install packages that are not
+	in the "keep" mode.  This prevents us from accidentally undoing
+	removals that are part of the upgrade.
+	
+	* src/details.cc (show_with_details_with_cont): Always list
+	everything in red pill mode.
+
 2007-05-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.10
