@@ -1,5 +1,8 @@
 2007-05-07  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker.cc (cmd_install_file): Do not remove the package
+	when the installation failed.
+
 	Released 1.9.11
 	
 	* src/apt-worker.cc (get_domain for pkgCache::PkgIterator):
