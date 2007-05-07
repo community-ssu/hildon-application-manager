@@ -3878,6 +3878,13 @@ cmd_install_file ()
 
   if (res)
     {
+#if 0
+      /* We do not remove packages that failed to install since this
+	 might have been an update attempt and removing the old
+	 version is confusing.  Installations at this point not fail
+	 because of missing dependencies, so it is not that important
+	 anymore to try to leave the system in a consistent state.
+      */
       char *cmd =
 	g_strdup_printf ("/usr/bin/dpkg --purge "
 			 "`/usr/bin/dpkg-deb -f %s Package`",
@@ -3885,6 +3892,7 @@ cmd_install_file ()
       fprintf (stderr, "%s\n", cmd);
       system (cmd);
       g_free (cmd);
+#endif
     }
 
   g_free (esc_filename);
