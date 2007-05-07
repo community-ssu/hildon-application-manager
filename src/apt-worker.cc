@@ -971,7 +971,7 @@ main (int argc, char **argv)
 
     This function modifies the 'desired' state of the cache to reflect
     the installation of the given package.  It will try to achieve a
-    consistent 'desired' configuration by installing mising
+    consistent 'desired' configuration by installing missing
     dependencies etc.  In general, it implements our own installation
     smartness.
 
@@ -1183,7 +1183,7 @@ load_extra_info ()
 	      pkgCache::PkgIterator pkg = cache.FindPkg (line);
 	      if (!pkg.end ())
 		{
-		  DBG ("%s: %s", domains[i].name, pkg.Name ());
+		  // DBG ("%s: %s", domains[i].name, pkg.Name ());
 		  state->extra_info[pkg->ID].cur_domain = i;
 		}
 	    }
@@ -1684,7 +1684,9 @@ mark_sys_upgrades ()
 
   for (pkgCache::PkgIterator p = cache.PkgBegin (); !p.end (); p++)
     {
-      if (!p.CurrentVer().end() && !is_user_package (p.CurrentVer()))
+      if (!p.CurrentVer().end()
+	  && !is_user_package (p.CurrentVer())
+	  && cache[p].Keep())
 	mark_for_install (p);
     }
 }
@@ -2987,14 +2989,6 @@ find_deb_meta_index (pkgIndexFile *index)
     }
   
   return NULL;
-}
-
-static int
-get_domain (pkgCache::PkgIterator pkg)
-{
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-
-  return state->extra_info[pkg->ID].cur_domain;
 }
 
 static char *
