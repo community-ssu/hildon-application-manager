@@ -375,7 +375,7 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
 		    0, 0);
 
   int r = 1;
-  if (possible)
+  if (possible || red_pill_mode)
     {
       /* When there is exactly one package in all of the lists, we
 	 show nothing for the summary since it would look stupid and
@@ -387,7 +387,7 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
 	 g_list_length (pi->summary_packages[sumtype_upgrading]) +
 	 g_list_length (pi->summary_packages[sumtype_removing]));
 
-      if (n_entries > 1)
+      if (n_entries > 1 || red_pill_mode)
 	{
 	  r = add_table_list (summary_table, r,
 			      _("ai_fi_details_packages_install"),
@@ -400,7 +400,7 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
 			      pi->summary_packages[sumtype_removing]);
 	}
     }
-  else
+  if (!possible || red_pill_mode)
     {
       r = add_table_list (summary_table, r,
 			  _("ai_fi_details_packages_missing"),
