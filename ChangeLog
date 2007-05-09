@@ -1,3 +1,19 @@
+2007-05-09  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 1.9.12
+	
+	* hildon-application-manager.conf: Reorder entries so that the
+	"applications" category gets priority.  This ensures that the
+	"applications" category works even now before the backup can
+	handle one file in multiple categories.
+
+	* configure.ac (DEFAULT_DIST): Changed to "chinook".
+
+	* src/hildon-application-manager-util: New.
+	* hildon-application-manager.sh: Use it.
+	* debian/postinst, debian/prerm: Add sudo line for it.
+	* src/Makefile.am: Install it.
+	
 2007-05-07  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* configure.ac (DEFAULT_DIST): Changed to "unstable".
