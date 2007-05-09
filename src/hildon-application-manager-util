@@ -10,7 +10,12 @@ cats="/var/lib/hildon-application-manager/catalogues.backup"
 if [ "$1" = "restore-catalogues" ]; then
   /usr/bin/hildon-application-manager-config add "$cats"
 elif [ "$1" = "run-after-restore" ]; then
-  echo Would start it
+  dbus-send --type=method_call \
+            --print-reply \
+            --dest='com.nokia.hildon_application_manager' \
+            /com/nokia/hildon_application_manager \
+            com.nokia.hildon_application_manager.mime_open \
+            string:'backup.install'
 else
   echo >&2 "usage: hildon-application-manager-util restore-catalogues" 
   echo >&2 "       hildon-application-manager-util run-after-restore"
