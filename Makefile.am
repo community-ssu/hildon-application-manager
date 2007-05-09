@@ -13,7 +13,7 @@ backupdir = $(sysconfdir)/osso-backup/applications/
 backup_DATA = hildon-application-manager.conf
 
 restoredir = $(sysconfdir)/osso-backup/restore.d/always/
-restore_DATA = hildon-application-manager.sh
+restore_SCRIPTS = hildon-application-manager.sh
 
 etcdir = $(sysconfdir)/hildon-application-manager/
 
