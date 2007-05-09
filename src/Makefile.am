@@ -1,5 +1,6 @@
 bin_PROGRAMS = hildon-application-manager.launch \
                hildon-application-manager-config
+bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server
 libexec_PROGRAMS = apt-worker
 
