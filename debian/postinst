@@ -62,12 +62,13 @@ fi
 
 rm -f /etc/osso-backup/applications/osso-application-manager.conf
 
-## Add line to sudo so that "user" can run "apt-worker" as
-## "root".
+## Add lines to sudo so that "user" can run "apt-worker" as
+## "root" and so that s/he can restore the catalogues.
 ##
 ## KEEP THIS IN SYNC WITH prerm
 
 add_sudoer 'user ALL = NOPASSWD: /usr/libexec/apt-worker'
+add_sudoer 'user ALL = NOPASSWD: /usr/bin/hildon-application-manager-util restore-catalogues'
 
 if [ -x /usr/bin/update-mime-database ]; then
  update-mime-database /usr/share/mime

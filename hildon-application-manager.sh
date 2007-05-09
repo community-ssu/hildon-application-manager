@@ -21,12 +21,13 @@ upkgs="$HOME/.hildon-application-manager.backup"
 
 if grep -q "$cats" "$1"
 then
-  hildon-application-manager-config add "$cats"
+  sudo /usr/bin/hildon-application-manager-util restore-catalogues
 fi
 
 if grep -q "$pkgs" "$1"
 then
   cp "$pkgs" "$upkgs"
+  hildon-application-manager-util run-after-restore
 fi
 
 exit 0

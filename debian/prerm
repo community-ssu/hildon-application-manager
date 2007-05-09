@@ -10,6 +10,7 @@ rem_sudoer ()
     chmod 0440 /etc/sudoers
 }
 
-## Remove the sudoer line
+## Remove the sudoer lines
 
 rem_sudoer 'user ALL = NOPASSWD: /usr/libexec/apt-worker'
+rem_sudoer 'user ALL = NOPASSWD: /usr/bin/hildon-application-manager-util restore-catalogues'
