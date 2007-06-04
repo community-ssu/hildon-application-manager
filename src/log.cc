@@ -99,14 +99,6 @@ save_log (char *uri, void *data)
   GnomeVFSFileInfo info;
   GnomeVFSResult result;
 
-  char *b = basename (uri);
-  if (b && strchr (b, '.') == NULL)
-    {
-      char *uri_txt = g_strdup_printf ("%s.txt", uri);
-      g_free (uri);
-      uri = uri_txt;
-    }
-
   /* XXX - Using gnome_vfs_create with exclusive == true to check for
            file existence doesn't work with obex.  Why am I not
            surprised?
@@ -151,10 +143,15 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
     }
 
   if (response == RESPONSE_SAVE)
-    show_file_chooser_for_save (_("ai_ti_save_log"),
-				GTK_WINDOW (dialog),
-				_("ai_li_save_log_default_name"),
- 				save_log, NULL);
+    {
+      char *name = g_strconcat (_("ai_li_save_log_default_name"), ".txt",
+				NULL);
+      show_file_chooser_for_save (_("ai_ti_save_log"),
+				  GTK_WINDOW (dialog),
+				  name,
+				  save_log, NULL);
+      g_free (name);
+    }
 
   if (response == GTK_RESPONSE_CLOSE)
     {
