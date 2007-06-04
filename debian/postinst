@@ -82,6 +82,8 @@ if [ -x /usr/bin/update-desktop-database ]; then
  update-desktop-database
 fi
 
+hildon-application-manager-config update || true
+
 #DEBHELPER#
 
 exit 0
