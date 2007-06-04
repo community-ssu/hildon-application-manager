@@ -50,12 +50,14 @@
 
 #define _(x) gettext (x)
 
+#define HILDON_ENABLE_UNSTABLE_API 
+
 extern "C" {
-  #include "hildonbreadcrumbtrail.h"
   #include <hildon/hildon-window.h>
   #include <hildon/hildon-note.h>
   #include <libosso.h>
   #include <hildon/hildon-help.h>
+  #include <hildon/hildon-bread-crumb-trail.h>
 }
 
 using namespace std;
@@ -90,9 +92,17 @@ make_view_path (view *v)
     return g_list_append (make_view_path (v->parent), v);
 }
 
+static const gchar *
+get_view_label (GList *node)
+{
+  return gettext (((view *)node->data)->label);
+}
+
 void
 show_view (view *v)
 {
+  GList *p;
+
   if (cur_view)
     {
       gtk_container_remove(GTK_CONTAINER(main_vbox), cur_view);
@@ -110,8 +120,14 @@ show_view (view *v)
 
   g_list_free (cur_path);
   cur_path = make_view_path (v);
-  hildon_bread_crumb_trail_set_path (main_trail, cur_path);
-  
+
+  hildon_bread_crumb_trail_clear (HILDON_BREAD_CRUMB_TRAIL (main_trail));
+
+  for (p = cur_path; p != NULL; p = p->next)
+    hildon_bread_crumb_trail_push_text (HILDON_BREAD_CRUMB_TRAIL (main_trail),
+                                        get_view_label (p),
+                                        p, NULL);
+
   gtk_box_pack_start (GTK_BOX (main_vbox), cur_view, TRUE, TRUE, 10);
   gtk_widget_show(main_vbox);
 }
@@ -124,16 +140,10 @@ show_view_callback (GtkWidget *btn, gpointer data)
   show_view (v);
 }
 
-static const gchar *
-get_view_label (GList *node)
-{
-  return gettext (((view *)node->data)->label);
-}
-
 static void
-view_clicked (GList *node)
+view_clicked (HildonBreadCrumbTrail *bct, gpointer node, gpointer user_data)
 {
-  show_view ((view *)node->data);
+  show_view ((view *)((GList*)node)->data);
 }
 
 GtkWidget *make_main_view (view *v);
@@ -2494,10 +2504,11 @@ main (int argc, char **argv)
   main_vbox = gtk_vbox_new (FALSE, 0);
   gtk_container_add (GTK_CONTAINER (window), main_vbox);
 
-  main_trail = hildon_bread_crumb_trail_new (get_view_label, view_clicked);
+  main_trail = hildon_bread_crumb_trail_new ();
+  g_signal_connect (G_OBJECT (main_trail), "crumb-clicked",
+                    G_CALLBACK (view_clicked), NULL);
+
   gtk_box_pack_start (GTK_BOX (main_vbox), main_trail, FALSE, FALSE, 0);
-  gtk_box_pack_start (GTK_BOX (main_vbox), gtk_hseparator_new (), 
-		      FALSE, FALSE, 0);
 
   g_signal_connect (G_OBJECT (window), "destroy",
 		    G_CALLBACK (window_destroy), NULL);

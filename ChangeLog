@@ -1,3 +1,12 @@
+2007-06-04  Xan Lopez  <xan.lopez@nokia.com>
+
+	* src/main.cc: port to use the new HildonBreadCrumbTrail.
+	We clear and rebuild the contents on each step, which is
+	against the design of the widget, but you got to start
+	somewhere.
+
+	* src/Makefile.am: remove old widget from the build.
+
 2007-05-09  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.12

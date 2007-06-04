@@ -24,8 +24,6 @@ hildon_application_manager_launch_SOURCES = main.h			\
 					    repo.cc			\
                                             instr.h			\
                                             instr.cc			\
-					    hildonbreadcrumbtrail.h	\
-					    hildonbreadcrumbtrail.c	\
 					    xexp.h			\
 					    xexp.c			\
 					    apt-worker-client.h		\
