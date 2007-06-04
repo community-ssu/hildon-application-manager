@@ -241,8 +241,6 @@ usage ()
 int
 main (int argc, char **argv)
 {
-  GError *error = NULL;
-
   if (argc > 1 && strcmp (argv[1], "-v") == 0)
     {
       verbose = true;
