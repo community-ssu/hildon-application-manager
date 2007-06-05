@@ -115,6 +115,32 @@ The upgrade description is specified with the
 `Maemo-Upgrade-Description` field.  It is formatted like the normal
 `Description` field.
 
+### Localized names and descriptions
+
+The `Maemo-Display-Name`, `Description`, and
+`Maemo-Upgrade-Description` fields can be provided in more than one
+language.  The Application Manager first looks for a field named
+`FIELD-LC` where `LC` is the value of the `LC_MESSAGES` environment
+variable, and falls back to just `FIELD` when the localized field does
+not exist.
+
+For example, when `LC_MESSAGES` equals `de_DE`, the Application
+Manager first tries `Description-de_DE` to find the short and long
+descriptions of a package.
+
+Note that this way to localize package descriptions is different from
+what Debian is going to use.  Instead of putting all the translations
+into the package metadata itself, Debian will provide translations in
+a separate section of a repository and only the translations for the
+current language will be downloaded.  This is clearly the way to go
+for a distribution with many packages and for supporting many
+languages.
+
+In the future, the Application Manager will support this way of
+translating package descriptions and names as well, but for now,
+putting everything into the metadata directly is sufficiently easier
+to do and we shouldn't run into scalability problems just yet.
+
 ### Icons
 
 A package can have an icon that is displayed next to its name by the
