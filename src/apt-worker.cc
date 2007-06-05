@@ -178,6 +178,7 @@ typedef signed char domain_t;
 struct domain_info {
   const char *name;
   const char *key;
+  const char *uri;
   int trust_level;
   bool is_certified;
 };
@@ -208,11 +209,13 @@ read_domain_conf ()
    */
   domains[0].name = "unsigned";
   domains[0].key = NULL;
+  domains[0].uri = NULL;
   domains[0].trust_level = 0;
   domains[0].is_certified = false;
     
   domains[1].name = "signed";
   domains[1].key = NULL;
+  domains[1].uri = NULL;
   domains[1].trust_level = 1;
   domains[1].is_certified = false;
 
@@ -233,6 +236,7 @@ read_domain_conf ()
 	  domains[i].trust_level = xexp_aref_int (d, "trust-level", 2);
 	  domains[i].is_certified = xexp_aref_bool (d, "certified");
 	  domains[i].key = xexp_aref_text (d, "key");
+	  domains[i].uri = xexp_aref_text (d, "uri");
 	  if (xexp_aref_bool (d, "default"))
 	    default_domain = i;
 
@@ -256,6 +260,26 @@ find_domain (const char *key)
 
   return DOMAIN_SIGNED;
 }
+
+static domain_t
+find_domain_by_uri (const char *uri)
+{
+  fprintf (stderr, "FIND BY URI: %s\n", uri);
+
+  for (int i = 0; domains[i].name; i++)
+    {
+      fprintf (stderr, "ON %s %s\n", domains[i].name, domains[i].uri);
+
+      if (domains[i].uri == NULL)
+	continue;
+      
+      if (strcmp (domains[i].uri, uri) == 0)
+	return i;
+    }
+
+  return DOMAIN_SIGNED;
+}
+
 
 /* This struct describes some status flags for specific packages.
  * AptWorkerState includes an array of these, with an entry per
@@ -865,6 +889,8 @@ handle_request ()
 static int index_trust_level_for_package (pkgIndexFile *index,
 					  const pkgCache::VerIterator &ver);
 
+static const char *lc_messages;
+
 int
 main (int argc, char **argv)
 {
@@ -899,9 +925,12 @@ main (int argc, char **argv)
   must_set_flags (input_fd, O_RDONLY);
 
   options = argv[5];
+  lc_messages = getenv ("LC_MESSAGES");
 
   DBG ("starting with pid %d, in %d, out %d, stat %d, cancel %d, options %s",
-       getpid (), input_fd, output_fd, status_fd, cancel_fd, options);
+       getpid (), input_fd, output_fd, status_fd, cancel_fd,
+       options);
+  DBG ("LC_MESSAGES %s", lc_messages);
 
   if (strchr (options, 'B'))
     flag_break_locks = true;
@@ -1755,6 +1784,108 @@ mark_for_remove (pkgCache::PkgIterator &pkg, bool only_maybe)
     }
 }
 
+/* Getting the package record in a nicely parsable form.
+ */
+
+struct package_record {
+  pkgRecords Recs;
+  pkgRecords::Parser &P;
+  pkgTagSection section;
+  bool valid;
+
+  package_record (pkgCache::VerIterator &ver);
+
+  bool has (const char *tag);
+  string get_string (const char *tag);
+  char *get (const char *tag);
+  int get_int (const char *tag, int def);
+
+  string get_localized_string (const char *tag);
+};
+
+package_record::package_record (pkgCache::VerIterator &ver)
+  : Recs (*(AptWorkerState::GetCurrent ()->cache)),
+    P (Recs.Lookup (ver.FileList ()))
+{
+  const char *start, *stop;
+  P.GetRec (start, stop);
+
+  /* NOTE: pkTagSection::Scan only succeeds when the record ends in
+           two newlines, but pkgRecords::Parser::GetRec does not
+           include the second newline in its returned region.
+           However, that second newline is always there, so we just
+           pass one more character to Scan.
+  */
+  
+  valid = section.Scan (start, stop-start+1);
+}
+
+bool
+package_record::has (const char *tag)
+{
+  unsigned pos;
+  return valid && section.Find (tag, pos);
+}
+
+string
+package_record::get_string (const char *tag)
+{
+  if (valid)
+    return section.FindS (tag);
+  else
+    return string ("");
+}
+ 
+int
+all_white_space (const char *text)
+{
+  while (*text)
+    if (!isspace (*text++))
+      return 0;
+  return 1;
+}
+
+char *
+package_record::get (const char *tag)
+{
+  if (!valid)
+    return NULL;
+
+  string res = get_string (tag);
+  if (all_white_space (res.c_str ()))
+    return NULL;
+  else
+    return g_strdup (res.c_str());
+}
+
+int
+package_record::get_int (const char *tag, int def)
+{
+  if (!valid)
+    return def;
+
+  return section.FindI (tag, def);
+}
+
+string
+package_record::get_localized_string (const char *tag)
+{
+  if (lc_messages && *lc_messages)
+    {
+      char *locale_tag = g_strdup_printf ("%s-%s", tag, lc_messages);
+
+      if (has (locale_tag))
+	{
+	  string res = get_string (locale_tag);
+	  g_free (locale_tag);
+	  return res;
+	}
+      g_free (locale_tag);
+    }
+
+  return get_string (tag);
+}
+
 /** COMMAND HANDLERS
  */
 
@@ -1777,101 +1908,75 @@ bool
 description_matches_pattern (pkgCache::VerIterator &ver,
 			     const char *pattern)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgRecords Recs (*(state->cache));
-  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
-  const char *desc = P.LongDesc().c_str();
+  package_record rec (ver);
+  const char *desc = rec.P.LongDesc().c_str();
 
   // XXX - UTF8?
   return strcasestr (desc, pattern);
 }
 
-char *
-get_short_description (pkgCache::VerIterator &ver)
+static string
+get_description (int summary_kind,
+		 pkgCache::PkgIterator &pkg,
+		 package_record &rec)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgRecords Recs (*(state->cache));
-  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
-  return g_strdup (P.ShortDesc().c_str());
-}
+  string res;
 
-int
-all_white_space (const char *text)
-{
-  while (*text)
-    if (!isspace (*text++))
-      return 0;
-  return 1;
-}
-
-char *
-get_icon (pkgCache::VerIterator &ver)
-{
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgRecords Recs (*(state->cache));
-  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
-
-  const char *start, *stop;
-  P.GetRec (start, stop);
-
-  /* NOTE: pkTagSection::Scan only succeeds when the record ends in
-           two newlines, but pkgRecords::Parser::GetRec does not
-           include the second newline in its returned region.
-           However, that second newline is always there, so we just
-           pass one more character to Scan.
-  */
-
-  pkgTagSection section;
-  if (!section.Scan (start, stop-start+1))
-    return NULL;
-
-  char *icon = g_strdup (section.FindS ("Maemo-Icon-26").c_str());
-  if (all_white_space (icon))
-    {
-      g_free (icon);
-      return NULL;
-    }
+  if (summary_kind == 1 && !pkg.CurrentVer().end())
+    res = rec.get_localized_string ("Maemo-Upgrade-Description");
   else
-    return icon;
+    {
+      /* XXX - support apts own method of localizing descriptions as
+	       well.
+      */
+      res = rec.get_localized_string ("Description");
+    }
+
+  return res;
+}
+	 
+static string
+get_short_description (int summary_kind,
+		       pkgCache::PkgIterator &pkg,
+		       package_record &rec)
+{
+  string res = get_description (summary_kind, pkg, rec);
+  string::size_type pos = res.find('\n');
+  if (pos != string::npos)
+    return string (res,0,pos);
+  return res;
+}
+
+static string
+get_long_description (int summary_kind,
+		      pkgCache::PkgIterator &pkg,
+		      package_record &rec)
+{
+  return get_description (summary_kind, pkg, rec);
+}
+
+static char *
+get_icon (package_record &rec)
+{
+  return rec.get ("Maemo-Icon-26");
 }
 
 struct {
   const char *name;
   int flag;
 } flag_names[] = {
-  { "close-apps", pkgflag_close_apps },
+  { "close-apps",     pkgflag_close_apps },
   { "suggest-backup", pkgflag_suggest_backup },
-  { "reboot", pkgflag_reboot },
-  { "system-update", pkgflag_system_update },
+  { "reboot",         pkgflag_reboot },
+  { "system-update",  pkgflag_system_update },
   NULL
 };
 
-// XXX - factor out all the record parsing.
-
 static int
-get_flags (const pkgCache::VerIterator &ver)
+get_flags (package_record &rec)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgRecords Recs (*(state->cache));
-  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
-  pkgCache::PkgIterator pkg = ver.ParentPkg();
-
-  const char *start, *stop;
-  P.GetRec (start, stop);
-
-  /* NOTE: pkTagSection::Scan only succeeds when the record ends in
-           two newlines, but pkgRecords::Parser::GetRec does not
-           include the second newline in its returned region.
-           However, that second newline is always there, so we just
-           pass one more character to Scan.
-  */
-
-  pkgTagSection section;
-  if (!section.Scan (start, stop-start+1))
-    return 0;
-
   int flags = 0;
-  char *flag_string = g_strdup (section.FindS ("Maemo-Flags").c_str());
+  char *flag_string = rec.get ("Maemo-Flags");
   char *ptr = flag_string, *tok;
   while (tok = strsep (&ptr, ","))
     {
@@ -1887,76 +1992,35 @@ get_flags (const pkgCache::VerIterator &ver)
   return flags;
 }
 
-static char *
-get_pretty_name (const pkgCache::VerIterator &ver)
+static string
+get_pretty_name (package_record &rec)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgRecords Recs (*(state->cache));
-  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
-  pkgCache::PkgIterator pkg = ver.ParentPkg();
-
-  const char *start, *stop;
-  P.GetRec (start, stop);
-
-  /* NOTE: pkTagSection::Scan only succeeds when the record ends in
-           two newlines, but pkgRecords::Parser::GetRec does not
-           include the second newline in its returned region.
-           However, that second newline is always there, so we just
-           pass one more character to Scan.
-  */
-
-  pkgTagSection section;
-  if (!section.Scan (start, stop-start+1))
-    return 0;
-
-  const char *name = section.FindS ("Maemo-Display-Name").c_str();
-  if (all_white_space (name))
-    return NULL;
-  else
-    return g_strdup (name);
+  return rec.get_localized_string ("Maemo-Display-Name");
 }
 
 static int64_t
-get_required_free_space (pkgCache::VerIterator &ver)
+get_required_free_space (package_record &rec)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgRecords Recs (*(state->cache));
-  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
-  pkgCache::PkgIterator pkg = ver.ParentPkg();
-
-  const char *start, *stop;
-  P.GetRec (start, stop);
-
-  /* NOTE: pkTagSection::Scan only succeeds when the record ends in
-           two newlines, but pkgRecords::Parser::GetRec does not
-           include the second newline in its returned region.
-           However, that second newline is always there, so we just
-           pass one more character to Scan.
-  */
-
-  pkgTagSection section;
-  if (!section.Scan (start, stop-start+1))
-    return 0;
-
-  return 1024 * (int64_t)section.FindI ("Maemo-Required-Free-Space", 0);
+  return 1024 * (int64_t) rec.get_int ("Maemo-Required-Free-Space", 0);
 }
 
 static void
-encode_version_info (pkgCache::VerIterator &ver, bool include_size)
+encode_version_info (int summary_kind,
+		     pkgCache::VerIterator &ver, bool include_size)
 {
-  char *pretty, *desc, *icon;
+  package_record rec (ver);
+  char *icon;
 
   response.encode_string (ver.VerStr ());
   if (include_size)
     response.encode_int64 (ver->InstalledSize);
   response.encode_string (ver.Section ());
-  pretty = get_pretty_name (ver);
-  response.encode_string (pretty);
-  g_free (pretty);
-  desc = get_short_description (ver);
-  response.encode_string (desc);
-  g_free (desc);
-  icon = get_icon (ver);
+  string pretty = get_pretty_name (rec);
+  response.encode_string (pretty.empty()? NULL : pretty.c_str());
+  pkgCache::PkgIterator pkg = ver.ParentPkg();
+  response.encode_string 
+    (get_short_description (summary_kind, pkg, rec).c_str());
+  icon = get_icon (rec);
   response.encode_string (icon);
   g_free (icon);
 }
@@ -2056,7 +2120,7 @@ cmd_get_package_list ()
 
       // Installed version
       if (!installed.end())
-	encode_version_info (installed, true);
+	encode_version_info (2, installed, true);
       else
 	encode_empty_version_info (true);
 
@@ -2072,7 +2136,7 @@ cmd_get_package_list ()
 	      || installed.CompareVer (candidate) < 0
 	      || (pkg.State () == pkgCache::PkgIterator::NeedsUnpack
 		  && candidate.Downloadable ())))
-	encode_version_info (candidate, false);
+	encode_version_info (1, candidate, false);
       else
 	encode_empty_version_info (false);
     }
@@ -2231,8 +2295,9 @@ cmd_get_package_info ()
 	  if (cache[pkg].Upgrade())
 	    {
 	      pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
-	      info.install_flags |= get_flags (ver);
-	      info.required_free_space += get_required_free_space (ver);
+	      package_record rec (ver);
+	      info.install_flags |= get_flags (rec);
+	      info.required_free_space += get_required_free_space (rec);
 	    }
 	}
 
@@ -2257,7 +2322,9 @@ cmd_get_package_info ()
 		{
 		  if (cache[pkg].Delete())
 		    {
-		      int flags = get_flags (pkg.CurrentVer ());
+		      pkgCache::VerIterator ver = pkg.CurrentVer ();
+		      package_record rec (ver);
+		      int flags = get_flags (rec);
 		      if (flags & pkgflag_system_update)
 			{
 			  info.removable_status =
@@ -2290,19 +2357,17 @@ cmd_get_package_info ()
    information about the package and what is happening.
 */
 
-static char *get_pretty_name (const pkgCache::VerIterator &ver);
-
 static void
 append_display_name (GString *str, const pkgCache::PkgIterator &pkg)
 {
   pkgCache::VerIterator ver = pkg.CurrentVer();
   if (!ver.end())
     {
-      char *pretty_name = get_pretty_name (ver);
-      if (pretty_name)
+      package_record rec (ver);
+      string pretty_name = get_pretty_name (rec);
+      if (!pretty_name.empty())
 	{
-	  g_string_append (str, pretty_name);
-	  g_free (pretty_name);
+	  g_string_append (str, pretty_name.c_str());
 	  return;
 	}
     }
@@ -2423,13 +2488,11 @@ encode_broken (pkgCache::PkgIterator &pkg,
 void
 encode_package_and_version (pkgCache::VerIterator ver)
 {
+  package_record rec (ver);
   GString *str = g_string_new ("");
-  char *pretty = get_pretty_name (ver);
-  if (pretty)
-    {
-      g_string_append (str, pretty);
-      g_free (pretty);
-    }
+  string pretty = get_pretty_name (rec);
+  if (!pretty.empty())
+    g_string_append (str, pretty.c_str());
   else
     g_string_append (str, ver.ParentPkg().Name());
   g_string_append_printf (str, " (%s)", ver.VerStr());
@@ -2561,12 +2624,11 @@ cmd_get_package_details ()
       
       if (find_package_version (state->cache, pkg, ver, package, version))
 	{
-	  pkgDepCache &cache = *(state->cache);
-	  pkgRecords Recs (cache);
-	  pkgRecords::Parser &P = Recs.Lookup (ver.FileList ());
+	  package_record rec (ver);
 	  
-	  response.encode_string (P.Maintainer().c_str());
-	  response.encode_string (P.LongDesc().c_str());
+	  response.encode_string (rec.P.Maintainer().c_str());
+	  response.encode_string 
+	    (get_long_description (summary_kind, pkg, rec).c_str());
 	  encode_dependencies (ver);
 	  if (summary_kind == 1)
 	    encode_install_summary (package);
@@ -3031,6 +3093,10 @@ get_domain (pkgIndexFile *index)
       debReleaseIndex *meta = find_deb_meta_index (index);
       if (meta)
 	{
+	  domain_t d = find_domain_by_uri (meta->GetURI().c_str());
+	  if (d != DOMAIN_SIGNED)
+	    return d;
+
 	  char *key = get_meta_info_key (meta);
 	  if (key)
 	    {
@@ -3735,6 +3801,30 @@ encode_field (pkgTagSection *section, const char *field,
     response.encode_string (def);
 }
 
+static void
+encode_localized_field (pkgTagSection *section, const char *field,
+			const char *def = "")
+{
+  const char *start, *end;
+
+  if (lc_messages && *lc_messages)
+    {
+      char *locale_field = g_strdup_printf ("%s-%s", field, lc_messages);
+      if (get_field (section, locale_field, start, end))
+	{
+	  response.encode_stringn (start, end-start);
+	  g_free (locale_field);
+	  return;
+	}
+      g_free (locale_field);
+    }
+  
+  if (get_field (section, field, start, end))
+    response.encode_stringn (start, end-start);
+  else
+    response.encode_string (def);
+}
+
 static bool
 substreq (const char *start, const char *end, const char *str)
 {
@@ -3838,7 +3928,7 @@ cmd_get_file_details ()
     }
 
   encode_field (&section, "Package");
-  encode_field (&section, "Maemo-Display-Name", NULL);
+  encode_localized_field (&section, "Maemo-Display-Name", NULL);
   response.encode_string (installed_version);
   response.encode_int64 (installed_size);
   encode_field (&section, "Version");
@@ -3847,7 +3937,7 @@ cmd_get_file_details ()
   response.encode_int (installable_status);
   response.encode_int64 (1024LL * get_field_int (&section, "Installed-Size", 0)
 		       - installed_size);
-  encode_field (&section, "Description");
+  encode_localized_field (&section, "Description");
   encode_field (&section, "Maemo-Icon-26", NULL);
 
   if (installable_status != status_able)

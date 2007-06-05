@@ -1,3 +1,40 @@
+2007-06-05  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Localizable package names and descriptions, upgrade descriptions,
+	and domains identified by URI.
+	
+	* src/apt-worker.cc (domain_info): Added 'uri' field.
+	(read_domain_conf): Initialize it.
+	(find_domain_by_uri): New.
+	(get_domain): Use it before looking at keys.
+	(lc_messages): New.
+	(main): Initialize it.
+	(struct package_record): New, to encapsulate package record
+	parsing.  Use it all over the place.
+	(package_record::get_localized_string): New, for trying localized
+	fields first.  Use it for Maemo-Pretty-Name, Description, and
+	Maemo-Upgrade-Description.
+	(get_description, get_short_description, get_long_description):
+	Use Maemo-Upgrade-Description as appropriate.  Changed all callers
+	for new arguments.
+	(encode_localized_field): New.
+	(cmd_get_file_details): Use it as appropriate.
+
+2007-06-04  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/hildon-application-manager-config.cc (main): Removed
+	"error", it was unused.
+
+	* src/log.cc (log_response): Add ".txt" extension before creating
+	the dialog so that it can do its autonaming magic.
+	(save_log): Don't add the extension here.
+
+2007-05-10  Marius Vollmer  <marius.vollmer@nokia.com>
+
+ 	* debian/postinst: Run "hildon-application-manager-config update"
+	to pick up changes in how the secondary configuration files are
+	created.
+
 2007-06-04  Xan Lopez  <xan.lopez@nokia.com>
 
 	* src/main.cc: port to use the new HildonBreadCrumbTrail.
