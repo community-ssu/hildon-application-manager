@@ -64,7 +64,9 @@ using a simple XML format:
     <domains>
 
 The `key` element specifies the fingerprint of the key that defines
-this domain.
+this domain.  You can list more than one key for a single domain; it
+will then be association with repositories that have been signed with
+any of the keys.
 
 When a domain is marked as `default`, every installed package that
 isn't already known to belong to a certain domain is put into this
@@ -83,5 +85,15 @@ The AM logs domain changes in "Tools > Log".  When a package is about
 to change its domain, the AM will usually abort its installation.  In
 red-pill mode, it will ask whether to continue.
 
+Currently, a signature that could not be verified is treated the same
+as no signature.
+
 You can use the `hildon-application-manager-config` utility to add,
 change and remove domains.
+
+For backwards compatibility, a domain can list one or more URIs
+instead of key fingerprints.  Such a domain will be associated with a
+repository that is signed with any key and uses that URI in its
+sources.list configuration.  Use the `uri` element to specify URIs in
+domain configuration snippets.  Don't use this mechanism for new
+repositories; it is better to create unique keys instead.
