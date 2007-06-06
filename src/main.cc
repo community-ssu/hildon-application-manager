@@ -2065,6 +2065,63 @@ rp_end (void *data)
   end_interaction_flow (GTK_WIDGET (get_main_window ()));
 }
 
+/* Updating all installed system-update packages
+ */
+
+static void us_get_system_packages (bool res, void *data);
+static void us_get_system_packages_reply (int cmd, apt_proto_decoder *dec,
+					  void *data);
+static void us_end (void *data);
+
+void
+update_system_flow ()
+{
+  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
+    refresh_package_cache_with_cont (APTSTATE_DEFAULT, FALSE,
+				     us_get_system_packages, NULL);
+}
+
+static void
+us_get_system_packages (bool res, void *data)
+{
+  apt_worker_get_system_update_packages (APTSTATE_DEFAULT,
+					 us_get_system_packages_reply,
+					 NULL);
+}
+
+static void
+us_get_system_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  char **packages = new char*[10];  // *cough*
+
+  if (dec == NULL)
+    {
+      us_end (data);
+      return;
+    }
+
+  int i = 0;
+  while (i < 10 && !dec->corrupted ())
+    {
+      char *name = dec->decode_string_dup ();
+      if (name == NULL)
+	break;
+
+      packages[i++] = name;
+    }
+  packages[i] = NULL;
+
+  install_named_packages (APTSTATE_DEFAULT,
+			  (const char**)packages, INSTALL_TYPE_UPDATE_SYSTEM,
+			  us_end, data);
+}
+
+static void
+us_end (void *data)
+{
+  end_interaction_flow (GTK_WIDGET (get_main_window ()));
+}
+
 /* Installing from file
  */
 
@@ -2156,8 +2213,10 @@ mime_open_handler (gpointer raw_data, int argc, char **argv)
       const char *filename = argv[0];
 
       present_main_window ();
-      if (strcmp (filename, "backup.install") == 0)
+      if (strcmp (filename, "magic:restore-packages") == 0)
 	restore_packages_flow ();
+      if (strcmp (filename, "magic:update-system") == 0)
+	update_system_flow ();
       else
 	install_from_file_flow (filename);
     }
