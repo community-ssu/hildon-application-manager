@@ -1,3 +1,18 @@
+2007-06-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (struct domain_info): Removed 'key' and 'uri'
+	fields in favor of general 'conf' field that holds the whole xexps
+	for this domain.  This allows multiple keys and uris per domain.
+	(read_domain_conf): Adapted.
+	(find_domain_by_tag): New, factored out of find_domain and
+	find_domain_by_uri.  Handle multiple occurences of the tag.
+	(find_domain, find_domain_by_key): Renamed former to latter,
+	changed callers.
+	(get_description): Fall back to 'Description' when
+	'Maemo-Upgrade-Description' can't be found, stupid.
+
+	* src/xexp.c, src/xexp.h (xexp_aref_rest): New.
+
 2007-06-05  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Localizable package names and descriptions, upgrade descriptions,
