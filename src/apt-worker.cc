@@ -177,8 +177,7 @@ typedef signed char domain_t;
 
 struct domain_info {
   const char *name;
-  const char *key;
-  const char *uri;
+  xexp *conf;
   int trust_level;
   bool is_certified;
 };
@@ -208,14 +207,12 @@ read_domain_conf ()
   /* Setup the two implicit domains.
    */
   domains[0].name = "unsigned";
-  domains[0].key = NULL;
-  domains[0].uri = NULL;
+  domains[0].conf = NULL;
   domains[0].trust_level = 0;
   domains[0].is_certified = false;
     
   domains[1].name = "signed";
-  domains[1].key = NULL;
-  domains[1].uri = NULL;
+  domains[1].conf = NULL;
   domains[1].trust_level = 1;
   domains[1].is_certified = false;
 
@@ -235,8 +232,7 @@ read_domain_conf ()
 
 	  domains[i].trust_level = xexp_aref_int (d, "trust-level", 2);
 	  domains[i].is_certified = xexp_aref_bool (d, "certified");
-	  domains[i].key = xexp_aref_text (d, "key");
-	  domains[i].uri = xexp_aref_text (d, "uri");
+	  domains[i].conf = d;
 	  if (xexp_aref_bool (d, "default"))
 	    default_domain = i;
 
@@ -247,39 +243,36 @@ read_domain_conf ()
 }
 
 static domain_t
-find_domain (const char *key)
+find_domain_by_tag (const char *tag, const char *val)
 {
   for (int i = 0; domains[i].name; i++)
     {
-      if (domains[i].key == NULL)
+      if (domains[i].conf == NULL)
 	continue;
       
-      if (strcmp (domains[i].key, key) == 0)
-	return i;
+      for (xexp *x = xexp_aref (domains[i].conf, tag);
+	   x;
+	   x = xexp_aref_rest (x, tag))
+	{
+	  if (xexp_is_text (x) && strcmp (xexp_text (x), val) == 0)
+	    return i;
+	}
     }
 
   return DOMAIN_SIGNED;
 }
 
 static domain_t
-find_domain_by_uri (const char *uri)
+find_domain_by_key (const char *key)
 {
-  fprintf (stderr, "FIND BY URI: %s\n", uri);
-
-  for (int i = 0; domains[i].name; i++)
-    {
-      fprintf (stderr, "ON %s %s\n", domains[i].name, domains[i].uri);
-
-      if (domains[i].uri == NULL)
-	continue;
-      
-      if (strcmp (domains[i].uri, uri) == 0)
-	return i;
-    }
-
-  return DOMAIN_SIGNED;
+  return find_domain_by_tag ("key", key);
 }
 
+static domain_t
+find_domain_by_uri (const char *uri)
+{
+  return find_domain_by_tag ("uri", uri);
+}
 
 /* This struct describes some status flags for specific packages.
  * AptWorkerState includes an array of these, with an entry per
@@ -1924,9 +1917,10 @@ get_description (int summary_kind,
 
   if (summary_kind == 1 && !pkg.CurrentVer().end())
     res = rec.get_localized_string ("Maemo-Upgrade-Description");
-  else
+
+  if (res.empty())
     {
-      /* XXX - support apts own method of localizing descriptions as
+      /* XXX - support apt's own method of localizing descriptions as
 	       well.
       */
       res = rec.get_localized_string ("Description");
@@ -3100,7 +3094,7 @@ get_domain (pkgIndexFile *index)
 	  char *key = get_meta_info_key (meta);
 	  if (key)
 	    {
-	      domain_t d = find_domain (key);
+	      domain_t d = find_domain_by_key (key);
 	      g_free (key);
 	      return d;
 	    }
@@ -3971,9 +3965,10 @@ cmd_install_file ()
 #if 0
       /* We do not remove packages that failed to install since this
 	 might have been an update attempt and removing the old
-	 version is confusing.  Installations at this point not fail
-	 because of missing dependencies, so it is not that important
-	 anymore to try to leave the system in a consistent state.
+	 version is confusing.  Installations at this point do not
+	 fail because of missing dependencies, so it is not that
+	 important anymore to try to leave the system in a consistent
+	 state.
       */
       char *cmd =
 	g_strdup_printf ("/usr/bin/dpkg --purge "
