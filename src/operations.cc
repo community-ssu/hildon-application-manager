@@ -292,7 +292,7 @@ xxx_install_packages (GList *packages,
 			    : _("ai_ti_memory")),
 			   ip_select_package_response, c);
     }
-  else
+  else if (c->install_type != INSTALL_TYPE_UPDATE_SYSTEM)
     {
       GString *text = g_string_new ("");
       char download_buf[20];
@@ -318,6 +318,8 @@ xxx_install_packages (GList *packages,
 					 ip_show_cur_details, c);
       g_string_free (text, 1);
     }
+  else
+    ip_confirm_install_response (true, c);
 }
 
 static void
