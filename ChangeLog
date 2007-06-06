@@ -1,5 +1,20 @@
 2007-06-06  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/main.cc (update_system_flow): New.
+	(mime_open_handler): Call it for the "magic:update-system" token.
+	Changed restore token to "magic:restore-packages".
+	* src/hildon-application-manager-util: Updated for new mime-open
+	tokens.
+	
+        * src/apt-worker-client.cc, src/apt-worker-client.h,
+	src/apt-worker-proto.h, src/apt-worker.cc: New
+	APTCMD_GET_SYSTEM_UPDATE_PACKAGES.
+
+	* src/operations.cc, src/operations.h
+	(INSTALL_TYPE_UPDATE_SYSTEM): New.
+	(xxx_install_packages): Don't ask for confirmation when type if
+	INSTALL_TYPE_UPDATE_SYSTEM.
+
 	* src/apt-worker.cc (struct domain_info): Removed 'key' and 'uri'
 	fields in favor of general 'conf' field that holds the whole xexps
 	for this domain.  This allows multiple keys and uris per domain.
