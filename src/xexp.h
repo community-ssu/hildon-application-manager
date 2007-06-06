@@ -209,6 +209,11 @@
    Return the first xexp that has tag TAG from the children of X.
    Return NULL if there is no such xexp.
 
+   - xexp *xexp_aref_rest (xexp *X, const char *TAG)
+
+   Return the first xexp that has tag TAG starting from the rest
+   pointer of X.  Return NULL if there is no such xexp.
+
    - const char *xexp_aref_text (xexp *X, const char *TAG)
 
    Find the first xexp that has tag TAG from the children of X and
@@ -312,6 +317,7 @@ int xexp_text_as_int (xexp *x);
 /* Association lists
  */
 xexp *xexp_aref (xexp *x, const char *tag);
+xexp *xexp_aref_rest (xexp *x, const char *tag);
 const char *xexp_aref_text (xexp *x, const char *tag);
 int xexp_aref_bool (xexp *x, const char *tag);
 int xexp_aref_int (xexp *x, const char *tag, int def);

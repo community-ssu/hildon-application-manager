@@ -296,6 +296,19 @@ xexp_aref (xexp *x, const char *tag)
   return NULL;
 }
 
+xexp *
+xexp_aref_rest (xexp *x, const char *tag)
+{
+  xexp *y = xexp_rest (x);
+  while (y)
+    {
+      if (xexp_is (y, tag))
+	return y;
+      y = xexp_rest (y);
+    }
+  return NULL;
+}
+
 const char *
 xexp_aref_text (xexp *x, const char *tag)
 {
