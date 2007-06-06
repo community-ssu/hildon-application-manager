@@ -131,7 +131,7 @@ descriptions of a package.
 Note that this way to localize package descriptions is different from
 what Debian is going to use.  Instead of putting all the translations
 into the package metadata itself, Debian will provide translations in
-a separate section of a repository and only the translations for the
+a separate directory of a repository and only the translations for the
 current language will be downloaded.  This is clearly the way to go
 for a distribution with many packages and for supporting many
 languages.
