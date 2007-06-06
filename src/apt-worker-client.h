@@ -126,4 +126,8 @@ void apt_worker_get_file_details (bool only_user, const char *filename,
 void apt_worker_save_backup_data (apt_worker_callback *callback,
 				  void *data);
 
+void apt_worker_get_system_update_packages (int state,
+					    apt_worker_callback *callback,
+					    void *data);
+
 #endif /* !APT_WORKER_CLIENT_H */

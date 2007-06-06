@@ -58,6 +58,8 @@ enum apt_command {
 
   APTCMD_SAVE_BACKUP_DATA,
 
+  APTCMD_GET_SYSTEM_UPDATE_PACKAGES,
+
   APTCMD_MAX
 };
 

@@ -708,6 +708,7 @@ void cmd_clean ();
 void cmd_get_file_details ();
 void cmd_install_file ();
 void cmd_save_backup_data ();
+void cmd_get_system_update_packages ();
 
 /* Commands can request the package cache to be refreshed by calling
    NEED_CACHE_INIT before they return.  The cache will then be
@@ -767,7 +768,8 @@ static char *cmd_names[] = {
   "GET_FILE_DETAILS",
   "INSTALL_FILE",
   "CLEAN",
-  "SAVE_BACKUP_DATA"
+  "SAVE_BACKUP_DATA",
+  "GET_SYSTEM_UPDATE_PACKAGES"
 };
 #endif
 
@@ -855,6 +857,10 @@ handle_request ()
 
     case APTCMD_SAVE_BACKUP_DATA:
       cmd_save_backup_data ();
+      break;
+
+    case APTCMD_GET_SYSTEM_UPDATE_PACKAGES:
+      cmd_get_system_update_packages ();
       break;
 
     default:
@@ -2162,6 +2168,33 @@ cmd_get_package_list ()
       response.encode_string ("Updates to all system packages");
       response.encode_string (NULL);
     }
+}
+
+void
+cmd_get_system_update_packages ()
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+
+  if (!ensure_cache ())
+    return;
+
+  pkgDepCache &cache = *(state->cache);
+
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+    {
+      pkgCache::VerIterator installed = pkg.CurrentVer ();
+      pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+      
+      if (installed.end () || candidate.end ())
+	continue;
+
+      package_record rec (candidate);
+      int flags = get_flags (rec);
+      if (flags & pkgflag_system_update)
+	response.encode_string (pkg.Name ());
+    }
+
+  response.encode_string (NULL);
 }
 
 /* APTCMD_GET_PACKAGE_INFO

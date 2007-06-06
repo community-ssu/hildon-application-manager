@@ -820,3 +820,14 @@ apt_worker_save_backup_data (apt_worker_callback *callback,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
+
+void
+apt_worker_get_system_update_packages (int state,
+				       apt_worker_callback *callback,
+				       void *data)
+{
+  request.reset ();
+  call_apt_worker (APTCMD_GET_SYSTEM_UPDATE_PACKAGES, state,
+		   request.get_buf (), request.get_len (),
+		   callback, data);
+}
