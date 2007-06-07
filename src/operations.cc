@@ -235,18 +235,18 @@ static void ip_abort_response (GtkDialog *dialog, gint response,
 static void ip_end (void *data);
 
 void
-xxx_install_package (package_info *pi,
-		     void (*cont) (void *), void *data)
+install_package (package_info *pi,
+		 void (*cont) (void *), void *data)
 {
-  xxx_install_packages (g_list_prepend (NULL, pi),
-			APTSTATE_DEFAULT, INSTALL_TYPE_STANDARD,
-			cont, data);
+  install_packages (g_list_prepend (NULL, pi),
+		    APTSTATE_DEFAULT, INSTALL_TYPE_STANDARD,
+		    cont, data);
 }
 
 void
-xxx_install_packages (GList *packages,
-		      int state, int install_type,
-		      void (*cont) (void *), void *data)
+install_packages (GList *packages,
+		  int state, int install_type,
+		  void (*cont) (void *), void *data)
 {
   ip_clos *c = new ip_clos;
 
@@ -899,8 +899,8 @@ static void up_remove_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void up_end (void *data);
 
 void
-xxx_uninstall_package (package_info *pi,
-		       void (*cont) (void *data), void *data)
+uninstall_package (package_info *pi,
+		   void (*cont) (void *data), void *data)
 {
   up_clos *c = new up_clos;
 
@@ -1114,8 +1114,8 @@ static void if_fail (bool res, void *data);
 static void if_end (void *data);
 
 void
-xxx_install_local_deb_file (const char *filename,
-			    void (*cont) (void *data), void *data)
+install_local_deb_file (const char *filename,
+			void (*cont) (void *data), void *data)
 {
   if_clos *c = new if_clos;
 

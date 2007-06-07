@@ -49,24 +49,24 @@ enum {
 /* PACKAGES is a list of package_info pointers.  The list and the
    package_info structures must remain valid until CONT is called.
 */
-void xxx_install_packages (GList *packages,
-			   int state, int install_type,
-			   void (*cont) (void *data), void *data);
+void install_packages (GList *packages,
+		       int state, int install_type,
+		       void (*cont) (void *data), void *data);
 
 /* Calls INSTALL_PACKAGES with a single package, APTSTATE_DEFAULT and
    INSTALL_TYPE_STANDARD
 */
-void xxx_install_package (package_info *pi,
-			  void (*cont) (void *data), void *data);
+void install_package (package_info *pi,
+		      void (*cont) (void *data), void *data);
 
 /* PI must remain valid until CONT is called.
  */
-void xxx_uninstall_package (package_info *pi,
-			    void (*cont) (void *data), void *data);
+void uninstall_package (package_info *pi,
+			void (*cont) (void *data), void *data);
 
 /* FILENAME must remain valid until CONT is called.
  */
-void xxx_install_local_deb_file (const char *filename,
-				 void (*cont) (void *data), void *data);
+void install_local_deb_file (const char *filename,
+			     void (*cont) (void *data), void *data);
 
 #endif /* !OPERATIONS_H */
