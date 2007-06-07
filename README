@@ -218,10 +218,10 @@ BUGS
 - Implement close-apps, suggest-backup, and reboot flags
 - "Unable to refresh all catalogues"
 - Explain non-removable system updates in Details dialog.
-- Implement Maemo-Upgrade-Description
 - check autoremoval
 - Implement smart download location chosing.
 - Implement catalogue filtering in instr.cc
+- Be more strict with failed signature verification and expired keys
 
 Cleanup
 -------
