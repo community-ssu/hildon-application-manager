@@ -1327,7 +1327,7 @@ install_package_flow (package_info *pi)
   if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
     {
       pi->ref ();
-      xxx_install_package (pi, install_package_flow_end, pi);
+      install_package (pi, install_package_flow_end, pi);
     }
 }
 
@@ -1381,7 +1381,7 @@ uninstall_package_flow (package_info *pi)
   if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
     {
       pi->ref ();
-      xxx_uninstall_package (pi, uninstall_package_flow_end, pi);
+      uninstall_package (pi, uninstall_package_flow_end, pi);
     }
 }
 
@@ -1888,7 +1888,7 @@ install_named_package (int state, const char *package,
 	  g_free (text);
 	}
       else
-	xxx_install_package (pi, cont, data);
+	install_package (pi, cont, data);
 
       for (node = p->next; node != NULL; node = g_list_next (node))
 	{
@@ -1936,9 +1936,9 @@ install_named_packages (int state, const char **packages, int install_type,
       g_list_free (search_list);
     }
   
-  xxx_install_packages (package_list,
-			state, install_type,
-			cont, data);
+  install_packages (package_list,
+		    state, install_type,
+		    cont, data);
 }
 
 static GtkWidget *details_button;
@@ -2144,8 +2144,8 @@ install_from_local_file (char *filename, void *unused)
 					 install_from_file_flow_end,
 					 filename);
       else
-	xxx_install_local_deb_file (filename,
-				    install_from_file_flow_end, filename);
+	install_local_deb_file (filename,
+				install_from_file_flow_end, filename);
     }
   else
     install_from_file_flow_end (filename);
