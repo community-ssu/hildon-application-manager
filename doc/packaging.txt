@@ -45,31 +45,31 @@ with the Internet tablet OS 2006, there is nothing special about the
 It should now contain all the real dependencies, like
 `${shlibs:Depends}`, etc.
 
-### Sections
+### Segments and Sections
 
-By default, the AM only shows packages in certain sections to the
+By default, the AM only shows packages in certain segments to the
 user.  This has been done to hide the existence of the hundreds of
 system packages that make up the operating system itself.  The AM is,
 at this point, not intended to let the user manage the whole system,
 only a smaller set of third party applications.
 
-The AM only shows packages in the *user* section.  Thus, your
+The AM only shows packages in the *user* segment.  Thus, your
 `Section` field in the control file should be of the form
 
 <pre>
-Section: user/<SUBSECTION>
+Section: user/<SECTION>
 </pre>
 
-where <SUBSECTION> is arbitrary.  <SUBSECTION> should be a nice
-capitalised, English word like "Ringtones".  There is no support for
-localising that word yet, unfortunately.
+where <SECTION> is arbitrary.  <SECTION> should be a nice capitalised,
+English word like "Ringtones".  There is no support for localising
+that word yet, unfortunately.
 
-However, there is also a predefined set of subsections.  If your
-package fits into one of these subsections, you should put it there.
-This will avoid fragmenting the subsection names, and the names of
-these subsections will be correctly localised.
+However, there is also a predefined set of sections.  If your package
+fits into one of these sections, you should put it there.  This will
+avoid fragmenting the section names, and the names of these sections
+will be correctly localised.
 
-The list of predefined subsections and their English names is:
+The list of predefined sections and their English names is:
 
 <pre>
     user/accessories    Accessories		   
@@ -84,7 +84,7 @@ The list of predefined subsections and their English names is:
     user/tools          Tools 		   
 </pre>
 
-Thus, if you want to put your package into the Office subsection,
+Thus, if you want to put your package into the Office section,
 include the field
 
 <pre>
