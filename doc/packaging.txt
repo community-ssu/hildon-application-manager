@@ -57,10 +57,10 @@ The AM only shows packages in the *user* segment.  Thus, your
 `Section` field in the control file should be of the form
 
 <pre>
-Section: user/<SECTION>
+Section: user/SECTION
 </pre>
 
-where <SECTION> is arbitrary.  <SECTION> should be a nice capitalised,
+where SECTION is arbitrary.  SECTION should be a nice capitalised,
 English word like "Ringtones".  There is no support for localising
 that word yet, unfortunately.
 
@@ -98,14 +98,24 @@ in your control information.  If you want to put it into "Ringtones"
 Section: user/Ringtones
 </pre>
 
-### Pretty names
+### Additional control fields
+
+The AM can make use of some additional fields in the control fields of
+a package.  These fields generally start with a `Maemo-` prefix.
+
+The way to get these fields into your .deb files is to include them
+with a `XB-` prefix in your debian/control file, see the [Debian
+Policy Manual, section
+5.7](http://www.debian.org/doc/debian-policy/ch-controlfields.html#s5.7).
+
+#### Pretty names
 
 A package can specify a _pretty name_ for itself.  This name is
 displayed in the UI instead of the real package name.
 
 The pretty name is specified with the `Maemo-Display-Name` field.
 
-### Upgrade descriptions
+#### Upgrade descriptions
 
 A package can specify a separate description to be used when it is
 displayed in the "Check for updates" view.  This description should
@@ -115,7 +125,7 @@ The upgrade description is specified with the
 `Maemo-Upgrade-Description` field.  It is formatted like the normal
 `Description` field.
 
-### Localized names and descriptions
+#### Localized names and descriptions
 
 The `Maemo-Display-Name`, `Description`, and
 `Maemo-Upgrade-Description` fields can be provided in more than one
@@ -141,7 +151,7 @@ translating package descriptions and names as well, but for now,
 putting everything into the metadata directly is sufficiently easier
 to do and we shouldn't run into scalability problems just yet.
 
-### Icons
+#### Icons
 
 A package can have an icon that is displayed next to its name by the
 AM.  Icons are included in the control information of a package as a
@@ -174,12 +184,7 @@ Maemo-Icon-26:
  pJ/JICzLKiBLySTYVArpdFrp3DuMhRZVqfvnJ+wPAQYA1hdr5EDqltYAAAAASUVORK5CYII=
 </pre>
 
-The way to get these fields into your .deb files is to include them
-with a "XB-" prefix in your debian/control file, see the [Debian
-Policy Manual, section
-5.7](http://www.debian.org/doc/debian-policy/ch-controlfields.html#s5.7).
-
-### Flags
+#### Flags
 
 A package can specify certain flags, using the `Maemo-Flags` field.
 Most of these flags are intended for system upgrades.
@@ -213,7 +218,7 @@ one or more of the following words:
 A operation usually involves more than one package and the flags of
 all packages are merged.
 
-### Required free space for installing
+#### Required free space for installing
 
 The AM does check if there is enough space before downloading the
 packages files.
