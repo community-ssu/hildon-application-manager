@@ -222,6 +222,7 @@ BUGS
 - Implement smart download location chosing.
 - Implement catalogue filtering in instr.cc
 - Be more strict with failed signature verification and expired keys
+- Put in hack for backup/restore limitation
 
 Cleanup
 -------
