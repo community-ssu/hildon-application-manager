@@ -1,3 +1,8 @@
+2007-06-12  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (cmd_get_package_list): Filter out packages
+	with the system-update flag that are available but not installed.
+
 2007-06-07  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.13

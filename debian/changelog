@@ -1,3 +1,9 @@
+hildon-application-manager (1:1.9.14~unreleased) unstable; urgency=low
+
+  * Only show system-update packages when they are already installed.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 12 Jun 2007 18:43:52 +0300
+
 hildon-application-manager (1:1.9.13) unstable; urgency=low
 
   * Implemented interaction with update notifier, localizable package
