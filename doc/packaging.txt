@@ -212,8 +212,10 @@ one or more of the following words:
 
   Specifying this flag will tell the AM that this is a meta package
   that controls operating system updates.  The AM will adjust some
-  parts of its UI such as the text in the confirmation dialog.  It
-  will also not allow the removal of this package.
+  parts of its UI such as the text in the confirmation dialog.
+
+  The AM will also allow the removal of this package and will not
+  offer the installation of this package, only updated to it.
 
 A operation usually involves more than one package and the flags of
 all packages are merged.
