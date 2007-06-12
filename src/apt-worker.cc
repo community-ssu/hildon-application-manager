@@ -2093,6 +2093,16 @@ cmd_get_package_list ()
       if (installed.end () && candidate.end ())
 	continue;
 
+      // skip system updates that are not installed
+      //
+      if (installed.end () && !candidate.end ())
+	{
+	  package_record rec (candidate);
+	  int flags = get_flags (rec);
+	  if (flags & pkgflag_system_update)
+	    continue;
+	}
+
       // skip packages that don't match the pattern if requested
       //
       if (pattern
