@@ -1,3 +1,9 @@
+2007-06-15  Xan Lopez  <xan.lopez@nokia.com>
+
+	* src/main.cc (view_clicked): this returns a boolean, not void.
+	This might be triggering a bug in old versions of the trail if
+	void return value is taken as FALSE.
+
 2007-06-12  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (cmd_get_package_list): Filter out packages

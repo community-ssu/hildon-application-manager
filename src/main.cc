@@ -140,10 +140,12 @@ show_view_callback (GtkWidget *btn, gpointer data)
   show_view (v);
 }
 
-static void
+static gboolean
 view_clicked (HildonBreadCrumbTrail *bct, gpointer node, gpointer user_data)
 {
   show_view ((view *)((GList*)node)->data);
+
+  return TRUE;
 }
 
 GtkWidget *make_main_view (view *v);
