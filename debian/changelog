@@ -1,6 +1,8 @@
-hildon-application-manager (1:1.9.14~unreleased) unstable; urgency=low
+hildon-application-manager (1:1.9.14) unstable; urgency=low
 
   * Only show system-update packages when they are already installed.
+  * Changed dependencies on osso-application-installer-l10n-* to
+    hildon-application-manager-l10n-*.  Fixes: NB#60912.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 12 Jun 2007 18:43:52 +0300
 
