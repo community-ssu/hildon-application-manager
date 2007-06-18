@@ -7,7 +7,7 @@ Standards-Version: 3.6.0
 
 Package: hildon-application-manager
 Architecture: any
-Depends: ${shlibs:Depends}, maemo-launcher, osso-application-installer-l10n-mr0 | osso-application-installer-l10n-mr
+Depends: ${shlibs:Depends}, maemo-launcher, hildon-application-manager-l10n-mr0 | hildon-application-manager-l10n-mr
 Conflicts: osso-application-installer
 Replaces: osso-application-installer
 Provides: maemo-installer-utils
