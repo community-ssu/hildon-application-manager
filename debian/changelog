@@ -1,8 +1,21 @@
+hildon-application-manager (1:1.9.16~unreleased) unstable; urgency=low
+
+  * Unreleased.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon,  2 Jul 2007 18:23:25 +0300
+
+hildon-application-manager (1:1.9.15) unstable; urgency=low
+
+  * Replace textdomain codeset from osso-application-installer to
+    hildon-application-manager
+
+ -- Natalia Dobrovolskaya <natalia.dobrovolskaya@nokia.com>  Thu, 21 Jun 2007 11:33:00 +0300
+
 hildon-application-manager (1:1.9.14) unstable; urgency=low
 
   * Only show system-update packages when they are already installed.
   * Changed dependencies on osso-application-installer-l10n-* to
-    hildon-application-manager-l10n-*.  Fixes: NB#60899.
+    hildon-application-manager-l10n-*.  Fixes: NB#60889.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 12 Jun 2007 18:43:52 +0300
 
