@@ -2454,8 +2454,8 @@ main (int argc, char **argv)
   char *apt_worker_prog = "/usr/libexec/apt-worker";
 
   setlocale (LC_ALL, "");
-  bind_textdomain_codeset ("osso-application-installer", "UTF-8");
-  textdomain ("osso-application-installer");
+  bind_textdomain_codeset ("hildon-application-manager", "UTF-8");
+  textdomain ("hildon-application-manager");
 
   load_settings ();
 
