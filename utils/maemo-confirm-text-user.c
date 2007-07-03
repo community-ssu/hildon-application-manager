@@ -182,7 +182,7 @@ void
 dialog_realized (GtkWidget *widget, gpointer data)
 {
   GdkWindow *win = widget->window;
-  Window ai_win = find_application_installer_window ();
+  Window ai_win = find_application_manager_window ();
   
   if (ai_win)
     XSetTransientForHint (GDK_WINDOW_XDISPLAY (win), GDK_WINDOW_XID (win),
