@@ -1,5 +1,11 @@
 2007-07-05  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker.cc (update_package_cache): Call need_cache_init
+	instead of cache_init when some repositories had errors.
+
+	* src/main.cc (refresh_package_cache_with_cont): Get the package
+	list concurrently with showing the error report.
+
 	Report details of catalogues that failed to refresh.  (Preliminary
 	version with thoughtless UI.)
 	
