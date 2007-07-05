@@ -1060,3 +1060,28 @@ add_catalogues (xexp *catalogues,
 
   get_catalogues (add_catalogues_cont_1, c);
 }
+
+GString *
+render_catalogue_report (xexp *catalogue_report)
+{
+  if (catalogue_report == NULL)
+    return g_string_new (_("ai_ni_operation_failed"));
+
+  GString *report = g_string_new ("");
+
+  for (xexp *cat = xexp_first (catalogue_report); cat; cat = xexp_rest (cat))
+    {
+      xexp *errors = xexp_aref (cat, "errors");
+      if (errors == NULL || xexp_first (errors) == NULL)
+	continue;
+
+      g_string_append_printf (report, "%s:\n", catalogue_name (cat));
+      for (xexp *err = xexp_first (errors); err; err = xexp_rest (err))
+	g_string_append_printf (report, "  %s\n   %s\n",
+				xexp_aref_text (err, "uri"),
+				xexp_aref_text (err, "msg"));
+    }
+
+  return report;
+}
+

@@ -79,4 +79,6 @@ void add_catalogues (xexp *catalogues, bool ask, bool update,
 		     void (*cont) (bool res, void *data),
 		     void *data);
 
+GString *render_catalogue_report (xexp *catalogue_report);
+
 #endif /* !REPO_H */
