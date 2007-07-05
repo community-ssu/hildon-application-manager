@@ -329,6 +329,7 @@ annoy_user_with_cont (const gchar *text, void (*cont) (void *data), void *data)
 struct auwd_closure {
   package_info *pi;
   detail_kind kind;
+  void (*details) (void *data);
   void (*cont) (void *data);
   void *data;
 };
@@ -341,17 +342,20 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
 
   if (response == 1)
     {
-      show_package_details (c->pi, c->kind, true, APTSTATE_DEFAULT);
+      if (c->pi)
+	show_package_details (c->pi, c->kind, true, APTSTATE_DEFAULT);
+      else if (c->details)
+	c->details (c->data);
     }
   else
     {
       pop_dialog_parent (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
       currently_annoying_user = false;
-      c->pi->unref ();
-      if (c->cont) {
+      if (c->pi)
+	c->pi->unref ();
+      if (c->cont)
 	c->cont(c->data);
-      }
       delete c;
     }
 }
@@ -362,11 +366,12 @@ void annoy_user_with_details (const gchar *text,
   annoy_user_with_details_with_cont (text, pi, kind, NULL, NULL);
 }
 
-void
-annoy_user_with_details_with_cont (const gchar *text,
-				   package_info *pi, detail_kind kind,
-				   void (*cont) (void *data),
-				   void *data)
+static void
+annoy_user_with_details_1 (const gchar *text,
+			   void (*details) (void *data),
+			   package_info *pi, detail_kind kind,
+			   void (*cont) (void *data),
+			   void *data)
 {
   if (currently_annoying_user)
     return;
@@ -393,15 +398,43 @@ annoy_user_with_details_with_cont (const gchar *text,
 			   GTK_RESPONSE_CANCEL);
   }
 
-  pi->ref ();
+  if (pi)
+    pi->ref ();
   c->pi = pi;
   c->kind = kind;
+  c->details = details;
   c->cont = cont;
   c->data = data;
   g_signal_connect (dialog, "response", 
 		    G_CALLBACK (annoy_user_with_details_response), c);
   gtk_widget_show_all (dialog);
   currently_annoying_user = true;
+}
+
+void
+annoy_user_with_details_with_cont (const gchar *text,
+				   package_info *pi, detail_kind kind,
+				   void (*cont) (void *data),
+				   void *data)
+{
+  annoy_user_with_details_1 (text,
+			     NULL,
+			     pi, kind,
+			     cont,
+			     data);
+}
+
+void
+annoy_user_with_arbitrary_details (const gchar *text,
+				   void (*details) (void *data),
+				   void (*cont) (void *data),
+				   void *data)
+{
+  annoy_user_with_details_1 (text,
+			     details,
+			     NULL, no_details,
+			     cont,
+			     data);
 }
 
 struct auwe_closure {

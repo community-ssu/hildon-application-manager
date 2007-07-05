@@ -143,6 +143,11 @@ void annoy_user_with_details (const gchar *text,
 void annoy_user_with_details_with_cont (const gchar *text,
 					package_info *pi, detail_kind kind,
 					void (*cont) (void *data), void *data);
+void annoy_user_with_arbitrary_details (const gchar *text,
+					void (*details) (void *data),
+					void (*cont) (void *data),
+					void *data);
+
 void annoy_user_with_log (const gchar *text);
 void annoy_user_with_errno (int err, const gchar *detail,
 			    void (*cont) (void *), void *data);
