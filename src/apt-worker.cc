@@ -2873,13 +2873,22 @@ update_package_cache (xexp *catalogues_for_report)
       Fetcher.Clean (_config->FindDir("Dir::State::lists"));
       Fetcher.Clean (_config->FindDir("Dir::State::lists") + "partial/");
     }
-  
-  cache_init ();
+
+  /* When errors have been encountered, we init the cache in the
+     background since it looks funny to do it visible and only
+     afterwards display errors that are known before hand.
+  */
 
   if (some_failed)
-    return rescode_partial_success;
+    {
+      need_cache_init ();
+      return rescode_partial_success;
+    }
   else
-    return rescode_success;
+    {
+      cache_init ();
+      return rescode_success;
+    }
 }
 
 void
