@@ -1,3 +1,25 @@
+2007-07-05  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Report details of catalogues that failed to refresh.  (Preliminary
+	version with thoughtless UI.)
+	
+	* src/apt-worker.cc (find_catalogue_for_item_desc): New.
+	(update_package_cache, cmd_update_package_cache): Add error
+	messages to the catalogue xexpression and return that augmented
+	xexp in the response.
+	* src/main.cc (refresh_package_cache,
+	refresh_package_cache_with_cont): Restructured cps for better
+	documentation.  Expect and show catalogue xeps in response from
+	apt_worker_update_cache.
+		
+	* src/apt-worker-proto.h (apt_proto_result_code): Added
+	rescode_partial_success and rescode_cancelled.
+
+	* src/repo.h, src/repo.cc (render_catalogue_report): New.
+
+	* src/util.h, src/utils.cc (annoy_user_with_arbitrary_details):
+	New.
+
 2007-07-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* utils/maemo-confirm-text-user.c (dialog_realized): Call
