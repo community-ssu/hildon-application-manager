@@ -1146,6 +1146,9 @@ static void rpc_show_report (void *data);
 static void rpc_show_detailed_report (void *data);
 static void rpc_detailed_report_response (GtkDialog *dialog,
 					  gint response, gpointer clos);
+static void rpc_maybe_get_package_list (void *data);
+static void rpc_report_done (void *data);
+static void rpc_get_list_done (void *data);
 static void rpc_end (void *data);
 
 static bool refreshed_this_session = false;
@@ -1155,6 +1158,8 @@ struct rpc_clos {
 
   xexp *catalogue_report;
   apt_proto_result_code result_code;
+
+  bool report_done, get_list_done;
 
   void (*cont) (bool res, void *data);
   void *data;
@@ -1172,6 +1177,8 @@ refresh_package_cache_with_cont (int state,
   c->cont = cont;
   c->data = data;
   c->state = state;
+
+  c->report_done = c->get_list_done = false;
 
   c->catalogue_report = NULL;
   c->result_code = rescode_failure;
@@ -1196,7 +1203,11 @@ rpc_do_it (bool res, void *data)
   if (res)
     apt_worker_update_cache (c->state, rpc_update_cache_reply, c);
   else
-    rpc_end (c);
+    {
+      c->report_done = true;
+      c->get_list_done = true;
+      rpc_end (c);
+    }
 }
 
 static void
@@ -1242,15 +1253,10 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
       c->result_code = apt_proto_result_code (dec->decode_int ());
     }
 
-  if (c->result_code == rescode_success
-      || c->result_code == rescode_partial_success)
-    {
-      last_update = time (NULL);
-      save_settings ();
-      get_package_list_with_cont (c->state, rpc_show_report, c);
-    }
-  else
-    rpc_show_report (c);
+  /* Fork...
+   */
+  rpc_maybe_get_package_list (c);
+  rpc_show_report (c);
 }
 
 static void
@@ -1262,7 +1268,8 @@ rpc_show_report (void *data)
     {
       /* User has cancelled.  We don't provide any more details.
        */
-      annoy_user_with_cont (_("ai_ni_update_list_cancelled"), rpc_end, c);
+      annoy_user_with_cont (_("ai_ni_update_list_cancelled"),
+			    rpc_report_done, c);
     }
   else if (c->result_code == rescode_failure
 	   && c->catalogue_report == NULL)
@@ -1270,7 +1277,7 @@ rpc_show_report (void *data)
       /* Operation didn't even start and an error message has been
 	 displayed.
       */
-      rpc_end (c);
+      rpc_report_done (c);
     }
   else if (c->result_code == rescode_failure
 	   && c->catalogue_report != NULL)
@@ -1279,22 +1286,22 @@ rpc_show_report (void *data)
 	 reason.  No error message has yet been displayed.
       */
       annoy_user_with_cont (_("Unable to refresh list."),
-			    rpc_end, c);
+			    rpc_report_done, c);
     }
   else if (c->result_code == rescode_partial_success)
     {
       /* Operation was started but some (or all) catalogues had
 	 problems.
       */
-      annoy_user_with_arbitrary_details (_("Unable to refresh list."),
+      annoy_user_with_arbitrary_details (_("Unable to refresh some catalogues."),
 					 rpc_show_detailed_report,
-					 rpc_end, c);
+					 rpc_report_done, c);
     }
   else
     {
       /* Complete success, no report is shown.
        */
-      rpc_end (c);
+      rpc_report_done (c);
     }
 }
 
@@ -1334,8 +1341,6 @@ rpc_show_detailed_report (void *data)
 static void
 rpc_detailed_report_response (GtkDialog *dialog, gint response, gpointer clos)
 {
-  GtkWidget *text_view = (GtkWidget *)clos;
-
   if (response == GTK_RESPONSE_CLOSE)
     {
       pop_dialog_parent (GTK_WIDGET (dialog));
@@ -1343,18 +1348,57 @@ rpc_detailed_report_response (GtkDialog *dialog, gint response, gpointer clos)
     }
 }
   
+
+static void
+rpc_maybe_get_package_list (void *data)
+{
+  rpc_clos *c = (rpc_clos *) data;
+
+  if (c->result_code == rescode_success
+      || c->result_code == rescode_partial_success)
+    {
+      last_update = time (NULL);
+      save_settings ();
+      get_package_list_with_cont (c->state, rpc_get_list_done, c);
+    }
+  else
+    rpc_get_list_done (c);
+}
+
+static void
+rpc_report_done (void *data)
+{
+  rpc_clos *c = (rpc_clos *) data;
+
+  c->report_done = true;
+  rpc_end (data);
+}
+
+static void
+rpc_get_list_done (void *data)
+{
+  rpc_clos *c = (rpc_clos *) data;
+
+  c->get_list_done = true;
+  rpc_end (data);
+}
+
 static void
 rpc_end (void *data)
 {
   rpc_clos *c = (rpc_clos *) data;
 
-  xexp_free (c->catalogue_report);
-
-  if (c->cont)
-    c->cont ((c->result_code == rescode_success
-	      || c->result_code == rescode_partial_success),
-	     c->data);
-  delete c;
+  if (c->report_done
+      && c->get_list_done)
+    {
+      xexp_free (c->catalogue_report);
+      
+      if (c->cont)
+	c->cont ((c->result_code == rescode_success
+		  || c->result_code == rescode_partial_success),
+		 c->data);
+      delete c;
+    }
 }
 
 static int
