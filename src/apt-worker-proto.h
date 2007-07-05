@@ -90,6 +90,8 @@ struct apt_response_header {
 
 enum apt_proto_result_code {
   rescode_success,              // (success)
+  rescode_partial_success,
+  rescode_cancelled,
   rescode_failure,              // Operation failed
   rescode_download_failed,      // Download failed
   rescode_package_corrupted,    // Package corrupted
@@ -215,9 +217,12 @@ enum apt_proto_operation {
 //
 // Response contains:
 //
-// - result_code (int)
+// - catalogue_report (xexp).  The current catalogue configuration with 
+//                             error messages attaches.
+// - result_code (int).      
 //
-// Error messages appear on stdout/stderr of the apt-worker process.
+// Error messages appear in the catalogue_report as well as on
+// stdout/stderr of the apt-worker process.
 
 
 // GET_SOURCES_LIST - read the main sources.list files, unparsed.
