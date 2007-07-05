@@ -130,7 +130,8 @@ using namespace std;
 #define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
 #define TEMP_APT_STATE "/var/lib/hildon-application-manager/temp-state"
 
-/* Temporary repositories temporary sources.list */
+/* Temporary catalogues and temporary sources.list */
+#define TEMP_CATALOGUE_CONF "/var/lib/hildon-application-manager/catalogues.temp"
 #define TEMP_APT_SOURCE_LIST "/var/lib/hildon-application-manager/sources.list.temp"
 
 /* The file where we store our backup data.
@@ -2686,12 +2687,119 @@ cmd_get_package_details ()
 }
 
 /* APTCMD_UPDATE_PACKAGE_CACHE
-
-   This is copied straight from "apt-get update".
 */
 
+static xexp *
+find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
+{
+  /* This is a hack to associate error messages produced during
+     downloading with a specific catalogue so that a good error report
+     can be shown to the user.
+
+     DESC_URI is matched against all the catalogues and we return the
+     first hit.
+
+     DESC_URI matches a catalogue if it is of the form
+
+        URI/dists/DIST/<no-more-slashes>
+
+     or
+
+        URI/dists/DIST/COMP/<rest-with-slashes>
+
+     or
+
+        URI/DIST<rest-with-slashes>
+
+     where URI and DIST are the respective elements of the catalogue,
+     and COMP is one of the components of the catalogue.
+
+     XXX - This is not the right thing to do, of course.  Apt-pkg
+           should offer a way to easily associate user level objects
+           with acquire items.
+  */
+
+  if (catalogues == NULL)
+    return NULL;
+
+  const char *match_uri = desc_uri.c_str ();
+
+  fprintf (stderr, "MATCHING %s\n", match_uri);
+
+  for (xexp *cat = xexp_first (catalogues); cat; cat = xexp_rest (cat))
+    {
+      char *uri = g_strdup (xexp_aref_text (cat, "uri"));
+      const char *dist = xexp_aref_text (cat, "dist");
+      gchar **comps = g_strsplit_set (xexp_aref_text (cat, "components"),
+				      " \t\n", 0);
+      char *pfx = NULL;
+
+      if (dist == NULL)
+	dist = DEFAULT_DIST;
+
+      while (uri[0] && uri[strlen(uri)-1] == '/')
+	uri[strlen(uri)-1] = '\0';
+
+      fprintf (stderr, "AGAINST %s %s\n", uri, dist);
+
+      if (dist[0] && dist[strlen(dist)-1] == '/')
+	{
+	  /* A simple repository without components
+	   */
+	  
+	  pfx = g_strconcat (uri, "/", dist, NULL);
+	  if (g_str_has_prefix (match_uri, pfx))
+	    goto found_it;
+	}
+      else
+	{
+	  /* A repository with components
+	   */
+	  
+	  pfx = g_strconcat (uri, "/dists/", dist, "/", NULL);
+	  if (!g_str_has_prefix (match_uri, pfx))
+	    goto try_next;
+	  
+	  const char *rest = match_uri + strlen (pfx);
+
+	  if (!strchr (rest, '/'))
+	    goto found_it;
+
+	  for (int i = 0; comps[i]; i++)
+	    {
+	      gchar *comp = comps[i];
+
+	      if (comp[0] == '\0')
+		continue;
+
+	      fprintf (stderr, "COMPS %s\n", comp);
+
+	      if (g_str_has_prefix (rest, comp)
+		  && rest[strlen(comp)] == '/')
+		goto found_it;
+	    }
+	}
+
+    try_next:
+      g_strfreev (comps);
+      g_free (pfx);
+      g_free (uri);
+      continue;
+
+    found_it:
+      g_strfreev (comps);
+      g_free (pfx);
+      g_free (uri);
+      return cat;
+    }
+
+  fprintf (stderr, "NO MATCH\n");
+
+  return NULL;
+}
+
 int
-update_package_cache ()
+update_package_cache (xexp *catalogues_for_report)
 {
   // Get the source list
   pkgSourceList List;
@@ -2722,20 +2830,43 @@ update_package_cache ()
   if (Fetcher.Run() == pkgAcquire::Failed)
     return rescode_failure;
 
-  bool Failed = false;
+  bool some_failed = false;
   for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
        I != Fetcher.ItemsEnd(); I++)
     {
       if ((*I)->Status == pkgAcquire::Item::StatDone)
-	continue;
+	{
+	  fprintf (stderr, "SUCCESS: %s\n", (*I)->DescURI().c_str());
+	  continue;
+	}
       
       (*I)->Finished();
       
+      fprintf (stderr, "FAILED: %s\n", (*I)->DescURI().c_str());
+
+      xexp *cat = find_catalogue_for_item_desc (catalogues_for_report,
+						(*I)->DescURI());
+      if (cat)
+	{
+	  xexp *errors = xexp_aref (cat, "errors");
+	  if (errors == NULL)
+	    {
+	      errors = xexp_list_new ("errors");
+	      xexp_append_1 (cat, errors);
+	    }
+
+	  xexp *error = xexp_list_new ("error");
+	  xexp_aset_text (error, "uri", (*I)->DescURI().c_str());
+	  xexp_aset_text (error, "msg", (*I)->ErrorText.c_str());
+
+	  xexp_append_1 (errors, error);
+	}
+
       _error->Error ("Failed to fetch %s  %s", (*I)->DescURI().c_str(),
 		     (*I)->ErrorText.c_str());
-      Failed = true;
+      some_failed = true;
     }
-  
+
   // Clean out any old list files
   if (_config->FindB("APT::Get::List-Cleanup",true) == true)
     {
@@ -2745,7 +2876,10 @@ update_package_cache ()
   
   cache_init ();
 
-  return Failed? rescode_failure : rescode_success;
+  if (some_failed)
+    return rescode_partial_success;
+  else
+    return rescode_success;
 }
 
 void
@@ -2766,8 +2900,15 @@ cmd_update_package_cache ()
       DBG ("https_proxy: %s", https_proxy);
     }
 
-  int result_code = update_package_cache ();
+  xexp *catalogues;
+  if (AptWorkerState::IsTemp ())
+    catalogues = xexp_read_file (TEMP_CATALOGUE_CONF);
+  else
+    catalogues = xexp_read_file (CATALOGUE_CONF);
 
+  int result_code = update_package_cache (catalogues);
+
+  response.encode_xexp (catalogues);
   response.encode_int (result_code);
 }
 
@@ -2896,7 +3037,9 @@ cmd_set_catalogues ()
 
   if (AptWorkerState::IsTemp ())
     {
-      success = write_sources_list (TEMP_APT_SOURCE_LIST, catalogues);
+      success = 
+	(xexp_write_file (TEMP_CATALOGUE_CONF, catalogues)
+	 && write_sources_list (TEMP_APT_SOURCE_LIST, catalogues));
     }
   else
     {

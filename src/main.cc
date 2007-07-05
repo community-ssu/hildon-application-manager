@@ -1136,38 +1136,73 @@ get_intermediate_package_info (package_info *pi,
     get_next_package_info (NULL, NULL, false);
 }
 
+/** Refreshing the package cache
+ */
+
+static void rpc_do_it (bool res, void *data);
+static void rpc_update_cache_reply (int cmd, apt_proto_decoder *dec,
+				    void *data);
+static void rpc_show_report (void *data);
+static void rpc_show_detailed_report (void *data);
+static void rpc_detailed_report_response (GtkDialog *dialog,
+					  gint response, gpointer clos);
+static void rpc_end (void *data);
+
+static bool refreshed_this_session = false;
+
 struct rpc_clos {
-  bool res;
-  const char *message;
   int state;
+
+  xexp *catalogue_report;
+  apt_proto_result_code result_code;
+
   void (*cont) (bool res, void *data);
   void *data;
 };
 
-static void
-refresh_package_cache_cont3 (void *data)
+void
+refresh_package_cache_with_cont (int state,
+				 bool ask,
+				 void (*cont) (bool res, void *data), 
+				 void *data)
 {
-  rpc_clos *c = (rpc_clos *) data;
-  if (c->cont)
-    c->cont (c->res, c->data);
-  delete c;
-}
+  refreshed_this_session = true;
 
-static void
-refresh_package_cache_cont2 (void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-  if (!c->res && c->message)
-    annoy_user_with_cont (c->message, refresh_package_cache_cont3, c);
+  rpc_clos *c = new rpc_clos;
+  c->cont = cont;
+  c->data = data;
+  c->state = state;
+
+  c->catalogue_report = NULL;
+  c->result_code = rescode_failure;
+
+  if (ask)
+    ask_yes_no (_("ai_nc_confirm_update"), rpc_do_it, c);
   else
-    refresh_package_cache_cont3 (c);
+    rpc_do_it (true, c);
+}
+
+void
+refresh_package_cache (int state, bool ask)
+{
+  refresh_package_cache_with_cont (state, ask, NULL, NULL);
 }
 
 static void
-refresh_package_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
+rpc_do_it (bool res, void *data)
+{
+  rpc_clos *c = (rpc_clos *)data;
+
+  if (res)
+    apt_worker_update_cache (c->state, rpc_update_cache_reply, c);
+  else
+    rpc_end (c);
+}
+
+static void
+rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   rpc_clos *c = (rpc_clos *) data;
-  bool success = true;
 
   /* The updating might have been 'cancelled' or it might have failed,
      and we want to distinguish between those two situations in the
@@ -1188,90 +1223,138 @@ refresh_package_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
       /* Network connection failed or apt-worker crashed.  An error
 	 message has already been displayed.
       */
-      c->message = NULL;
-      success = false;
+      c->catalogue_report = NULL;
+      c->result_code = rescode_failure;
     }
   else if (progress_was_cancelled ())
     {
       /* The user hit cancel.  We don't care whether the operation was
 	 successful or not.
       */
-      c->message = _("ai_ni_update_list_cancelled");
-      success = false;
+      c->catalogue_report = NULL;
+      c->result_code = rescode_cancelled;
     }
   else
     {
-      int result_code = dec->decode_int ();
-
-      if (result_code == rescode_download_failed)
-	{
-	  c->message = _("ai_ni_error_download_failed");
-	  success = false;
-	}
-      else if (result_code != rescode_success)
-	{
-	  c->message = _("ai_ni_update_list_not_successful");
-	  success = false;
-	}
+      /* Something subtle might have happened.  Get the full report.
+       */
+      c->catalogue_report = dec->decode_xexp ();
+      c->result_code = apt_proto_result_code (dec->decode_int ());
     }
 
-  c->res = success;
-
-  if (success)
+  if (c->result_code == rescode_success
+      || c->result_code == rescode_partial_success)
     {
       last_update = time (NULL);
       save_settings ();
+      get_package_list_with_cont (c->state, rpc_show_report, c);
     }
-
-  // We get a new list of available packages even when the refresh
-  // failed because it might have partially succeeded and changed
-  // anyway.  So we need to resynchronize.
-  
-  get_package_list_with_cont (c->state, refresh_package_cache_cont2, c);
+  else
+    rpc_show_report (c);
 }
-
-static bool refreshed_this_session = false;
 
 static void
-refresh_package_cache_cont (bool res, void *data)
+rpc_show_report (void *data)
 {
-  rpc_clos *c = (rpc_clos *)data;
+  rpc_clos *c = (rpc_clos *) data;
 
-  if (res)
+  if (c->result_code == rescode_cancelled)
     {
-      apt_worker_update_cache (c->state, refresh_package_cache_reply, c);
+      /* User has cancelled.  We don't provide any more details.
+       */
+      annoy_user_with_cont (_("ai_ni_update_list_cancelled"), rpc_end, c);
+    }
+  else if (c->result_code == rescode_failure
+	   && c->catalogue_report == NULL)
+    {
+      /* Operation didn't even start and an error message has been
+	 displayed.
+      */
+      rpc_end (c);
+    }
+  else if (c->result_code == rescode_failure
+	   && c->catalogue_report != NULL)
+    {
+      /* Operation was started but failed because of some global
+	 reason.  No error message has yet been displayed.
+      */
+      annoy_user_with_cont (_("Unable to refresh list."),
+			    rpc_end, c);
+    }
+  else if (c->result_code == rescode_partial_success)
+    {
+      /* Operation was started but some (or all) catalogues had
+	 problems.
+      */
+      annoy_user_with_arbitrary_details (_("Unable to refresh list."),
+					 rpc_show_detailed_report,
+					 rpc_end, c);
     }
   else
     {
-      if (c->cont)
-	c->cont (false, c->data);
-      delete c;
+      /* Complete success, no report is shown.
+       */
+      rpc_end (c);
     }
 }
 
-void
-refresh_package_cache_with_cont (int state,
-				 bool ask,
-				 void (*cont) (bool res, void *data), 
-				 void *data)
+static void
+rpc_show_detailed_report (void *data)
 {
-  refreshed_this_session = true;
+  rpc_clos *c = (rpc_clos *) data;
 
-  rpc_clos *c = new rpc_clos;
-  c->cont = cont;
-  c->data = data;
-  c->state = state;
+  GString *report = render_catalogue_report (c->catalogue_report);
 
-  if (ask)
-    ask_yes_no (_("ai_nc_confirm_update"), refresh_package_cache_cont, c);
-  else
-    refresh_package_cache_cont (true, c);
+  GtkWidget *dialog, *text_view;
+
+  dialog = gtk_dialog_new_with_buttons (_("Catalogue details"),
+					get_dialog_parent (),
+					GTK_DIALOG_MODAL,
+					_("ai_bd_log_close"),
+					GTK_RESPONSE_CLOSE,
+					NULL);
+  push_dialog_parent (dialog);
+  respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
+
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+
+  text_view = make_small_text_view (report->str);
+  
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), text_view);
+
+  gtk_widget_set_usize (dialog, 600,300);
+  gtk_widget_show_all (dialog);
+
+  g_signal_connect (dialog, "response",
+		    G_CALLBACK (rpc_detailed_report_response), text_view);
+
+  g_string_free (report, 1);
 }
 
-void
-refresh_package_cache (int state, bool ask)
+static void
+rpc_detailed_report_response (GtkDialog *dialog, gint response, gpointer clos)
 {
-  refresh_package_cache_with_cont (state, ask, NULL, NULL);
+  GtkWidget *text_view = (GtkWidget *)clos;
+
+  if (response == GTK_RESPONSE_CLOSE)
+    {
+      pop_dialog_parent (GTK_WIDGET (dialog));
+      gtk_widget_destroy (GTK_WIDGET (dialog));
+    }
+}
+  
+static void
+rpc_end (void *data)
+{
+  rpc_clos *c = (rpc_clos *) data;
+
+  xexp_free (c->catalogue_report);
+
+  if (c->cont)
+    c->cont ((c->result_code == rescode_success
+	      || c->result_code == rescode_partial_success),
+	     c->data);
+  delete c;
 }
 
 static int
