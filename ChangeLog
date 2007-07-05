@@ -1,5 +1,10 @@
 2007-07-05  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.cc (global_target_path): New.
+	(global_selection_changed): Keep it up-to-date.
+	(make_global_package_list): Put focus on global_target_path
+	instead of on the root item  (M1148).
+
 	* src/apt-worker.cc (update_package_cache): Call need_cache_init
 	instead of cache_init when some repositories had errors.
 
