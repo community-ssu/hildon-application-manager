@@ -1136,6 +1136,63 @@ get_intermediate_package_info (package_info *pi,
     get_next_package_info (NULL, NULL, false);
 }
 
+struct gipl_clos {
+  GList *packages;
+  bool only_installable_info;
+  int state;
+  
+  void (*cont) (void *data);
+  void *data;
+};
+
+static void gipl_loop (void *data);
+static void gipl_next (package_info *unused_1, void *data, bool unused_2);
+
+void
+get_intermediate_package_list_info (GList *packages,
+				    bool only_installable_info,
+				    void (*cont) (void *data),
+				    void *data,
+				    int state)
+{
+  gipl_clos *c = new gipl_clos;
+
+  c->packages = packages;
+  c->only_installable_info = only_installable_info;
+  c->state = state;
+  c->cont = cont;
+  c->data = data;
+  
+  gipl_loop (c);
+}
+
+
+static void
+gipl_loop (void *data)
+{
+  gipl_clos *c = (gipl_clos *)data;
+
+  if (c->packages == NULL)
+    {
+      c->cont (c->data);
+      delete c;
+    }
+  else
+    get_intermediate_package_info ((package_info *)(c->packages->data),
+				   c->only_installable_info,
+				   gipl_next, c,
+				   c->state);
+}
+
+static void
+gipl_next (package_info *unused_1, void *data, bool unused_2)
+{
+  gipl_clos *c = (gipl_clos *)data;
+
+  c->packages = c->packages->next;
+  gipl_loop (c);
+}
+
 /** Refreshing the package cache
  */
 
@@ -1201,7 +1258,15 @@ rpc_do_it (bool res, void *data)
   rpc_clos *c = (rpc_clos *)data;
 
   if (res)
-    apt_worker_update_cache (c->state, rpc_update_cache_reply, c);
+    {
+      set_entertainment_fun (NULL, -1, 0);
+      set_entertainment_cancel (NULL, NULL);
+      set_entertainment_title (_("ai_nw_updating_list"));
+
+      start_entertaining_user ();
+
+      apt_worker_update_cache (c->state, rpc_update_cache_reply, c);
+    }
   else
     {
       c->report_done = true;
@@ -1227,7 +1292,7 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
      disconnects the network.
   */
 
-  hide_progress ();
+  stop_entertaining_user ();
 
   if (dec == NULL)
     {
@@ -1237,7 +1302,7 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
       c->catalogue_report = NULL;
       c->result_code = rescode_failure;
     }
-  else if (progress_was_cancelled ())
+  else if (entertainment_was_cancelled ())
     {
       /* The user hit cancel.  We don't care whether the operation was
 	 successful or not.
@@ -2326,6 +2391,12 @@ main_window_realized (GtkWidget* widget, gpointer unused)
 }
 
 static void
+cancel_download (void *unused)
+{
+  cancel_apt_worker ();
+}
+
+static void
 apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
 {
   if (dec == NULL)
@@ -2336,7 +2407,18 @@ apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
   int total = dec->decode_int ();
 
   if (total > 0)
-    set_progress ((apt_proto_operation)op, already, total);
+    {
+      if (op == op_downloading)
+	{
+	  set_entertainment_download_fun (already, total);
+	  set_entertainment_cancel (cancel_download, NULL);
+	}
+      else
+	{
+	  set_entertainment_fun (NULL, already, total);
+	  set_entertainment_cancel (NULL, NULL);
+	}
+    }
 }
 
 static GtkWindow *main_window = NULL;

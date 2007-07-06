@@ -195,6 +195,8 @@ struct ip_clos {
   GSList *upgrade_versions; // to upgrade to.
 
   // at the end
+  bool entertaining;        // is the progress bar up?
+  int n_successful;         // how many have been installed successfully
   bool reboot;              // whether to reboot
   
   void (*cont) (void *);
@@ -257,8 +259,10 @@ install_packages (GList *packages,
   c->data = data;
   c->upgrade_names = NULL;
   c->upgrade_versions = NULL;
+  c->n_successful = 0;
   c->reboot = false;
-  
+  c->entertaining = false;
+
   // Filter packages, stopping after the first when this is a standard
   // install.
 
@@ -285,7 +289,8 @@ install_packages (GList *packages,
   if (c->install_type == INSTALL_TYPE_BACKUP
       || c->install_type == INSTALL_TYPE_MEMORY_CARD)
     {
-      select_package_list (c->packages, 
+      select_package_list (c->packages,
+			   c->state,
 			   _("ai_ti_install_apps"), 
 			   (c->install_type == INSTALL_TYPE_BACKUP
 			    ? _("ai_ti_restore")
@@ -370,6 +375,17 @@ ip_confirm_install_response (bool res, void *data)
 static void
 ip_ensure_network (ip_clos *c)
 {
+  /* Start entertaining the user here.  We stop in ip_end, at the
+     last.
+   */
+
+  set_entertainment_fun (NULL, -1, 0);
+  set_entertainment_cancel (NULL, NULL);
+  set_entertainment_title (_("Installing"));
+  start_entertaining_user ();
+  
+  c->entertaining = true;
+
   if (c->install_type != INSTALL_TYPE_MEMORY_CARD)
     ensure_network (ip_ensure_network_reply, c);
   else
@@ -497,7 +513,43 @@ static void
 ip_install_loop (ip_clos *c)
 {
   if (c->cur == NULL)
-    ip_end (c);
+    {
+      /* End of loop, show a success report to the user.
+
+         If there is only one package in the list, talk specifically
+         about that package.  Otherwise, just show the number of
+         packages that have been successfully handled.
+       */
+
+      stop_entertaining_user ();
+      c->entertaining = false;
+
+      if (c->n_successful > 0)
+	{
+	  if (c->all_packages->next == NULL)
+	    {
+	      package_info *pi = (package_info *)c->all_packages->data;
+	      char *str = g_strdup_printf ((pi->installed_version != NULL
+					    ? _("ai_ni_update_successful")
+					    : _("ai_ni_install_successful")),
+					   pi->get_display_name (false));
+	      annoy_user_with_cont (str, ip_end, c);
+	      g_free (str);
+	    }
+	  else
+	    {
+	      char *str =
+		g_strdup_printf (ngettext ("ai_ni_multiple_install",
+					   "ai_ni_multiple_installs", 
+					   c->n_successful),
+				 c->n_successful);
+	      annoy_user_with_cont (str, ip_end, c);
+	      g_free (str);
+	    }
+	}
+      else
+	ip_end (c);
+    }
   else
     {
       package_info *pi = (package_info *)(c->cur->data);
@@ -679,7 +731,15 @@ ip_install_cur (void *data)
   package_info *pi = (package_info *)(c->cur->data);
 
   printf ("INSTALL %s\n", pi->name);
-  
+
+  char *title = g_strdup_printf (pi->installed_version
+				 ? _("ai_nw_updating")
+				 : _("ai_nw_installing"),
+				 pi->get_display_name (false));
+  set_entertainment_title (title);
+  set_entertainment_fun (NULL, -1, 0);
+  g_free (title);
+
   set_log_start ();
   apt_worker_install_package (c->state, pi->name,
 			      pi->installed_version != NULL,
@@ -691,8 +751,6 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
-
-  hide_progress ();
 
   if (dec == NULL)
     {
@@ -708,21 +766,12 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (result_code == rescode_success)
     {
-      if (c->install_type == INSTALL_TYPE_STANDARD)
-	{
-	  char *str = g_strdup_printf ((pi->installed_version != NULL
-					? _("ai_ni_update_successful")
-					: _("ai_ni_install_successful")),
-				       pi->get_display_name (false));
-	  annoy_user_with_cont (str, ip_install_next, c);
-	  g_free (str);
-	}
-      else
-	ip_install_next (c);
+      c->n_successful += 1;
+      ip_install_next (c);
     }
   else
     {
-      if (progress_was_cancelled ())
+      if (entertainment_was_cancelled ())
 	ip_end (c);
       else
 	{
@@ -779,6 +828,12 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
   bool is_last = (c->cur->next == NULL);
 
   GtkWidget *dialog;
+
+  if (is_last)
+    {
+      stop_entertaining_user ();
+      c->entertaining = false;
+    }
 
   // XXX - get the button texts correct, etc.
 
@@ -855,6 +910,9 @@ static void
 ip_end (void *data)
 {
   ip_clos *c = (ip_clos *)data;
+
+  if (c->entertaining)
+    stop_entertaining_user ();
 
   get_package_list (APTSTATE_DEFAULT);
   save_backup_data ();
@@ -1013,7 +1071,15 @@ up_remove (up_clos *c)
       add_log ("-----\n");
       add_log ("Uninstalling %s %s\n", c->pi->name, c->pi->installed_version);
       
-      show_progress (_("ai_nw_uninstalling"));
+      char *title = g_strdup_printf (_("ai_nw_uninstalling"),
+				     c->pi->get_display_name (true));
+      set_entertainment_fun (NULL, -1, 0);
+      set_entertainment_cancel (NULL, NULL);
+      set_entertainment_title (title);
+      g_free (title);
+
+      start_entertaining_user ();
+
       apt_worker_remove_package (c->pi->name, up_remove_reply, c);
     }
   else
@@ -1041,7 +1107,7 @@ up_remove_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   up_clos *c = (up_clos *)data;
 
-  hide_progress ();
+  stop_entertaining_user ();
 
   if (dec == NULL)
     {
@@ -1232,9 +1298,17 @@ if_install (bool res, void *data)
 
   if (res)
     {
-      show_progress (c->pi->installed_version
-		     ? _("ai_nw_updating")
-		     : _("ai_nw_installing"));
+      char *title = g_strdup_printf ((c->pi->installed_version
+				      ? _("ai_nw_updating")
+				      : _("ai_nw_installing")),
+				     c->pi->get_display_name (false));
+      set_entertainment_fun (NULL, -1, 0);
+      set_entertainment_cancel (NULL, NULL);
+      set_entertainment_title (title);
+      g_free (title);
+
+      start_entertaining_user ();
+
       set_log_start ();
       apt_worker_install_file (c->filename,
 			       if_install_reply, c);
@@ -1248,7 +1322,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   if_clos *c = (if_clos *)data;
 
-  hide_progress ();
+  stop_entertaining_user ();
 
   if (dec == NULL)
     {

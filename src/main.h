@@ -81,6 +81,12 @@ void get_intermediate_package_info (package_info *pi,
 				    void *,
 				    int state);
 
+void get_intermediate_package_list_info (GList *packages,
+					 bool only_installable_info,
+					 void (*cont) (void *data),
+					 void *data,
+					 int state);
+
 struct section_info {
 
   section_info ();

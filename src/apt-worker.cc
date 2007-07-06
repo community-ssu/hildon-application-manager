@@ -1028,7 +1028,7 @@ class UpdateProgress : public OpProgress
   Update ()
   {
     if (with_status)
-      send_status (op_updating_cache, (int)Percent, 100, 5);
+      send_status (op_general, (int)Percent, 100, 5);
   }
 
 public:

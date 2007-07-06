@@ -79,7 +79,8 @@ interpret_pmstatus (char *str)
 	  title = str;
 	}
 	
-      set_progress (op_general, (int)percentage, 100);
+      set_entertainment_fun (NULL, (int)percentage, 100);
+      set_entertainment_cancel (NULL, NULL);
     }
 }
 
@@ -621,7 +622,6 @@ apt_worker_update_cache_cont (bool success, void *clos)
       request.encode_string (https_proxy);
       g_free (https_proxy);
 
-      show_progress (_("ai_nw_updating_list"));
       call_apt_worker (APTCMD_UPDATE_PACKAGE_CACHE, state, 
 		       request.get_buf (), request.get_len (),
 		       callback, data);
@@ -720,7 +720,6 @@ apt_worker_install_package_cont (bool success, void *clos)
   char *package = c->package;
   apt_worker_callback *callback = c->callback;
   void *data = c->data;
-  bool updating = c->updating;
   int state = c->state;
   delete c;
 
@@ -736,11 +735,6 @@ apt_worker_install_package_cont (bool success, void *clos)
       char *https_proxy = get_https_proxy ();
       request.encode_string (https_proxy);
       g_free (https_proxy);
-
-      set_general_progress_title (updating 
-				  ? _("ai_nw_updating")
-				  : _("ai_nw_installing"));
-      reset_progress_was_cancelled ();
 
       call_apt_worker (APTCMD_INSTALL_PACKAGE, state,
 		       request.get_buf (), request.get_len (),

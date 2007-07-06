@@ -563,6 +563,8 @@ scare_user_with_legalese (bool sure,
   gtk_widget_show_all (dialog);
 }
 
+#if 0
+
 static GtkWidget *progress_dialog = NULL;
 static bool progress_cancelled;
 static GtkProgressBar *progress_bar;
@@ -803,6 +805,274 @@ hide_progress ()
     }
   current_status_operation = op_general;
 }
+
+#endif
+
+#if 0
+void
+show_progress (const char *)
+{
+}
+
+void
+hide_progress ()
+{
+}
+
+void
+set_progress (apt_proto_operation op, int already, int total)
+{
+}
+
+void
+set_general_progress_title (const char *title)
+{
+}
+
+bool
+progress_was_cancelled ()
+{
+  return false;
+}
+
+void
+reset_progress_was_cancelled ()
+{
+}
+
+#endif
+
+/* Entertaining the user.
+ */
+
+struct entertainment_data {
+  GtkWidget *bar, *dialog, *cancel_button;
+  gint pulse_id;
+
+  char *main_title, *sub_title;
+  int64_t already, total;
+
+  void (*cancel_callback) (void *);
+  void *cancel_data;
+  bool was_cancelled;
+};
+
+static entertainment_data entertainment;
+
+static gboolean
+entertainment_pulse (gpointer data)
+{
+  entertainment_data *ent = (entertainment_data *)data;
+
+  if (ent->bar)
+    gtk_progress_bar_pulse (GTK_PROGRESS_BAR (ent->bar));
+  return TRUE;
+}
+
+static void
+entertainment_start_pulsing ()
+{
+  if (entertainment.pulse_id == 0)
+    entertainment.pulse_id =
+      gtk_timeout_add (500, entertainment_pulse, &entertainment) + 1;
+}
+
+static void
+entertainment_stop_pulsing ()
+{
+  if (entertainment.pulse_id != 0)
+    {
+      g_source_remove (entertainment.pulse_id - 1);
+      entertainment.pulse_id = 0;
+    }
+}
+
+static void
+entertainment_update_progress ()
+{
+  if (entertainment.bar)
+    {
+      if (entertainment.already < 0)
+	entertainment_start_pulsing ();
+      else
+	{
+	  double fraction = (((double)entertainment.already)
+			     / entertainment.total);
+
+	  entertainment_stop_pulsing ();
+	  gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (entertainment.bar),
+					 fraction);
+	}
+    }
+}
+
+static void
+entertainment_update_cancel ()
+{
+  if (entertainment.cancel_button)
+    gtk_widget_set_sensitive (entertainment.cancel_button,
+			      entertainment.cancel_callback != NULL);
+}
+
+static void
+entertainment_update_title ()
+{
+  if (entertainment.dialog)
+    {
+      char *title;
+      if (entertainment.sub_title)
+	title = entertainment.sub_title;
+      else
+	title = entertainment.main_title;
+    
+      g_object_set (entertainment.dialog, "description", title, NULL);
+    }
+}
+
+static void
+entertainment_response (GtkWidget *widget, int response, void *data)
+{
+  if (response == GTK_RESPONSE_CANCEL)
+    cancel_entertainment ();
+}
+
+void
+entertainment_insensitive_press (GtkWidget *widget, gpointer unused)
+{
+  irritate_user (_("Can't cancel now"));
+}
+
+void
+start_entertaining_user ()
+{
+  g_return_if_fail (entertainment.dialog == NULL);
+
+  entertainment.was_cancelled = false;
+
+  entertainment.bar = gtk_progress_bar_new ();
+  entertainment.dialog =
+    hildon_note_new_cancel_with_progress_bar 
+    (get_dialog_parent (),
+     entertainment.main_title,
+     GTK_PROGRESS_BAR (entertainment.bar));
+
+  gtk_widget_set_usize (entertainment.dialog, 400, -1);
+
+  {
+    GtkWidget *box = GTK_DIALOG (entertainment.dialog)->action_area;
+    GList *kids = gtk_container_get_children (GTK_CONTAINER (box));
+    if (kids)
+      {
+	entertainment.cancel_button = GTK_WIDGET (kids->data);
+	g_signal_connect (entertainment.cancel_button,
+			  "insensitive-press",
+			  G_CALLBACK (entertainment_insensitive_press),
+			  &entertainment);
+      }
+    else
+      entertainment.cancel_button = NULL;
+    g_list_free (kids);
+  }
+
+  respond_on_escape (GTK_DIALOG (entertainment.dialog), GTK_RESPONSE_CANCEL);
+  g_signal_connect (entertainment.dialog, "response",
+		    G_CALLBACK (entertainment_response), &entertainment);
+
+  entertainment_update_progress ();
+  entertainment_update_cancel ();
+  
+  push_dialog_parent (entertainment.dialog);
+  gtk_widget_show (entertainment.dialog);
+}
+
+void
+stop_entertaining_user ()
+{
+  g_return_if_fail (entertainment.dialog != NULL);
+
+  entertainment_stop_pulsing ();
+
+  pop_dialog_parent (entertainment.dialog);
+  gtk_widget_destroy (entertainment.dialog);
+  
+  entertainment.dialog = NULL;
+  entertainment.bar = NULL;
+  entertainment.cancel_button = NULL;
+}
+
+void
+cancel_entertainment ()
+{
+  entertainment.was_cancelled = true;
+  if (entertainment.cancel_callback)
+    entertainment.cancel_callback (entertainment.cancel_data);
+}
+
+void
+set_entertainment_title (const char *main_title)
+{
+  g_free (entertainment.main_title);
+  entertainment.main_title = g_strdup (main_title);
+  entertainment_update_title ();
+}
+
+void
+set_entertainment_fun (const char *sub_title,
+		       int64_t already, int64_t total)
+{
+  // fprintf (stderr, "FUN: %s %Ld %Ld\n", sub_title, already, total);
+  
+  if ((sub_title
+       && (entertainment.sub_title == NULL
+	   || strcmp (entertainment.sub_title, sub_title)))
+      || (sub_title == NULL
+	  && entertainment.sub_title != NULL))
+    {
+      g_free (entertainment.sub_title);
+      entertainment.sub_title = g_strdup (sub_title);
+      entertainment_update_title ();
+    }
+
+  entertainment.already = already;
+  entertainment.total = total;
+  entertainment_update_progress ();
+}
+
+void
+set_entertainment_download_fun (int64_t already, int64_t total)
+{
+  static char *sub_title = NULL;
+  static int64_t last_total = 0;
+
+  if (total != last_total || sub_title == NULL)
+    {
+      char size_buf[20];
+      size_string_detailed (size_buf, 20, total);
+      g_free (sub_title);
+      sub_title = g_strdup_printf (_("ai_nw_downloading"), size_buf);
+    }
+
+  set_entertainment_fun (sub_title, already, total);
+}
+
+void
+set_entertainment_cancel (void (*callback) (void *data),
+			  void *data)
+{
+  entertainment.cancel_callback = callback;
+  entertainment.cancel_data = data;
+  entertainment_update_cancel ();
+}
+
+bool
+entertainment_was_cancelled ()
+{
+  return entertainment.was_cancelled;
+}
+
+
+/* Progress banners
+ */
 
 static GtkWidget *updating_banner = NULL;
 static int updating_level = 0;
@@ -1045,10 +1315,9 @@ global_name_func (GtkTreeViewColumn *column,
 }
 
 static void
-global_row_changed (GtkTreeIter *iter)
+emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
 {
   GtkTreePath *path;
-  GtkTreeModel *model = GTK_TREE_MODEL (global_list_store);
 
   path = gtk_tree_model_get_path (model, iter);
   g_signal_emit_by_name (model, "row-changed", path, iter);
@@ -1108,7 +1377,8 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
   GtkTreeIter iter;
 
   if (global_have_last_selection)
-    global_row_changed (&global_last_selection);
+    emit_row_changed (GTK_TREE_MODEL (global_list_store),
+		      &global_last_selection);
 
   if (gtk_tree_selection_get_selected (selection, &model, &iter))
     {
@@ -1116,7 +1386,7 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
 
       assert (model == GTK_TREE_MODEL (global_list_store));
 
-      global_row_changed (&iter);
+      emit_row_changed (model, &iter);
       global_last_selection = iter;
       global_have_last_selection = true;
 
@@ -1401,8 +1671,8 @@ clear_global_package_list ()
 void
 global_package_info_changed (package_info *pi)
 {
-  if (pi->model &&(pi->model == GTK_TREE_MODEL (global_list_store)))
-    global_row_changed (&pi->iter);
+  if (pi->model)
+    emit_row_changed (pi->model, &pi->iter);
 }
 
 static GtkWidget *global_section_list = NULL;
@@ -1504,11 +1774,11 @@ enum {
 };
 
 static GtkListStore *
-make_select_package_list_store (GList *package_list, gint *total_size)
+make_select_package_list_store (GList *package_list, int64_t *total_size)
 {
   GtkListStore *list_store = NULL;
   GList * node = NULL;
-  gint acc_size = 0;
+  int64_t acc_size = 0;
 
   list_store = gtk_list_store_new (SP_N_COLUMNS,
 				   G_TYPE_BOOLEAN,
@@ -1520,7 +1790,7 @@ make_select_package_list_store (GList *package_list, gint *total_size)
     {
       package_info *pi = (package_info *) node->data;
       GtkTreeIter iter;
-      char package_size_str[20];
+      char package_size_str[20] = "";
       size_string_general (package_size_str, 20,
 			   pi->info.install_user_size_delta);
       gtk_list_store_append (list_store, &iter);
@@ -1541,7 +1811,7 @@ make_select_package_list_store (GList *package_list, gint *total_size)
 }
 
 void fill_required_space_label (GtkWidget *label,
-				gint size)
+				int64_t size)
 {
   gchar * text = NULL;
   gchar size_str[20];
@@ -1553,10 +1823,12 @@ void fill_required_space_label (GtkWidget *label,
   g_free (text);
 }
 
-void update_required_space_label (GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *i, void *data)
+void update_required_space_label (GtkTreeModel *model,
+				  GtkTreePath *path, GtkTreeIter *i,
+				  void *data)
 {
   gboolean has_iter = FALSE;
-  gint acc_size = 0;
+  int64_t acc_size = 0;
   GtkWidget *label = NULL;
   GtkTreeIter iter;
 
@@ -1582,6 +1854,10 @@ void update_required_space_label (GtkTreeModel *model, GtkTreePath *path, GtkTre
 
 struct spl_closure
 {
+  GList *package_list;
+  char *title;
+  char *question;
+  
   GtkListStore *list_store;
   void (*cont) (gboolean res, GList *package_list, void *data);
   void *data;
@@ -1663,12 +1939,11 @@ package_selected_toggled_callback (GtkCellRendererToggle *cell,
   gtk_tree_path_free (path);
 }
 
-void select_package_list (GList *package_list,
-			  const gchar *title,
-			  const gchar *question,
-			  void (*cont) (gboolean res, GList *pl, void *data),
-			  void *data)
+static void
+select_package_list_with_info (void *data)
 {
+  spl_closure *c = (spl_closure *)data;
+
   GtkWidget *dialog;
   GtkListStore *list_store;
   GtkWidget *tree_view;
@@ -1676,21 +1951,21 @@ void select_package_list (GList *package_list,
   GtkCellRenderer *renderer;
   GtkWidget *message_label;
   GtkWidget *required_space_label;
-  gint total_size;
-  spl_closure *closure = new spl_closure;
+  int64_t total_size;
 
-  dialog = gtk_dialog_new_with_buttons (title, get_dialog_parent (),
+  dialog = gtk_dialog_new_with_buttons (c->title,
+					get_dialog_parent (),
 					GTK_DIALOG_MODAL,
-					_("ai_bd_ok"),      GTK_RESPONSE_OK,
-					_("ai_bd_cancel"),  GTK_RESPONSE_CANCEL,
+					_("ai_bd_ok"),     GTK_RESPONSE_OK,
+					_("ai_bd_cancel"), GTK_RESPONSE_CANCEL,
 					NULL);
   push_dialog_parent (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  list_store = make_select_package_list_store (package_list, &total_size);
+  list_store = make_select_package_list_store (c->package_list, &total_size);
 
   /* Set the message dialog */
-  message_label = gtk_label_new (question);
+  message_label = gtk_label_new (c->question);
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), message_label);
   
   /* Add required space label */
@@ -1729,17 +2004,41 @@ void select_package_list (GList *package_list,
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
 		     gtk_hseparator_new ());
 
-  closure->list_store = list_store;
-  closure->cont = cont;
-  closure->data = data;
+  c->list_store = list_store;
 
-  g_signal_connect (list_store, "row-changed", G_CALLBACK (update_required_space_label), required_space_label);
+  g_signal_connect (list_store, "row-changed",
+		    G_CALLBACK (update_required_space_label),
+		    required_space_label);
   g_signal_connect (dialog, "response", 
 		    G_CALLBACK (select_package_list_response), 
-		    closure);
+		    c);
 
   gtk_widget_set_usize (dialog, 600, 320);
   gtk_widget_show_all (dialog);
+}
+
+void
+select_package_list (GList *package_list,
+		     int state,
+		     const gchar *title,
+		     const gchar *question,
+		     void (*cont) (gboolean res, GList *pl,
+				   void *data),
+		     void *data)
+{
+  spl_closure *closure = new spl_closure;
+
+  closure->package_list = package_list;
+  closure->title = g_strdup (title);
+  closure->question = g_strdup (question);
+  closure->cont = cont;
+  closure->data = data;
+
+  get_intermediate_package_list_info (package_list,
+				      false,
+				      select_package_list_with_info,
+				      closure,
+				      state);
 }
 
 #define KILO 1000
@@ -2048,7 +2347,7 @@ fail_copy_cont (void *data)
 static void
 call_copy_cont (GnomeVFSResult result)
 {
-  hide_progress ();
+  stop_entertaining_user ();
 
   if (result == GNOME_VFS_OK)
     {
@@ -2079,6 +2378,8 @@ call_copy_cont (GnomeVFSResult result)
     }
 }
 
+static bool copy_cancel_requested;
+
 static gboolean
 copy_progress (GnomeVFSAsyncHandle *handle,
 	       GnomeVFSXferProgressInfo *info,
@@ -2091,7 +2392,7 @@ copy_progress (GnomeVFSAsyncHandle *handle,
 #endif
 
   if (info->file_size > 0)
-    set_progress (op_downloading, info->bytes_copied, info->file_size);
+    set_entertainment_download_fun (info->bytes_copied, info->file_size);
 
   if (info->phase == GNOME_VFS_XFER_PHASE_COMPLETED)
     {
@@ -2107,7 +2408,7 @@ copy_progress (GnomeVFSAsyncHandle *handle,
 	  call_copy_cont (GNOME_VFS_ERROR_IO);
 	}
       else
-	call_copy_cont (progress_was_cancelled ()
+	call_copy_cont (copy_cancel_requested
 			? GNOME_VFS_ERROR_CANCELLED
 			: GNOME_VFS_OK);
 
@@ -2118,7 +2419,7 @@ copy_progress (GnomeVFSAsyncHandle *handle,
    */
   if (info->status == GNOME_VFS_XFER_PROGRESS_STATUS_OK)
     {
-      return !progress_was_cancelled ();
+      return copy_cancel_requested;
     }
   else if (info->status == GNOME_VFS_XFER_PROGRESS_STATUS_VFSERROR)
     {
@@ -2131,6 +2432,12 @@ copy_progress (GnomeVFSAsyncHandle *handle,
       add_log ("unexpected status %d in copy_progress\n", info->status);
       return 1;
     }
+}
+
+static void
+cancel_copy (void *unused)
+{
+  copy_cancel_requested = true;
 }
 
 static void
@@ -2152,8 +2459,14 @@ do_copy (const char *source, GnomeVFSURI *source_uri,
   source_uri_list = g_list_append (NULL, (gpointer) source_uri);
   target_uri_list = g_list_append (NULL, (gpointer) target_uri);
 
-  show_progress (dgettext ("hildon-fm",
-			   "docm_nw_opening_file"));
+  copy_cancel_requested = false;
+
+  set_entertainment_fun (NULL, -1, 0);
+  set_entertainment_cancel (cancel_copy, NULL);
+  set_entertainment_title (dgettext ("hildon-fm",
+				     "docm_nw_opening_file"));
+  
+  start_entertaining_user ();
 
   result = gnome_vfs_async_xfer (&handle,
 				 source_uri_list,
@@ -2390,10 +2703,7 @@ ensure_network_cont (bool success)
   en_data = NULL;
 
   if (callback)
-    {
-      hide_progress ();
-      callback (success, data);
-    }
+    callback (success, data);
 }
 
 static void
@@ -2412,8 +2722,7 @@ iap_callback (ConIcConnection *connection,
 
     case CON_IC_STATUS_DISCONNECTED:
       // add_log ("CON_IC_STATUS_DISCONNECTED\n");
-      if (current_status_operation == op_downloading)
-	cancel_apt_worker ();
+      cancel_entertainment ();
       break;
 
     default:
@@ -2450,7 +2759,7 @@ ensure_network (void (*callback) (bool success, void *data), void *data)
    
   if (con_ic_connection_connect (connection_object, CON_IC_CONNECT_FLAG_NONE))
     {
-      show_progress (_("ai_nw_connecting"));
+      set_entertainment_fun (_("ai_nw_connecting"), -1, 0);
       return;
     }
   else

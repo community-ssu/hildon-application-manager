@@ -160,62 +160,49 @@ void scare_user_with_legalese (bool sure,
 			       void (*cont) (bool res, void *data),
 			       void *data);
 
-/** Progress indicator
+/* Progress dialog.
+   
+   START_ENTERTAINING_USER shows a progress bar dialog with a cancel
+   button and STOP_ENTERTAINING_USER removes it.  These two functions
+   must be called in pairs and must be properly nested with respect to
+   push_dialog_parent and pop_dialog_parent.  There can be only one
+   progress bar dialog active.
 
-  There is a single global progress indication dialog that can be
-  shown or hidden.  The dialog is application modal and has a "Cancel"
-  button.  The progress bar can either pulse or show a 'completed'
-  fraction.
+   SET_ENTERTAINMENT_FUN sets the state of the progress bar dialog.
+   You can and should call this function before calling
+   start_entertaining_user to setup the initial state of the dialog.
+   TITLE is the text displayed in the dialog and ALREADY and TOTAL
+   determine the content of the progress bar.  When ALREADY is
+   negative, the progress bar pulses.
 
-  The dialog will be shown when calling SHOW_PROGRESS but also
-  automatically when a status report from the apt-worker comes, except
-  when that status report is for op_updating_cache.  To be prepared
-  for this automatic showing, you should use
-  set_general_progress_title and reset_progress_was_cancelled at the
-  right time.
+   SET_ENTERTAINMENT_DOWNLOAD_FUN is a specialization of
+   set_entertainment_fun: it automatically provides an appropriate
+   sub-title that includes the total download size.
 
-  XXX - Yes, this logic is ugly and needs to be cleaned up.
+   SET_ENTERTAINMENT_CANCEL associates a callback with the "Cancel"
+   button in the dialog.  When CALLBACK is NULL, the button is
+   insensitive.
 
-  SHOW_PROGRESS shows the progress dialog, resets it to pulsing mode,
-  and sets the current operation associated with the dialog to
-  op_general (see apt-worker-proto.h).  The TITLE given in the call to
-  show_progress is used whenever the current operation is op_general.
+   CANCEL_ENTERTAINMENT calls the callback associated with
+   set_entertainment_cancel, if there is one.
 
-  SET_GENERAL_PROGRESS_TITLE can be use to set the title used for
-  op_general without causing the dialog to show.
+   ENTERTAINMENT_WAS_CANCELLED returns true when cancel_entertainment
+   has been called since the last call to start_entertaining_user.
+   Clicking on the "Cancel" button will also call
+   cancel_entertainment.
+ */
 
-  SET_PROGRESS sets the displayed progress to relfect that ALREADY
-  units out of TOTAL units have been completed.  When ALREADY is -1,
-  however, the prgress bar starts pulsing.  The current operation is
-  set to OP.  When it is op_general, the last title given to
-  show_progress is used; otherwise, a title appropriate for OP is
-  used.  When OP is op_downloading, the unit for TOTAL is taken to be
-  bytes and this size is included in the title.
+void start_entertaining_user ();
+void stop_entertaining_user ();
 
-  When the current operation is op_downloading, clicking on the cancel
-  button will call cancel_apt_worker (see apt-worker-client.h).
-  Otherwise, only an information banner saying "Unableto cancel now.
-  Please wait." is shown.
+void set_entertainment_title (const char *main_title);
+void set_entertainment_fun (const char *sub_title,
+			    int64_t alreday, int64_t total);
+void set_entertainment_download_fun (int64_t already, int64_t total);
 
-  HIDE_PROGRESS will hide the progress dialog.  Since the dialog is
-  application modal, it is important to eventually hide it.
-  Otherwise, the application will effectively freeze.
-
-  PROGRESS_WAS_CANCELLED can be used to determine whether
-  cancel_apt_worker was indeed called as the response to a click on
-  the "Cancel" button (since the last call to show_progress or
-  reset_progress_was_cancelled).
-
-  RESET_PROGRESS_WAS_CANCELLED resets the flag to false that tracks
-  whether the user has clicked on the "Cancel" button.
-*/
-
-void show_progress (const char *title);
-void set_general_progress_title (const char *title);
-void set_progress (apt_proto_operation op, int already, int total);
-bool progress_was_cancelled ();
-void reset_progress_was_cancelled ();
-void hide_progress ();
+void set_entertainment_cancel (void (*callback)(void *), void *data);
+void cancel_entertainment ();
+bool entertainment_was_cancelled ();
 
 /* SHOW_UPDATING and HIDE_UPDATING determine whether the "Updating"
    animation banner should be shown.  They maintain a counter;
@@ -335,6 +322,7 @@ void clear_global_section_list ();
  */
 
 void select_package_list (GList *package_list,
+			  int state,
 			  const gchar *title,
 			  const gchar *question,
 			  void (*cont) (gboolean res, GList * pl, void *data),

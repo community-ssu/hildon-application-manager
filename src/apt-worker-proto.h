@@ -169,7 +169,6 @@ private:
 // - total (int).      Total amount of work to do.
 
 enum apt_proto_operation {
-  op_updating_cache,
   op_downloading,
   op_general
 };
