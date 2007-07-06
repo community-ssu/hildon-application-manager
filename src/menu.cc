@@ -33,6 +33,7 @@
 #include "settings.h"
 #include "repo.h"
 #include "search.h"
+#include "apt-worker-client.h"
 
 #define _(x) gettext (x)
 
@@ -86,9 +87,17 @@ add_menu (GtkMenu *menu, const gchar *label)
 }
 
 static void
-menu_close ()
+noop_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   exit (0);
+}
+
+void
+menu_close ()
+{
+  allow_updating ();
+  show_updating (_("Closing"));
+  apt_worker_noop (noop_reply, NULL);
 }
 
 static GtkWidget *details_menu_item = NULL;

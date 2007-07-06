@@ -2305,6 +2305,13 @@ window_destroy (GtkWidget* widget, gpointer data)
   gtk_main_quit ();
 }
 
+static gboolean
+window_delete_event (GtkWidget* widget, GdkEvent *ev, gpointer data)
+{
+  menu_close ();
+  return TRUE;
+}
+
 static void
 main_window_realized (GtkWidget* widget, gpointer unused)
 {
@@ -2697,6 +2704,9 @@ main (int argc, char **argv)
                     G_CALLBACK (view_clicked), NULL);
 
   gtk_box_pack_start (GTK_BOX (main_vbox), main_trail, FALSE, FALSE, 0);
+
+  g_signal_connect (G_OBJECT (window), "delete-event",
+		    G_CALLBACK (window_delete_event), NULL);
 
   g_signal_connect (G_OBJECT (window), "destroy",
 		    G_CALLBACK (window_destroy), NULL);
