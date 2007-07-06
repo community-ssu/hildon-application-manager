@@ -1,13 +1,38 @@
 2007-07-06  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Big rewrite of the progress bar dialog.
+	
+	* src/util.h, src/util.cc (show_progress, hide_progress,
+	set_progress, reset_progress_was_cancelled,
+	progress_was_cancelled, set_general_progress_title): Removed.
+	(start_entertaining_user, stop_entertaining_user,
+	set_entertainment_fun, set_entertainment_cancel,
+	set_entertainment_title, cancel_entertainment,
+	entertainment_was_cancelled): New.
+
+	* src/main.cc, src/operations.cc, src/util.cc,
+	src/apt-worker-client.cc: Use new functions instead of removed
+	ones.
+
+	* src/apt-worker-proto.h (op_updating_cache): Removed.
+	* src/apt-worker.cc (UpdateProgress::Update): Use op_general
+	instead of op_updating_cache.
+
+	Miscellaneous.
+	
 	* src/apt-worker-client.h, src/apt-worker-client.cc
 	(apt_worker_noop): New.
 
 	* src/menu.h, src/menu.cc (menu_close): Made non-static.  Call
-	apt_worker_noop to wait for the apt-worker to be idle.
+	apt_worker_noop to wait for the apt-worker to be idle (N49759).
 
 	* src/main.cc (window_delete_event): New, to call menu_close.
 	(main): Connect it.
+
+	* src/main.cc, src/main.h (get_intermediate_package_list_info):
+	New.
+	* src/util.cc (select_packages_list): Use it so that the sizes in
+	the dialog are right.
 	
 2007-07-05  Marius Vollmer  <marius.vollmer@nokia.com>
 
