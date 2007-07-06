@@ -1,3 +1,14 @@
+2007-07-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker-client.h, src/apt-worker-client.cc
+	(apt_worker_noop): New.
+
+	* src/menu.h, src/menu.cc (menu_close): Made non-static.  Call
+	apt_worker_noop to wait for the apt-worker to be idle.
+
+	* src/main.cc (window_delete_event): New, to call menu_close.
+	(main): Connect it.
+	
 2007-07-05  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc (global_target_path): New.
