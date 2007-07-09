@@ -2433,7 +2433,7 @@ mime_open_handler (gpointer raw_data, int argc, char **argv)
       present_main_window ();
       if (strcmp (filename, "magic:restore-packages") == 0)
 	restore_packages_flow ();
-      if (strcmp (filename, "magic:update-system") == 0)
+      else if (strcmp (filename, "magic:update-system") == 0)
 	update_system_flow ();
       else
 	install_from_file_flow (filename);
