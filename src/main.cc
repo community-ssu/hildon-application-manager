@@ -2661,6 +2661,20 @@ save_backup_data_reply (int cmd, apt_proto_decoder *dec, void *data)
   /* No action required */
 }
 
+gboolean
+connect_mime_open_handler (gpointer data)
+{
+  /* XXX - check errors.
+   */
+  osso_ctxt = osso_initialize ("hildon_application_manager",
+			       PACKAGE_VERSION, TRUE, NULL);
+
+
+  osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);
+
+  return FALSE;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -2812,12 +2826,11 @@ main (int argc, char **argv)
   get_package_list (APTSTATE_DEFAULT);
   save_backup_data ();
 
-  /* XXX - check errors.
-   */
-  osso_ctxt = osso_initialize ("hildon_application_manager",
-			       PACKAGE_VERSION, TRUE, NULL);
-
-  osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);
+  /* XXX - doing this in an idle handler somehow causes dialogs to
+           appear centered.  It would be good to figure out the right
+           timing here.
+  */
+  g_idle_add (connect_mime_open_handler, NULL);
 
   gtk_widget_show_all (window);
 
