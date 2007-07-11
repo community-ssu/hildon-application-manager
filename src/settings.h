@@ -52,13 +52,16 @@ extern bool red_pill_show_magic_sys;
 #define SORT_BY_VERSION 1
 #define SORT_BY_SIZE    2
 
+void show_settings_dialog ();
+void show_sort_settings_dialog ();
+
 // Persistent state
 //
 extern int  last_update;    // not a time_t until 2036
 extern bool fullscreen_toolbar;
 extern bool normal_toolbar;
 
-void show_settings_dialog ();
-void show_sort_settings_dialog ();
+void load_state ();
+void save_state ();
 
 #endif /* !SETTINGS_H */

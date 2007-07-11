@@ -48,16 +48,12 @@ bool red_pill_show_deps = true;
 bool red_pill_show_all = true;
 bool red_pill_show_magic_sys = true;
 
-int  last_update = 0;
-bool fullscreen_toolbar = true;
-bool normal_toolbar = true;
-
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
 static FILE *
-open_settings_file (const char *mode)
+open_user_file (const char *file, const char *mode)
 {
-  gchar *name = g_strdup_printf ("%s/%s", getenv ("HOME"), SETTINGS_FILE);
+  gchar *name = g_strdup_printf ("%s/%s", getenv ("HOME"), file);
   FILE *f = fopen (name, mode);
   if (f == NULL && errno != ENOENT)
     add_log ("%s: %s\n", name, strerror (errno));
@@ -71,7 +67,7 @@ load_settings ()
   /* XXX - we should probably use XML for this.
    */
 
-  FILE *f = open_settings_file ("r");
+  FILE *f = open_user_file (SETTINGS_FILE, "r");
   if (f)
     {
       char *line = NULL;
@@ -92,8 +88,6 @@ load_settings ()
 	    package_sort_key = val;
 	  else if (sscanf (line, "package-sort-sign %d", &val) == 1)
 	    package_sort_sign = val;
-	  else if (sscanf (line, "last-update %d", &val) == 1)
-	    last_update = val;
 	  else if (sscanf (line, "break-locks %d", &val) == 1)
 	    break_locks = val;
 	  else if (sscanf (line, "red-pill-mode %d", &val) == 1)
@@ -106,10 +100,6 @@ load_settings ()
 	    red_pill_show_magic_sys = val;
 	  else if (sscanf (line, "assume-connection %d", &val) == 1)
 	    assume_connection = val;
-	  else if (sscanf (line, "fullscreen-toolbar %d", &val) == 1)
-	    fullscreen_toolbar = val;
-	  else if (sscanf (line, "normal-toolbar %d", &val) == 1)
-	    normal_toolbar = val;
 	  else
 	    add_log ("Unrecognized configuration line: '%s'\n", line);
 	}
@@ -124,22 +114,19 @@ load_settings ()
 void
 save_settings ()
 {
-  FILE *f = open_settings_file ("w");
+  FILE *f = open_user_file (SETTINGS_FILE, "w");
   if (f)
     {
       fprintf (f, "clean-after-install %d\n", clean_after_install);
       fprintf (f, "update-interval-index %d\n", update_interval_index);
       fprintf (f, "package-sort-key %d\n", package_sort_key);
       fprintf (f, "package-sort-sign %d\n", package_sort_sign);
-      fprintf (f, "last-update %d\n", last_update);
       fprintf (f, "break-locks %d\n", break_locks);
       fprintf (f, "red-pill-mode %d\n", red_pill_mode);
       fprintf (f, "red-pill-show-deps %d\n", red_pill_show_deps);
       fprintf (f, "red-pill-show-all %d\n", red_pill_show_all);
       fprintf (f, "red-pill-show-magic-sys %d\n", red_pill_show_magic_sys);
       fprintf (f, "assume-connection %d\n", assume_connection);
-      fprintf (f, "fullscreen-toolbar %d\n", fullscreen_toolbar);
-      fprintf (f, "normal-toolbar %d\n", normal_toolbar);
       fclose (f);
     }
 }
@@ -327,4 +314,56 @@ show_sort_settings_dialog ()
 		    G_CALLBACK (sort_settings_dialog_response),
 		    NULL);
   gtk_widget_show_all (dialog);
+}
+
+/* Persistent state
+ */
+
+int  last_update = 0;
+bool fullscreen_toolbar = true;
+bool normal_toolbar = true;
+
+#define STATE_FILE ".hildon-application-manager-state"
+
+void
+load_state ()
+{
+  FILE *f = open_user_file (STATE_FILE, "r");
+  if (f)
+    {
+      char *line = NULL;
+      size_t len = 0;
+      ssize_t n;
+      while ((n = getline (&line, &len, f)) != -1)
+	{
+	  int val;
+
+	  if (n > 0 && line[n-1] == '\n')
+	    line[n-1] = '\0';
+
+	  if (sscanf (line, "last-update %d", &val) == 1)
+	    last_update = val;
+	  else if (sscanf (line, "fullscreen-toolbar %d", &val) == 1)
+	    fullscreen_toolbar = val;
+	  else if (sscanf (line, "normal-toolbar %d", &val) == 1)
+	    normal_toolbar = val;
+	  else
+	    add_log ("Unrecognized state line: '%s'\n", line);
+	}
+      free (line);
+      fclose (f);
+    }
+}
+
+void
+save_state ()
+{
+  FILE *f = open_user_file (STATE_FILE, "w");
+  if (f)
+    {
+      fprintf (f, "last-update %d\n", last_update);
+      fprintf (f, "fullscreen-toolbar %d\n", fullscreen_toolbar);
+      fprintf (f, "normal-toolbar %d\n", normal_toolbar);
+      fclose (f);
+    }
 }

@@ -1422,7 +1422,7 @@ rpc_maybe_get_package_list (void *data)
       || c->result_code == rescode_partial_success)
     {
       last_update = time (NULL);
-      save_settings ();
+      save_state ();
       get_package_list_with_cont (c->state, rpc_get_list_done, c);
     }
   else
@@ -2517,7 +2517,7 @@ set_toolbar_visibility (bool fullscreen, bool visibility)
       if (!is_fullscreen)
 	set_current_toolbar_visibility (visibility);
     }
-  save_settings ();
+  save_state ();
 }
 
 static gboolean
@@ -2682,6 +2682,7 @@ main (int argc, char **argv)
   textdomain ("hildon-application-manager");
 
   load_settings ();
+  load_state ();
 
   gtk_init (&argc, &argv);
   setup_dbus();
