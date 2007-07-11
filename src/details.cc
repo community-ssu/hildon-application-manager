@@ -193,7 +193,7 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
 static void
 add_table_field (GtkWidget *table, int row,
 		 const char *field, const char *value,
-		 PangoEllipsizeMode em = PANGO_ELLIPSIZE_END)
+		 PangoEllipsizeMode em = PANGO_ELLIPSIZE_NONE)
 {
   GtkWidget *label;
 
@@ -309,8 +309,7 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
     short_description = pi->installed_short_description;
   add_table_field (table, 1, "", short_description);
 
-  add_table_field (table, 2, _("ai_fi_details_maintainer"),
-		   pi->maintainer, PANGO_ELLIPSIZE_START);
+  add_table_field (table, 2, _("ai_fi_details_maintainer"), pi->maintainer);
 
   add_table_field (table, 3, _("ai_fi_details_status"), status);
 
@@ -343,8 +342,12 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
       add_table_field (table, 8, _("ai_va_details_download_size"), size_buf);
     }
 
-  common = gtk_vbox_new (FALSE, 0);
-  gtk_box_pack_start (GTK_BOX (common), table, TRUE, TRUE, 0);
+  common = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (common),
+					 table);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (common),
+				  GTK_POLICY_AUTOMATIC,
+				  GTK_POLICY_AUTOMATIC);
 
   const gchar *summary_label;
   if (pi->have_detail_kind == remove_details)
@@ -369,7 +372,7 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
   GtkWidget *header_label = make_small_label (pi->summary);
   gtk_misc_set_alignment (GTK_MISC (header_label), 0.0, 0.0);
   gtk_label_set_line_wrap (GTK_LABEL (header_label), FALSE);
-  gtk_label_set_ellipsize (GTK_LABEL (header_label), PANGO_ELLIPSIZE_MIDDLE);
+  gtk_label_set_ellipsize (GTK_LABEL (header_label), PANGO_ELLIPSIZE_NONE);
   gtk_table_attach (GTK_TABLE (summary_table), header_label, 0, 2, 0, 1,
 		    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL,
 		    0, 0);
@@ -414,8 +417,8 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
     }
 
   summary_tab = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW (summary_tab),
-					summary_table);
+  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (summary_tab),
+					 summary_table);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (summary_tab),
 				  GTK_POLICY_AUTOMATIC,
 				  GTK_POLICY_AUTOMATIC);
