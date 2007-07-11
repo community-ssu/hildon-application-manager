@@ -2400,7 +2400,7 @@ copy_progress (GnomeVFSAsyncHandle *handle,
    */
   if (info->status == GNOME_VFS_XFER_PROGRESS_STATUS_OK)
     {
-      return copy_cancel_requested;
+      return !copy_cancel_requested;
     }
   else if (info->status == GNOME_VFS_XFER_PROGRESS_STATUS_VFSERROR)
     {
@@ -2499,7 +2499,7 @@ localize_file_and_keep_it_open (const char *uri,
       return;
     }
 
-  /* The app-worker can access all "file://" URIs, whether they are
+  /* The apt-worker can access all "file://" URIs, whether they are
      considered local by GnomeVFS or not.  (GnomeVFS considers a
      file:// URI pointing to a NFS mounted volume as remote, but we
      can read that just fine of course.)
