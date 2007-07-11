@@ -1,3 +1,41 @@
+2007-07-11  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (operation_in_progress_response): Removed, it was
+	unused.
+
+	Cleanup of the annoy_user family of functions.  There are no
+	variants without continuations anymore.
+	
+	* src/util.h (annoy_user, annoy_user_with_log): Removed.  Replaced
+	uses with irritate_user.
+	(annoy_user_with_cont): Renamed to annoy_user.  Updated callers.
+	(annoy_user_with_details): Removed, it was unused.
+	(annoy_user_with_details_with_cont): Renamed to
+	annoy_user_with_details.  Updated callers.
+	(annoy_user_with_gnome_vfs_result): Added continuation.  Updated
+	callers to provide it.
+	(what_the_fock_p): New.  Use it for "Operation failed"
+	irritations.
+	(currently_annoying_user): Removed, recursive annoyances are
+	allowed now.
+	
+2007-07-09  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (start_interaction_flow): Use information banner
+	instead of a information dialog when there is a interaction flow
+	active so that it is not interrupted.
+
+	* src/main.cc (mime_open_handler): Put in missing "else" so that
+	only one interaction flow is started for "magic:restore-packages",
+	stupid.
+	(connect_mime_open_handler): New.
+	(main): Move mime-open initialization to connect_mime_open_handler
+	and call it as an idle handler.  This somehow causes dialogs to be
+	centered when the AM is started in response to a mime-open call.
+
+	* src/hildon-application-manager-util: Redirect output of
+	dbus-send to /dev/null.
+
 2007-07-06  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Big rewrite of the progress bar dialog.
