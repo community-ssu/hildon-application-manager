@@ -1344,6 +1344,14 @@ static GtkTreeIter global_last_selection;
 static GtkTreePath *global_target_path = NULL;
 static package_info_callback *global_selection_callback;
 
+void
+reset_global_target_path ()
+{
+  if (global_target_path)
+    gtk_tree_path_free (global_target_path);
+  global_target_path = NULL;
+}
+
 static void
 global_selection_changed (GtkTreeSelection *selection, gpointer data)
 {
@@ -1364,8 +1372,7 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
       global_last_selection = iter;
       global_have_last_selection = true;
 
-      if (global_target_path)
-	gtk_tree_path_free (global_target_path);
+      reset_global_target_path ();
       global_target_path = gtk_tree_model_get_path (model, &iter);
 
       if (global_selection_callback)

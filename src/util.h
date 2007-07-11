@@ -281,7 +281,7 @@ GtkWidget *make_global_package_list (GList *packages,
 				     package_info_callback *activated);
 void clear_global_package_list ();
 void global_package_info_changed (package_info *pi);
-
+void reset_global_target_path ();
 
 /* Global section list widget
 

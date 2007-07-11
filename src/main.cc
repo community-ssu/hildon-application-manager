@@ -143,6 +143,7 @@ show_view_callback (GtkWidget *btn, gpointer data)
 static gboolean
 view_clicked (HildonBreadCrumbTrail *bct, gpointer node, gpointer user_data)
 {
+  reset_global_target_path ();
   show_view ((view *)((GList*)node)->data);
 
   return TRUE;

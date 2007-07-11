@@ -1,9 +1,15 @@
 2007-07-11  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.h, src/util.cc (reset_global_target_path): New.
+	* src/main.cc (view_clicked): Call it so that the first package
+	gets selected after switching views.
+
 	* src/details.cc (add_table_field): Default to
 	PANGO_ELLIPSIZE_NONE.
 	(show_with_details_with_cont): Don't ellipsize user fields.  Put
 	common tab into scrolled window.
+	(decode_summary): Also show pi->name in addition to display name
+	when in red-pill mode.
 
 	* src/operations.cc (up_remove): Added missing "else" so that only
 	one error message is shown.
