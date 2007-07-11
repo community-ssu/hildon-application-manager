@@ -25,6 +25,7 @@
 #include <gtk/gtk.h>
 #include <assert.h>
 #include <libintl.h>
+#include <string.h>
 
 #include "details.h"
 #include "util.h"
@@ -297,10 +298,20 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
   gtk_table_set_col_spacings (GTK_TABLE (table), 10);
   gtk_table_set_row_spacings (GTK_TABLE (table), 0);
 
-  add_table_field (table, 0,
-		   _("ai_fi_details_package"),
-		   pi->get_display_name (pi->have_detail_kind
-					 == remove_details));
+  {
+    const char *display_name =
+      pi->get_display_name (pi->have_detail_kind == remove_details);
+  
+    if (red_pill_mode && strcmp (pi->name, display_name))
+      {
+	char *extended_name = g_strdup_printf ("%s (%s)", display_name,
+					       pi->name);
+	add_table_field (table, 0, _("ai_fi_details_package"), extended_name);
+	g_free (extended_name);
+      }
+    else
+      add_table_field (table, 0, _("ai_fi_details_package"), display_name);
+  }
 
   gchar *short_description = (pi->have_detail_kind == remove_details
 			      ? pi->installed_short_description
