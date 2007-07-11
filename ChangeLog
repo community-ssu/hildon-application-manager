@@ -1,5 +1,13 @@
 2007-07-11  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/details.cc (add_table_field): Default to
+	PANGO_ELLIPSIZE_NONE.
+	(show_with_details_with_cont): Don't ellipsize user fields.  Put
+	common tab into scrolled window.
+
+	* src/operations.cc (up_remove): Added missing "else" so that only
+	one error message is shown.
+
 	* src/util.cc (operation_in_progress_response): Removed, it was
 	unused.
 
