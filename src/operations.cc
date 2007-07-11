@@ -1085,7 +1085,7 @@ up_remove (up_clos *c)
     {
       if (c->pi->info.removable_status == status_system_update_unremovable)
 	annoy_user (_("ai_ni_error_system"), up_end, c);
-      if (c->pi->info.removable_status == status_needed)
+      else if (c->pi->info.removable_status == status_needed)
 	annoy_user_with_details (_("ai_ni_error_uninstall_packagesneeded"),
 				 c->pi, remove_details, up_end, c);
       else
