@@ -96,23 +96,12 @@ pop_dialog_parent (GtkWidget *w)
   }
 }
 
-static void
-operation_in_progress_response (GtkDialog *dialog,
-				gint response, gpointer clos)
-{
-  gtk_widget_destroy (GTK_WIDGET (dialog));
-}
-
 bool
 start_interaction_flow (GtkWidget *w)
 {
   if (dialog_parents)
     {
-      GtkWidget *dialog = hildon_note_new_information 
-	(GTK_WINDOW (w), _("Operation in progress"));
-      g_signal_connect (dialog, "response",
-			G_CALLBACK (operation_in_progress_response), NULL);
-      gtk_widget_show_all (dialog);
+      irritate_user (_("Operation in progress"));
       return false;
     }
 
@@ -276,7 +265,6 @@ ask_yes_no_with_arbitrary_details (const gchar *title,
   gtk_widget_show_all (dialog);
 }
 
-static bool currently_annoying_user = false;
 struct auwc_closure {
   void (*cont) (void *);
   void *data;
@@ -289,7 +277,7 @@ annoy_user_response (GtkDialog *dialog, gint response, gpointer data)
 
   pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
-  currently_annoying_user = false;
+
   if (closure_data != NULL) 
     {
       if (closure_data->cont != NULL)
@@ -298,21 +286,9 @@ annoy_user_response (GtkDialog *dialog, gint response, gpointer data)
     }
 }
 
-void annoy_user (const gchar *text) {
-  annoy_user_with_cont(text, NULL, NULL);
-}
-
 void
-annoy_user_with_cont (const gchar *text, void (*cont) (void *data), void *data)
+annoy_user (const gchar *text, void (*cont) (void *data), void *data)
 {
-
-  if (currently_annoying_user) 
-    {
-      if (cont != NULL)
-	cont(data);
-      return;
-    }
-
   GtkWidget *dialog;
   auwc_closure * closure_data = new auwc_closure;
 
@@ -323,7 +299,6 @@ annoy_user_with_cont (const gchar *text, void (*cont) (void *data), void *data)
   g_signal_connect (dialog, "response", 
 		    G_CALLBACK (annoy_user_response), closure_data);
   gtk_widget_show_all (dialog);
-  currently_annoying_user = true;
 }
 
 struct auwd_closure {
@@ -351,19 +326,12 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
     {
       pop_dialog_parent (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
-      currently_annoying_user = false;
       if (c->pi)
 	c->pi->unref ();
       if (c->cont)
 	c->cont(c->data);
       delete c;
     }
-}
-
-void annoy_user_with_details (const gchar *text,
-			      package_info *pi, detail_kind kind)
-{
-  annoy_user_with_details_with_cont (text, pi, kind, NULL, NULL);
 }
 
 static void
@@ -373,9 +341,6 @@ annoy_user_with_details_1 (const gchar *text,
 			   void (*cont) (void *data),
 			   void *data)
 {
-  if (currently_annoying_user)
-    return;
-
   GtkWidget *dialog;
   auwd_closure *c = new auwd_closure;
 
@@ -408,14 +373,13 @@ annoy_user_with_details_1 (const gchar *text,
   g_signal_connect (dialog, "response", 
 		    G_CALLBACK (annoy_user_with_details_response), c);
   gtk_widget_show_all (dialog);
-  currently_annoying_user = true;
 }
 
 void
-annoy_user_with_details_with_cont (const gchar *text,
-				   package_info *pi, detail_kind kind,
-				   void (*cont) (void *data),
-				   void *data)
+annoy_user_with_details (const gchar *text,
+			 package_info *pi, detail_kind kind,
+			 void (*cont) (void *data),
+			 void *data)
 {
   annoy_user_with_details_1 (text,
 			     NULL,
@@ -448,7 +412,6 @@ annoy_user_with_log_response (GtkDialog *dialog, gint response,
 {
   pop_dialog_parent (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
-  currently_annoying_user = false;
 
   if (response == 1)
     show_log ();
@@ -457,9 +420,6 @@ annoy_user_with_log_response (GtkDialog *dialog, gint response,
 void
 annoy_user_with_log (const gchar *text)
 {
-  if (currently_annoying_user)
-    return;
-
   GtkWidget *dialog;
 
   dialog = hildon_note_new_information (get_dialog_parent (), text);
@@ -471,7 +431,6 @@ annoy_user_with_log (const gchar *text)
   g_signal_connect (dialog, "response", 
 		    G_CALLBACK (annoy_user_with_log_response), NULL);
   gtk_widget_show_all (dialog);
-  currently_annoying_user = true;
 }
 
 void
@@ -496,29 +455,38 @@ annoy_user_with_errno (int err, const gchar *detail,
   else
     msg = _("ai_ni_operation_failed");
   
-  annoy_user_with_cont (msg, cont, data);
+  annoy_user (msg, cont, data);
 }
 
 void
-annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail)
+annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail,
+				  void (*cont) (void *), void *data)
 {
   add_log ("%s: %s\n", detail, gnome_vfs_result_to_string (result));
 
   if (result == GNOME_VFS_ERROR_NAME_TOO_LONG)
-    irritate_user (dgettext ("hildon-common-strings",
-			     "file_ib_name_too_long"));
+    {
+      irritate_user (dgettext ("hildon-common-strings",
+			       "file_ib_name_too_long"));
+      cont (data);
+    }
   else if (result == GNOME_VFS_ERROR_ACCESS_DENIED
 	   || result == GNOME_VFS_ERROR_NOT_PERMITTED)
-    irritate_user (dgettext ("hildon-fm",
-			  "sfil_ib_saving_not_allowed"));
+    {
+      irritate_user (dgettext ("hildon-fm",
+			       "sfil_ib_saving_not_allowed"));
+      cont (data);
+    }
   else if (result == GNOME_VFS_ERROR_NOT_FOUND)
     annoy_user (dgettext ("hildon-common-strings",
-			  "sfil_ni_cannot_continue_target_folder_deleted"));
+			  "sfil_ni_cannot_continue_target_folder_deleted"),
+		cont, data);
   else if (result == GNOME_VFS_ERROR_NO_SPACE)
     annoy_user (dgettext ("hildon-common-strings",
-			  "sfil_ni_not_enough_memory"));
+			  "sfil_ni_not_enough_memory"),
+		cont, data);
   else
-    annoy_user (_("ai_ni_operation_failed"));
+    annoy_user (_("ai_ni_operation_failed"), cont, data);
 }
 
 void
@@ -526,6 +494,12 @@ irritate_user (const gchar *text)
 {
   hildon_banner_show_information (GTK_WIDGET (get_dialog_parent ()),
 				  NULL, text);
+}
+
+void
+what_the_fock_p ()
+{
+  irritate_user (_("ai_ni_operation_failed"));
 }
 
 void
@@ -2361,9 +2335,9 @@ call_copy_cont (GnomeVFSResult result)
       
       if (result == GNOME_VFS_ERROR_IO)
 	{
-	  annoy_user_with_cont (dgettext ("hildon-common-strings",
-					  "sfil_ni_cannot_open_no_connection"),
-				fail_copy_cont, NULL);
+	  annoy_user (dgettext ("hildon-common-strings",
+				"sfil_ni_cannot_open_no_connection"),
+		      fail_copy_cont, NULL);
 	}
       else if (result == GNOME_VFS_ERROR_CANCELLED)
 	{
@@ -2372,8 +2346,8 @@ call_copy_cont (GnomeVFSResult result)
 	}
       else if (result != GNOME_VFS_OK)
 	{
-	  annoy_user_with_cont (_("ai_ni_operation_failed"),
-				fail_copy_cont, NULL);
+	  annoy_user (_("ai_ni_operation_failed"),
+		      fail_copy_cont, NULL);
 	}
     }
 }
@@ -2727,7 +2701,7 @@ iap_callback (ConIcConnection *connection,
 
     default:
       add_log ("ConIc Error: unexpected event type\n");
-      annoy_user (_("ai_ni_operation_failed"));
+      what_the_fock_p ();
       break;
     }
 
@@ -2765,7 +2739,7 @@ ensure_network (void (*callback) (bool success, void *data), void *data)
   else
     add_log ("con_ic_connection_connect failed\n");
 
-  annoy_user (_("ai_ni_operation_failed"));
+  what_the_fock_p ();
   ensure_network_cont (false);
 }
 

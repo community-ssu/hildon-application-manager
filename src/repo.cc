@@ -140,7 +140,7 @@ get_catalogues_callback (int cmd,
     }
   else
     {
-      annoy_user (_("ai_ni_operation_failed"));
+      what_the_fock_p ();
       xexp_free (x);
       c->cont (NULL, c->data);
     }
@@ -177,7 +177,7 @@ set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (!success)
     {
       if (dec)
-	annoy_user_with_log (_("ai_ni_operation_failed"));
+	what_the_fock_p ();
       c->cont (false, c->data);
       delete c;
       return;

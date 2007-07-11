@@ -775,7 +775,7 @@ get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
   if (dec == NULL)
     ;
   else if (dec->decode_int () == 0)
-    annoy_user_with_log (_("ai_ni_operation_failed"));
+    what_the_fock_p ();
   else
     {
       section_info *all_si = new section_info;
@@ -861,7 +861,7 @@ get_package_list_reply_temp (int cmd, apt_proto_decoder *dec, void *data)
   if (dec == NULL)
     ;
   else if (dec->decode_int () == 0)
-    annoy_user_with_log (_("ai_ni_operation_failed"));
+    what_the_fock_p ();
   else
     {
 
@@ -1333,8 +1333,7 @@ rpc_show_report (void *data)
     {
       /* User has cancelled.  We don't provide any more details.
        */
-      annoy_user_with_cont (_("ai_ni_update_list_cancelled"),
-			    rpc_report_done, c);
+      annoy_user (_("ai_ni_update_list_cancelled"), rpc_report_done, c);
     }
   else if (c->result_code == rescode_failure
 	   && c->catalogue_report == NULL)
@@ -1350,8 +1349,7 @@ rpc_show_report (void *data)
       /* Operation was started but failed because of some global
 	 reason.  No error message has yet been displayed.
       */
-      annoy_user_with_cont (_("Unable to refresh list."),
-			    rpc_report_done, c);
+      annoy_user (_("Unable to refresh list."), rpc_report_done, c);
     }
   else if (c->result_code == rescode_partial_success)
     {
@@ -1944,7 +1942,7 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (!success)
     {
-      annoy_user_with_log (_("ai_ni_operation_failed"));
+      what_the_fock_p ();
       return;
     }
 
@@ -2069,7 +2067,7 @@ install_named_package (int state, const char *package,
   find_package_in_lists (state, &p, package);
 
   if (p == NULL)
-    annoy_user_with_cont (_("ai_ni_error_download_missing"), cont, data);
+    annoy_user (_("ai_ni_error_download_missing"), cont, data);
   else
     {
       package_info *pi = (package_info *) p->data;
@@ -2077,7 +2075,7 @@ install_named_package (int state, const char *package,
 	{
 	  char *text = g_strdup_printf (_("ai_ni_package_installed"),
 					package);
-	  annoy_user_with_cont (text, cont, data);
+	  annoy_user (text, cont, data);
 	  pi->unref ();
 	  g_free (text);
 	}
@@ -2214,15 +2212,10 @@ restore_packages_flow ()
       g_free (filename);
       
       if (backup)
-	{
-	  refresh_package_cache_with_cont (APTSTATE_DEFAULT, false,
-					   rp_restore, backup);
-	}
+	refresh_package_cache_with_cont (APTSTATE_DEFAULT, false,
+					 rp_restore, backup);
       else
-	{
-	  annoy_user_with_cont (_("ai_ni_operation_failed"),
-				rp_end, backup);
-	}
+	annoy_user (_("ai_ni_operation_failed"), rp_end, backup);
     }
 }
 
@@ -2819,7 +2812,7 @@ main (int argc, char **argv)
   set_toolbar_visibility (false, normal_toolbar);
 
   if (!start_apt_worker (apt_worker_prog))
-    annoy_user (_("ai_ni_operation_failed"));
+    what_the_fock_p ();
 
   apt_worker_set_status_callback (apt_status_callback, NULL);
 

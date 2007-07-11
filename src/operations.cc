@@ -280,7 +280,7 @@ install_packages (GList *packages,
 
   if (c->packages == NULL)
     {
-      annoy_user_with_cont ("Nothing to install", ip_end, c);  // XXX-L10N
+      annoy_user (_("Nothing to install"), ip_end, c);  // XXX-L10N
       return;
     }
 
@@ -470,8 +470,8 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
 		    "Continue anyway", "Stop",
 		    ip_legalese_response, c);
       else
-	annoy_user_with_cont (_("Trusted upgrade path broken"),
-			      ip_end, c);
+	annoy_user (_("Trusted upgrade path broken"),
+		    ip_end, c);
     }
   else if (some_not_certfied)
     scare_user_with_legalese (false, ip_legalese_response, c);
@@ -533,7 +533,7 @@ ip_install_loop (ip_clos *c)
 					    ? _("ai_ni_update_successful")
 					    : _("ai_ni_install_successful")),
 					   pi->get_display_name (false));
-	      annoy_user_with_cont (str, ip_end, c);
+	      annoy_user (str, ip_end, c);
 	      g_free (str);
 	    }
 	  else
@@ -543,7 +543,7 @@ ip_install_loop (ip_clos *c)
 					   "ai_ni_multiple_installs", 
 					   c->n_successful),
 				 c->n_successful);
-	      annoy_user_with_cont (str, ip_end, c);
+	      annoy_user (str, ip_end, c);
 	      g_free (str);
 	    }
 	}
@@ -602,8 +602,8 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
       else if (pi->info.install_flags & pkgflag_close_apps)
 	{
 	  // XXX - L10N
-	  annoy_user_with_cont (_("You should close all Applications now."),
-				ip_install_cur, c);
+	  annoy_user (_("You should close all Applications now."),
+		      ip_install_cur, c);
 	}
       else
 	{
@@ -664,7 +664,7 @@ ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (success)
     ip_check_upgrade_loop (c);
   else
-    annoy_user_with_cont (_("ai_ni_operation_failed"), ip_end, c);
+    annoy_user (_("ai_ni_operation_failed"), ip_end, c);
 }
 
 static void
@@ -918,8 +918,7 @@ ip_end (void *data)
   save_backup_data ();
 
   if (c->reboot)
-    annoy_user_with_cont (_("You should reboot now"),
-			  c->cont, c->data);
+    annoy_user (_("You should reboot now"), c->cont, c->data);
   else
     c->cont (c->data);
   delete c;
@@ -1056,7 +1055,7 @@ up_checkrm_cmd_done (int status, void *data)
       char *str =
 	g_strdup_printf (_("ai_ni_error_uninstall_applicationrunning"),
 			 c->pi->get_display_name (true));
-      annoy_user_with_cont (str, up_end, c);
+      annoy_user (str, up_end, c);
       g_free (str);
     }
   else
@@ -1085,18 +1084,15 @@ up_remove (up_clos *c)
   else
     {
       if (c->pi->info.removable_status == status_system_update_unremovable)
-	annoy_user_with_cont
-	  (_("ai_ni_error_system"), up_end, c);
+	annoy_user (_("ai_ni_error_system"), up_end, c);
       if (c->pi->info.removable_status == status_needed)
-	annoy_user_with_details_with_cont
-	  (_("ai_ni_error_uninstall_packagesneeded"),
-	   c->pi, remove_details, up_end, c);
+	annoy_user_with_details (_("ai_ni_error_uninstall_packagesneeded"),
+				 c->pi, remove_details, up_end, c);
       else
 	{
 	  char *str = g_strdup_printf (_("ai_ni_error_uninstallation_failed"),
 				       c->pi->get_display_name (true));
-	  annoy_user_with_details_with_cont (str, c->pi, remove_details,
-					     up_end, c);
+	  annoy_user_with_details (str, c->pi, remove_details, up_end, c);
 	  g_free (str);
 	}
     }
@@ -1123,14 +1119,14 @@ up_remove_reply (int cmd, apt_proto_decoder *dec, void *data)
     {
       char *str = g_strdup_printf (_("ai_ni_uninstall_successful"),
 				   c->pi->get_display_name (true));
-      annoy_user_with_cont (str, up_end, c);
+      annoy_user (str, up_end, c);
       g_free (str);
     }
   else
     {
       char *str = g_strdup_printf (_("ai_ni_error_uninstallation_failed"),
 				   c->pi->get_display_name (true));
-      annoy_user_with_cont (str, up_end, c);
+      annoy_user (str, up_end, c);
       g_free (str);
     }
 }
@@ -1341,7 +1337,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 				   ? _("ai_ni_update_successful")
 				   : _("ai_ni_install_successful"),
 				   c->pi->get_display_name (false));
-      annoy_user_with_cont (str, if_end, c);
+      annoy_user (str, if_end, c);
       g_free (str);
     }
   else
@@ -1357,7 +1353,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 			       : _("ai_ni_error_installation_failed"),
 			       c->pi->get_display_name (false));
 
-      annoy_user_with_cont (msg, if_end, c);
+      annoy_user (msg, if_end, c);
       g_free (msg);
     }
 }
@@ -1373,10 +1369,9 @@ if_fail (bool res, void *data)
       bool with_details;
       installable_status_to_message (c->pi, msg, with_details);
       if (with_details)
-	annoy_user_with_details_with_cont (msg, c->pi, install_details, 
-					   if_end, c);
+	annoy_user_with_details (msg, c->pi, install_details, if_end, c);
       else
-	annoy_user_with_cont (msg, if_end, c);
+	annoy_user (msg, if_end, c);
       g_free (msg);
     }
   else

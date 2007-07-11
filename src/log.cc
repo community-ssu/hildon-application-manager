@@ -45,6 +45,14 @@ enum {
 };
 
 static void
+save_log_cont_2 (void *data)
+{
+  char *uri = (char *)data;
+
+  g_free (uri);
+}
+
+static void
 save_log_cont (bool res, void *data)
 {
   char *uri = (char *)data;
@@ -60,7 +68,8 @@ save_log_cont (bool res, void *data)
 				 0644);
 
       if (result != GNOME_VFS_OK)
-	annoy_user_with_gnome_vfs_result (result, uri);
+	annoy_user_with_gnome_vfs_result (result, uri,
+					  save_log_cont_2, uri);
       else
 	{
 	  bool success = true;
@@ -72,7 +81,8 @@ save_log_cont (bool res, void *data)
 					NULL);
 	      if (result != GNOME_VFS_OK)
 		{
-		  annoy_user_with_gnome_vfs_result (result, uri);
+		  annoy_user_with_gnome_vfs_result (result, uri,
+						    save_log_cont_2, uri);
 		  success = false;
 		}
 	    }
@@ -80,17 +90,21 @@ save_log_cont (bool res, void *data)
 	  result = gnome_vfs_close (handle);
 	  if (result != GNOME_VFS_OK)
 	    {
-	      annoy_user_with_gnome_vfs_result (result, uri);
+	      annoy_user_with_gnome_vfs_result (result, uri,
+						save_log_cont_2, uri);
 	      success = false;
 	    }
 
 	  if (success)
-	    irritate_user (dgettext ("hildon-common-strings",
-				     "sfil_ib_saved"));
+	    {
+	      irritate_user (dgettext ("hildon-common-strings",
+				       "sfil_ib_saved"));
+	      save_log_cont_2 (uri);
+	    }
 	}
     }
-  
-  g_free (uri);
+  else
+    save_log_cont_2 (uri);
 }
 
 static void
@@ -114,8 +128,8 @@ save_log (char *uri, void *data)
     }
   else if (result != GNOME_VFS_ERROR_NOT_FOUND)
     {
-      annoy_user_with_gnome_vfs_result (result, uri);
-      g_free (uri);
+      annoy_user_with_gnome_vfs_result (result, uri,
+					save_log_cont_2, uri);
     }
   else
     save_log_cont (true, uri);

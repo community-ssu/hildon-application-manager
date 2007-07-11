@@ -48,7 +48,7 @@ annoy_user_with_gerror (const char *filename, GError *error,
 {
   add_log ("%s: %s\n", filename, error->message);
   g_error_free (error);
-  annoy_user_with_cont (_("ai_ni_operation_failed"), cont, data);
+  annoy_user (_("ai_ni_operation_failed"), cont, data);
 }
 
 static xexp *
@@ -347,7 +347,7 @@ execute_add_catalogues (GKeyFile *keyfile, const char *entry,
   
   if (catalogues == NULL)
     {
-      annoy_user_with_cont (_("ai_ni_operation_failed"), cont, data);
+      annoy_user (_("ai_ni_operation_failed"), cont, data);
       return;
     }
 
@@ -357,8 +357,7 @@ execute_add_catalogues (GKeyFile *keyfile, const char *entry,
 	 to begin with, which we treat the same).  That means that
 	 this installation script was not for us.
       */
-      annoy_user_with_cont (_("ai_ni_error_install_incompatible"),
-			    cont, data);
+      annoy_user (_("ai_ni_error_install_incompatible"), cont, data);
       xexp_free (catalogues);
       return;
     }
@@ -424,8 +423,8 @@ execute_install_package (GKeyFile *keyfile, const char *entry,
 	     this installation script was not for us.
 	  */
 	  xexp_free (catalogues);
-	  annoy_user_with_cont (_("ai_ni_error_install_incompatible"),
-				cont, data);
+	  annoy_user (_("ai_ni_error_install_incompatible"),
+		      cont, data);
 	  return;
 	}
 
@@ -494,7 +493,7 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
       xexp_free (card_catalogues);
       xexp_free (perm_catalogues);
       g_strfreev (packages);
-      annoy_user_with_cont (_("ai_ni_operation_failed"), cont, data);
+      annoy_user (_("ai_ni_operation_failed"), cont, data);
       return;
     }
 
@@ -544,7 +543,6 @@ open_local_install_instructions (const char *filename,
     {
       g_key_file_free (keyfile);
       add_log ("Unrecognized .install file variant\n");
-      annoy_user_with_cont (_("ai_ni_operation_failed"),
-			    cont, data);
+      annoy_user (_("ai_ni_operation_failed"), cont, data);
     }
 }

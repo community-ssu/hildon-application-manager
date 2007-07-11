@@ -91,22 +91,20 @@ GtkWindow *get_dialog_parent ();
   ANNOY_USER_WITH_DETAILS is like annoy_user but adds a "Details"
   button like ask_yes_no_with_details.
 
-  ANNOY_USER_WITH_LOG is the same as annoy_user.  It used to add a
-  "Log" button that would open the log dialog.  This "Log" button is
-  no longer used in order not to push the scary log into the face of
-  the user too much.  The code, however, still uses
-  annoy_user_with_log in preference to annoy_user when showing an
-  error message where the log is expected to contain more details.
-
   ANNOY_USER_WITH_ERRNO shows a notification that is appropriate for
   the given errno value ERR.  The DETAIL string will be put into the
   Log together with a detailed error message.
 
-  If a 'annoy_user' dialog is already active when any of the
-  annoy_user function is called, no new dialog is displayed.
+  ANNOY_USER_WITH_GNOME_VFS_RESULT does the same for a GnomeVFSResult
+  code instead of a errno code.
 
   IRRITATE_USER shows TEXT in a information banner which goes away
   automatically after a certain time.
+
+  WHAT_THE_FOCK_P irritates the user with a general "Operation failed"
+  message.  Details should appear in the log.  It should be used when
+  a situation has occured that can not reasonably explained to the
+  user, such as the apt-worker returning out-of-sequence replies.
 
   SCARE_USER_WITH_LEGALESE shows one of two legal disclaimers,
   depending on the SURE parameter.  When SURE is true, the disclaimer
@@ -136,25 +134,23 @@ void ask_yes_no_with_arbitrary_details (const gchar *title,
 					void (*details) (void *data),
 					void *data);
 
-void annoy_user (const gchar *text);
-void annoy_user_with_cont (const gchar *text, void (*cont) (void *data), void *data);
+void annoy_user (const gchar *text, void (*cont) (void *data), void *data);
 void annoy_user_with_details (const gchar *text,
-			      package_info *pi, detail_kind kind);
-void annoy_user_with_details_with_cont (const gchar *text,
-					package_info *pi, detail_kind kind,
-					void (*cont) (void *data), void *data);
+			      package_info *pi, detail_kind kind,
+			      void (*cont) (void *data), void *data);
 void annoy_user_with_arbitrary_details (const gchar *text,
 					void (*details) (void *data),
 					void (*cont) (void *data),
 					void *data);
 
-void annoy_user_with_log (const gchar *text);
 void annoy_user_with_errno (int err, const gchar *detail,
 			    void (*cont) (void *), void *data);
 void annoy_user_with_gnome_vfs_result (GnomeVFSResult result,
-				       const gchar *detail);
+				       const gchar *detail,
+				       void (*cont) (void *), void *data);
 
 void irritate_user (const gchar *text);
+void what_the_fock_p ();
 
 void scare_user_with_legalese (bool sure,
 			       void (*cont) (bool res, void *data),

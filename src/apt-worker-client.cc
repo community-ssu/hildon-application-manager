@@ -202,7 +202,7 @@ notice_apt_worker_failure ()
 
   cancel_all_pending_requests ();
 
-  annoy_user_with_log (_("ai_ni_operation_failed"));
+  what_the_fock_p ();
 }
 
 static void
@@ -403,7 +403,7 @@ send_apt_worker_cmd (int cmd)
 				pending[cmd].data,
 				pending[cmd].len))
     {
-      annoy_user_with_log (_("ai_ni_operation_failed"));
+      what_the_fock_p ();
       cancel_request (cmd);
     }
 }
@@ -601,13 +601,18 @@ struct awuc_closure {
 
 
 static void
+apt_worker_update_cache_cont_2 (void *clos)
+{
+  awuc_closure *c = (awuc_closure *)clos;
+
+  c->callback (APTCMD_UPDATE_PACKAGE_CACHE, NULL, c->data);
+  delete c;
+}
+
+static void
 apt_worker_update_cache_cont (bool success, void *clos)
 {
   awuc_closure *c = (awuc_closure *)clos;
-  apt_worker_callback *callback = c->callback;
-  void *data = c->data;
-  int state = c->state;
-  delete c;
 
   if (success)
     {
@@ -622,14 +627,15 @@ apt_worker_update_cache_cont (bool success, void *clos)
       request.encode_string (https_proxy);
       g_free (https_proxy);
 
-      call_apt_worker (APTCMD_UPDATE_PACKAGE_CACHE, state, 
+      call_apt_worker (APTCMD_UPDATE_PACKAGE_CACHE, c->state, 
 		       request.get_buf (), request.get_len (),
-		       callback, data);
+		       c->callback, c->data);
+      delete c;
     }
   else
     {
-      annoy_user_with_log (_("ai_ni_update_list_not_successful"));
-      callback (APTCMD_UPDATE_PACKAGE_CACHE, NULL, data);
+      annoy_user (_("ai_ni_update_list_not_successful"),
+		  apt_worker_update_cache_cont_2, c);
     }
 }
 
