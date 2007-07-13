@@ -448,6 +448,7 @@ struct card_install_closure {
   xexp *card_catalogues;
   xexp *perm_catalogues;
   gchar **packages;
+  bool automatic;
   void (*cont) (void *);
   void *data;
 };
@@ -459,7 +460,7 @@ execute_card_install_cont (bool res, void *data)
 
   if (res)
     install_named_packages (APTSTATE_TEMP, (const char **)c->packages,
-			    INSTALL_TYPE_MEMORY_CARD,
+			    INSTALL_TYPE_MEMORY_CARD, c->automatic,
 			    c->cont, c->data);
   else
     c->cont (c->data);
@@ -516,6 +517,7 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
   c->card_catalogues = card_catalogues;
   c->perm_catalogues = perm_catalogues;
   c->packages = packages;
+  c->automatic = g_str_has_suffix (filename, "/.auto.install");
   c->cont = cont;
   c->data = data;
 

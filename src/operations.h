@@ -48,9 +48,12 @@ enum {
 
 /* PACKAGES is a list of package_info pointers.  The list and the
    package_info structures must remain valid until CONT is called.
+   AUTOMATIC should be true if the installation has been initiated
+   from a ".auto.install" file.
 */
 void install_packages (GList *packages,
 		       int state, int install_type,
+		       bool automatic,
 		       void (*cont) (void *data), void *data);
 
 /* Calls INSTALL_PACKAGES with a single package, APTSTATE_DEFAULT and

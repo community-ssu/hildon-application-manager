@@ -111,7 +111,8 @@ void do_current_operation ();
 
 void install_named_package (int state, const char *package,
 			    void (*cont) (void *data), void *data);
-void install_named_packages (int state, const char **package, int install_type,
+void install_named_packages (int state, const char **package,
+			     int install_type, bool automatic,
 			     void (*cont) (void *data), void *data);
 
 void refresh_package_cache (int state, 

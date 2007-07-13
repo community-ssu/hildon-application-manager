@@ -2112,7 +2112,8 @@ install_named_package (int state, const char *package,
 }
 
 void
-install_named_packages (int state, const char **packages, int install_type,
+install_named_packages (int state, const char **packages,
+			int install_type, bool automatic,
 			void (*cont) (void *data), void *data)
 {
   GList *package_list = NULL;
@@ -2149,7 +2150,7 @@ install_named_packages (int state, const char **packages, int install_type,
     }
   
   install_packages (package_list,
-		    state, install_type,
+		    state, install_type, automatic,
 		    cont, data);
 }
 
@@ -2256,7 +2257,8 @@ rp_restore (bool res, void *data)
       p = xexp_rest (p);
     }
   names[i] = NULL;
-  install_named_packages (APTSTATE_DEFAULT, names, INSTALL_TYPE_BACKUP,
+  install_named_packages (APTSTATE_DEFAULT, names,
+			  INSTALL_TYPE_BACKUP, false,
 			  rp_end, backup);
   delete names;
 }
@@ -2318,8 +2320,8 @@ us_get_system_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
     }
   packages[i] = NULL;
 
-  install_named_packages (APTSTATE_DEFAULT,
-			  (const char**)packages, INSTALL_TYPE_UPDATE_SYSTEM,
+  install_named_packages (APTSTATE_DEFAULT, (const char**)packages,
+			  INSTALL_TYPE_UPDATE_SYSTEM, false,
 			  us_end, data);
 }
 

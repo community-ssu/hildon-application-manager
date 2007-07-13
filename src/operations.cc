@@ -183,6 +183,7 @@ installable_status_to_message (package_info *pi,
 struct ip_clos {
   int install_type;
   int state;
+  bool automatic;
 
   GList *all_packages;   // all packages given to install_packages
   GList *packages;       // the ones that are not installed or uptodate
@@ -241,19 +242,21 @@ install_package (package_info *pi,
 		 void (*cont) (void *), void *data)
 {
   install_packages (g_list_prepend (NULL, pi),
-		    APTSTATE_DEFAULT, INSTALL_TYPE_STANDARD,
+		    APTSTATE_DEFAULT, INSTALL_TYPE_STANDARD, false,
 		    cont, data);
 }
 
 void
 install_packages (GList *packages,
 		  int state, int install_type,
+		  bool automatic,
 		  void (*cont) (void *), void *data)
 {
   ip_clos *c = new ip_clos;
 
   c->install_type = install_type;
   c->state = state;
+  c->automatic = automatic;
   c->all_packages = packages;
   c->cont = cont;
   c->data = data;
@@ -351,8 +354,19 @@ ip_select_package_response (gboolean res, GList *selected_packages,
 {
   ip_clos *c = (ip_clos *)data;
 
-  if (!res || selected_packages == NULL)
-    ip_end (c);
+  if (!res)
+    {
+      if (c->install_type == INSTALL_TYPE_MEMORY_CARD
+	  && c->automatic)
+	annoy_user (_("ai_ni_memory_cancelled"),
+		    ip_end, c);
+      else
+	ip_end (c);
+    }
+  else if (selected_packages == NULL)
+    {
+      ip_end (c);
+    }
   else
     {
       g_list_free (c->packages);
