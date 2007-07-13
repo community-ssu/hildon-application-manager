@@ -1,4 +1,60 @@
+2007-07-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/repo.cc (cat_response): Construct new catalogue with proper
+	defaults (N62712).
+
+	* src/menu.h, src/menu.cc (add_item_with_shortcut): New.
+	(create_menu): Expect HildonWindow as parameter and create/set the
+	main menu item here.  Use add_item_with_shortcut for "Close"
+	(N61571).
+	* src/main.cc (main): Adapted to change above.
+
+	* src/main.cc (install_from_file_cont): Correctly end the
+	interaction flow when the file chooser has been cancelled
+	(N61223).
+
+	* src/operations.cc (install_packages): Use correct logical id
+	instead of "Nothing to install" (N54795).
+
+	* src/main.cc (rpc_do_it): Only call ensure_network for the
+	default state (N54792).
+
+	* src/operations.cc (install_packages): Added 'automatic'
+	parameter so that we can show the 'memory card install cancelled'
+	information note appropriately.
+	* src/main.cc (install_named_packages): Likewise.
+	* src/instr.cc (execute_card_install): Check filename for
+	".auto.install" and call install_packages accordingly (N54791).
+
+	* src/apt-worker-client.cc (apt_worker_update_cache,
+	apt_worker_install_package): Do not call ensure_network.
+	* src/main.cc (rpc_do_it): Do it here.
+
+	* src/util.cc (call_copy_cont): Only call stop_entertaining_user
+	when start_entertaining_user has been called previously.
+
+	* src/instr.cc (convert_compatibility_catalogues): Handle NULL
+	results from convert_compatibility_catalogue (N60798).
+
 2007-07-11  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (set_toolbar_visibility,
+	rpc_maybe_get_package_list): Call save_state instead of
+	save_settings (N46509).
+
+	* src/settings.cc (load_state, save_state): New, to store
+	persistent state in a non-backed-up location.
+	(save_settings, load_settings): Don't load and save state
+	variables.
+	(open_user_file): New, generalized from open_settings_file.
+	(open_settings_file): Removed.  Updated all callers to use
+	open_user_file instead.
+	* src/main.cc (set_toolbar_visibility,
+	rpc_maybe_get_package_list): Call save_state instead of
+	save_settings.
+
+	* src/util.cc (copy_progress): Return "!copy_cancel_requested"
+	instead of "copy_cancel_requested" to keep the copy going, stupid.
 
 	* src/util.h, src/util.cc (reset_global_target_path): New.
 	* src/main.cc (view_clicked): Call it so that the first package
@@ -84,7 +140,7 @@
 	* src/main.cc, src/main.h (get_intermediate_package_list_info):
 	New.
 	* src/util.cc (select_packages_list): Use it so that the sizes in
-	the dialog are right.
+	the dialog are right (N56501).
 	
 2007-07-05  Marius Vollmer  <marius.vollmer@nokia.com>
 
