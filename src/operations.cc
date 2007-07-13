@@ -283,7 +283,7 @@ install_packages (GList *packages,
 
   if (c->packages == NULL)
     {
-      annoy_user (_("Nothing to install"), ip_end, c);  // XXX-L10N
+      annoy_user (_("ai_ni_all_installed"), ip_end, c);
       return;
     }
 
