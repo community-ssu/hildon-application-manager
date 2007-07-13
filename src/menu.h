@@ -25,8 +25,9 @@
 #define MENU_H
 
 #include <gtk/gtk.h>
+#include <hildon/hildon-window.h>
 
-void create_menu (GtkMenu *main);
+void create_menu (HildonWindow *window);
 void set_details_menu_sensitive (bool);
 void set_search_menu_sensitive (bool);
 void set_operation_menu_label (const gchar *label, bool sensitive,

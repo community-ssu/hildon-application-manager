@@ -60,6 +60,22 @@ add_item (GtkMenu *menu, const gchar *label, const gchar *insens,
 }
 
 static GtkWidget *
+add_item_with_shortcut (GtkMenu *menu, const gchar *label,
+			const gchar *insens,
+			void (*func)(),
+			GtkAccelGroup *accel_group, guint key)
+{
+  GtkWidget *item = add_item (menu, label, insens, func);
+
+  gtk_widget_add_accelerator (item, "activate",
+			      accel_group,
+			      key, GDK_CONTROL_MASK,
+			      GTK_ACCEL_VISIBLE);
+
+  return item;
+}
+
+static GtkWidget *
 add_check (GtkMenu *menu, const gchar *label, void (*func)())
 {
   GtkWidget *item = gtk_check_menu_item_new_with_label (label);
@@ -193,12 +209,20 @@ call_install_from_file ()
 }
 
 void
-create_menu (GtkMenu *main)
+create_menu (HildonWindow *window)
 {
+  GtkWidget *item;
+  GtkAccelGroup *accel_group;
+
+  accel_group = gtk_accel_group_new ();
+  gtk_window_add_accel_group (GTK_WINDOW (window), accel_group);
+
+  GtkMenu *main = GTK_MENU (gtk_menu_new ());
+  hildon_window_set_menu (window, GTK_MENU (main));
+
   GtkMenu *packages = add_menu (main, _("ai_me_package"));
   GtkMenu *view = add_menu (main, _("ai_me_view"));
   GtkMenu *tools = add_menu (main, _("ai_me_tools"));
-  GtkWidget *item;
 
   operation_menu_item = add_item (packages, "", NULL, do_current_operation);
   g_signal_connect (operation_menu_item, "insensitive_press",
@@ -258,9 +282,10 @@ create_menu (GtkMenu *main)
 	    _("ai_me_tools_help"), NULL,
 	    show_help);
 
-  add_item (main,
-	    _("ai_me_close"), NULL,
-	    menu_close);
+  add_item_with_shortcut (main,
+			  _("ai_me_close"), NULL,
+			  menu_close,
+			  accel_group, 'q');
 
   gtk_widget_show_all (GTK_WIDGET (main));
 }

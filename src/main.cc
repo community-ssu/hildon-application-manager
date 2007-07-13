@@ -2842,9 +2842,7 @@ main (int argc, char **argv)
   g_signal_connect (G_OBJECT (window), "realize",
 		    G_CALLBACK (main_window_realized), NULL);
 
-  main_menu = GTK_MENU (gtk_menu_new ());
-  create_menu (main_menu);
-  hildon_window_set_menu (HILDON_WINDOW (window), GTK_MENU (main_menu));
+  create_menu (HILDON_WINDOW (window));
 
   show_view (&main_view);
   set_toolbar_visibility (true, fullscreen_toolbar);
