@@ -309,11 +309,20 @@ convert_compatibility_catalogues (GKeyFile *keyfile, const char *group)
     {
       x = xexp_list_new ("catalogues");
       if (repo_deb_3)
-	xexp_cons (x, convert_compatibility_catalogue (repo_deb_3, "bora",
-						       repo_name));
+	{
+	  xexp *c = convert_compatibility_catalogue (repo_deb_3, "bora",
+						     repo_name);
+	  if (c)
+	    xexp_cons (x, c);
+	}
+
       if (repo_deb)
-	xexp_cons (x, convert_compatibility_catalogue (repo_deb, "mistral",
-						       repo_name));
+	{
+	  xexp *c = convert_compatibility_catalogue (repo_deb, "mistral",
+						     repo_name);
+	  if (c)
+	    xexp_cons (x, c);
+	}
     }
 
   g_free (repo_name);
