@@ -2328,7 +2328,8 @@ fail_copy_cont (void *data)
 static void
 call_copy_cont (GnomeVFSResult result)
 {
-  stop_entertaining_user ();
+  if (copy_local)
+    stop_entertaining_user ();
 
   if (result == GNOME_VFS_OK)
     {
