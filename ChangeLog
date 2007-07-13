@@ -1,5 +1,7 @@
 2007-07-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 1.9.16
+	
 	* src/repo.cc (cat_response): Construct new catalogue with proper
 	defaults (N62712).
 
