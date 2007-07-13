@@ -1198,6 +1198,7 @@ gipl_next (package_info *unused_1, void *data, bool unused_2)
  */
 
 static void rpc_do_it (bool res, void *data);
+static void rpc_with_network (bool success, void *data);
 static void rpc_update_cache_reply (int cmd, apt_proto_decoder *dec,
 				    void *data);
 static void rpc_show_report (void *data);
@@ -1224,6 +1225,12 @@ struct rpc_clos {
 };
 
 void
+refresh_package_cache (int state, bool ask)
+{
+  refresh_package_cache_with_cont (state, ask, NULL, NULL);
+}
+
+void
 refresh_package_cache_with_cont (int state,
 				 bool ask,
 				 void (*cont) (bool res, void *data), 
@@ -1247,12 +1254,6 @@ refresh_package_cache_with_cont (int state,
     rpc_do_it (true, c);
 }
 
-void
-refresh_package_cache (int state, bool ask)
-{
-  refresh_package_cache_with_cont (state, ask, NULL, NULL);
-}
-
 static void
 rpc_do_it (bool res, void *data)
 {
@@ -1266,13 +1267,31 @@ rpc_do_it (bool res, void *data)
 
       start_entertaining_user ();
 
-      apt_worker_update_cache (c->state, rpc_update_cache_reply, c);
+      ensure_network (rpc_with_network, c);
     }
   else
     {
       c->report_done = true;
       c->get_list_done = true;
       rpc_end (c);
+    }
+}
+
+static void
+rpc_with_network (bool success, void *data)
+{
+  rpc_clos *c = (rpc_clos *)data;
+
+  if (success)
+    apt_worker_update_cache (c->state, rpc_update_cache_reply, c);
+  else
+    {
+      c->report_done = true;
+      c->get_list_done = true;
+      stop_entertaining_user ();
+
+      annoy_user (_("No network connection"),
+		  rpc_end, c);
     }
 }
 

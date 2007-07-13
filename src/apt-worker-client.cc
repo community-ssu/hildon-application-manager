@@ -593,61 +593,22 @@ apt_worker_get_package_list (int state,
 		   callback, data);
 }
 
-struct awuc_closure {
-  int state;
-  apt_worker_callback *callback;
-  void *data;
-};
-
-
-static void
-apt_worker_update_cache_cont_2 (void *clos)
-{
-  awuc_closure *c = (awuc_closure *)clos;
-
-  c->callback (APTCMD_UPDATE_PACKAGE_CACHE, NULL, c->data);
-  delete c;
-}
-
-static void
-apt_worker_update_cache_cont (bool success, void *clos)
-{
-  awuc_closure *c = (awuc_closure *)clos;
-
-  if (success)
-    {
-
-      request.reset ();
-
-      char *http_proxy = get_http_proxy ();
-      request.encode_string (http_proxy);
-      g_free (http_proxy);
-
-      char *https_proxy = get_https_proxy ();
-      request.encode_string (https_proxy);
-      g_free (https_proxy);
-
-      call_apt_worker (APTCMD_UPDATE_PACKAGE_CACHE, c->state, 
-		       request.get_buf (), request.get_len (),
-		       c->callback, c->data);
-      delete c;
-    }
-  else
-    {
-      annoy_user (_("ai_ni_update_list_not_successful"),
-		  apt_worker_update_cache_cont_2, c);
-    }
-}
-
 void
 apt_worker_update_cache (int state, apt_worker_callback *callback, void *data)
 {
-  awuc_closure *c = new awuc_closure;
-  c->callback = callback;
-  c->data = data;
-  c->state = state;
-
-  ensure_network (apt_worker_update_cache_cont, c);
+  request.reset ();
+  
+  char *http_proxy = get_http_proxy ();
+  request.encode_string (http_proxy);
+  g_free (http_proxy);
+  
+  char *https_proxy = get_https_proxy ();
+  request.encode_string (https_proxy);
+  g_free (https_proxy);
+  
+  call_apt_worker (APTCMD_UPDATE_PACKAGE_CACHE, state, 
+		   request.get_buf (), request.get_len (),
+		   callback, data);
 }
 
 void
@@ -711,59 +672,24 @@ apt_worker_install_check (int state, const char *package,
 		   callback, data);
 }
 
-struct awip_closure {
-  char *package;
-  bool updating;
-  int state;
-  apt_worker_callback *callback;
-  void *data;
-};
-
-static void
-apt_worker_install_package_cont (bool success, void *clos)
-{
-  awip_closure *c = (awip_closure *)clos;
-  char *package = c->package;
-  apt_worker_callback *callback = c->callback;
-  void *data = c->data;
-  int state = c->state;
-  delete c;
-
-  if (success)
-    {
-      request.reset ();
-      request.encode_string (package);
-
-      char *http_proxy = get_http_proxy ();
-      request.encode_string (http_proxy);
-      g_free (http_proxy);
-
-      char *https_proxy = get_https_proxy ();
-      request.encode_string (https_proxy);
-      g_free (https_proxy);
-
-      call_apt_worker (APTCMD_INSTALL_PACKAGE, state,
-		       request.get_buf (), request.get_len (),
-		       callback, data);
-    }
-  else
-    callback (APTCMD_INSTALL_PACKAGE, NULL, data);
-
-  g_free (package);
-}
-
 void
 apt_worker_install_package (int state, const char *package, bool updating,
 			    apt_worker_callback *callback, void *data)
 {
-  awip_closure *c = new awip_closure;
-  c->package = g_strdup (package);
-  c->callback = callback;
-  c->data = data;
-  c->updating = updating;
-  c->state = state;
-
-  ensure_network (apt_worker_install_package_cont, c);
+  request.reset ();
+  request.encode_string (package);
+  
+  char *http_proxy = get_http_proxy ();
+  request.encode_string (http_proxy);
+  g_free (http_proxy);
+  
+  char *https_proxy = get_https_proxy ();
+  request.encode_string (https_proxy);
+  g_free (https_proxy);
+  
+  call_apt_worker (APTCMD_INSTALL_PACKAGE, state,
+		   request.get_buf (), request.get_len (),
+		   callback, data);
 }
 
 void
