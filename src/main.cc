@@ -1267,7 +1267,18 @@ rpc_do_it (bool res, void *data)
 
       start_entertaining_user ();
 
-      ensure_network (rpc_with_network, c);
+      /* XXX - Only ask for the network when this is for the default
+	       state of the apt-worker.  The temporary state is used
+	       for memory card installs that don't need and don't want
+	       any network.
+
+	       Deciding this here is probably a bit too smart.
+      */
+
+      if (c->state == APTSTATE_DEFAULT)
+	ensure_network (rpc_with_network, c);
+      else
+	rpc_with_network (true, c);
     }
   else
     {
@@ -2363,8 +2374,13 @@ install_from_local_file (char *filename, void *unused)
 static void
 install_from_file_cont (char *uri, void *unused)
 {
-  localize_file_and_keep_it_open (uri, install_from_local_file, NULL);
-  g_free (uri);
+  if (uri)
+    {
+      localize_file_and_keep_it_open (uri, install_from_local_file, NULL);
+      g_free (uri);
+    }
+  else
+    install_from_file_flow_end (NULL);
 }
 
 void
