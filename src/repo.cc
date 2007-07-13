@@ -727,7 +727,9 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
   if (response == REPO_RESPONSE_NEW)
     {
       xexp *x = xexp_list_new ("catalogue");
-      xexp_cons (x, xexp_text_new ("name", ""));
+      xexp_aset_text (x, "name", "");
+      xexp_aset_text (x, "uri", "http://");
+      xexp_aset_text (x, "components", "user");
       show_cat_edit_dialog (c, x, true, false);
       return;
     }
