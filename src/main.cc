@@ -1554,6 +1554,41 @@ install_package_flow (package_info *pi)
     }
 }
 
+struct inpf_clos {
+  const char *package;
+
+  void (*cont) (bool success, void *data);
+  void *data;
+};
+
+static void inpf_end (void *data);
+
+void
+install_named_package_flow (const char *package,
+			    void (*cont) (bool success, void *data),
+			    void *data)
+{
+  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
+    {
+      inpf_clos *c = new inpf_clos;
+      c->cont = cont;
+      c->data = data;
+
+      install_named_package (APTSTATE_DEFAULT, package,
+			     inpf_end, c);
+    }
+}
+
+void
+inpf_end (void *data)
+{
+  inpf_clos *c = (inpf_clos *)data;
+
+  end_interaction_flow (GTK_WIDGET (get_main_window ()));
+  c->cont (true, c->data);
+  delete c;
+}
+
 static void
 install_operation_callback (gpointer data)
 {
@@ -2700,8 +2735,9 @@ connect_mime_open_handler (gpointer data)
   osso_ctxt = osso_initialize ("hildon_application_manager",
 			       PACKAGE_VERSION, TRUE, NULL);
 
-
   osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);
+
+  init_dbus_handlers ();
 
   return FALSE;
 }

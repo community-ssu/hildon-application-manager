@@ -3051,3 +3051,110 @@ get_free_space ()
   printf ("FREE: %Ld\n", res);
   return res;
 }
+
+/* D-Bus
+ */
+
+struct dip_clos {
+  DBusConnection *conn;
+  DBusMessage *message;
+};
+
+static void
+dip_end (bool success, void *data)
+{
+  dip_clos *c = (dip_clos *)data;
+
+  DBusMessage *reply;
+  dbus_int32_t result = success;
+	  
+  reply = dbus_message_new_method_return (c->message);
+  dbus_message_append_args (reply,
+			    DBUS_TYPE_INT32, &result,
+			    DBUS_TYPE_INVALID);
+  
+  dbus_connection_send (c->conn, reply, NULL);
+  dbus_message_unref (reply);
+
+  dbus_message_unref (c->message);
+  dbus_connection_unref (c->conn);
+  delete c;
+}
+
+static DBusHandlerResult 
+dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
+{
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_application_manager",
+				   "install"))
+    {
+      DBusError error;
+
+      dbus_int32_t xid;
+      char *package;
+
+      dbus_error_init (&error);
+      if (dbus_message_get_args (message, &error,
+				 DBUS_TYPE_INT32, &xid,
+				 DBUS_TYPE_STRING, &package,
+				 DBUS_TYPE_INVALID))
+	{
+	  dip_clos *c = new dip_clos;
+
+	  dbus_connection_ref (conn);
+	  c->conn = conn;
+	  dbus_message_ref (message);
+	  c->message = message;
+	  
+	  install_named_package_flow (package, dip_end, c);
+	}
+      else
+	{
+	  DBusMessage *reply;
+	  reply = dbus_message_new_error (message,
+					  DBUS_ERROR_INVALID_ARGS,
+					  error.message);
+	  dbus_connection_send (conn, reply, NULL);
+	  dbus_message_unref (reply);
+	}
+
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+void
+init_dbus_handlers ()
+{
+  DBusError error;
+  DBusConnection *connection;
+
+  dbus_error_init (&error);
+  connection = dbus_bus_get (DBUS_BUS_SESSION, &error);
+  if (connection == NULL)
+    {
+      add_log ("Can't get session dbus: %s", error.message);
+      what_the_fock_p ();
+      return;
+    }
+
+  dbus_connection_setup_with_g_main (connection, NULL);
+
+  if (!dbus_connection_add_filter (connection, dbus_handler, NULL, NULL))
+    {
+      add_log ("Can't add dbus filter");
+      what_the_fock_p ();
+      return;
+    }
+
+  dbus_error_init (&error);
+  if (dbus_bus_request_name (connection,
+			     "com.nokia.hildon_application_manager", 0,
+			     &error) < 0)
+    {
+      fprintf (stderr, "Can't request name on dbus: %s\n", error.message);
+      what_the_fock_p ();
+      return;
+    }
+}

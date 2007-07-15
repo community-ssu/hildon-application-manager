@@ -474,4 +474,6 @@ void grab_focus_on_map (GtkWidget *widget);
  */
 int64_t get_free_space ();
 
+void init_dbus_handlers ();
+
 #endif /* !UTIL_H */
