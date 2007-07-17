@@ -24,6 +24,6 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
-void show_search_dialog ();
+void show_search_dialog_flow ();
 
 #endif /* !SEARCH_H */

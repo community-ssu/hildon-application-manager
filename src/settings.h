@@ -52,8 +52,8 @@ extern bool red_pill_show_magic_sys;
 #define SORT_BY_VERSION 1
 #define SORT_BY_SIZE    2
 
-void show_settings_dialog ();
-void show_sort_settings_dialog ();
+void show_settings_dialog_flow ();
+void show_sort_settings_dialog_flow ();
 
 // Persistent state
 //

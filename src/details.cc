@@ -35,14 +35,8 @@
 
 #define _(x) gettext (x)
 
-struct spd_closure {
-  package_info *pi;
-  detail_kind kind;
-  bool show_problems;
-  int state;
-  void (*cont) (void * data);
-  void *data;
-};
+/* Utilities
+ */
 
 static const char *
 deptype_name (apt_proto_deptype dep)
@@ -233,30 +227,137 @@ add_table_list (GtkWidget *table, int row,
   return row;
 }
 
-struct details_closure {
-  void (*cont) (void *data);
+void
+nicify_description_in_place (char *desc)
+{
+  if (desc == NULL)
+    return;
+
+  /* The nicifications are this:
+     
+     - the first space of a line is removed.
+
+     - if after that a line consists solely of a '.', that dot is
+       removed.
+  */
+
+  char *src = desc, *dst = desc;
+  char *bol = src;
+
+  while (*src)
+    {
+      if (src == bol && *src == ' ')
+	{
+	  src++;
+	  continue;
+	}
+
+      if (*src == '\n')
+	{
+	  if (bol+2 == src && bol[0] == ' ' && bol[1] == '.')
+	    dst--;
+	  bol = src + 1;
+	}
+
+      *dst++ = *src++;
+    }
+
+  *dst = '\0';
+}
+
+/* Show package details
+ */
+
+struct spd_clos {
+  package_info *pi;
+  detail_kind kind;
+  bool show_problems;
+  int state;
+  void (*cont) (void * data);
   void *data;
 };
 
-static void
-details_response (GtkDialog *dialog, gint response, gpointer clos)
+static void spd_with_info (package_info *pi, void *data, bool changed);
+static void spd_details_reply (int cmd, apt_proto_decoder *dec, void *data);
+static void spd_with_details (void *data);
+static void spd_response (GtkDialog *dialog, gint response, gpointer data);
+static void spd_end (void *data);
+
+void
+show_package_details (package_info *pi, detail_kind kind,
+		      bool show_problems, int state,
+		      void (*cont) (void *data), void *data)
 {
-  details_closure * closure = (details_closure *) clos;
-  pop_dialog (GTK_WIDGET (dialog));
-  gtk_widget_destroy (GTK_WIDGET (dialog));
-  if (closure->cont)
-    closure->cont(closure->data);
-  delete closure;
+  spd_clos *c = new spd_clos;
+  c->pi = pi;
+  c->kind = kind;
+  c->show_problems = show_problems;
+  c->state = state;
+  c->cont = cont;
+  c->data = data;
+  pi->ref ();
+  get_intermediate_package_info (pi, false, spd_with_info, c, c->state);
+}
+
+void
+spd_with_info (package_info *pi, void *data, bool changed)
+{
+  spd_clos *c = (spd_clos *)data;
+
+  if (pi->have_detail_kind != c->kind)
+    apt_worker_get_package_details (pi->name, (c->kind == remove_details
+					       ? pi->installed_version
+					       : pi->available_version),
+				    c->kind, c->state,
+				    spd_details_reply, c);
+  else
+    spd_with_details (c);
 }
 
 static void
-show_with_details_with_cont (package_info *pi, bool show_problems,
-			     void (*cont) (void *data), void *data)
+spd_details_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
+  spd_clos *c = (spd_clos *)data;
+
+  if (dec == NULL)
+    {
+      spd_end (c);
+      return;
+    }
+
+  g_free (c->pi->maintainer);
+  g_free (c->pi->description);
+  g_free (c->pi->dependencies);
+
+  c->pi->maintainer = dec->decode_string_dup ();
+  c->pi->description = dec->decode_string_dup ();
+  nicify_description_in_place (c->pi->description);
+
+  c->pi->dependencies = decode_dependencies (dec);
+  if (!red_pill_mode || !red_pill_show_deps)
+    {
+      // Too much information can kill you.
+      g_free (c->pi->dependencies);
+      c->pi->dependencies = NULL;
+    }
+      
+  decode_summary (dec, c->pi, c->kind);
+
+  c->pi->have_detail_kind = c->kind;
+
+  spd_with_details (c);
+}
+
+static void
+spd_with_details (void *data)
+{
+  spd_clos *c = (spd_clos *)data;
+
   GtkWidget *dialog, *notebook;
   GtkWidget *table, *common;
   GtkWidget *summary_table, *summary_tab;
-  details_closure *closure = new details_closure;
+
+  package_info *pi = c->pi;
 
   gchar *status;
 
@@ -466,132 +567,54 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
 				gtk_label_new ("Dependencies"));
     }
 
-  pi->unref ();
-
-  closure->cont = cont;
-  closure->data = data;
   g_signal_connect (dialog, "response",
-		    G_CALLBACK (details_response), closure);
+		    G_CALLBACK (spd_response), c);
 
   gtk_widget_set_usize (dialog, 600, 320);
   gtk_widget_show_all (dialog);
 
-  if (show_problems)
+  if (c->show_problems)
     gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook),
 				   problems_page);
 }
 
-void
-nicify_description_in_place (char *desc)
+static void
+spd_response (GtkDialog *dialog, gint response, gpointer data)
 {
-  if (desc == NULL)
-    return;
+  spd_clos *c = (spd_clos *)data;
 
-  /* The nicifications are this:
-     
-     - the first space of a line is removed.
+  pop_dialog (GTK_WIDGET (dialog));
+  gtk_widget_destroy (GTK_WIDGET (dialog));
 
-     - if after that a line consists solely of a '.', that dot is
-       removed.
-  */
-
-  char *src = desc, *dst = desc;
-  char *bol = src;
-
-  while (*src)
-    {
-      if (src == bol && *src == ' ')
-	{
-	  src++;
-	  continue;
-	}
-
-      if (*src == '\n')
-	{
-	  if (bol+2 == src && bol[0] == ' ' && bol[1] == '.')
-	    dst--;
-	  bol = src + 1;
-	}
-
-      *dst++ = *src++;
-    }
-
-  *dst = '\0';
+  spd_end (c);
 }
 
 static void
-get_package_details_reply (int cmd, apt_proto_decoder *dec, void *clos)
+spd_end (void *data)
 {
-  spd_closure *c = (spd_closure *)clos;
-  package_info *pi = c->pi;
-  detail_kind kind = c->kind;
-  bool show_problems = c->show_problems;
-  void (*cont) (void *data) = c->cont;
-  void *data = c->data;
+  spd_clos *c = (spd_clos *)data;
+  
+  c->pi->unref ();
+  c->cont (c->data);
+
   delete c;
+}
 
-  if (dec == NULL)
-    {
-      pi->unref ();
-      if (cont != NULL) {
-	cont(data);
-      }
-      return;
-    }
+/* Show package details as an interaction flow
+ */
 
-  g_free (pi->maintainer);
-  g_free (pi->description);
-  g_free (pi->dependencies);
+static void spdf_end (void *data);
 
-  pi->maintainer = dec->decode_string_dup ();
-  pi->description = dec->decode_string_dup ();
-  nicify_description_in_place (pi->description);
-
-  pi->dependencies = decode_dependencies (dec);
-  if (!red_pill_mode || !red_pill_show_deps)
-    {
-      // Too much information can kill you.
-      g_free (pi->dependencies);
-      pi->dependencies = NULL;
-    }
-      
-  decode_summary (dec, pi, kind);
-
-  pi->have_detail_kind = kind;
-
-  show_with_details_with_cont (pi, show_problems, cont, data);
+void
+show_package_details_flow (package_info *pi, detail_kind kind)
+{
+  if (start_interaction_flow ())
+    show_package_details (pi, kind, false, APTSTATE_DEFAULT,
+			  spdf_end, NULL);
 }
 
 void
-spd_cont (package_info *pi, void *data, bool changed)
+spdf_end (void *data)
 {
-  spd_closure *c = (spd_closure *)data;
-
-  if (pi->have_detail_kind != c->kind)
-    apt_worker_get_package_details (pi->name, (c->kind == remove_details
-					       ? pi->installed_version
-					       : pi->available_version),
-				    c->kind, c->state,
-				    get_package_details_reply,
-				    data);
-  else
-    {
-      show_with_details_with_cont (pi, c->show_problems, c->cont, c->data);
-      delete c;
-    }
-}
-
-void
-show_package_details (package_info *pi, detail_kind kind,
-		      bool show_problems, int state)
-{
-  spd_closure *c = new spd_closure;
-  c->pi = pi;
-  c->kind = kind;
-  c->show_problems = show_problems;
-  c->state = state;
-  c->cont = NULL;
-  c->data = NULL;
-  pi->ref ();
-  get_intermediate_package_info (pi, false, spd_cont, c, c->state);
+  end_interaction_flow ();
 }

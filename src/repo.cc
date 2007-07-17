@@ -773,6 +773,7 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       delete c;
       pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
+      end_interaction_flow ();
     }
 }
 
@@ -837,9 +838,10 @@ show_cat_dialog_with_catalogues (xexp *catalogues, void *unused)
 }
 
 void
-show_repo_dialog ()
+show_catalogue_dialog_flow ()
 {
-  get_catalogues (show_cat_dialog_with_catalogues, NULL);
+  if (start_interaction_flow ())
+    get_catalogues (show_cat_dialog_with_catalogues, NULL);
 }
 
 /* Adding catalogues 

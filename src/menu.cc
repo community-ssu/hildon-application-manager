@@ -184,18 +184,6 @@ fullscreen_toolbar_activated (GtkWidget *item)
 }
 
 static void
-call_refresh_package_cache ()
-{
-  refresh_package_cache (APTSTATE_DEFAULT, true);
-}
-
-static void
-call_restore_packages ()
-{
-  restore_packages_flow ();
-}
-
-static void
 call_install_from_file ()
 {
   install_from_file_flow (NULL);
@@ -231,7 +219,7 @@ create_menu (HildonWindow *window)
 
   add_item (view,
 	    _("ai_me_view_sort"), NULL,
-	    show_sort_settings_dialog);
+	    show_sort_settings_dialog_flow);
   add_sep (view);
   fullscreen_item = add_check (view, _("ai_me_view_fullscreen"), NULL);
   g_signal_connect (fullscreen_item, "activate",
@@ -254,23 +242,23 @@ create_menu (HildonWindow *window)
 
   add_item (tools,
 	    _("ai_me_tools_restore"), NULL,
-	    call_restore_packages);
+	    restore_packages_flow);
   add_item (tools,
 	    _("ai_me_tools_refresh"), NULL,
-	    call_refresh_package_cache);
+	    refresh_package_cache_flow);
   add_item (tools,
 	    _("ai_me_tools_settings"), NULL,
-	    show_settings_dialog);
+	    show_settings_dialog_flow);
   add_item (tools,
 	    _("ai_me_tools_repository"), NULL,
-	    show_repo_dialog);
+	    show_catalogue_dialog_flow);
   search_menu_item =
     add_item (tools,
 	      _("ai_me_tools_search"), _("ai_ib_unable_search"),
-	      show_search_dialog);
+	      show_search_dialog_flow);
   add_item (tools,
 	    _("ai_me_tools_log"), NULL,
-	    show_log);
+	    show_log_dialog_flow);
   add_item (tools,
 	    _("ai_me_tools_help"), NULL,
 	    show_help);

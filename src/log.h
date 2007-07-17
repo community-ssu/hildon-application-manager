@@ -42,6 +42,6 @@ bool scan_log (const char *str);
 
 apt_proto_result_code scan_log_for_result_code (apt_proto_result_code init);
 
-void show_log ();
+void show_log_dialog_flow ();
 
 #endif /* !LOG_H */

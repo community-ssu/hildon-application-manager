@@ -1550,7 +1550,7 @@ static void
 available_package_details (gpointer data)
 {
   package_info *pi = (package_info *)data;
-  show_package_details (pi, install_details, false, APTSTATE_DEFAULT);
+  show_package_details_flow (pi, install_details);
 }
 
 static void
@@ -1604,7 +1604,7 @@ static void
 installed_package_details (gpointer data)
 {
   package_info *pi = (package_info *)data;
-  show_package_details (pi, remove_details, false, APTSTATE_DEFAULT);
+  show_package_details_flow (pi, remove_details);
 }
 
 static void
@@ -2766,7 +2766,6 @@ main (int argc, char **argv)
 {
   GtkWidget *window;
   GtkWidget *toolbar, *image;
-  GtkMenu *main_menu;
   char *apt_worker_prog = "/usr/libexec/apt-worker";
   bool show = true;
 
@@ -2859,7 +2858,7 @@ main (int argc, char **argv)
   gtk_tool_item_set_expand (GTK_TOOL_ITEM (search_button), TRUE);
   gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (search_button), TRUE);
   g_signal_connect (search_button, "clicked",
-		    G_CALLBACK (show_search_dialog),
+		    G_CALLBACK (show_search_dialog_flow),
 		    NULL);
   g_signal_connect (G_OBJECT (search_button), "insensitive_press",
 		    G_CALLBACK (insensitive_press),

@@ -229,6 +229,7 @@ static void ip_install_next (void *data);
 
 static void ip_show_cur_details (void *data);
 static void ip_show_cur_problem_details (void *data);
+static void ip_show_details_done (void *data);
 
 static void ip_abort_cur (ip_clos *c, const char *msg, bool with_details);
 static void ip_abort_cur_with_status_details (ip_clos *c);
@@ -356,7 +357,8 @@ ip_show_cur_details (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
   
-  show_package_details (pi, install_details, false, c->state);
+  show_package_details (pi, install_details, false, c->state,
+			ip_show_details_done, c);
 }
 
 static void
@@ -365,7 +367,13 @@ ip_show_cur_problem_details (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
   
-  show_package_details (pi, install_details, true, c->state);
+  show_package_details (pi, install_details, true, c->state,
+			ip_show_details_done, c);
+}
+
+static void
+ip_show_details_done (void *data)
+{
 }
 
 static void

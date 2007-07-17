@@ -28,7 +28,7 @@ extern "C" {
 #include "xexp.h"
 }
 
-void show_repo_dialog ();
+void show_catalogue_dialog_flow ();
 
 /* A 'catalogue' is an association xexp with the following elements:
 

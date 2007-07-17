@@ -238,34 +238,39 @@ settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
 
   pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));  
+
+  end_interaction_flow ();
 }
 
 void
-show_settings_dialog ()
+show_settings_dialog_flow ()
 {
-  GtkWidget *dialog;
-  settings_closure *c = new settings_closure;
-
-  dialog = gtk_dialog_new_with_buttons (_("ai_ti_settings"),
-					NULL,
-					GTK_DIALOG_MODAL,
-					_("ai_bd_settings_ok"),
-					GTK_RESPONSE_OK,
-					_("ai_bd_settings_cancel"),
-					GTK_RESPONSE_CANCEL,
-					NULL);
-  push_dialog (dialog);
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  set_dialog_help (dialog, AI_TOPIC ("settings"));
-
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG(dialog)->vbox),
-		      make_settings_tab (c),
-		      FALSE, FALSE, 20);
-
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (settings_dialog_response),
-		    c);
-  gtk_widget_show_all (dialog);
+  if (start_interaction_flow ())
+    {
+      GtkWidget *dialog;
+      settings_closure *c = new settings_closure;
+      
+      dialog = gtk_dialog_new_with_buttons (_("ai_ti_settings"),
+					    NULL,
+					    GTK_DIALOG_MODAL,
+					    _("ai_bd_settings_ok"),
+					    GTK_RESPONSE_OK,
+					    _("ai_bd_settings_cancel"),
+					    GTK_RESPONSE_CANCEL,
+					    NULL);
+      push_dialog (dialog);
+      gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+      set_dialog_help (dialog, AI_TOPIC ("settings"));
+      
+      gtk_box_pack_start (GTK_BOX (GTK_DIALOG(dialog)->vbox),
+			  make_settings_tab (c),
+			  FALSE, FALSE, 20);
+      
+      g_signal_connect (dialog, "response",
+			G_CALLBACK (settings_dialog_response),
+			c);
+      gtk_widget_show_all (dialog);
+    }
 }
 
 static void
@@ -286,34 +291,39 @@ sort_settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
 
   pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
+
+  end_interaction_flow ();
 }
 
 void
-show_sort_settings_dialog ()
+show_sort_settings_dialog_flow ()
 {
-  GtkWidget *dialog;
+  if (start_interaction_flow ())
+    {
+      GtkWidget *dialog;
 
-  dialog = hildon_sort_dialog_new (NULL);
-  push_dialog (dialog);
+      dialog = hildon_sort_dialog_new (NULL);
+      push_dialog (dialog);
 
-  hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
-				   _("ai_va_sort_name"));
-  hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
-				   _("ai_va_sort_version"));
-  hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
-				   _("ai_va_sort_size"));
-
-  hildon_sort_dialog_set_sort_key (HILDON_SORT_DIALOG (dialog),
-				   package_sort_key);
-  hildon_sort_dialog_set_sort_order (HILDON_SORT_DIALOG (dialog),
-				     (package_sort_sign > 0
-				      ? GTK_SORT_ASCENDING
-				      : GTK_SORT_DESCENDING));
-
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (sort_settings_dialog_response),
-		    NULL);
-  gtk_widget_show_all (dialog);
+      hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
+				       _("ai_va_sort_name"));
+      hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
+				       _("ai_va_sort_version"));
+      hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
+				       _("ai_va_sort_size"));
+      
+      hildon_sort_dialog_set_sort_key (HILDON_SORT_DIALOG (dialog),
+				       package_sort_key);
+      hildon_sort_dialog_set_sort_order (HILDON_SORT_DIALOG (dialog),
+					 (package_sort_sign > 0
+					  ? GTK_SORT_ASCENDING
+					  : GTK_SORT_DESCENDING));
+      
+      g_signal_connect (dialog, "response",
+			G_CALLBACK (sort_settings_dialog_response),
+			NULL);
+      gtk_widget_show_all (dialog);
+    }
 }
 
 /* Persistent state

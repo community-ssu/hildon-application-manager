@@ -171,39 +171,43 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
     {
       pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
+      end_interaction_flow ();
     }
 }
 
 void
-show_log ()
+show_log_dialog_flow ()
 {
-  GtkWidget *dialog, *text_view;
-
-  dialog = gtk_dialog_new_with_buttons (_("ai_ti_log"),
-					NULL,
-					GTK_DIALOG_MODAL,
-					_("ai_bd_log_save_as"),
-					RESPONSE_SAVE,
-					_("ai_bd_log_clear"),
-					RESPONSE_CLEAR,
-					_("ai_bd_log_close"),
-					GTK_RESPONSE_CLOSE,
-					NULL);
-  push_dialog (dialog);
-  respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
-
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  set_dialog_help (dialog, AI_TOPIC ("log"));
-
-  text_view = make_small_text_view (log_text? log_text->str : "");
-  
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), text_view);
-
-  gtk_widget_set_usize (dialog, 600,300);
-  gtk_widget_show_all (dialog);
-
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (log_response), text_view);
+  if (start_interaction_flow ())
+    {
+      GtkWidget *dialog, *text_view;
+      
+      dialog = gtk_dialog_new_with_buttons (_("ai_ti_log"),
+					    NULL,
+					    GTK_DIALOG_MODAL,
+					    _("ai_bd_log_save_as"),
+					    RESPONSE_SAVE,
+					    _("ai_bd_log_clear"),
+					    RESPONSE_CLEAR,
+					    _("ai_bd_log_close"),
+					    GTK_RESPONSE_CLOSE,
+					    NULL);
+      push_dialog (dialog);
+      respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
+      
+      gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+      set_dialog_help (dialog, AI_TOPIC ("log"));
+      
+      text_view = make_small_text_view (log_text? log_text->str : "");
+      
+      gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), text_view);
+      
+      gtk_widget_set_usize (dialog, 600,300);
+      gtk_widget_show_all (dialog);
+      
+      g_signal_connect (dialog, "response",
+			G_CALLBACK (log_response), text_view);
+    }
 }
 
 static void

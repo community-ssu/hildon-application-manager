@@ -110,6 +110,7 @@ search_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
 
   pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
+  end_interaction_flow ();
   delete c;
 }
 
@@ -123,61 +124,65 @@ set_search_area_default (GtkWidget *widget, gpointer data)
 }
 
 void
-show_search_dialog ()
+show_search_dialog_flow ()
 {
-  GtkWidget *dialog, *vbox;
-  GtkWidget *entry, *combo, *caption;
-  GtkSizeGroup *group;
+  if (start_interaction_flow ())
+    {
+      GtkWidget *dialog, *vbox;
+      GtkWidget *entry, *combo, *caption;
+      GtkSizeGroup *group;
 
-  search_dialog_closure *c = new search_dialog_closure;
+      search_dialog_closure *c = new search_dialog_closure;
 
-  dialog = gtk_dialog_new_with_buttons (_("ai_ti_search"),
-					NULL,
-					GTK_DIALOG_MODAL,
-					_("ai_bd_search_ok"),
-					GTK_RESPONSE_OK,
-					_("ai_bd_search_cancel"),
-					GTK_RESPONSE_CANCEL,
-					NULL);
-  push_dialog (dialog);
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  set_dialog_help (dialog, AI_TOPIC ("search"));
-  //gtk_widget_set_usize (dialog, 400, -1);
-  vbox = GTK_DIALOG (dialog)->vbox;
+      dialog = gtk_dialog_new_with_buttons (_("ai_ti_search"),
+					    NULL,
+					    GTK_DIALOG_MODAL,
+					    _("ai_bd_search_ok"),
+					    GTK_RESPONSE_OK,
+					    _("ai_bd_search_cancel"),
+					    GTK_RESPONSE_CANCEL,
+					    NULL);
+      push_dialog (dialog);
+      gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+      set_dialog_help (dialog, AI_TOPIC ("search"));
+      //gtk_widget_set_usize (dialog, 400, -1);
+      vbox = GTK_DIALOG (dialog)->vbox;
 
-  group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
+      group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
 
-  entry = gtk_combo_box_entry_new_text ();
-  fill_with_saved_search_words (GTK_COMBO_BOX (entry));
-  caption = hildon_caption_new (group, _("ai_fi_search_words"), entry,
-				NULL, HILDON_CAPTION_OPTIONAL);
-  gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
-  c->search_words_entry = entry;
+      entry = gtk_combo_box_entry_new_text ();
+      fill_with_saved_search_words (GTK_COMBO_BOX (entry));
+      caption = hildon_caption_new (group, _("ai_fi_search_words"), entry,
+				    NULL, HILDON_CAPTION_OPTIONAL);
+      gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
+      c->search_words_entry = entry;
 
-  combo = gtk_combo_box_new_text ();
-  gtk_combo_box_append_text (GTK_COMBO_BOX (combo),
-			     _("ai_va_search_name"));
-  gtk_combo_box_append_text (GTK_COMBO_BOX (combo),
-			     _("ai_va_search_name_description"));
-  caption = hildon_caption_new (group, _("ai_fi_search_area"), combo,
-				NULL, HILDON_CAPTION_OPTIONAL);
-  gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
-  c->search_area_combo = combo;
+      combo = gtk_combo_box_new_text ();
+      gtk_combo_box_append_text (GTK_COMBO_BOX (combo),
+				 _("ai_va_search_name"));
+      gtk_combo_box_append_text (GTK_COMBO_BOX (combo),
+				 _("ai_va_search_name_description"));
+      caption = hildon_caption_new (group, _("ai_fi_search_area"), combo,
+				    NULL, HILDON_CAPTION_OPTIONAL);
+      gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
+      c->search_area_combo = combo;
 
-  /* XXX - We want the dialog to be large enough for all combobox
-           options, but by default it is only made large enough for
-           the one that is active when the widget is created.  As a
-           workaround, we make the second option active here, which is
-           the longer one, and change to the first one when the widget
-           has been mapped.
-  */
-  gtk_combo_box_set_active (GTK_COMBO_BOX (combo), 1);
-  g_signal_connect (combo, "map", G_CALLBACK (set_search_area_default), NULL);
+      /* XXX - We want the dialog to be large enough for all combobox
+	 options, but by default it is only made large enough for
+	 the one that is active when the widget is created.  As a
+	 workaround, we make the second option active here, which is
+	 the longer one, and change to the first one when the widget
+	 has been mapped.
+      */
+      gtk_combo_box_set_active (GTK_COMBO_BOX (combo), 1);
+      g_signal_connect (combo, "map",
+			G_CALLBACK (set_search_area_default), NULL);
 
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (search_dialog_response),
-		    c);
+      g_signal_connect (dialog, "response",
+			G_CALLBACK (search_dialog_response),
+			c);
 
-  gtk_widget_show_all (dialog);
-  g_object_unref (group);
+      gtk_widget_show_all (dialog);
+      g_object_unref (group);
+    }
 }

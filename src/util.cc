@@ -219,7 +219,12 @@ struct ayn_closure {
   void (*details) (void *data);
   void *data;
 };
-  
+
+static void
+yes_no_details_done (void *data)
+{
+}
+
 static void
 yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
 {
@@ -228,7 +233,8 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
   if (response == 1)
     {
       if (c->pi)
-	show_package_details (c->pi, c->kind, false, APTSTATE_DEFAULT);
+	show_package_details (c->pi, c->kind, false, APTSTATE_DEFAULT,
+			      yes_no_details_done, c);
       else if (c->details)
 	c->details (c->data);
       return;
@@ -407,6 +413,11 @@ struct auwd_closure {
 };
 
 static void
+annoy_details_done (void *data)
+{
+}
+
+static void
 annoy_user_with_details_response (GtkDialog *dialog, gint response,
 				  gpointer data)
 {
@@ -415,7 +426,8 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
   if (response == 1)
     {
       if (c->pi)
-	show_package_details (c->pi, c->kind, true, APTSTATE_DEFAULT);
+	show_package_details (c->pi, c->kind, true, APTSTATE_DEFAULT,
+			      annoy_details_done, c);
       else if (c->details)
 	c->details (c->data);
     }
@@ -496,38 +508,6 @@ annoy_user_with_arbitrary_details (const gchar *text,
 			     NULL, no_details,
 			     cont,
 			     data);
-}
-
-struct auwe_closure {
-  void (*func) (void *, void *);
-  void *data1, *data2;
-};
-
-static void
-annoy_user_with_log_response (GtkDialog *dialog, gint response,
-			      gpointer data)
-{
-  pop_dialog (GTK_WIDGET (dialog));
-  gtk_widget_destroy (GTK_WIDGET (dialog));
-
-  if (response == 1)
-    show_log ();
-}
-
-void
-annoy_user_with_log (const gchar *text)
-{
-  GtkWidget *dialog;
-
-  dialog = hildon_note_new_information (NULL, text);
-  push_dialog (dialog);
-#if 0
-  gtk_dialog_add_button (GTK_DIALOG (dialog), "Log", 1);
-#endif
-
-  g_signal_connect (dialog, "response", 
-		    G_CALLBACK (annoy_user_with_log_response), NULL);
-  gtk_widget_show_all (dialog);
 }
 
 void
