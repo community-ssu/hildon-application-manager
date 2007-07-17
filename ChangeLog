@@ -1,5 +1,14 @@
 2007-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/operations.h, src/operations.cc (install_packages): Added
+	title, desc parameter, pass n_succesful to continuation.  Updated
+	all callers.
+	* src/main.h, src/main.cc (install_named_packages): Likewise
+
+	* src/util.cc (dbus_install_package): Expect title, desc, and list
+	of packages.  Use install_named_packages instead of
+	install_named_package.  Pass n_successful back in D-Bus reply.
+
 	Allow interaction flows on top of foreign windows.  Provide
 	experimental D-Bus method for testing.
 	
@@ -12,6 +21,9 @@
 	* src/main.h, src/main.cc (install_named_package_flow): Removed.
 	(refresh_package_cache_flow): New.
 	(call_refresh_package_cache): Use it.
+	(connect_mime_open_handler, connect_dbus_handlers): Renamed former
+	to latter.
+	(main): Call it after getting the package list for the first time.
 	
 	* src/util.h, src/util.cc (start_interaction_flow,
 	end_interaction_flow): Don't take a window parameter, they are now
