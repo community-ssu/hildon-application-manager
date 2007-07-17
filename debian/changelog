@@ -1,3 +1,9 @@
+hildon-application-manager (1:1.9.17~unreleased) unstable; urgency=low
+
+  * Added suport for running interaction flows on top of foreign windows.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 17 Jul 2007 19:36:09 +0300
+
 hildon-application-manager (1:1.9.16) unstable; urgency=low
 
   * Fixes: NB#49759, NB#58597, NB#47679, NB#46509, NB#60798, NB#54791,

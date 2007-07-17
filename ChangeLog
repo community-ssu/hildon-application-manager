@@ -1,5 +1,8 @@
 2007-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Allow interaction flows on top of foreign windows.  Provide
+	experimental D-Bus method for testing.
+	
 	* src/operations.h, src/operations.cc (install_packages): Added
 	title, desc parameter, pass n_succesful to continuation.  Updated
 	all callers.
@@ -9,9 +12,6 @@
 	of packages.  Use install_named_packages instead of
 	install_named_package.  Pass n_successful back in D-Bus reply.
 
-	Allow interaction flows on top of foreign windows.  Provide
-	experimental D-Bus method for testing.
-	
 	* src/menu.cc (menu_close): Call hide_main_window and maybe_exit
 	instead of exiting directly.
 
