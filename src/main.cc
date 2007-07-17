@@ -2702,8 +2702,8 @@ save_backup_data_reply (int cmd, apt_proto_decoder *dec, void *data)
   /* No action required */
 }
 
-gboolean
-connect_mime_open_handler (gpointer data)
+void
+connect_dbus_handlers (gpointer data)
 {
   /* XXX - check errors.
    */
@@ -2713,8 +2713,6 @@ connect_mime_open_handler (gpointer data)
   osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);
 
   init_dbus_handlers ();
-
-  return FALSE;
 }
 
 int
@@ -2871,14 +2869,9 @@ main (int argc, char **argv)
 
   apt_worker_set_status_callback (apt_status_callback, NULL);
 
-  get_package_list (APTSTATE_DEFAULT);
+  get_package_list_with_cont (APTSTATE_DEFAULT,
+			      connect_dbus_handlers, NULL);
   save_backup_data ();
-
-  /* XXX - doing this in an idle handler somehow causes dialogs to
-           appear centered.  It would be good to figure out the right
-           timing here.
-  */
-  g_idle_add (connect_mime_open_handler, NULL);
 
   if (show)
     present_main_window ();
