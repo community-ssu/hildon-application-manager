@@ -200,7 +200,7 @@ struct ip_clos {
   int n_successful;         // how many have been installed successfully
   bool reboot;              // whether to reboot
   
-  void (*cont) (void *);
+  void (*cont) (int n_successful, void *);
   void *data;
 };
 
@@ -236,13 +236,15 @@ static void ip_abort_response (GtkDialog *dialog, gint response,
 			       gpointer data);
 
 static void ip_end (void *data);
+static void ip_end_after_reboot (void *data);
 
 void
 install_package (package_info *pi,
-		 void (*cont) (void *), void *data)
+		 void (*cont) (int n_successful, void *), void *data)
 {
   install_packages (g_list_prepend (NULL, pi),
 		    APTSTATE_DEFAULT, INSTALL_TYPE_STANDARD, false,
+		    NULL, NULL,
 		    cont, data);
 }
 
@@ -250,7 +252,8 @@ void
 install_packages (GList *packages,
 		  int state, int install_type,
 		  bool automatic,
-		  void (*cont) (void *), void *data)
+		  const char *title, const char *desc,
+		  void (*cont) (int n_successful, void *), void *data)
 {
   ip_clos *c = new ip_clos;
 
@@ -290,14 +293,31 @@ install_packages (GList *packages,
   // Bring up the appropriate confirmation dialog.
 
   if (c->install_type == INSTALL_TYPE_BACKUP
-      || c->install_type == INSTALL_TYPE_MEMORY_CARD)
+      || c->install_type == INSTALL_TYPE_MEMORY_CARD
+      || c->install_type == INSTALL_TYPE_MULTI)
     {
+      if (title == NULL)
+	{
+	  switch (c->install_type)
+	    {
+	    case INSTALL_TYPE_BACKUP:
+	      title = _("ai_ti_restore");
+	      break;
+	    case INSTALL_TYPE_MEMORY_CARD:
+	      title = _("ai_ti_memory");
+	      break;
+	    default:
+	      title = _("Install");
+	      break;
+	    }
+	}
+      
+      if (desc == NULL)
+	desc = _("ai_ti_install_apps");
+
       select_package_list (c->packages,
 			   c->state,
-			   _("ai_ti_install_apps"), 
-			   (c->install_type == INSTALL_TYPE_BACKUP
-			    ? _("ai_ti_restore")
-			    : _("ai_ti_memory")),
+			   title, desc,
 			   ip_select_package_response, c);
     }
   else if (c->install_type != INSTALL_TYPE_UPDATE_SYSTEM)
@@ -932,9 +952,17 @@ ip_end (void *data)
   save_backup_data ();
 
   if (c->reboot)
-    annoy_user (_("You should reboot now"), c->cont, c->data);
+    annoy_user (_("You should reboot now"), ip_end_after_reboot, c);
   else
-    c->cont (c->data);
+    ip_end_after_reboot (c);
+}
+
+static void
+ip_end_after_reboot (void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  c->cont (c->n_successful, c->data);
   delete c;
 }
 

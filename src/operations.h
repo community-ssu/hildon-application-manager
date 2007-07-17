@@ -41,6 +41,7 @@
 
 enum {
   INSTALL_TYPE_STANDARD,
+  INSTALL_TYPE_MULTI,
   INSTALL_TYPE_BACKUP,
   INSTALL_TYPE_MEMORY_CARD,
   INSTALL_TYPE_UPDATE_SYSTEM
@@ -54,13 +55,16 @@ enum {
 void install_packages (GList *packages,
 		       int state, int install_type,
 		       bool automatic,
-		       void (*cont) (void *data), void *data);
+		       const char *title, const char *desc,
+		       void (*cont) (int n_successful, void *data),
+		       void *data);
 
 /* Calls INSTALL_PACKAGES with a single package, APTSTATE_DEFAULT and
    INSTALL_TYPE_STANDARD
 */
 void install_package (package_info *pi,
-		      void (*cont) (void *data), void *data);
+		      void (*cont) (int n_successful, void *data),
+		      void *data);
 
 /* PI must remain valid until CONT is called.
  */

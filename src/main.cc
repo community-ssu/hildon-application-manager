@@ -1554,7 +1554,7 @@ available_package_details (gpointer data)
 }
 
 static void
-install_package_flow_end (void *data)
+install_package_flow_end (int n_successful, void *data)
 {
   package_info *pi = (package_info *)data;
   pi->unref ();
@@ -2105,17 +2105,30 @@ search_packages (const char *pattern, bool in_descriptions)
     }
 }
 
+struct inp_clos {
+  void (*cont) (int n_successful, void *data);
+  void *data;
+};
+
+static void inp_no_package (void *data);
+static void inp_one_package (void *data);
+
 void
 install_named_package (int state, const char *package,
-		       void (*cont) (void *data), void *data)
+		       void (*cont) (int n_successful, void *data), void *data)
 {
   GList *p = NULL;
   GList *node = NULL;
 
   find_package_in_lists (state, &p, package);
 
+  inp_clos *c = new inp_clos;
+  c->cont = cont;
+  c->data = data;
+
   if (p == NULL)
-    annoy_user (_("ai_ni_error_download_missing"), cont, data);
+    annoy_user (_("ai_ni_error_download_missing"),
+		inp_no_package, c);
   else
     {
       package_info *pi = (package_info *) p->data;
@@ -2123,12 +2136,15 @@ install_named_package (int state, const char *package,
 	{
 	  char *text = g_strdup_printf (_("ai_ni_package_installed"),
 					package);
-	  annoy_user (text, cont, data);
+	  annoy_user (text, inp_one_package, c);
 	  pi->unref ();
 	  g_free (text);
 	}
       else
-	install_package (pi, cont, data);
+	{
+	  delete c;
+	  install_package (pi, cont, data);
+	}
 
       for (node = p->next; node != NULL; node = g_list_next (node))
 	{
@@ -2139,10 +2155,30 @@ install_named_package (int state, const char *package,
     }
 }
 
+static void
+inp_no_package (void *data)
+{
+  inp_clos *c = (inp_clos *)data;
+
+  c->cont (0, c->data);
+  delete c;
+}
+
+static void
+inp_one_package (void *data)
+{
+  inp_clos *c = (inp_clos *)data;
+
+  c->cont (1, c->data);
+  delete c;
+}
+
 void
 install_named_packages (int state, const char **packages,
 			int install_type, bool automatic,
-			void (*cont) (void *data), void *data)
+			const char *title, const char *desc,
+			void (*cont) (int n_successful, void *data),
+			void *data)
 {
   GList *package_list = NULL;
   char **current_package = NULL;
@@ -2179,6 +2215,7 @@ install_named_packages (int state, const char **packages,
   
   install_packages (package_list,
 		    state, install_type, automatic,
+		    title, desc,
 		    cont, data);
 }
 
@@ -2247,7 +2284,8 @@ set_operation_callback (void (*func) (gpointer), gpointer data)
  */
 
 static void rp_restore (bool res, void *data);
-static void rp_end (void *data);
+static void rp_unsuccessful (void *data);
+static void rp_end (int n_successful, void *data);
 
 void
 restore_packages_flow ()
@@ -2264,7 +2302,7 @@ restore_packages_flow ()
 	refresh_package_cache_with_cont (APTSTATE_DEFAULT, false,
 					 rp_restore, backup);
       else
-	annoy_user (_("ai_ni_operation_failed"), rp_end, backup);
+	annoy_user (_("ai_ni_operation_failed"), rp_unsuccessful, backup);
     }
 }
 
@@ -2287,12 +2325,19 @@ rp_restore (bool res, void *data)
   names[i] = NULL;
   install_named_packages (APTSTATE_DEFAULT, names,
 			  INSTALL_TYPE_BACKUP, false,
+			  NULL, NULL,
 			  rp_end, backup);
   delete names;
 }
 
 static void
-rp_end (void *data)
+rp_unsuccessful (void *data)
+{
+  rp_end (0, data);
+}
+
+static void
+rp_end (int n_successful, void *data)
 {
   xexp *backup = (xexp *)data;
 
@@ -2308,7 +2353,7 @@ rp_end (void *data)
 static void us_get_system_packages (bool res, void *data);
 static void us_get_system_packages_reply (int cmd, apt_proto_decoder *dec,
 					  void *data);
-static void us_end (void *data);
+static void us_end (int n_successful, void *data);
 
 void
 update_system_flow ()
@@ -2333,7 +2378,7 @@ us_get_system_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (dec == NULL)
     {
-      us_end (data);
+      us_end (0, data);
       return;
     }
 
@@ -2350,11 +2395,12 @@ us_get_system_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   install_named_packages (APTSTATE_DEFAULT, (const char**)packages,
 			  INSTALL_TYPE_UPDATE_SYSTEM, false,
+			  NULL, NULL,
 			  us_end, data);
 }
 
 static void
-us_end (void *data)
+us_end (int n_succesful, void *data)
 {
   end_interaction_flow ();
 }

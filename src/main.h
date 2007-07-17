@@ -110,10 +110,13 @@ void show_current_details ();
 void do_current_operation ();
 
 void install_named_package (int state, const char *package,
-			    void (*cont) (void *data), void *data);
-void install_named_packages (int state, const char **package,
+			    void (*cont) (int n_successful, void *data),
+			    void *data);
+void install_named_packages (int state, const char **packages,
 			     int install_type, bool automatic,
-			     void (*cont) (void *data), void *data);
+			     const char *title, const char *desc,
+			     void (*cont) (int n_successful, void *data),
+			     void *data);
 
 void refresh_package_cache (int state, 
 			    bool ask);

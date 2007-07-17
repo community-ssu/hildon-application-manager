@@ -379,28 +379,16 @@ execute_add_catalogues (GKeyFile *keyfile, const char *entry,
   add_catalogues (catalogues, true, false, add_catalogues_done, c);
 }
 
-struct install_package_closure {
+struct eip_clos {
   xexp *catalogues;
   gchar *package;
   void (*cont) (void *data);
   void *data;
 };
 
-static void
-install_package_cont (bool res, void *data)
-{
-  install_package_closure *c = (install_package_closure *)data;
-
-  if (res && c->package)
-    install_named_package (APTSTATE_DEFAULT, c->package, c->cont, c->data);
-  else
-    c->cont (c->data);
-
-  if (c->catalogues)
-    xexp_free (c->catalogues);
-  g_free (c->package);
-  delete c;
-}
+static void eip_with_catalogues (bool res, void *data);
+static void eip_unsuccessful (void *data);
+static void eip_end (int n_successful, void *data);
 
 static void
 execute_install_package (GKeyFile *keyfile, const char *entry,
@@ -412,7 +400,7 @@ execute_install_package (GKeyFile *keyfile, const char *entry,
 
   g_key_file_free (keyfile);
 
-  install_package_closure *c = new install_package_closure;
+  eip_clos *c = new eip_clos;
   c->catalogues = catalogues;
   c->package = package;
   c->cont = cont;
@@ -431,20 +419,52 @@ execute_install_package (GKeyFile *keyfile, const char *entry,
 	     to begin with, which we treat the same).  That means that
 	     this installation script was not for us.
 	  */
-	  xexp_free (catalogues);
 	  annoy_user (_("ai_ni_error_install_incompatible"),
-		      cont, data);
+		      eip_unsuccessful, c);
 	  return;
 	}
 
       add_catalogues (catalogues, true, c->package != NULL,
-		      install_package_cont, c);
+		      eip_with_catalogues, c);
     }
   else
-    install_package_cont (true, c);
+    eip_with_catalogues (true, c);
 }
 
-struct card_install_closure {
+static void
+eip_with_catalogues (bool res, void *data)
+{
+  eip_clos *c = (eip_clos *)data;
+
+  if (res && c->package)
+    install_named_package (APTSTATE_DEFAULT, c->package,
+			   eip_end, c);
+  else
+    eip_end (0, c);
+}
+
+static void
+eip_unsuccessful (void *data)
+{
+  eip_clos *c = (eip_clos *)data;
+
+  eip_end (0, c);
+}
+
+static void
+eip_end (int n_successful, void *data)
+{
+  eip_clos *c = (eip_clos *)data;
+
+  c->cont (c->data);
+
+  if (c->catalogues)
+    xexp_free (c->catalogues);
+  g_free (c->package);
+  delete c;
+}
+
+struct eci_clos {
   xexp *card_catalogues;
   xexp *perm_catalogues;
   gchar **packages;
@@ -453,23 +473,8 @@ struct card_install_closure {
   void *data;
 };
 
-void
-execute_card_install_cont (bool res, void *data)
-{
-  card_install_closure *c = (card_install_closure *)data;
-
-  if (res)
-    install_named_packages (APTSTATE_TEMP, (const char **)c->packages,
-			    INSTALL_TYPE_MEMORY_CARD, c->automatic,
-			    c->cont, c->data);
-  else
-    c->cont (c->data);
-
-  xexp_free (c->card_catalogues);
-  xexp_free (c->perm_catalogues);
-  g_strfreev (c->packages);
-  delete c;
-}
+static void eci_with_temp_catalogues (bool res, void *data);
+static void eci_end (int n_successful, void *data);
 
 void
 execute_card_install (GKeyFile *keyfile, const char *entry,
@@ -479,7 +484,8 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
 {
   if (filename[0] != '/')
     {
-      fprintf (stderr, "card-install filename must be absolute\n");
+      add_log ("card-install filename must be absolute\n");
+      what_the_fock_p ();
       cont (data);
       return;
     }
@@ -503,7 +509,8 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
       xexp_free (card_catalogues);
       xexp_free (perm_catalogues);
       g_strfreev (packages);
-      annoy_user (_("ai_ni_operation_failed"), cont, data);
+      what_the_fock_p ();
+      cont (data);
       return;
     }
 
@@ -513,7 +520,7 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
       goto error;
     }
 
-  card_install_closure *c = new card_install_closure;
+  eci_clos *c = new eci_clos;
   c->card_catalogues = card_catalogues;
   c->perm_catalogues = perm_catalogues;
   c->packages = packages;
@@ -521,12 +528,42 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
   c->cont = cont;
   c->data = data;
 
-  set_temp_catalogues (card_catalogues, execute_card_install_cont, c);
+  set_temp_catalogues (card_catalogues, eci_with_temp_catalogues, c);
 }
+
+static void
+eci_with_temp_catalogues (bool res, void *data)
+{
+  struct eci_clos *c = (eci_clos *)data;
+
+  if (res)
+    install_named_packages (APTSTATE_TEMP, (const char **)c->packages,
+			    INSTALL_TYPE_MEMORY_CARD, c->automatic,
+			    NULL, NULL,
+			    eci_end, c);
+  else
+    eci_end (0, c);
+}
+
+
+static void
+eci_end (int n_successful, void *data)
+{
+  struct eci_clos *c = (eci_clos *)data;
+  
+  c->cont (c->data);
+  
+  xexp_free (c->card_catalogues);
+  xexp_free (c->perm_catalogues);
+  g_strfreev (c->packages);
+  delete c;
+}
+
 
 void
 open_local_install_instructions (const char *filename,
-				 void (*cont) (void *data), void *data)
+				 void (*cont) (void *data),
+				 void *data)
 {
   GError *error = NULL;
 

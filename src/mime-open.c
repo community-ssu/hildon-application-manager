@@ -41,12 +41,21 @@ install_reply (DBusPendingCall *pending_reply, void *data)
   DBusMessage *reply = dbus_pending_call_steal_reply (pending_reply);
   if (reply)
     {
+      DBusError error;
       dbus_int32_t result;
 
-      if (dbus_message_get_args (reply, NULL,
-				 DBUS_TYPE_INT32, &result,
-				 DBUS_TYPE_INVALID))
-	fprintf (stderr, "done: %d\n", result);
+      dbus_error_init (&error);
+      if (dbus_set_error_from_message (&error, reply))
+	fprintf (stderr, "ERROR: %s\n", error.message);
+      else if (dbus_message_get_args (reply, NULL,
+				      DBUS_TYPE_INT32, &result,
+				      DBUS_TYPE_INVALID))
+	{
+	  fprintf (stderr, "done: %d\n", result);
+	  if (result < 0)
+	    hildon_banner_show_information (GTK_WIDGET (NULL),
+					    NULL, "AM is busy");
+	}
       else
 	fprintf (stderr, "done: malformed reply\n");
       dbus_message_unref (reply);
@@ -65,6 +74,10 @@ install (GtkWidget *parent, const char *arg)
   gchar           *interface = "com.nokia.hildon_application_manager";
   dbus_int32_t     xid = GDK_WINDOW_XID (parent->window);
   DBusPendingCall *pending_return = NULL;
+  const char      *title = "Special offer";
+  const char      *desc = "Trust me, you want this package";
+  const char      *package_array[] = { arg };
+  const char     **packages = package_array;
 
   msg = dbus_message_new_method_call (service, object_path,
 				      interface, "xxx_install_package");
@@ -72,7 +85,10 @@ install (GtkWidget *parent, const char *arg)
     {
       dbus_message_append_args (msg,
 				DBUS_TYPE_INT32, &xid,
-				DBUS_TYPE_STRING, &arg,
+				DBUS_TYPE_STRING, &title,
+				DBUS_TYPE_STRING, &desc,
+				DBUS_TYPE_ARRAY,
+				DBUS_TYPE_STRING, &packages, 1,
 				DBUS_TYPE_INVALID);
 
       if (dbus_connection_send_with_reply (connection, msg,

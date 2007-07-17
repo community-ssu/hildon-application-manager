@@ -49,6 +49,7 @@
 #include "log.h"
 #include "settings.h"
 #include "menu.h"
+#include "operations.h"
 #include "apt-worker-client.h"
 
 #define _(x) gettext (x)
@@ -3152,13 +3153,14 @@ get_free_space ()
  */
 
 struct dip_clos {
+  const char **packages;
   DBusConnection *conn;
   DBusMessage *message;
 };
 
 static void dbus_install_package (DBusConnection *conn, DBusMessage *message);
-static void dip_install_done (void *data);
-static void dip_end (bool success, void *data);
+static void dip_install_done (int n_successful, void *data);
+static void dip_end (int result, void *data);
 
 static void
 dbus_install_package (DBusConnection *conn, DBusMessage *message)
@@ -3166,37 +3168,49 @@ dbus_install_package (DBusConnection *conn, DBusMessage *message)
   DBusError error;
   
   dbus_int32_t xid;
-  char *package;
+  char *title, *desc;
+  const char **packages;
+  int n_packages;
+
+  dbus_connection_ref (conn);
+  dbus_message_ref (message);
   
+  dip_clos *c = new dip_clos;
+  c->conn = conn;
+  c->message = message;
+  c->packages = NULL;
+
   dbus_error_init (&error);
   if (dbus_message_get_args (message, &error,
 			     DBUS_TYPE_INT32, &xid,
-			     DBUS_TYPE_STRING, &package,
+			     DBUS_TYPE_STRING, &title,
+			     DBUS_TYPE_STRING, &desc,
+			     DBUS_TYPE_ARRAY,
+			     DBUS_TYPE_STRING, &packages, &n_packages,
 			     DBUS_TYPE_INVALID))
     {
-      dip_clos *c = new dip_clos;
-      
-      dbus_connection_ref (conn);
-      c->conn = conn;
-      dbus_message_ref (message);
-      c->message = message;
-      
+      c->packages = packages;
+
       if (xid)
 	{
 	  if (start_foreign_interaction_flow (xid))
-	    install_named_package (APTSTATE_DEFAULT, package,
-				   dip_install_done, c);
+	    install_named_packages (APTSTATE_DEFAULT, packages,
+				    INSTALL_TYPE_MULTI, false,
+				    title, desc,
+				    dip_install_done, c);
 	  else
-	    dip_end (false, c);
+	    dip_end (-1, c);
 	}
       else
 	{
 	  present_main_window ();
 	  if (start_interaction_flow ())
-	    install_named_package (APTSTATE_DEFAULT, package,
-				   dip_install_done, c);
+	    install_named_packages (APTSTATE_DEFAULT, packages,
+				    INSTALL_TYPE_MULTI, false,
+				    title, desc,
+				    dip_install_done, c);
 	  else
-	    dip_end (false, c);
+	    dip_end (-1, c);
 	}
     }
   else
@@ -3207,31 +3221,31 @@ dbus_install_package (DBusConnection *conn, DBusMessage *message)
 				      error.message);
       dbus_connection_send (conn, reply, NULL);
       dbus_message_unref (reply);
+      dip_end (-1, c);
     }
 }
 
 static void
-dip_install_done (void *data)
+dip_install_done (int n_successful, void *data)
 {
   dip_clos *c = (dip_clos *)data;
 
   end_interaction_flow ();
 
-  // XXX - too optimistic
-  dip_end (true, c);
+  dip_end (n_successful, c);
 }
 
 static void
-dip_end (bool success, void *data)
+dip_end (int result, void *data)
 {
   dip_clos *c = (dip_clos *)data;
 
   DBusMessage *reply;
-  dbus_int32_t result = success;
+  dbus_int32_t dbus_result = result;
 	  
   reply = dbus_message_new_method_return (c->message);
   dbus_message_append_args (reply,
-			    DBUS_TYPE_INT32, &result,
+			    DBUS_TYPE_INT32, &dbus_result,
 			    DBUS_TYPE_INVALID);
   
   dbus_connection_send (c->conn, reply, NULL);
@@ -3240,6 +3254,7 @@ dip_end (bool success, void *data)
   // So that we don't lose the reply when we exit below.
   dbus_connection_flush (c->conn);
 
+  dbus_free_string_array ((char **)c->packages);
   dbus_message_unref (c->message);
   dbus_connection_unref (c->conn);
   delete c;
