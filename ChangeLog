@@ -1,3 +1,42 @@
+2007-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Allow interaction flows on top of foreign windows.  Provide
+	experimental D-Bus method for testing.
+	
+	* src/menu.cc (menu_close): Call hide_main_window and maybe_exit
+	instead of exiting directly.
+
+	* src/main.cc (main): Don't show main window when "--no-show"
+	parameter is given.
+
+	* src/main.h, src/main.cc (install_named_package_flow): Removed.
+	(refresh_package_cache_flow): New.
+	(call_refresh_package_cache): Use it.
+	
+	* src/util.h, src/util.cc (start_interaction_flow,
+	end_interaction_flow): Don't take a window parameter, they are now
+	only for the main window.  Updated all callers.
+	(push_dialog_parent, push_dialog): Renamed former to latter.  Make
+	dialog modal here.  Updated all callers.
+	(pop_dialog_parent, pop_dialog): Renamed former to latter.
+	Updated all callers.
+	(get_dialog_parent): Removed, updated all callers to use NULL
+	instead.
+	(start_foreign_interaction_flow): New, for foreign windows.
+	(present_main_window): Moved here to update state for maybe_exit.
+	(hide_main_window, maybe_exit): New.
+	(dbus_install_package): New.
+	(dbus_handler): Call it.  Handle "show" method.
+
+	* src/hildon-application-manager-util: Added "show" sub-command.
+
+	* com.nokia.hildon_application_manager.service (Exec): Pass
+	--no-show to start the AM in the background.
+
+	* hildon-application-manager.desktop: Don't advertise us as a
+	D-Bus service.  Use "hildon-application-manager-util show" to
+	start the AM.
+	
 2007-07-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.16
