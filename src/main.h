@@ -115,16 +115,13 @@ void install_named_packages (int state, const char **package,
 			     int install_type, bool automatic,
 			     void (*cont) (void *data), void *data);
 
-void install_named_package_flow (const char *package,
-				 void (*cont) (bool success, void *data),
-				 void *data);
-
 void refresh_package_cache (int state, 
 			    bool ask);
 void refresh_package_cache_with_cont (int state,
 				      bool ask,
 				      void (*cont) (bool res, void *data), 
 				      void *data);
+void refresh_package_cache_flow ();
 
 void install_from_file_flow (const char *filename);
 void restore_packages_flow ();
@@ -145,7 +142,6 @@ GtkWidget *get_device_label ();
 
 void set_fullscreen (bool);
 void toggle_fullscreen ();
-void present_main_window ();
 
 void set_toolbar_visibility (bool fullscreen, bool visibility);
 

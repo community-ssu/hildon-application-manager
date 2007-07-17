@@ -1409,12 +1409,12 @@ rpc_show_detailed_report (void *data)
   GtkWidget *dialog, *text_view;
 
   dialog = gtk_dialog_new_with_buttons (_("Catalogue details"),
-					get_dialog_parent (),
+					NULL,
 					GTK_DIALOG_MODAL,
 					_("ai_bd_log_close"),
 					GTK_RESPONSE_CLOSE,
 					NULL);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
@@ -1437,7 +1437,7 @@ rpc_detailed_report_response (GtkDialog *dialog, gint response, gpointer clos)
 {
   if (response == GTK_RESPONSE_CLOSE)
     {
-      pop_dialog_parent (GTK_WIDGET (dialog));
+      pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
     }
 }
@@ -1495,6 +1495,23 @@ rpc_end (void *data)
     }
 }
 
+/* Refreshing the package cache, wrapped in an interaction flow
+ */
+
+static void
+rpcf_end (bool success, void *unused)
+{
+  end_interaction_flow ();
+}
+
+void
+refresh_package_cache_flow ()
+{
+  if (start_interaction_flow ())
+    refresh_package_cache_with_cont (APTSTATE_DEFAULT, true,
+				     rpcf_end, NULL);
+}
+
 static int
 days_elapsed_since (time_t past)
 {
@@ -1541,52 +1558,17 @@ install_package_flow_end (void *data)
 {
   package_info *pi = (package_info *)data;
   pi->unref ();
-  end_interaction_flow (GTK_WIDGET (get_main_window ()));
+  end_interaction_flow ();
 }
 
 static void
 install_package_flow (package_info *pi)
 {
-  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
+  if (start_interaction_flow ())
     {
       pi->ref ();
       install_package (pi, install_package_flow_end, pi);
     }
-}
-
-struct inpf_clos {
-  const char *package;
-
-  void (*cont) (bool success, void *data);
-  void *data;
-};
-
-static void inpf_end (void *data);
-
-void
-install_named_package_flow (const char *package,
-			    void (*cont) (bool success, void *data),
-			    void *data)
-{
-  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
-    {
-      inpf_clos *c = new inpf_clos;
-      c->cont = cont;
-      c->data = data;
-
-      install_named_package (APTSTATE_DEFAULT, package,
-			     inpf_end, c);
-    }
-}
-
-void
-inpf_end (void *data)
-{
-  inpf_clos *c = (inpf_clos *)data;
-
-  end_interaction_flow (GTK_WIDGET (get_main_window ()));
-  c->cont (true, c->data);
-  delete c;
 }
 
 static void
@@ -1630,13 +1612,13 @@ uninstall_package_flow_end (void *data)
 {
   package_info *pi = (package_info *)data;
   pi->unref ();
-  end_interaction_flow (GTK_WIDGET (get_main_window ()));
+  end_interaction_flow ();
 }
 
 static void
 uninstall_package_flow (package_info *pi)
 {
-  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
+  if (start_interaction_flow ())
     {
       pi->ref ();
       uninstall_package (pi, uninstall_package_flow_end, pi);
@@ -2270,7 +2252,7 @@ static void rp_end (void *data);
 void
 restore_packages_flow ()
 {
-  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
+  if (start_interaction_flow ())
     {
       char *filename =
 	g_strdup_printf ("%s/.hildon-application-manager.backup",
@@ -2317,7 +2299,7 @@ rp_end (void *data)
   if (backup)
     xexp_free (backup);
 
-  end_interaction_flow (GTK_WIDGET (get_main_window ()));
+  end_interaction_flow ();
 }
 
 /* Updating all installed system-update packages
@@ -2331,7 +2313,7 @@ static void us_end (void *data);
 void
 update_system_flow ()
 {
-  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
+  if (start_interaction_flow ())
     refresh_package_cache_with_cont (APTSTATE_DEFAULT, FALSE,
 				     us_get_system_packages, NULL);
 }
@@ -2374,7 +2356,7 @@ us_get_system_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
 static void
 us_end (void *data)
 {
-  end_interaction_flow (GTK_WIDGET (get_main_window ()));
+  end_interaction_flow ();
 }
 
 /* Installing from file
@@ -2385,7 +2367,7 @@ install_from_file_flow_end (void *data)
 {
   char *filename = (char *)data;
   cleanup_temp_file ();
-  end_interaction_flow (GTK_WIDGET (get_main_window ()));
+  end_interaction_flow ();
   g_free (filename);
 }
 
@@ -2421,7 +2403,7 @@ install_from_file_cont (char *uri, void *unused)
 void
 install_from_file_flow (const char *filename)
 {
-  if (start_interaction_flow (GTK_WIDGET (get_main_window ())))
+  if (start_interaction_flow ())
     {
       if (filename == NULL)
 	show_deb_file_chooser (install_from_file_cont, NULL);
@@ -2538,13 +2520,6 @@ GtkWidget *
 get_device_label ()
 {
   return device_label;
-}
-
-void
-present_main_window ()
-{
-  if (main_window)
-    gtk_window_present (main_window);
 }
 
 static void
@@ -2706,7 +2681,7 @@ set_current_help_topic (const char *topic)
 static void
 call_refresh_package_cache (GtkWidget *button, gpointer data)
 {
-  refresh_package_cache (APTSTATE_DEFAULT, true);
+  refresh_package_cache_flow ();
 }
 
 /* Take a snapshot of the data we want to keep in a backup.
@@ -2749,6 +2724,7 @@ main (int argc, char **argv)
   GtkWidget *toolbar, *image;
   GtkMenu *main_menu;
   char *apt_worker_prog = "/usr/libexec/apt-worker";
+  bool show = true;
 
   setlocale (LC_ALL, "");
   bind_textdomain_codeset ("hildon-application-manager", "UTF-8");
@@ -2771,6 +2747,12 @@ main (int argc, char **argv)
   // XXX - stupid option parsing, should be improved but options are
   //       only used for testing right now.
   //
+  if (argc > 1 && !strcmp (argv[1], "--no-show"))
+    {
+      show = false;
+      argc--;
+      argv++;
+    }
   if (argc > 1)
     {
       apt_worker_prog = argv[1];
@@ -2898,7 +2880,8 @@ main (int argc, char **argv)
   */
   g_idle_add (connect_mime_open_handler, NULL);
 
-  gtk_widget_show_all (window);
+  if (show)
+    present_main_window ();
 
   gtk_main ();
 }

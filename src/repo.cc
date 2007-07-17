@@ -91,7 +91,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
 static void
 pill_response (GtkDialog *dialog, gint response, gpointer unused)
 {
-  pop_dialog_parent (GTK_WIDGET (dialog));
+  pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (red_pill_mode != (response == GTK_RESPONSE_YES))
@@ -108,12 +108,12 @@ ask_the_pill_question ()
   GtkWidget *dialog;
 
   dialog =
-    hildon_note_new_confirmation_add_buttons (get_dialog_parent (), 
+    hildon_note_new_confirmation_add_buttons (NULL, 
 					      "Which pill?",
 					      "Red", GTK_RESPONSE_YES,
 					      "Blue", GTK_RESPONSE_NO,
 					      NULL);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (pill_response), NULL);
   gtk_widget_show_all (dialog);
@@ -359,7 +359,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
   delete c;
  
-  pop_dialog_parent (GTK_WIDGET (dialog));
+  pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (should_ask_the_pill_question)
@@ -398,7 +398,7 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
     {
       GtkWidget *button;
 
-      dialog = gtk_dialog_new_with_buttons (title, get_dialog_parent (),
+      dialog = gtk_dialog_new_with_buttons (title, NULL,
 					    GTK_DIALOG_MODAL,
 					    NULL);
 
@@ -410,7 +410,7 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
       gtk_widget_grab_focus (button);
     }
   else
-    dialog = gtk_dialog_new_with_buttons (title, get_dialog_parent (),
+    dialog = gtk_dialog_new_with_buttons (title, NULL,
 					  GTK_DIALOG_MODAL,
 					  _("ai_bd_new_repository_ok"),
 					  GTK_RESPONSE_OK,
@@ -418,7 +418,7 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 					  GTK_RESPONSE_CANCEL,
 					  NULL);
 
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
@@ -771,7 +771,7 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       xexp_free (c->catalogues_xexp);
 
       delete c;
-      pop_dialog_parent (GTK_WIDGET (dialog));
+      pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
     }
 }
@@ -803,9 +803,7 @@ show_cat_dialog_with_catalogues (xexp *catalogues, void *unused)
   GtkWidget *dialog = gtk_dialog_new ();
 
   gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_repository"));
-  gtk_window_set_transient_for (GTK_WINDOW (dialog), get_dialog_parent ());
-  gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
   
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   gtk_dialog_add_button (GTK_DIALOG (dialog), 

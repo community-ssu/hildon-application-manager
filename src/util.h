@@ -25,6 +25,7 @@
 #define UTIL_H
 
 #include <gtk/gtk.h>
+#include <gdk/gdkx.h>
 #include <libgnomevfs/gnome-vfs.h>
 
 #include "main.h"
@@ -32,34 +33,61 @@
 /** Interaction flows
 
   The Application Manager can run one interaction flow at any single
-  time.  A flow is started with START_INTERACTION_FLOW and ended with
-  END_INTERACTION_FLOW.
+  time.  A local flow is started with START_INTERACTION_FLOW and ended
+  with END_INTERACTION_FLOW.  A flowe that should run on top of a
+  foreign window is started with START_FOREIGN_INTERACTION_FLOW and
+  ended with END_INTERACTION_FLOW.
 
   When a new interaction flow is to be started while there is already
-  one active, an error message is displayed and START_INTERACTION_FLOW
-  returns false.  The interaction flow should be aborted in that case.
+  one active, START_INTERACTION_FLOW displays an appropriate error
+  message and returns false.  START_FOREIGN_INTERACTION_FLOW does not
+  display this message.
 
-  PUSH_DIALOG_PARENT and POP_DIALOG_PARENT are used to keep track of
-  the top-most window to be used as the parent for new dialogs.
-  GET_DIALOG_PARENT returns that window.  You can pass a NULL window
-  to PUSH_DIALOG_PARENT.  In that case, the flow is system modal,
-  which happens when the flow is started from another application.
-
-  START_INTERACTION_FLOW takes care of the initial PUSH_DIALOG_PARENT
-  and END_INTERACTION_FLOW does the final POP_DIALOG_PARENT.
+  PUSH_DIALOG and POP_DIALOG are used to maintain the stack of dialogs
+  that are currently active.  These calls make sure that the dialogs
+  are properly transient for each other.  When creating a dialog, you
+  should use NULL as the parent.
 
   You must take care to correctly balance calls to
-  START_INTERACTION_FLOW and END_INTERACTION_FLOW, as well as calls to
-  PUSH_DIALOG_PARENT and POP_DIALOG_PARENT.
+  START_INTERACTION_FLOW (or START_FOREIGN_INTERACTION_FLOW) and
+  END_INTERACTION_FLOW, as well as calls to PUSH_DIALOG and
+  POP_DIALOG.
+
+  See "Exiting" for how interaction flows influence the life
+  time of the application.
 */
 
-bool start_interaction_flow (GtkWidget *window);
-void end_interaction_flow (GtkWidget *window);
+bool start_interaction_flow ();
+bool start_foreign_interaction_flow (Window parent);
+void end_interaction_flow ();
 
-void push_dialog_parent (GtkWidget *window);
-void pop_dialog_parent (GtkWidget *window);
-GtkWindow *get_dialog_parent ();
+void push_dialog (GtkWidget *dialog);
+void pop_dialog (GtkWidget *dialog);
 
+/** The main window
+
+  PRESENT_MAIN_WINDOW and HIDE_MAIN_WINDOW will show and hide the main
+  window of the application, respectively.  When it is shown, the main
+  window is also pushed to the front of the window stack.
+
+  See "Exiting" for how the main window influence the life time of the
+  application.
+*/
+
+void present_main_window ();
+void hide_main_window ();
+
+/** Exiting
+
+  The Application Manager can run interaction flows on top of foreign
+  windows and can also show its own window at the same time.  Thus the
+  program should exit when the main window is not shown and no
+  interaction flow is active.  This doesn't happen automatically, but
+  only when MAYBE_EXIT is called.  This way, necessary cleanup actions
+  such as flushing the D-Bus message queue can be performed.
+ */
+
+void maybe_exit ();
 
 /** General dialog helpers
 

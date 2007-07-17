@@ -67,52 +67,148 @@
 #define BTNAME_MATCH_RULE "type='signal',interface='" BTNAME_SIGNAL_IF \
                           "',member='" BTNAME_SIG_CHANGED "'"
 
-static GSList *dialog_parents = NULL;
+static Window parent_xid = None;
+static GSList *dialog_stack = NULL;
+static bool main_window_shown = false;
 
-GtkWindow *
-get_dialog_parent ()
+static void
+dialog_realized (GtkWidget *dialog, gpointer data)
 {
-  if (dialog_parents)
-    return GTK_WINDOW (dialog_parents->data);
+  GdkWindow *win = dialog->window;
+
+  XSetTransientForHint (GDK_WINDOW_XDISPLAY (win), GDK_WINDOW_XID (win),
+			parent_xid);
+}
+
+void
+push_dialog (GtkWidget *dialog)
+{
+  /* Setting a dialog application modal affects us, not the
+     application that the dialog is transient for.  So we only make it
+     application modal when the dialog stack is shown on top of us.
+  */
+
+  gtk_window_set_modal (GTK_WINDOW (dialog), parent_xid == None);
+
+  if (dialog_stack)
+    {
+      fprintf (stderr, "PUSH %p <- %p\n", dialog, dialog_stack->data);
+      gtk_window_set_transient_for (GTK_WINDOW (dialog),
+				    GTK_WINDOW (dialog_stack->data));
+    }
+  else if (parent_xid != None)
+    {
+      fprintf (stderr, "PUSH %p <= %p\n", dialog, parent_xid);
+      g_signal_connect (dialog, "realize",
+			G_CALLBACK (dialog_realized), NULL);
+    }
   else
-    return NULL;
+    {
+      /* This happens for dialogs outside of a interaction flow.
+       */
+      fprintf (stderr, "PUSH %p <- main\n", dialog);
+      gtk_window_set_transient_for (GTK_WINDOW (dialog),
+				    get_main_window ());
+    }
+
+  dialog_stack = g_slist_prepend (dialog_stack, dialog);
 }
 
 void
-push_dialog_parent (GtkWidget *w)
+pop_dialog (GtkWidget *dialog)
 {
-  dialog_parents = g_slist_prepend (dialog_parents, w);
-}
+  g_assert (dialog_stack && dialog_stack->data == dialog);
 
-void
-pop_dialog_parent (GtkWidget *w)
-{
-  g_assert (dialog_parents && dialog_parents->data == w);
-    
+  fprintf (stderr, "POP %p\n", dialog);
+
   {
-    GSList *old = dialog_parents;
-    dialog_parents = dialog_parents->next;
+    GSList *old = dialog_stack;
+    dialog_stack = dialog_stack->next;
     g_slist_free_1 (old);
   }
 }
 
+static bool interaction_flow_active = false;
+
 bool
-start_interaction_flow (GtkWidget *w)
+start_interaction_flow ()
 {
-  if (dialog_parents)
+  /* XXX - We don't allow interaction flows to start when a dialog is
+           open.  This is a bit too restrictive since we should be
+           able to run one just fine in parallel to showing the
+           "Details" or "Catalogues" dialog, say.  We don't allow it
+           since it would mess with having a single stack of dialogs.
+  */
+
+  if (dialog_stack != NULL
+      || interaction_flow_active)
     {
       irritate_user (_("Operation in progress"));
       return false;
     }
 
-  push_dialog_parent (w);
+  fprintf (stderr, "START %p\n", get_main_window ());
+
+  g_assert (dialog_stack == NULL);
+
+  interaction_flow_active = true;
+  parent_xid = None;
+  dialog_stack = g_slist_prepend (dialog_stack, get_main_window ());
+  return true;
+}
+
+bool
+start_foreign_interaction_flow (Window parent)
+{
+  if (dialog_stack != NULL
+      || interaction_flow_active)
+    return false;
+
+  g_assert (dialog_stack == NULL);
+
+  fprintf (stderr, "START FOREIGN %p\n", parent);
+
+  interaction_flow_active = true;
+  parent_xid = parent;
   return true;
 }
 
 void
-end_interaction_flow (GtkWidget *w)
+end_interaction_flow ()
 {
-  pop_dialog_parent (w);
+  g_assert (interaction_flow_active);
+  
+  if (parent_xid == None)
+    pop_dialog (GTK_WIDGET (get_main_window ()));
+
+  interaction_flow_active = false;
+  parent_xid = None;
+
+  fprintf (stderr, "END\n");
+}
+
+void
+present_main_window ()
+{
+  main_window_shown = true;
+  gtk_widget_show_all (GTK_WIDGET (get_main_window ()));
+  gtk_window_present (get_main_window ());
+}
+
+void
+hide_main_window ()
+{
+  gtk_widget_hide (GTK_WIDGET (get_main_window ()));
+  main_window_shown = false;
+  if (!interaction_flow_active)
+    exit (0);
+}
+
+void
+maybe_exit ()
+{
+  if (!main_window_shown && !interaction_flow_active)
+    exit (0);
 }
 
 struct ayn_closure {
@@ -143,7 +239,7 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
     c->pi->unref ();
   delete c;
 
-  pop_dialog_parent (GTK_WIDGET (dialog));
+  pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
   if (cont)
     cont (response == GTK_RESPONSE_OK, data);
@@ -161,8 +257,8 @@ ask_yes_no (const gchar *question,
   c->details = NULL;
   c->data = data;
 
-  dialog = hildon_note_new_confirmation (get_dialog_parent (), question);
-  push_dialog_parent (dialog);
+  dialog = hildon_note_new_confirmation (NULL, question);
+  push_dialog (dialog);
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (yes_no_response), c);
@@ -183,12 +279,12 @@ ask_custom (const gchar *question,
   c->data = data;
 
   dialog = hildon_note_new_confirmation_add_buttons 
-    (get_dialog_parent (),
+    (NULL,
      question,
      ok_label, GTK_RESPONSE_OK,
      cancel_label, GTK_RESPONSE_CANCEL,
      NULL);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (yes_no_response), c);
@@ -213,13 +309,13 @@ ask_yes_no_with_details (const gchar *title,
 
   dialog = gtk_dialog_new_with_buttons
     (title,
-     get_dialog_parent (),
+     NULL,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
      _("ai_bd_confirm_details"), 1,
      _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
@@ -246,13 +342,13 @@ ask_yes_no_with_arbitrary_details (const gchar *title,
 
   dialog = gtk_dialog_new_with_buttons
     (title,
-     get_dialog_parent (),
+     NULL,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
      _("ai_bd_confirm_details"), 1,
      _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   GtkWidget *label = gtk_label_new (question);
@@ -275,7 +371,7 @@ annoy_user_response (GtkDialog *dialog, gint response, gpointer data)
 {
   auwc_closure * closure_data = (auwc_closure *) data;
 
-  pop_dialog_parent (GTK_WIDGET (dialog));
+  pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (closure_data != NULL) 
@@ -292,8 +388,8 @@ annoy_user (const gchar *text, void (*cont) (void *data), void *data)
   GtkWidget *dialog;
   auwc_closure * closure_data = new auwc_closure;
 
-  dialog = hildon_note_new_information (get_dialog_parent (), text);
-  push_dialog_parent (dialog);
+  dialog = hildon_note_new_information (NULL, text);
+  push_dialog (dialog);
   closure_data->cont = cont;
   closure_data->data = data;
   g_signal_connect (dialog, "response", 
@@ -324,7 +420,7 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
     }
   else
     {
-      pop_dialog_parent (GTK_WIDGET (dialog));
+      pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
       if (c->pi)
 	c->pi->unref ();
@@ -344,8 +440,8 @@ annoy_user_with_details_1 (const gchar *text,
   GtkWidget *dialog;
   auwd_closure *c = new auwd_closure;
 
-  dialog = hildon_note_new_information (get_dialog_parent (), text);
-  push_dialog_parent (dialog);
+  dialog = hildon_note_new_information (NULL, text);
+  push_dialog (dialog);
 
   {
     // XXX - the buttons should be "Details" "Close", so we remove the
@@ -410,7 +506,7 @@ static void
 annoy_user_with_log_response (GtkDialog *dialog, gint response,
 			      gpointer data)
 {
-  pop_dialog_parent (GTK_WIDGET (dialog));
+  pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (response == 1)
@@ -422,8 +518,8 @@ annoy_user_with_log (const gchar *text)
 {
   GtkWidget *dialog;
 
-  dialog = hildon_note_new_information (get_dialog_parent (), text);
-  push_dialog_parent (dialog);
+  dialog = hildon_note_new_information (NULL, text);
+  push_dialog (dialog);
 #if 0
   gtk_dialog_add_button (GTK_DIALOG (dialog), "Log", 1);
 #endif
@@ -492,7 +588,7 @@ annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail,
 void
 irritate_user (const gchar *text)
 {
-  hildon_banner_show_information (GTK_WIDGET (get_dialog_parent ()),
+  hildon_banner_show_information (GTK_WIDGET (NULL),
 				  NULL, text);
 }
 
@@ -516,12 +612,12 @@ scare_user_with_legalese (bool sure,
 
   dialog = gtk_dialog_new_with_buttons
     (_("ai_ti_notice"),
-     get_dialog_parent (),
+     NULL,
      GTK_DIALOG_MODAL,
      _("ai_bd_notice_ok"),      GTK_RESPONSE_OK,
      _("ai_bd_notice_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   const char *text = (sure
@@ -617,7 +713,7 @@ create_progress (const gchar *title, bool with_cancel)
 {
   if (progress_dialog)
     {
-      pop_dialog_parent (GTK_WIDGET (progress_dialog));
+      pop_dialog (GTK_WIDGET (progress_dialog));
       gtk_widget_destroy (progress_dialog);
       progress_dialog = NULL;
       progress_bar = NULL;
@@ -639,10 +735,10 @@ create_progress (const gchar *title, bool with_cancel)
   gchar *longer_title = g_strconcat (title, "XXX", NULL);
   progress_bar = GTK_PROGRESS_BAR (gtk_progress_bar_new ());
   progress_dialog =
-    hildon_note_new_cancel_with_progress_bar (get_dialog_parent (),
+    hildon_note_new_cancel_with_progress_bar (NULL,
 					      longer_title,
 					      progress_bar);
-  push_dialog_parent (progress_dialog);
+  push_dialog (progress_dialog);
   g_free (longer_title);
   g_object_set (progress_dialog, "description", title, NULL);
 
@@ -771,7 +867,7 @@ hide_progress ()
   if (progress_dialog)
     {
       stop_pulsing ();
-      pop_dialog_parent (GTK_WIDGET (progress_dialog));
+      pop_dialog (GTK_WIDGET (progress_dialog));
       gtk_widget_destroy (GTK_WIDGET(progress_bar));
       gtk_widget_destroy (progress_dialog);
       progress_dialog = NULL;
@@ -926,7 +1022,7 @@ start_entertaining_user ()
   entertainment.bar = gtk_progress_bar_new ();
   entertainment.dialog =
     hildon_note_new_cancel_with_progress_bar 
-    (get_dialog_parent (),
+    (NULL,
      entertainment.main_title,
      GTK_PROGRESS_BAR (entertainment.bar));
 
@@ -955,7 +1051,7 @@ start_entertaining_user ()
   entertainment_update_progress ();
   entertainment_update_cancel ();
   
-  push_dialog_parent (entertainment.dialog);
+  push_dialog (entertainment.dialog);
   gtk_widget_show (entertainment.dialog);
 }
 
@@ -966,7 +1062,7 @@ stop_entertaining_user ()
 
   entertainment_stop_pulsing ();
 
-  pop_dialog_parent (entertainment.dialog);
+  pop_dialog (entertainment.dialog);
   gtk_widget_destroy (entertainment.dialog);
   
   entertainment.dialog = NULL;
@@ -1875,7 +1971,7 @@ void select_package_list_response (GtkDialog *dialog,
   package_list = g_list_reverse (package_list);
   g_object_unref(closure->list_store);
 
-  pop_dialog_parent (GTK_WIDGET (dialog));
+  pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (closure->cont)
@@ -1935,12 +2031,12 @@ select_package_list_with_info (void *data)
   int64_t total_size;
 
   dialog = gtk_dialog_new_with_buttons (c->title,
-					get_dialog_parent (),
+					NULL,
 					GTK_DIALOG_MODAL,
 					_("ai_bd_ok"),     GTK_RESPONSE_OK,
 					_("ai_bd_cancel"), GTK_RESPONSE_CANCEL,
 					NULL);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   list_store = make_select_package_list_store (c->package_list, &total_size);
@@ -2112,7 +2208,7 @@ fcd_response (GtkDialog *dialog, gint response, gpointer clos)
 
   char *uri = gtk_file_chooser_get_uri (GTK_FILE_CHOOSER (dialog));
 
-  pop_dialog_parent (GTK_WIDGET (dialog));
+  pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (response == GTK_RESPONSE_OK)
@@ -2134,14 +2230,14 @@ show_deb_file_chooser (void (*cont) (char *uri, void *data),
   GtkFileFilter *filter;
 
   fcd = hildon_file_chooser_dialog_new_with_properties
-    (get_dialog_parent (),
+    (NULL,
      "action",            GTK_FILE_CHOOSER_ACTION_OPEN,
      "title",             _("ai_ti_select_package"),
      "empty_text",        _("ai_ia_select_package_no_packages"),
      "open_button_text",  _("ai_bd_select_package"),
      NULL);
   gtk_window_set_modal (GTK_WINDOW (fcd), TRUE);
-  push_dialog_parent (fcd);
+  push_dialog (fcd);
 
   filter = gtk_file_filter_new ();
   gtk_file_filter_add_mime_type (filter, "application/x-deb");
@@ -2170,11 +2266,11 @@ show_file_chooser_for_save (const char *title,
   GtkWidget *fcd;
 
   fcd = hildon_file_chooser_dialog_new_with_properties
-    (get_dialog_parent (),
+    (NULL,
      "action",            GTK_FILE_CHOOSER_ACTION_SAVE,
      "title",             title,
      NULL);
-  push_dialog_parent (fcd);
+  push_dialog (fcd);
   gtk_window_set_modal (GTK_WINDOW (fcd), TRUE);
 
   gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (fcd), default_filename);
@@ -3060,6 +3156,71 @@ struct dip_clos {
   DBusMessage *message;
 };
 
+static void dbus_install_package (DBusConnection *conn, DBusMessage *message);
+static void dip_install_done (void *data);
+static void dip_end (bool success, void *data);
+
+static void
+dbus_install_package (DBusConnection *conn, DBusMessage *message)
+{
+  DBusError error;
+  
+  dbus_int32_t xid;
+  char *package;
+  
+  dbus_error_init (&error);
+  if (dbus_message_get_args (message, &error,
+			     DBUS_TYPE_INT32, &xid,
+			     DBUS_TYPE_STRING, &package,
+			     DBUS_TYPE_INVALID))
+    {
+      dip_clos *c = new dip_clos;
+      
+      dbus_connection_ref (conn);
+      c->conn = conn;
+      dbus_message_ref (message);
+      c->message = message;
+      
+      if (xid)
+	{
+	  if (start_foreign_interaction_flow (xid))
+	    install_named_package (APTSTATE_DEFAULT, package,
+				   dip_install_done, c);
+	  else
+	    dip_end (false, c);
+	}
+      else
+	{
+	  present_main_window ();
+	  if (start_interaction_flow ())
+	    install_named_package (APTSTATE_DEFAULT, package,
+				   dip_install_done, c);
+	  else
+	    dip_end (false, c);
+	}
+    }
+  else
+    {
+      DBusMessage *reply;
+      reply = dbus_message_new_error (message,
+				      DBUS_ERROR_INVALID_ARGS,
+				      error.message);
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
+    }
+}
+
+static void
+dip_install_done (void *data)
+{
+  dip_clos *c = (dip_clos *)data;
+
+  end_interaction_flow ();
+
+  // XXX - too optimistic
+  dip_end (true, c);
+}
+
 static void
 dip_end (bool success, void *data)
 {
@@ -3076,9 +3237,14 @@ dip_end (bool success, void *data)
   dbus_connection_send (c->conn, reply, NULL);
   dbus_message_unref (reply);
 
+  // So that we don't lose the reply when we exit below.
+  dbus_connection_flush (c->conn);
+
   dbus_message_unref (c->message);
   dbus_connection_unref (c->conn);
   delete c;
+
+  maybe_exit ();
 }
 
 static DBusHandlerResult 
@@ -3086,37 +3252,25 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 {
   if (dbus_message_is_method_call (message,
 				   "com.nokia.hildon_application_manager",
-				   "install"))
+				   "xxx_install_package"))
     {
-      DBusError error;
+      dbus_install_package (conn, message);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
 
-      dbus_int32_t xid;
-      char *package;
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_application_manager",
+				   "show"))
+    {
+      DBusMessage *reply;
 
-      dbus_error_init (&error);
-      if (dbus_message_get_args (message, &error,
-				 DBUS_TYPE_INT32, &xid,
-				 DBUS_TYPE_STRING, &package,
-				 DBUS_TYPE_INVALID))
-	{
-	  dip_clos *c = new dip_clos;
+      fprintf (stderr, "SHOW\n");
 
-	  dbus_connection_ref (conn);
-	  c->conn = conn;
-	  dbus_message_ref (message);
-	  c->message = message;
-	  
-	  install_named_package_flow (package, dip_end, c);
-	}
-      else
-	{
-	  DBusMessage *reply;
-	  reply = dbus_message_new_error (message,
-					  DBUS_ERROR_INVALID_ARGS,
-					  error.message);
-	  dbus_connection_send (conn, reply, NULL);
-	  dbus_message_unref (reply);
-	}
+      present_main_window ();
+
+      reply = dbus_message_new_method_return (message);
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
 
       return DBUS_HANDLER_RESULT_HANDLED;
     }

@@ -856,7 +856,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
       if (is_last)
 	{
 	  dialog = hildon_note_new_confirmation_add_buttons 
-	    (get_dialog_parent (),
+	    (NULL,
 	     msg,
 	     _("ai_ni_bd_details"), 1,
 	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
@@ -865,7 +865,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
       else
 	{
 	  dialog = hildon_note_new_confirmation_add_buttons 
-	    (get_dialog_parent (),
+	    (NULL,
 	     msg,
 	     _("Continue"), GTK_RESPONSE_OK,
 	     _("ai_ni_bd_details"), 1,
@@ -878,7 +878,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
       if (is_last)
 	{
 	  dialog = hildon_note_new_confirmation_add_buttons 
-	    (get_dialog_parent (),
+	    (NULL,
 	     msg,
 	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
 	     NULL);
@@ -886,7 +886,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
       else
 	{
 	  dialog = hildon_note_new_confirmation_add_buttons 
-	    (get_dialog_parent (),
+	    (NULL,
 	     msg,
 	     _("Continue"), GTK_RESPONSE_OK,
 	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
@@ -894,7 +894,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	}
     }
 
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (ip_abort_response), c);
@@ -910,7 +910,7 @@ ip_abort_response (GtkDialog *dialog, gint response, gpointer data)
     ip_show_cur_problem_details (c);
   else
     {
-      pop_dialog_parent (GTK_WIDGET (dialog));
+      pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
       
       if (response == GTK_RESPONSE_OK)

@@ -102,18 +102,11 @@ add_menu (GtkMenu *menu, const gchar *label)
   return GTK_MENU (sub);
 }
 
-static void
-noop_reply (int cmd, apt_proto_decoder *dec, void *data)
-{
-  exit (0);
-}
-
 void
 menu_close ()
 {
-  allow_updating ();
-  show_updating (_("Closing"));
-  apt_worker_noop (noop_reply, NULL);
+  hide_main_window ();
+  maybe_exit ();
 }
 
 static GtkWidget *details_menu_item = NULL;

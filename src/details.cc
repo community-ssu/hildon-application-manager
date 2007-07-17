@@ -242,7 +242,7 @@ static void
 details_response (GtkDialog *dialog, gint response, gpointer clos)
 {
   details_closure * closure = (details_closure *) clos;
-  pop_dialog_parent (GTK_WIDGET (dialog));
+  pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
   if (closure->cont)
     closure->cont(closure->data);
@@ -435,12 +435,12 @@ show_with_details_with_cont (package_info *pi, bool show_problems,
 				  GTK_POLICY_AUTOMATIC);
 
   dialog = gtk_dialog_new_with_buttons (_("ai_ti_details"),
-					get_dialog_parent (),
+					NULL,
 					GTK_DIALOG_MODAL,
 					_("ai_bd_details_close"),
 					GTK_RESPONSE_OK,
 					NULL);
-  push_dialog_parent (dialog);
+  push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   set_dialog_help (dialog, AI_TOPIC ("packagedetailsview"));
