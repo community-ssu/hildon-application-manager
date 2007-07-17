@@ -1,7 +1,9 @@
 2007-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
 
-	Allow interaction flows on top of foreign windows.  Provide
-	experimental D-Bus method for testing.
+	Allow interaction flows on top of foreign windows.  Provide D-Bus
+	method for it.  Only one interaction flow is allowed at any one
+	time, and all dialogs are shown from within an interaction flow.
+	This is a quite conservative approach, but better safe than sorry.
 	
 	* src/operations.h, src/operations.cc (install_packages): Added
 	title, desc parameter, pass n_succesful to continuation.  Updated
@@ -48,6 +50,26 @@
 	* hildon-application-manager.desktop: Don't advertise us as a
 	D-Bus service.  Use "hildon-application-manager-util show" to
 	start the AM.
+	
+	* src/log.cc (show_log, show_log_dialog_flow): Renamed former to
+	latter.  Wrapped in interaction flow.  Changed all callers.
+	* src/repo.cc (show_repo_dialog, show_catalogue_dialog_flow): Likewise.
+	* src/search.cc (show_search_dialog, show_search_dialog_flow):
+	Likewise.
+	* src/settings.cc (show_sort_settings_dialog,
+	show_sort_settings_dialog_flow): Likewise.
+	(show_settings_dialog, show_settings_dialog_flow): Likewise.
+
+	* src/details.h, src/details.cc (show_package_details): Added
+	continuation.  Rewritten a bit for clarity.  Changed all callers
+	to provide continuation.
+	(show_package_details_flow): New.
+
+	* src/main.cc (available_package_details,
+	installed_package_details): Call show_package_details_flow instead
+	of show_package_details.
+
+	* src/util.cc (annoy_user_with_log): Removed.
 	
 2007-07-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
