@@ -355,6 +355,7 @@ package_info::package_info ()
 {
   ref_count = 1;
   name = NULL;
+  broken = false;
   installed_version = NULL;
   installed_section = NULL;
   installed_pretty_name = NULL;
@@ -551,6 +552,9 @@ canonicalize_section_name (const char *name)
 const char *
 nicify_section_name (const char *name)
 {
+  if (name == NULL)
+    name = "";
+
   if (red_pill_mode && red_pill_show_all)
     return name;
 
@@ -2208,7 +2212,31 @@ install_named_packages (int state, const char **packages,
 	    }
 	}
       else
-	add_log ("Package %s not found\n", *current_package);
+	{
+	  /* Create a 'fake' package_info structure so that we at
+	     least have something to display.
+	  */
+	  package_info *pi = new package_info;
+	  pi->name = g_strdup (*current_package);
+	  pi->available_version = g_strdup ("");
+
+	  pi->have_info = true;
+	  pi->info.installable_status = status_not_found;
+	  pi->info.download_size = 0;
+	  pi->info.install_user_size_delta = 0;
+	  pi->info.required_free_space = 0;
+	  pi->info.install_flags = 0;
+	  pi->info.removable_status = status_able;
+	  pi->info.remove_user_size_delta = 0;
+
+	  pi->have_detail_kind = install_details;
+	  pi->summary = g_strdup_printf (_("ai_va_details_unable_install"),
+					 pi->name);
+	  pi->summary_packages[sumtype_missing] =
+	    g_list_append (NULL, g_strdup (pi->name));
+
+	  package_list = g_list_append (package_list, pi);
+	}
 
       g_list_free (search_list);
     }

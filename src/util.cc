@@ -1854,7 +1854,7 @@ make_select_package_list_store (GList *package_list, int64_t *total_size)
       gtk_list_store_append (list_store, &iter);
       gtk_list_store_set (list_store, &iter,
 			  COLUMN_SP_SELECTED, TRUE,
-			  COLUMN_SP_NAME, pi->name,
+			  COLUMN_SP_NAME, pi->get_display_name (false),
 			  COLUMN_SP_SIZE, package_size_str,
 			  COLUMN_SP_PACKAGE_INFO, pi,
 			  -1);
@@ -2093,7 +2093,7 @@ select_package_list (GList *package_list,
   closure->data = data;
 
   get_intermediate_package_list_info (package_list,
-				      false,
+				      true,
 				      select_package_list_with_info,
 				      closure,
 				      state);
@@ -3138,12 +3138,12 @@ struct dip_clos {
   DBusMessage *message;
 };
 
-static void dbus_install_package (DBusConnection *conn, DBusMessage *message);
+static void dbus_install_packages (DBusConnection *conn, DBusMessage *message);
 static void dip_install_done (int n_successful, void *data);
 static void dip_end (int result, void *data);
 
 static void
-dbus_install_package (DBusConnection *conn, DBusMessage *message)
+dbus_install_packages (DBusConnection *conn, DBusMessage *message)
 {
   DBusError error;
   
@@ -3247,9 +3247,9 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 {
   if (dbus_message_is_method_call (message,
 				   "com.nokia.hildon_application_manager",
-				   "xxx_install_package"))
+				   "install_packages"))
     {
-      dbus_install_package (conn, message);
+      dbus_install_packages (conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 

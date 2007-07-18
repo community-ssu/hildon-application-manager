@@ -104,6 +104,11 @@ installable_status_to_message (package_info *pi,
       smsg = _("ai_ni_error_n770package_incompatible");
       with_details = false;
     }
+  else if (pi->info.installable_status == status_not_found)
+    {
+      smsg = _("ai_ni_error_download_missing");
+      with_details = false;
+    }
   else
     {
       msg = g_strdup_printf ((pi->installed_version
@@ -459,8 +464,18 @@ ip_check_cert_loop (ip_clos *c)
     {
       package_info *pi = (package_info *)c->cur->data;
       printf ("CHECK CERT: %s\n", pi->name);
-      apt_worker_install_check (c->state, pi->name,
-				ip_check_cert_reply, c);
+
+      if (pi->have_info 
+	  && pi->info.installable_status == status_not_found)
+	{
+	  /* Skip packages that we know don't exist.
+	   */
+	  c->cur = c->cur->next;
+	  ip_check_cert_loop (c);
+	}
+      else
+	apt_worker_install_check (c->state, pi->name,
+				  ip_check_cert_reply, c);
     }
   else
     {
