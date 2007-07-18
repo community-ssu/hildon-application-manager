@@ -1724,18 +1724,26 @@ mark_sys_upgrades ()
    handles magic packages like "magic:sys".
 */
 
-static void
+static bool
 mark_named_package_for_install (const char *package)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   if (!strcmp (package, "magic:sys"))
-    mark_sys_upgrades ();
+    {
+      mark_sys_upgrades ();
+      return true;
+    }
   else
     {
       pkgDepCache &cache = *(state->cache);
       pkgCache::PkgIterator pkg = cache.FindPkg (package);
       if (!pkg.end())
-	mark_for_install (pkg);
+	{
+	  mark_for_install (pkg);
+	  return true;
+	}
+      else
+	return false;
     }
 }
 
@@ -2352,7 +2360,8 @@ cmd_get_package_info ()
 	  else
 	    {
 	      old_broken_count = cache.BrokenCount();
-	      mark_for_remove (pkg);
+	      if (!pkg.end())
+		mark_for_remove (pkg);
 
 	      for (pkgCache::PkgIterator pkg = cache.PkgBegin();
 		   pkg.end() != true;
@@ -3075,16 +3084,17 @@ void
 cmd_install_check ()
 {
   const char *package = request.decode_string_in_place ();
+  bool found = false;
   int result_code = rescode_failure;
-
+  
   if (ensure_cache ())
     {
-      mark_named_package_for_install (package);
+      found = mark_named_package_for_install (package);
       result_code = operation (true);
       cache_reset ();
     }
 
-  response.encode_int (result_code == rescode_success);
+  response.encode_int (found && result_code == rescode_success);
 }
 
 /* APTCMD_INSTALL_PACKAGE
@@ -3115,8 +3125,10 @@ cmd_install_package ()
 
   if (ensure_cache ())
     {
-      mark_named_package_for_install (package);
-      result_code = operation (false);
+      if (mark_named_package_for_install (package))
+	result_code = operation (false);
+      else
+	result_code = rescode_packages_not_found;
     }
 
   need_cache_init ();
