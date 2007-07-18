@@ -1,3 +1,27 @@
+2007-07-18  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (mark_named_package_for_install): Return
+	indication of whether package was found or not.
+	(cmd_get_package_info): Don't call mark_for_remove with invalid
+	iterator when package is not found.
+	(cmd_install_check): Return failure for packages that are not
+	found.
+	(cmd_install_package): Fail immediately for packages that are not
+	found.
+	
+	* src/apt-worker-proto.h (status_not_found): New.
+	* src/operations.cc (installable_status_to_message): Handle it.
+	(ip_check_cert_loop): Skip status_not_found packages.
+
+	* src/main.cc (nicify_section_name): Handle NULL sections.
+	(install_named_packages): Use status_not_found for packages that
+	are not found.
+
+	* src/util.cc (make_select_package_list_store): Use
+	get_display_name so that we get the pretty name.
+	(select_package_list): Don't ask for the 'removable' info.
+	(dbus_handler): Removed "xxx" prefix of method name.
+
 2007-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Allow interaction flows on top of foreign windows.  Provide D-Bus
