@@ -1,8 +1,10 @@
-hildon-application-manager (1:1.9.17~unreleased) unstable; urgency=low
+hildon-application-manager (1:1.9.17) unstable; urgency=low
 
   * Added suport for running interaction flows on top of foreign windows.
+  * Include packages that are not installed and not available in
+    multi-package selection dialogs.
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 17 Jul 2007 19:36:09 +0300
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 18 Jul 2007 19:21:06 +0300
 
 hildon-application-manager (1:1.9.16) unstable; urgency=low
 

@@ -1,5 +1,7 @@
 2007-07-18  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 1.9.17
+	
 	* src/apt-worker.cc (mark_named_package_for_install): Return
 	indication of whether package was found or not.
 	(cmd_get_package_info): Don't call mark_for_remove with invalid
