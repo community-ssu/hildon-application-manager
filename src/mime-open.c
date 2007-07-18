@@ -75,12 +75,12 @@ install (GtkWidget *parent, const char *arg)
   dbus_int32_t     xid = GDK_WINDOW_XID (parent->window);
   DBusPendingCall *pending_return = NULL;
   const char      *title = "Special offer";
-  const char      *desc = "Trust me, you want this package";
-  const char      *package_array[] = { arg };
+  const char      *desc = "Trust me, you want these packages";
+  const char      *package_array[] = { arg, "karl", "erik" };
   const char     **packages = package_array;
 
   msg = dbus_message_new_method_call (service, object_path,
-				      interface, "xxx_install_package");
+				      interface, "install_packages");
   if (msg)
     {
       dbus_message_append_args (msg,
@@ -88,7 +88,7 @@ install (GtkWidget *parent, const char *arg)
 				DBUS_TYPE_STRING, &title,
 				DBUS_TYPE_STRING, &desc,
 				DBUS_TYPE_ARRAY,
-				DBUS_TYPE_STRING, &packages, 1,
+				DBUS_TYPE_STRING, &packages, 3,
 				DBUS_TYPE_INVALID);
 
       if (dbus_connection_send_with_reply (connection, msg,
