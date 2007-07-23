@@ -18,7 +18,7 @@ DEBIAN="$3"
 DISTDIR=$PACKAGE-$VERSION
 ABS_DEBIAN=`cd $DEBIAN && pwd`
 
-make dist distdir=$DISTDIR
+make distcheck distdir=$DISTDIR
 tar xzf $DISTDIR.tar.gz
 
 ( cd $DISTDIR
