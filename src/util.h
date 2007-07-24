@@ -486,7 +486,6 @@ const char *gettext_alt (const char *id, const char *english);
 /* Return the device name.
  */
 const char *device_name ();
-void setup_dbus();
 
 /* Set up a handler that emits the given RESPONSE for DIALOG when
    the user hits Escape.
@@ -502,6 +501,6 @@ void grab_focus_on_map (GtkWidget *widget);
  */
 int64_t get_free_space ();
 
-void init_dbus_handlers ();
+void init_dbus_or_die (bool top_existing);
 
 #endif /* !UTIL_H */

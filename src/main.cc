@@ -2545,23 +2545,6 @@ apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
 
 static GtkWindow *main_window = NULL;
 
-static void
-mime_open_handler (gpointer raw_data, int argc, char **argv)
-{
-  if (argc > 0)
-    {
-      const char *filename = argv[0];
-
-      present_main_window ();
-      if (strcmp (filename, "magic:restore-packages") == 0)
-	restore_packages_flow ();
-      else if (strcmp (filename, "magic:update-system") == 0)
-	update_system_flow ();
-      else
-	install_from_file_flow (filename);
-    }
-}
-
 static GtkWidget *toolbar_operation_label = NULL;
 static GtkWidget *toolbar_operation_item = NULL;
 
@@ -2776,17 +2759,44 @@ save_backup_data_reply (int cmd, apt_proto_decoder *dec, void *data)
   /* No action required */
 }
 
-void
-connect_dbus_handlers (gpointer data)
+struct pending_cont {
+  pending_cont *next;
+  void (*cont) (void *data);
+  void *data;
+};
+
+static bool initial_packages_available = false;
+static pending_cont *pending_for_initial_packages = NULL;
+
+static void
+notice_initial_packages_available (gpointer data)
 {
-  /* XXX - check errors.
-   */
-  osso_ctxt = osso_initialize ("hildon_application_manager",
-			       PACKAGE_VERSION, TRUE, NULL);
+  fprintf (stderr, "GOT PACKAGES\n");
 
-  osso_mime_set_cb (osso_ctxt, mime_open_handler, NULL);
+  initial_packages_available = true;
 
-  init_dbus_handlers ();
+  while (pending_for_initial_packages)
+    {
+      pending_cont *c = pending_for_initial_packages;
+      pending_for_initial_packages = c->next;
+      c->cont (c->data);
+      delete c;
+    }
+}
+
+void
+with_initialized_packages (void (*cont) (void *data), void *data)
+{
+  if (initial_packages_available)
+    cont (data);
+  else
+    {
+      pending_cont *c = new pending_cont;
+      c->cont = cont;
+      c->data = data;
+      c->next = pending_for_initial_packages;
+      pending_for_initial_packages = c;
+    }
 }
 
 int
@@ -2797,27 +2807,6 @@ main (int argc, char **argv)
   char *apt_worker_prog = "/usr/libexec/apt-worker";
   bool show = true;
 
-  setlocale (LC_ALL, "");
-  bind_textdomain_codeset ("hildon-application-manager", "UTF-8");
-  textdomain ("hildon-application-manager");
-
-  load_settings ();
-  load_state ();
-
-  gtk_init (&argc, &argv);
-  setup_dbus();
-
-  // XXX - We don't want a two-part title and this seems to be the
-  //       only way to get rid of it.  Hopefully, setting an empty
-  //       application name doesn't break other stuff.
-  //
-  g_set_application_name ("");
-
-  clear_log ();
-
-  // XXX - stupid option parsing, should be improved but options are
-  //       only used for testing right now.
-  //
   if (argc > 1 && !strcmp (argv[1], "--no-show"))
     {
       show = false;
@@ -2830,6 +2819,28 @@ main (int argc, char **argv)
       argc--;
       argv++;
     }
+
+  setlocale (LC_ALL, "");
+  bind_textdomain_codeset ("hildon-application-manager", "UTF-8");
+  textdomain ("hildon-application-manager");
+
+  load_settings ();
+  load_state ();
+
+  gtk_init (&argc, &argv);
+
+  init_dbus_or_die (show);
+
+  osso_ctxt = osso_initialize ("hildon_application_manager",
+			       PACKAGE_VERSION, TRUE, NULL);
+
+  // XXX - We don't want a two-part title and this seems to be the
+  //       only way to get rid of it.  Hopefully, setting an empty
+  //       application name doesn't break other stuff.
+  //
+  g_set_application_name ("");
+
+  clear_log ();
 
   window = hildon_window_new ();
   gtk_window_set_title (GTK_WINDOW (window), _("ai_ap_application_installer"));
@@ -2943,7 +2954,7 @@ main (int argc, char **argv)
   apt_worker_set_status_callback (apt_status_callback, NULL);
 
   get_package_list_with_cont (APTSTATE_DEFAULT,
-			      connect_dbus_handlers, NULL);
+			      notice_initial_packages_available, NULL);
   save_backup_data ();
 
   if (show)

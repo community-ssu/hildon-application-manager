@@ -128,6 +128,7 @@ void refresh_package_cache_flow ();
 
 void install_from_file_flow (const char *filename);
 void restore_packages_flow ();
+void update_system_flow ();
 
 void save_backup_data ();
 
@@ -152,5 +153,7 @@ void set_toolbar_visibility (bool fullscreen, bool visibility);
 
 void set_dialog_help (GtkWidget *dialog, const char *topic);
 void show_help ();
+
+void with_initialized_packages (void (*cont) (void *data), void *data);
 
 #endif /* !MAIN_H */
