@@ -74,7 +74,8 @@ DBG (const char *str, xexp *cat)
 }
 #endif
 
-bool verbose;
+bool verbose = false;
+bool prepend = false;
 
 xexp *catalogues;
 xexp *domains;
@@ -144,19 +145,24 @@ handle_generic_element (xexp *conf, xexp *element,
   if (verbose)
     {
       if (old_element && add)
-	printf ("Replacing %s\n", element_description (element));
+	printf ("Replacing '%s'\n", element_description (element));
       else if(old_element == NULL && add)
-	printf ("Adding %s\n", element_description (element));
+	printf ("Adding '%s'\n", element_description (element));
       else if (old_element && !add)
-	printf ("Removing %s\n", element_description (element));
+	printf ("Removing '%s'\n", element_description (element));
       else
-	printf ("Not found: %s\n", element_description (element));
+	printf ("Not found: '%s'\n", element_description (element));
     }
 
   if (old_element)
     xexp_del (conf, old_element);
   if (add)
-    xexp_append_1 (conf, element);
+    {
+      if (prepend)
+	xexp_cons (conf, element);
+      else
+	xexp_append_1 (conf, element);
+    }
   else
     xexp_free (element);
 }
@@ -244,6 +250,13 @@ main (int argc, char **argv)
   if (argc > 1 && strcmp (argv[1], "-v") == 0)
     {
       verbose = true;
+      argc--;
+      argv++;
+    }
+
+  if (argc > 1 && strcmp (argv[1], "--prepend") == 0)
+    {
+      prepend = true;
       argc--;
       argv++;
     }
