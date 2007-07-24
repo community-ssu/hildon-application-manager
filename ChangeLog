@@ -1,3 +1,12 @@
+2007-07-24  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/xexp.c (xexp_parser_text): Do not attempt to transmogrify an
+	empty node into a text node with an empty string.
+
+	* src/hildon-application-manager-config.cc
+	(main): Recognize "--prepend" option.
+	(handle_generic_element): Act accordingly.
+
 2007-07-18  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.17
@@ -12,7 +21,8 @@
 	found.
 	
 	* src/apt-worker-proto.h (status_not_found): New.
-	* src/operations.cc (installable_status_to_message): Handle it.
+	* src/operations.cc (installable_status_to_message): Handle it
+	(N63279).
 	(ip_check_cert_loop): Skip status_not_found packages.
 
 	* src/main.cc (nicify_section_name): Handle NULL sections.
