@@ -123,7 +123,7 @@ show ()
   gchar           *interface = "com.nokia.hildon_application_manager";
 
   msg = dbus_message_new_method_call (service, object_path,
-				      interface, "show");
+				      interface, "top_application");
   if (msg)
     {
       dbus_connection_send (connection, msg, NULL);
