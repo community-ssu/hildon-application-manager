@@ -1,5 +1,13 @@
 2007-07-24  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/dbus.h, src/dbus.cc: New files.
+	* src/Makefile.am (hildon_application_manager_launch_SOURCES):
+	Added them.
+	* src/util.h, src/util.cc: Moved D-Bus related stuff into dbus.h
+	and dbus.cc.  Updated users.
+
+	Polished D-Bus interaction.
+	
 	* src/main.h, src/main.cc (notice_initial_packages_available,
 	with_initialized_packages): New.
 	(update_system_flow): Made public.
