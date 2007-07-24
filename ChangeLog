@@ -1,5 +1,7 @@
 2007-07-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 1.9.19
+	
 	New "install_file" D-Bus method.
 	
 	* src/operations.h, src/operations.cc (install_file): New, for
