@@ -30,8 +30,8 @@
    Manager.
 
    INSTALL_PACKAGES installs or updates a list of packages, and
-   UNINSTALL_PACKAGE uninstalls a single package.  INSTALL_DEB_FILE
-   installs a single .deb file.
+   UNINSTALL_PACKAGE uninstalls a single package.  INSTALL_FILE
+   installs a single .deb or .install file.
 
    These functions do not call START_INTERACTION_FLOW or
    END_INTERACTION_FLOW.
@@ -73,7 +73,7 @@ void uninstall_package (package_info *pi,
 
 /* FILENAME must remain valid until CONT is called.
  */
-void install_local_deb_file (const char *filename,
-			     void (*cont) (void *data), void *data);
+void install_file (const char *filename,
+		   void (*cont) (bool success, void *data), void *data);
 
 #endif /* !OPERATIONS_H */

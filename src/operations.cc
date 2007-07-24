@@ -31,6 +31,7 @@
 #include <hildon/hildon-note.h>
 
 #include "operations.h"
+#include "instr.h"
 #include "util.h"
 #include "main.h"
 #include "apt-worker-client.h"
@@ -1206,7 +1207,14 @@ up_end (void *data)
 }
 
 
-/* INSTALL_LOCAL_DEB_FILE - Overview
+/* INSTALL_FILE - Overview
+
+   0. Localize file
+
+   1. Dispatch on extenstion to either if_install_local_deb_file or
+      open_local_install_instructions.
+
+   IF_INSTALL_LOCAL_DEB_FILE:
 
    0. Get details of file.
 
@@ -1225,33 +1233,72 @@ up_end (void *data)
  */
 
 struct if_clos {
-  const char *filename;
+  char *filename;
 
   package_info *pi;
 
-  void (*cont) (void *);
+  void (*cont) (bool, void *);
   void *data;
 };
+
+static void if_local (char *local_filename, void *data);
+
+static void if_install_local_deb_file (void *data);
 
 static void if_details_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void if_show_legalese (bool res, void *data);
 static void if_install (bool res, void *data);
 static void if_install_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void if_fail (bool res, void *data);
-static void if_end (void *data);
+static void if_end_with_failure (void *data);
+static void if_end_with_success (void *data);
+static void if_end (bool success, void *data);
 
-void
-install_local_deb_file (const char *filename,
-			void (*cont) (void *data), void *data)
+void install_file (const char *filename,
+		   void (*cont) (bool success, void *data), void *data)
 {
   if_clos *c = new if_clos;
 
-  c->filename = filename;
+  c->filename = NULL;
   c->pi = NULL;
   c->cont = cont;
   c->data = data;
 
-  fprintf (stderr, "INSTALL DEB: %s\n", filename);
+  localize_file_and_keep_it_open (filename, if_local, c);
+}
+
+static void
+if_local (char *local_filename, void *data)
+{
+  if_clos *c = (if_clos *)data;
+
+  if (local_filename)
+    {
+      if (g_str_has_suffix (local_filename, ".install"))
+	{
+	  /* XXX - if_end_with_success is too optimistic but
+	           open_local_install_instructions doesn't report
+	           the results yet.
+	  */
+	  open_local_install_instructions (local_filename,
+					   if_end_with_success, c);
+	}
+      else
+	{
+	  c->filename = local_filename;
+	  if_install_local_deb_file (c);
+	}
+    }
+  else
+    if_end (false, c);
+}
+
+void
+if_install_local_deb_file (void *data)
+{
+  if_clos *c = (if_clos *)data;
+
+  fprintf (stderr, "INSTALL DEB: %s\n", c->filename);
 
   apt_worker_get_file_details (!(red_pill_mode && red_pill_show_all),
 			       c->filename, if_details_reply, c);
@@ -1274,7 +1321,7 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (dec == NULL)
     {
-      if_end (c);
+      if_end (false, c);
       return;
     }
 
@@ -1349,7 +1396,7 @@ if_show_legalese (bool res, void *data)
   if (res)
     scare_user_with_legalese (false, if_install, c);
   else
-    if_end (c);
+    if_end (false, c);
 }
 
 static void
@@ -1375,7 +1422,7 @@ if_install (bool res, void *data)
 			       if_install_reply, c);
     }
   else
-    if_end (c);
+    if_end (false, c);
 }
 
 static void
@@ -1387,7 +1434,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (dec == NULL)
     {
-      if_end (c);
+      if_end (false, c);
       return;
     }
 
@@ -1402,7 +1449,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 				   ? _("ai_ni_update_successful")
 				   : _("ai_ni_install_successful"),
 				   c->pi->get_display_name (false));
-      annoy_user (str, if_end, c);
+      annoy_user (str, if_end_with_success, c);
       g_free (str);
     }
   else
@@ -1418,7 +1465,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 			       : _("ai_ni_error_installation_failed"),
 			       c->pi->get_display_name (false));
 
-      annoy_user (msg, if_end, c);
+      annoy_user (msg, if_end_with_failure, c);
       g_free (msg);
     }
 }
@@ -1434,23 +1481,44 @@ if_fail (bool res, void *data)
       bool with_details;
       installable_status_to_message (c->pi, msg, with_details);
       if (with_details)
-	annoy_user_with_details (msg, c->pi, install_details, if_end, c);
+	annoy_user_with_details (msg, c->pi, install_details,
+				 if_end_with_failure, c);
       else
-	annoy_user (msg, if_end, c);
+	annoy_user (msg, if_end_with_failure, c);
       g_free (msg);
     }
   else
-    if_end (c);
+    if_end (false, c);
 }
 
 static void
-if_end (void *data)
+if_end_with_success (void *data)
 {
   if_clos *c = (if_clos *)data;
   
+  if_end (true, c);
+}
+
+static void
+if_end_with_failure (void *data)
+{
+  if_clos *c = (if_clos *)data;
+  
+  if_end (false, c);
+}
+
+static void
+if_end (bool success, void *data)
+{
+  if_clos *c = (if_clos *)data;
+  
+  cleanup_temp_file ();
+
+  g_free (c->filename);
+
   if (c->pi)
     c->pi->unref ();
 
-  c->cont (c->data);
+  c->cont (success, c->data);
   delete c;
 }

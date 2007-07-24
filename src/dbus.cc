@@ -204,6 +204,112 @@ dip_end (int result, void *data)
   maybe_exit ();
 }
 
+struct dif_clos {
+  Window xid;
+  char *filename;
+  DBusConnection *conn;
+  DBusMessage *message;
+};
+
+static void dbus_install_file (DBusConnection *conn, DBusMessage *message);
+static void dif_with_initialized_packages (void *data);
+static void dif_install_done (bool success, void *data);
+static void dif_end (int result, void *data);
+
+static void
+dbus_install_file (DBusConnection *conn, DBusMessage *message)
+{
+  DBusError error;
+
+  dbus_int32_t xid;
+
+  dbus_connection_ref (conn);
+  dbus_message_ref (message);
+  
+  dif_clos *c = new dif_clos;
+  c->conn = conn;
+  c->message = message;
+  c->filename = NULL;
+
+  dbus_error_init (&error);
+  if (dbus_message_get_args (message, &error,
+			     DBUS_TYPE_INT32, &xid,
+			     DBUS_TYPE_STRING, &c->filename,
+			     DBUS_TYPE_INVALID))
+    {
+      c->xid = xid;
+      with_initialized_packages (dif_with_initialized_packages, c);
+    }
+  else
+    {
+      DBusMessage *reply;
+      reply = dbus_message_new_error (message,
+				      DBUS_ERROR_INVALID_ARGS,
+				      error.message);
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
+      dif_end (-1, c);
+    }
+}
+
+static void
+dif_with_initialized_packages (void *data)
+{
+  dif_clos *c = (dif_clos *)data;
+
+  if (c->xid)
+    {
+      if (start_foreign_interaction_flow (c->xid))
+	install_file (c->filename, dif_install_done, c);
+      else
+	dif_end (-1, c);
+    }
+  else
+    {
+      present_main_window ();
+      if (start_interaction_flow ())
+	install_file (c->filename, dif_install_done, c);
+      else
+	dif_end (-1, c);
+    }
+}
+
+static void
+dif_install_done (bool success, void *data)
+{
+  dif_clos *c = (dif_clos *)data;
+
+  end_interaction_flow ();
+
+  dif_end (success? 1 : 0, c);
+}
+
+static void
+dif_end (int result, void *data)
+{
+  dif_clos *c = (dif_clos *)data;
+
+  DBusMessage *reply;
+  dbus_int32_t dbus_result = result;
+	  
+  reply = dbus_message_new_method_return (c->message);
+  dbus_message_append_args (reply,
+			    DBUS_TYPE_INT32, &dbus_result,
+			    DBUS_TYPE_INVALID);
+  
+  dbus_connection_send (c->conn, reply, NULL);
+  dbus_message_unref (reply);
+
+  // So that we don't lose the reply when we exit below.
+  dbus_connection_flush (c->conn);
+
+  dbus_message_unref (c->message);
+  dbus_connection_unref (c->conn);
+  delete c;
+
+  maybe_exit ();
+}
+
 static DBusHandlerResult 
 dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 {
@@ -220,6 +326,14 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 				   "install_packages"))
     {
       dbus_install_packages (conn, message);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_application_manager",
+				   "install_file"))
+    {
+      dbus_install_file (conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 

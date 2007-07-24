@@ -2434,46 +2434,11 @@ us_end (int n_succesful, void *data)
   end_interaction_flow ();
 }
 
-/* Installing from file
+/* INSTALL_FROM_FILE_FLOW
  */
 
-static void
-install_from_file_flow_end (void *data)
-{
-  char *filename = (char *)data;
-  cleanup_temp_file ();
-  end_interaction_flow ();
-  g_free (filename);
-}
-
-static void
-install_from_local_file (char *filename, void *unused)
-{
-  if (filename)
-    {
-      if (g_str_has_suffix (filename, ".install"))
-	open_local_install_instructions (filename,
-					 install_from_file_flow_end,
-					 filename);
-      else
-	install_local_deb_file (filename,
-				install_from_file_flow_end, filename);
-    }
-  else
-    install_from_file_flow_end (filename);
-}
-
-static void
-install_from_file_cont (char *uri, void *unused)
-{
-  if (uri)
-    {
-      localize_file_and_keep_it_open (uri, install_from_local_file, NULL);
-      g_free (uri);
-    }
-  else
-    install_from_file_flow_end (NULL);
-}
+static void iff_with_filename (char *uri, void *unused);
+static void iff_end (bool success, void *unused);
 
 void
 install_from_file_flow (const char *filename)
@@ -2481,10 +2446,28 @@ install_from_file_flow (const char *filename)
   if (start_interaction_flow ())
     {
       if (filename == NULL)
-	show_deb_file_chooser (install_from_file_cont, NULL);
+	show_deb_file_chooser (iff_with_filename, NULL);
       else
-	install_from_file_cont (g_strdup (filename), NULL);
+	iff_with_filename (g_strdup (filename), NULL);
     }
+}
+
+static void
+iff_with_filename (char *uri, void *unused)
+{
+  if (uri)
+    {
+      install_file (uri, iff_end, NULL);
+      g_free (uri);
+    }
+  else
+    iff_end (false, NULL);
+}
+
+static void
+iff_end (bool success, void *unused)
+{
+  end_interaction_flow ();
 }
 
 static void
