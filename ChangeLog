@@ -1,5 +1,7 @@
 2007-07-24  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 1.9.18
+	
 	* src/xexp.c (xexp_parser_text): Do not attempt to transmogrify an
 	empty node into a text node with an empty string.
 
