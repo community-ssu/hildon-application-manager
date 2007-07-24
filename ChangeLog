@@ -1,3 +1,16 @@
+2007-07-25  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	New "install_file" D-Bus method.
+	
+	* src/operations.h, src/operations.cc (install_file): New, for
+	installing all kinds of files, including remote ones and .install
+	files.
+	(install_local_deb_file): Removed.
+	* src/main.cc (install_from_file_flow): Rewritten to use
+	install_file.
+	* src/dbus.cc (dbus_install_file): New.
+	(dbus_handler): Dispatch to it.
+
 2007-07-24  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/dbus.h, src/dbus.cc: New files.
