@@ -27,6 +27,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <hildon/hildon-window.h>
+#include <hildon/hildon-file-chooser-dialog.h>
 
 #include <glib.h>
 #include <dbus/dbus.h>
@@ -137,6 +138,81 @@ show_clicked (GtkWidget *button, gpointer data)
   show ();
 }
 
+void
+install_file (GtkWidget *parent, const char *arg)
+{
+  DBusMessage     *msg;
+  gchar           *service = "com.nokia.hildon_application_manager";
+  gchar           *object_path = "/com/nokia/hildon_application_manager";
+  gchar           *interface = "com.nokia.hildon_application_manager";
+  dbus_int32_t     xid = GDK_WINDOW_XID (parent->window);
+  DBusPendingCall *pending_return = NULL;
+
+  msg = dbus_message_new_method_call (service, object_path,
+				      interface, "install_file");
+  if (msg)
+    {
+      dbus_message_append_args (msg,
+				DBUS_TYPE_INT32, &xid,
+				DBUS_TYPE_STRING, &arg,
+				DBUS_TYPE_INVALID);
+
+      if (dbus_connection_send_with_reply (connection, msg,
+					   &pending_return,
+					   INT_MAX))
+	{
+	  grab_widget = gtk_invisible_new ();
+	  gtk_widget_show (grab_widget);
+	  gtk_grab_add (grab_widget);
+	  dbus_pending_call_set_notify (pending_return, install_reply,
+					NULL, NULL);
+	}
+
+      dbus_message_unref (msg);
+    }
+}
+
+static void
+fcd_response (GtkDialog *dialog, gint response, gpointer clos)
+{
+  char *uri = gtk_file_chooser_get_uri (GTK_FILE_CHOOSER (dialog));
+
+  gtk_widget_destroy (GTK_WIDGET (dialog));
+
+  if (response == GTK_RESPONSE_OK)
+    {
+      fprintf (stderr, "OPENING %s\n", uri);
+      install_file (window, uri);
+    }
+  
+  g_free (uri);
+}
+
+void
+file_clicked (GtkWidget *button, gpointer data)
+{
+  GtkWidget *fcd;
+  GtkFileFilter *filter;
+
+  fcd = hildon_file_chooser_dialog_new_with_properties
+    (GTK_WINDOW (window),
+     "action",            GTK_FILE_CHOOSER_ACTION_OPEN,
+     NULL);
+  gtk_window_set_modal (GTK_WINDOW (fcd), TRUE);
+
+  filter = gtk_file_filter_new ();
+  gtk_file_filter_add_mime_type (filter, "application/x-deb");
+  gtk_file_filter_add_mime_type (filter, "application/x-debian-package");
+  gtk_file_filter_add_mime_type (filter, "application/x-install-instructions");
+  gtk_file_chooser_set_filter (GTK_FILE_CHOOSER(fcd), filter);
+  // XXX - gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER(fcd), TRUE);
+
+  g_signal_connect (fcd, "response",
+		    G_CALLBACK (fcd_response), NULL);
+
+  gtk_widget_show_all (fcd);
+}
+
 static gboolean
 window_delete_event (GtkWidget* widget, GdkEvent *ev, gpointer data)
 {
@@ -147,7 +223,7 @@ window_delete_event (GtkWidget* widget, GdkEvent *ev, gpointer data)
 int
 main (int argc, char **argv)
 {
-  GtkWidget *vbox, *entry, *button, *show_button;
+  GtkWidget *vbox, *entry, *button, *file_button, *show_button;
   DBusError error;
 
   gtk_init (&argc, &argv);
@@ -176,6 +252,10 @@ main (int argc, char **argv)
   g_signal_connect (button, "clicked",
 		    G_CALLBACK (install_clicked), entry);
 
+  file_button = gtk_button_new_with_label ("install file");
+  g_signal_connect (file_button, "clicked",
+		    G_CALLBACK (file_clicked), entry);
+
   show_button = gtk_button_new_with_label ("show");
   g_signal_connect (show_button, "clicked",
 		    G_CALLBACK (show_clicked), entry);
@@ -183,6 +263,7 @@ main (int argc, char **argv)
   vbox = gtk_vbox_new (5, FALSE);
   gtk_box_pack_start (GTK_BOX (vbox), entry, 10, FALSE, FALSE);
   gtk_box_pack_start (GTK_BOX (vbox), button, 10, FALSE, FALSE);
+  gtk_box_pack_start (GTK_BOX (vbox), file_button, 10, FALSE, FALSE);
   gtk_box_pack_start (GTK_BOX (vbox), show_button, 10, FALSE, FALSE);
 
   gtk_container_add (GTK_CONTAINER (window), vbox);
