@@ -1,5 +1,34 @@
 2007-07-24  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/main.h, src/main.cc (notice_initial_packages_available,
+	with_initialized_packages): New.
+	(update_system_flow): Made public.
+	(mime_open_handler, connect_dbus_handlers): Removed, this is now
+	handled by dbus_mime_open.
+	(main): Call init_dbus_or_die very early.  Don't call setup_dbus.
+	Cause notice_initial_packages_available to be called when the
+	first request has finished.
+	
+	* src/util.h, src/util.cc (init_dbus_handlers, init_dbus_or_die):
+	Renamed former to latter.  Exit when something goes wrong with
+	D-Bus.  Call top_application D-Bus method when our name is already
+	regisgtered.
+	(setup_dbus): Removed, after merging functionality into
+	init_dbus_or_die.
+	(dbus_mime_open): New.
+	(dbus_handler): Call it for the "mime_open" method.  Handle
+	"top_application" instead of "show".
+	(dbus_install_packages): Use with_initialized_packages so that
+	install_named_packages can find the packages.
+
+	* src/hildon-application-manager-util: Removed "show" subcommand.
+
+	* hildon-application-manager.desktop (Exec): Reverted to
+	/usr/bin/hildon-application-manager, which does the right thing
+	now when an instance is already running.  (X-Osso-Service,
+	X-Osso-Type): Re-added.  Otherwise mime handling seems to be
+	broken.
+
 	Released 1.9.18
 	
 	* src/xexp.c (xexp_parser_text): Do not attempt to transmogrify an
