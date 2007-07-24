@@ -80,7 +80,7 @@ catalogue_equal (xexp *cat1, xexp *cat2)
   return (tokens_equal (xexp_aref_text (cat1, "uri"),
 			xexp_aref_text (cat2, "uri"))
 	  && tokens_equal (xexp_aref_text (cat1, "dist"),
-		       xexp_aref_text (cat2, "dist"))
+			   xexp_aref_text (cat2, "dist"))
 	  && tokens_equal (xexp_aref_text (cat1, "components"),
 			   xexp_aref_text (cat2, "components")));
 }
