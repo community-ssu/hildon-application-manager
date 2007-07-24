@@ -474,7 +474,8 @@ xexp_parser_text (GMarkupParseContext *context,
   xexp_parse_context *xp = (xexp_parse_context *)user_data;
 
   /* If the current xexp is not empty, TEXT must be all whitespace and
-     we ignore it.  Otherwise, we turn the current node into text.
+     we ignore it.  Otherwise, we turn the current node into text (if
+     it is not the empty string).
   */
   
   if (xp->stack)
@@ -482,7 +483,7 @@ xexp_parser_text (GMarkupParseContext *context,
       xexp *y = (xexp *)xp->stack->data;
       if (!xexp_is_empty (y))
 	ignore_text (text, error);
-      else
+      else if (text && *text)
 	transmogrify_empty_to_text (y, text);
     }
 }
