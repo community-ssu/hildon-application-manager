@@ -45,6 +45,7 @@
 #include "search.h"
 #include "instr.h"
 #include "repo.h"
+#include "dbus.h"
 
 #define MAX_PACKAGES_NO_CATEGORIES 7
 
