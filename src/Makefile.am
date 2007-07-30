@@ -1,6 +1,6 @@
 bin_PROGRAMS = hildon-application-manager.launch \
                hildon-application-manager-config
-bin_SCRIPTS = hildon-application-manager-util
+dist_bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server
 libexec_PROGRAMS = apt-worker
 
@@ -39,7 +39,7 @@ hildon_application_manager_launch_CFLAGS =   $(HAM_DEPS_CFLAGS) -shared
 hildon_application_manager_launch_CXXFLAGS = $(HAM_DEPS_CFLAGS) -shared \
                                              -fno-rtti -fno-exceptions
 hildon_application_manager_launch_LDFLAGS =  -shared \
-                                             -Wl,--version-script=export.map
+                                             -Wl,--version-script=$(srcdir)/export.map
 hildon_application_manager_launch_LDADD =    $(HAM_DEPS_LIBS)
 
 hildon_application_manager_run_SOURCES =  $(hildon_application_manager_launch_SOURCES)

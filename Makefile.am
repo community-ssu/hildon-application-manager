@@ -26,6 +26,14 @@ install-data-local:
           echo "<domains/>" >$(DESTDIR)$(etcdir)/domains; \
         fi
 
+uninstall-local:
+	if [ -f $(DESTDIR)$(etcdir)/catalogues ]; then \
+          rm $(DESTDIR)$(etcdir)/catalogues; \
+        fi
+	if [ -f $(DESTDIR)$(etcdir)/domains ]; then \
+          rm $(DESTDIR)$(etcdir)/domains; \
+        fi
+
 EXTRA_DIST = hildon-application-manager.desktop			\
              com.nokia.hildon_application_manager.service	\
              hildon-application-manager.xml			\

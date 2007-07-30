@@ -1,3 +1,16 @@
+2007-07-26  Mario Sanchez Prada  <msanchez@maemo.org>
+	
+	All these changes fix 'make deb' failure.
+
+	* src/Makefile.am: changed bin_SCRIPTS variable to
+	dist_bin_SCRIPTS, in order to add such those scripts to
+	distribution process.
+	Added the prefix directory $(srcdir) to export.map file, allowing
+	'make distcheck' to find that file during the check.
+	* utils/Makefile.am: same for this file.
+	* Makefile.am: Added uninstall-local rule to properly clean
+	distribution during the 'make distcheck' process.
+
 2007-07-26  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc (fcd_response): Call cont with NULL when dialog has
