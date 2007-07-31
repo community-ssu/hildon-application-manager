@@ -2179,10 +2179,16 @@ fcd_response (GtkDialog *dialog, gint response, gpointer clos)
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   if (response == GTK_RESPONSE_OK)
-    if (cont)
-      cont (uri, data);
+    {
+      if (cont)
+	cont (uri, data);
+    }
   else
-    g_free (uri);
+    {
+      g_free (uri);
+      if (cont)
+	cont (NULL, data);
+    }
 }
 
 void
