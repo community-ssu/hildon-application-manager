@@ -1,4 +1,11 @@
-2007-07-26  Mario Sanchez Prada  <msanchez@maemo.org>
+2007-08-02  Mario Sanchez Prada  <msanchez@maemo.org>
+	
+	* src/util.cc (select_package_list_with_info): use a
+	GtkSrolledWindow to add vertical scroll bars (when needed), to the tree view
+	with the packages list when installing applications from a memory
+	card / backup (N58480).
+
+2007-07-30  Mario Sanchez Prada  <msanchez@maemo.org>
 	
 	All these changes fix 'make deb' failure.
 

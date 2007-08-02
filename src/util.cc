@@ -1993,6 +1993,7 @@ select_package_list_with_info (void *data)
   GtkWidget *tree_view;
   GtkTreeViewColumn *column;
   GtkCellRenderer *renderer;
+  GtkWidget *scroller;
   GtkWidget *message_label;
   GtkWidget *required_space_label;
   int64_t total_size;
@@ -2042,7 +2043,14 @@ select_package_list_with_info (void *data)
 						     NULL);
   gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
 			       column);
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), tree_view);
+
+  /* Set up an scrolled window for the treeview */
+  scroller = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller), 
+				  GTK_POLICY_NEVER, 
+				  GTK_POLICY_AUTOMATIC);
+  gtk_container_add (GTK_CONTAINER (scroller), tree_view);
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), scroller);
   
   /* Add separator */
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
