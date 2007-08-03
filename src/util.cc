@@ -555,7 +555,7 @@ annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail,
 void
 irritate_user (const gchar *text)
 {
-  hildon_banner_show_information (GTK_WIDGET (NULL),
+  hildon_banner_show_information (GTK_WIDGET (get_main_window()),
 				  NULL, text);
 }
 
@@ -1867,17 +1867,27 @@ void fill_required_space_label (GtkWidget *label,
   g_free (text);
 }
 
-void update_required_space_label (GtkTreeModel *model,
-				  GtkTreePath *path, GtkTreeIter *i,
-				  void *data)
+struct upls_closure {
+  GtkWidget *button;
+  GtkWidget *required_space_label;
+};
+
+void update_packages_list_selection (GtkTreeModel *model,
+				     GtkTreePath *path, GtkTreeIter *i,
+				     gpointer data)
 {
   gboolean has_iter = FALSE;
+  gboolean selected_packages = FALSE;
   int64_t acc_size = 0;
+  GtkWidget *button;
   GtkWidget *label = NULL;
   GtkTreeIter iter;
+  upls_closure *closure = (upls_closure *)data;
 
   has_iter = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(model), &iter);
-  label = GTK_WIDGET(data);
+
+  button = closure->button;
+  label = closure->required_space_label;
 
   while (has_iter)
     {
@@ -1889,10 +1899,15 @@ void update_required_space_label (GtkTreeModel *model,
 			  COLUMN_SP_PACKAGE_INFO, &pi,
 			  -1);
       if (selected)
-	acc_size += pi->info.install_user_size_delta;
+	{
+	  selected_packages = TRUE;
+	  acc_size += pi->info.install_user_size_delta;
+	}
       has_iter = gtk_tree_model_iter_next (GTK_TREE_MODEL(model), &iter);
     }
 
+  /* Set sensitiveness to the OK button and update required size label */
+  gtk_widget_set_sensitive (button, selected_packages);
   fill_required_space_label (label, acc_size);
 }
 
@@ -1962,6 +1977,12 @@ void select_package_list_response (GtkDialog *dialog,
 }
 
 void
+packages_list_insensitive_ok_button (GtkWidget *widget, gpointer user_data)
+{
+  irritate_user (_("ai_ib_nothing_to_install"));
+}
+
+void
 package_selected_toggled_callback (GtkCellRendererToggle *cell,
 				   char *path_string,
 				   gpointer user_data)
@@ -1989,6 +2010,7 @@ select_package_list_with_info (void *data)
   spl_closure *c = (spl_closure *)data;
 
   GtkWidget *dialog;
+  GtkWidget *ok_button;
   GtkListStore *list_store;
   GtkWidget *tree_view;
   GtkTreeViewColumn *column;
@@ -1997,13 +2019,21 @@ select_package_list_with_info (void *data)
   GtkWidget *message_label;
   GtkWidget *required_space_label;
   int64_t total_size;
+  gint result;
+  gint padding = 4;
 
-  dialog = gtk_dialog_new_with_buttons (c->title,
-					NULL,
-					GTK_DIALOG_MODAL,
-					_("ai_bd_ok"),     GTK_RESPONSE_OK,
-					_("ai_bd_cancel"), GTK_RESPONSE_CANCEL,
-					NULL);
+  /* Dialog creation: we can't use gtk_dialog_new_with_buttons ()
+     because we need to get access to the OK GtkButton in order to
+     connect to the 'insensitive_press' signal emmited when clicking
+     on it while it's insensitve
+  */
+  dialog = gtk_dialog_new ();
+  gtk_window_set_title (GTK_WINDOW (dialog), c->title);
+  gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
+  gtk_widget_set_parent (GTK_WIDGET (dialog), NULL);
+  ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_bd_ok"), GTK_RESPONSE_OK);
+  gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_bd_cancel"), GTK_RESPONSE_CANCEL);
+  
   push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
@@ -2011,11 +2041,13 @@ select_package_list_with_info (void *data)
 
   /* Set the message dialog */
   message_label = gtk_label_new (c->question);
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), message_label);
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), message_label,
+		      FALSE, FALSE, padding);
   
   /* Add required space label */
   required_space_label = gtk_label_new (NULL);
-  gtk_box_pack_end_defaults (GTK_BOX(GTK_DIALOG(dialog)->vbox), required_space_label);
+  gtk_box_pack_end (GTK_BOX(GTK_DIALOG(dialog)->vbox), required_space_label, 
+		    FALSE, FALSE, padding);
   fill_required_space_label (required_space_label, total_size);
 
   /* Set up treeview */
@@ -2050,23 +2082,36 @@ select_package_list_with_info (void *data)
 				  GTK_POLICY_NEVER, 
 				  GTK_POLICY_AUTOMATIC);
   gtk_container_add (GTK_CONTAINER (scroller), tree_view);
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), scroller);
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), scroller,
+		      TRUE, TRUE, padding);
   
   /* Add separator */
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
-		     gtk_hseparator_new ());
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), gtk_hseparator_new (),
+		      FALSE, FALSE, padding);
 
   c->list_store = list_store;
 
+  /* Prepare data to be passed to the right signal handler */
+  upls_closure *upls_data = new upls_closure;
+  upls_data->button = ok_button;
+  upls_data->required_space_label = required_space_label;
+
+  /* Connect signals */
   g_signal_connect (list_store, "row-changed",
-		    G_CALLBACK (update_required_space_label),
-		    required_space_label);
-  g_signal_connect (dialog, "response", 
-		    G_CALLBACK (select_package_list_response), 
-		    c);
+		    G_CALLBACK (update_packages_list_selection),
+		    upls_data);
+  g_signal_connect (ok_button, "insensitive_press", 
+		    G_CALLBACK (packages_list_insensitive_ok_button), 
+		    NULL);
 
   gtk_widget_set_usize (dialog, 600, 320);
   gtk_widget_show_all (dialog);
+
+  /* Run dialog, waiting for a response */
+  result = gtk_dialog_run (GTK_DIALOG (dialog)); 
+  select_package_list_response (GTK_DIALOG (dialog), result, c);
+
+  delete upls_data;
 }
 
 void

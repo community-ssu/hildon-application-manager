@@ -1,3 +1,28 @@
+2007-08-03  Mario Sanchez Prada  <msanchez@maemo.org>
+	
+	* src/util.cc (irritate_user): Use result value returned by
+	get_main_window() as first parameter with
+	hildon_banner_show_information function, instead of NULL.
+	(update_required_space_label): Removed. From now on the work done
+	by this callback would be achieved by the new function
+	update_packages_list_selection. (N54796)
+	(update_packages_list_selection): New. Updates the "required space" label
+	value and the sensitiveness of the OK button when needed, by
+	working as a callback for the "row-changed" signal emitted by the
+	tree model with the list of packages available. (N54796)
+	(packages_list_insensitive_ok_button): Shows an information
+	banner when the OK button is pressed while being insensitive. (N54796)
+	(select_package_list_with_info): Added a GtkScrolledWindow to
+	render the list of packages with scroll bars when needed. Changed
+	a bit the layout replacing several calls to gtk_container_add by
+	gtk_box_pack_start with 4 pixes of padding. Connected the
+	'insensitive-press' signal emitted by the OK button in order to
+	show a 'Nothing to install' message when pressed. (N54796)
+	(struct upls_closure): New. Used to pass both the OK button widget
+	and the "required size" label to the right callback. (N54796)
+	* utils/Makefile.am: Changed to also compile non-maemo-launched
+	version	of the maemo_confirm_text utility program.
+
 2007-08-02  Mario Sanchez Prada  <msanchez@maemo.org>
 	
 	* src/util.cc (select_package_list_with_info): use a
