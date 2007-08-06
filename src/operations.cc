@@ -304,23 +304,23 @@ install_packages (GList *packages,
       || c->install_type == INSTALL_TYPE_MULTI)
     {
       if (title == NULL)
+	title = _("ai_ti_install_apps");
+
+      if (desc == NULL)
 	{
 	  switch (c->install_type)
 	    {
 	    case INSTALL_TYPE_BACKUP:
-	      title = _("ai_ti_restore");
+	      desc = _("ai_ia_restore");
 	      break;
 	    case INSTALL_TYPE_MEMORY_CARD:
-	      title = _("ai_ti_memory");
+	      desc = _("ai_ia_memory");
 	      break;
 	    default:
-	      title = _("Install");
+	      desc = _("Install");
 	      break;
 	    }
 	}
-      
-      if (desc == NULL)
-	desc = _("ai_ti_install_apps");
 
       select_package_list (c->packages,
 			   c->state,

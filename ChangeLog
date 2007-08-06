@@ -10,6 +10,9 @@
 	available or not, in order to enable or disable the "Restore
 	applications" menu item after the menu creation. It also uses the new
 	define commented above to check such that file. (N56245)
+	* src/operations.cc (install_packages): Fixed a mistake using
+	logical names for title and description in the install packages
+	dialog. (N63856)
 	
 2007-08-03  Mario Sanchez Prada  <msanchez@maemo.org>
 	
