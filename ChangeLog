@@ -1,3 +1,16 @@
+2007-08-06  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/settings.h (RESTORE_BACKUP_FILENAME): New define. The
+	".hildon-application-manager.backup" string for being used from
+	several places without hard-coding it.
+	* src/main.cc (restore_packages_flow): Now using the
+	RESTORE_BACKUP_FILENAME value to access the backup file, instead
+	of hard-coding it as before.
+	* src/menu.cc (create_menu): Checks whether a right backup file is
+	available or not, in order to enable or disable the "Restore
+	applications" menu item after the menu creation. It also uses the new
+	define commented above to check such that file. (N56245)
+	
 2007-08-03  Mario Sanchez Prada  <msanchez@maemo.org>
 	
 	* src/util.cc (irritate_user): Use result value returned by

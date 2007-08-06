@@ -193,7 +193,9 @@ void
 create_menu (HildonWindow *window)
 {
   GtkWidget *item;
+  GtkWidget *restore_item;
   GtkAccelGroup *accel_group;
+  gchar *restore_filename;
 
   accel_group = gtk_accel_group_new ();
   gtk_window_add_accel_group (GTK_WINDOW (window), accel_group);
@@ -240,9 +242,11 @@ create_menu (HildonWindow *window)
   g_signal_connect (item, "activate",
 		    G_CALLBACK (fullscreen_toolbar_activated), NULL);
 
-  add_item (tools,
-	    _("ai_me_tools_restore"), NULL,
-	    restore_packages_flow);
+  /* get a reference to the widget to set sensitiveness as needed */
+  restore_item = add_item (tools,
+			   _("ai_me_tools_restore"), 
+			   _("ai_ib_nothing_restore"),
+			   restore_packages_flow);
   add_item (tools,
 	    _("ai_me_tools_refresh"), NULL,
 	    refresh_package_cache_flow);
@@ -267,6 +271,12 @@ create_menu (HildonWindow *window)
 			  _("ai_me_close"), NULL,
 			  menu_close,
 			  accel_group, 'q');
+
+  /* Set sensitiveness for restore_packages menu item */
+  restore_filename = g_strdup_printf ("%s/%s", 
+				      g_get_home_dir (), RESTORE_BACKUP_FILENAME);
+  gtk_widget_set_sensitive (restore_item, (xexp_read_file (restore_filename) != NULL));
+  g_free (restore_filename);
 
   gtk_widget_show_all (GTK_WIDGET (main));
 }

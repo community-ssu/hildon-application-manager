@@ -2322,8 +2322,8 @@ restore_packages_flow ()
   if (start_interaction_flow ())
     {
       char *filename =
-	g_strdup_printf ("%s/.hildon-application-manager.backup",
-			 g_get_home_dir ());
+	g_strdup_printf ("%s/%s",
+			 g_get_home_dir (), RESTORE_BACKUP_FILENAME);
       xexp *backup = xexp_read_file (filename);
       g_free (filename);
       
