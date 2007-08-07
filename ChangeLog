@@ -1,3 +1,10 @@
+2007-08-07  Mario Sanchez Prada  <msanchez@maemo.org>
+	
+	* src/instr.cc (annoy_user_with_gerror): Removed an incorrect
+	g_error_free calling which caused the program to crash with a
+	segmentation fault error when something is wrong trying to
+	install packages from an erroneous .install file. (N63862)
+
 2007-08-06  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/settings.h (RESTORE_BACKUP_FILENAME): New define. The

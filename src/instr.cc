@@ -47,7 +47,6 @@ annoy_user_with_gerror (const char *filename, GError *error,
 			void (*cont) (void *), void *data)
 {
   add_log ("%s: %s\n", filename, error->message);
-  g_error_free (error);
   annoy_user (_("ai_ni_operation_failed"), cont, data);
 }
 
