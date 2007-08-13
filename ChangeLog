@@ -1,3 +1,10 @@
+2007-08-13  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* debian/control: Added new entry for building a new package with
+	debug symbols: hildon-application-manager-dbg. (N61786)
+	* debian/rules: Changed dh_strip line in order to separate the
+	debug symbols into the -dbg package mentioned above. (N61786)
+
 2007-08-07  Mario Sanchez Prada  <msanchez@maemo.org>
 	
 	* src/instr.cc (annoy_user_with_gerror): Removed an incorrect

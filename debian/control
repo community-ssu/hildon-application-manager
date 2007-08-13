@@ -14,3 +14,9 @@ Provides: maemo-installer-utils
 Description: A program for managing user installed applications.
  The Application manager is a frontend for dpkg and apt.  It allows
  you to manage a subset of the installed and available packages.
+
+Package: hildon-application-manager-dbg
+Architecture: any
+Section: devel
+Depends: hildon-application-manager (= ${Source-Version})
+Description: Debug symbols for the hildon application manager.
