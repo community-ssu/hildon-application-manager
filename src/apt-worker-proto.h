@@ -217,7 +217,7 @@ enum apt_proto_operation {
 // Response contains:
 //
 // - catalogue_report (xexp).  The current catalogue configuration with 
-//                             error messages attaches.
+//                             error messages attached.
 // - result_code (int).      
 //
 // Error messages appear in the catalogue_report as well as on
