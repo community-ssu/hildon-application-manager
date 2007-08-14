@@ -64,6 +64,8 @@ void show_catalogue_dialog_flow ();
   resolve this when reading the .install file.
 */
 
+void show_cat_dialog_with_catalogues (xexp *catalogues, void *user_data);
+
 void get_catalogues (void (*cont) (xexp *catalogues, void *data),
 		     void *data);
 
@@ -80,5 +82,7 @@ void add_catalogues (xexp *catalogues, bool ask, bool update,
 		     void *data);
 
 GString *render_catalogue_report (xexp *catalogue_report);
+
+xexp *get_failed_catalogues (xexp *catalogue_report);
 
 #endif /* !REPO_H */

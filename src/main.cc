@@ -1208,8 +1208,7 @@ static void rpc_update_cache_reply (int cmd, apt_proto_decoder *dec,
 				    void *data);
 static void rpc_show_report (void *data);
 static void rpc_show_detailed_report (void *data);
-static void rpc_detailed_report_response (GtkDialog *dialog,
-					  gint response, gpointer clos);
+
 static void rpc_maybe_get_package_list (void *data);
 static void rpc_report_done (void *data);
 static void rpc_get_list_done (void *data);
@@ -1408,45 +1407,12 @@ static void
 rpc_show_detailed_report (void *data)
 {
   rpc_clos *c = (rpc_clos *) data;
+  xexp *failed_catalogues = NULL;
+  bool failed_flag = true;
 
-  GString *report = render_catalogue_report (c->catalogue_report);
-
-  GtkWidget *dialog, *text_view;
-
-  dialog = gtk_dialog_new_with_buttons (_("Catalogue details"),
-					NULL,
-					GTK_DIALOG_MODAL,
-					_("ai_bd_log_close"),
-					GTK_RESPONSE_CLOSE,
-					NULL);
-  push_dialog (dialog);
-  respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
-
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-
-  text_view = make_small_text_view (report->str);
-  
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), text_view);
-
-  gtk_widget_set_usize (dialog, 600,300);
-  gtk_widget_show_all (dialog);
-
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (rpc_detailed_report_response), text_view);
-
-  g_string_free (report, 1);
-}
-
-static void
-rpc_detailed_report_response (GtkDialog *dialog, gint response, gpointer clos)
-{
-  if (response == GTK_RESPONSE_CLOSE)
-    {
-      pop_dialog (GTK_WIDGET (dialog));
-      gtk_widget_destroy (GTK_WIDGET (dialog));
-    }
-}
-  
+  failed_catalogues = get_failed_catalogues (c->catalogue_report);
+  show_cat_dialog_with_catalogues (failed_catalogues, &failed_flag);
+}  
 
 static void
 rpc_maybe_get_package_list (void *data)

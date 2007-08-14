@@ -41,6 +41,8 @@
 
 #define _(x) gettext (x)
 
+#define HAM_BACKUP_RESPONSE 1
+
 /* Common utilities
  */
 
@@ -233,6 +235,10 @@ static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
 
+static gboolean ip_suggest_backup (ip_clos *c);
+static void ip_suggest_backup_cmd_done (int status, void *data);
+static void ip_close_apps (bool res, void *data);
+
 static void ip_show_cur_details (void *data);
 static void ip_show_cur_problem_details (void *data);
 static void ip_show_details_done (void *data);
@@ -244,6 +250,7 @@ static void ip_abort_response (GtkDialog *dialog, gint response,
 
 static void ip_end (void *data);
 static void ip_end_after_reboot (void *data);
+static void ip_end_rebooting (void *data);
 
 void
 install_package (package_info *pi,
@@ -623,6 +630,15 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
   
   if (pi->info.installable_status == status_able)
     {
+      if ((pi->info.install_flags & pkgflag_suggest_backup) &&
+	  !ip_suggest_backup (c))
+	{
+	  /* if suggest_flag is present and user chooses 'Cancel'
+	     option, installation for this package is aborted */
+	  ip_end (c);
+	  return;
+	}
+
       add_log ("-----\n");
       if (pi->installed_version)
 	add_log ("Upgrading %s %s to %s\n", pi->name,
@@ -659,9 +675,7 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 	}
       else if (pi->info.install_flags & pkgflag_close_apps)
 	{
-	  // XXX - L10N
-	  annoy_user (_("You should close all Applications now."),
-		      ip_install_cur, c);
+	  ask_yes_no (_("ai_nc_close_apps"), ip_close_apps, c);
 	}
       else
 	{
@@ -867,6 +881,93 @@ ip_install_next (void *data)
   ip_install_loop (c);
 }
 
+static gboolean
+ip_suggest_backup (ip_clos *c)
+{
+  GtkWidget *dialog = NULL;
+  gint result = G_MAXINT; 
+  gboolean keep_asking = TRUE;
+  
+  /* Show custom dialog if suggest_backup flag is present */
+  dialog = gtk_dialog_new_with_buttons
+    (_("ai_ti_create_backup"),
+     NULL,
+     GTK_DIALOG_MODAL,
+     _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
+     _("ai_bd_backup"), HAM_BACKUP_RESPONSE,
+     _("ai_bd_confirm_cancel"), GTK_RESPONSE_CANCEL,
+     NULL);
+  push_dialog (dialog);
+	  
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+  GtkWidget *label = gtk_label_new (_("ai_ia_backup"));
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
+		     label);	  
+  gtk_widget_show_all (dialog);
+
+  /* Use gtk_dialog_run to block execution while the dialog is
+     not closed */
+  while (keep_asking)
+    {
+      char *argv[] = {"/usr/bin/osso-backup", NULL};
+      result = gtk_dialog_run (GTK_DIALOG (dialog));
+      switch (result)
+	{
+	case GTK_RESPONSE_OK:
+	  /* Do nothing, just continue with the process */	  
+	  keep_asking = FALSE;
+	  break;
+	    
+	case GTK_RESPONSE_CANCEL:
+	  keep_asking = FALSE;
+	  break;
+	    
+	case HAM_BACKUP_RESPONSE:
+ 	  run_cmd (argv, ip_suggest_backup_cmd_done, NULL);
+	  break;
+	    
+	default:
+	  g_assert_not_reached ();
+	}
+    }
+
+  pop_dialog (GTK_WIDGET (dialog));
+  gtk_widget_destroy (GTK_WIDGET (dialog));
+
+  return (result == GTK_RESPONSE_OK);
+}
+
+static void
+ip_suggest_backup_cmd_done (int status, void *data)
+{
+  if (status == -1 || !WIFEXITED (status))
+    {
+      what_the_fock_p ();
+      add_log ("Could not launch backup application.\n");
+    }
+}
+
+static void
+ip_close_apps (bool res, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (res)
+    {
+      close_apps ();
+
+      /* Make sure we are done before killing apps, also makes things look
+       * smoother. */
+      while (gtk_events_pending ())
+	gtk_main_iteration ();
+
+      ip_install_cur (c);
+    }
+  else
+    ip_end (c);
+}
+
 static void
 ip_abort_cur_with_status_details (ip_clos *c)
 {
@@ -976,7 +1077,12 @@ ip_end (void *data)
   save_backup_data ();
 
   if (c->reboot)
-    annoy_user (_("You should reboot now"), ip_end_after_reboot, c);
+    {
+      /* XXX - L10N */
+      annoy_user (_("Some of the packages require to reboot.\nPress Ok to reboot now."), 
+		  ip_end_rebooting, 
+		  c);
+    }
   else
     ip_end_after_reboot (c);
 }
@@ -989,6 +1095,17 @@ ip_end_after_reboot (void *data)
   c->cont (c->n_successful, c->data);
   delete c;
 }
+
+static void
+ip_end_rebooting (void *data)
+{
+  /* Do normal end */
+  ip_end_after_reboot (data);
+
+  /* Reboot the device */
+  send_reboot_message ();
+}
+
 
 
 /* UNINSTALL_PACKAGE - Overview

@@ -1,3 +1,57 @@
+2007-08-14  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/repo.h, src/repo.cc (struct cat_dialog_closure): Added a new
+	bool field (failed_catalogues) to know when a catalogues dialog is
+	being realized to show the 'failed catalogues' report.
+	(cat_selection_changed): Modified to take into account the new
+	failed_catalogues field when setting sensitiveness to the delete
+	button. Also modified to set edit button sensitiveness to FALSE
+	when the selected repository is marked as 'essential'.
+	(cat_response): Modified to take into account the new
+	failed_catalogues field when tapping the close button.
+	(show_cat_dialog_with_catalogues): Published in repo.h and
+	modified to use its second parameter (unused before this change)
+	for knowing when it's realizing a 'failed catalogues' dialog.
+	(get_failed_catalogues): New. Useful to filter a xexp structure
+	with a catalogues report, returning only those ones with some kind
+	of errors.
+
+	* src/util.h, util.cc (close_apps): New. Tries to kill all the
+	user application apart from the AM. Useful to install packages
+	with the 'close_apps' flag.
+	(send_reboot_message): New. Sends a DBUS message to reboot the
+	device. Useful to install package with the 'reboot' flag.
+
+	* src/operations.cc (HAM_BACKUP_RESPONSE): New define. For being
+	used with the new ip_suggest_backup function, which shows a dialog
+	with an extra 'Backup' button.
+	(ip_suggest_backup): New. Opens a custom dialog with three buttons
+	-'Ok', 'Backup' and 'Cancel'- to give the user an advice
+	suggesting that a backup would be recommended. If the 'Backup'
+	button is pressed, it opens the osso-backup application. Useful to
+	install packages with the 'suggest_backup' flag.
+	(ip_suggest_backup_cmd_done): New. Used to be passed to the
+	run_cmd, invoked from ip_suggest_backup, as the function to be
+	executed after the desired shell command had finished.
+	(ip_close_apps): New. Used as the response function for the
+	confirmation dialog opened from ip_install_with_info to ask the
+	user whether the installation of a package is going to close all
+	the applications or not.
+	(ip_end_rebooting): New. Used from ip_end to reboot the device
+	when a package contains the 'reboot' flag.
+	(ip_install_with_info): Modified to take into account the
+	'suggest_backup' and the 'reboot' flags.
+	(ip_end): Modified to call ip_end_rebooting when a 'reboot' flag
+	was detected during the installation.
+
+	* src/main.cc (rpc_show_detailed_report): Modified to use
+	get_failed_catalogues and show_cat_dialog_with_catalogues to show
+	the 'failed catalogues' dialog with the report after an
+	unsuccessful refresh, instead of realizing its own custom dialog
+	with a text version of such that report.
+	(rpc_detailed_report_response): Removed, because it's no longer
+	used since rpc_show_detailed_report was modified.
+
 2007-08-13  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* debian/control: Added new entry for building a new package with

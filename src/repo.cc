@@ -281,6 +281,7 @@ struct cat_dialog_closure {
   catcache *caches;
   xexp *catalogues_xexp;
   bool dirty;
+  bool failed_catalogues;
 
   GtkTreeView *tree;
   GtkListStore *store;
@@ -559,13 +560,15 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
       if (cat == NULL)
 	return;
 
-      gtk_widget_set_sensitive (c->edit_button, !cat->foreign);
-      gtk_widget_set_sensitive (c->delete_button, !cat->readonly);
+      gtk_widget_set_sensitive (c->edit_button, !cat->readonly && !cat->foreign);
+      if (!c->failed_catalogues)
+	gtk_widget_set_sensitive (c->delete_button, !cat->readonly);
     }
   else
     {
       gtk_widget_set_sensitive (c->edit_button, FALSE);
-      gtk_widget_set_sensitive (c->delete_button, FALSE);
+      if (!c->failed_catalogues)
+	gtk_widget_set_sensitive (c->delete_button, FALSE);
     }
 }
 
@@ -770,10 +773,15 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       reset_cat_list (c);
       xexp_free (c->catalogues_xexp);
 
-      delete c;
       pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
-      end_interaction_flow ();
+
+      /* When using showing failed catalogues we must not to end the
+	 interaction flow, since it has never been started */
+      if (!c->failed_catalogues)
+	end_interaction_flow ();
+
+      delete c;
     }
 }
 
@@ -791,49 +799,75 @@ insensitive_cat_delete_press (GtkButton *button, gpointer data)
 }
 
 void
-show_cat_dialog_with_catalogues (xexp *catalogues, void *unused)
+show_cat_dialog_with_catalogues (xexp *catalogues, void *user_data)
 {
+  bool failed_catalogues = false;
+
   if (catalogues == NULL)
     return;
+
+  /* Check if user data contains some data */
+  if (user_data != NULL) 
+    failed_catalogues = *((bool *)user_data);
 
   cat_dialog_closure *c = new cat_dialog_closure;
   c->caches = NULL;
   c->catalogues_xexp = catalogues;
   c->dirty = false;
+  c->failed_catalogues = failed_catalogues;
 
   GtkWidget *dialog = gtk_dialog_new ();
 
-  gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_repository"));
+  if (failed_catalogues)
+    gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_failed_repositories"));
+  else
+    gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_repository"));
+  
   push_dialog (dialog);
   
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  gtk_dialog_add_button (GTK_DIALOG (dialog), 
-			 _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
+
+  if (!failed_catalogues)
+    gtk_dialog_add_button (GTK_DIALOG (dialog), 
+			   _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
+
   c->edit_button = 
     gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			   _("ai_bd_repository_edit"), REPO_RESPONSE_EDIT);
-  c->delete_button =
-    gtk_dialog_add_button (GTK_DIALOG (dialog), 
-			   _("ai_bd_repository_delete"), REPO_RESPONSE_REMOVE);
+
+  if (!failed_catalogues)
+    c->delete_button =
+      gtk_dialog_add_button (GTK_DIALOG (dialog), 
+			     _("ai_bd_repository_delete"), REPO_RESPONSE_REMOVE);
+
   gtk_dialog_add_button (GTK_DIALOG (dialog),
 			 _("ai_bd_repository_close"), GTK_RESPONSE_CLOSE);
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
   
-  g_signal_connect (c->delete_button, "insensitive_press",
-		    G_CALLBACK (insensitive_cat_delete_press), c);
-  
-  set_dialog_help (dialog, AI_TOPIC ("repository"));
-  
   gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox),
 			       make_cat_list (c));
-  
-  gtk_widget_set_sensitive (c->edit_button, FALSE);
-  gtk_widget_set_sensitive (c->delete_button, FALSE);
-  
-  gtk_widget_set_usize (dialog, 0, 250);
-  
+
+  gtk_widget_set_sensitive (c->edit_button, FALSE); 
+  if (!failed_catalogues)
+    {
+      gtk_widget_set_sensitive (c->delete_button, FALSE);
+      g_signal_connect (c->delete_button, "insensitive_press",
+			G_CALLBACK (insensitive_cat_delete_press), c);
+
+      set_dialog_help (dialog, AI_TOPIC ("repository"));
+    }
+    
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (cat_response), c);
+
+  if (!failed_catalogues) 
+    gtk_widget_set_usize (dialog, 0, 250);
+  else
+    {
+      /* For the failed catalogues dialog we must set a bigger size */
+      gtk_widget_set_usize (dialog, 600, 300); 
+    }
+
   gtk_widget_show_all (dialog);
 }
 
@@ -1087,3 +1121,22 @@ render_catalogue_report (xexp *catalogue_report)
   return report;
 }
 
+xexp *
+get_failed_catalogues (xexp *catalogue_report)
+{
+  xexp *failed_cat_list = xexp_list_new ("catalogues");
+
+  if (catalogue_report == NULL)
+    return failed_cat_list;
+
+  for (xexp *cat = xexp_first (catalogue_report); cat; cat = xexp_rest (cat))
+    {
+      xexp *errors = xexp_aref (cat, "errors");
+      if (errors == NULL || xexp_first (errors) == NULL)
+	continue;
+
+      xexp_append_1 (failed_cat_list, xexp_copy (cat));
+    }
+
+  return failed_cat_list;
+}

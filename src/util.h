@@ -430,6 +430,10 @@ void run_cmd (char **argv,
 	      void (*cont) (int status, void *data),
 	      void *data);
 
+/* CLOSE_APPS kills all the user applications currently running in the
+   device except the hildon-application-manager */
+void close_apps (void);
+
 /* Skip over the leading whitespace characters of STR and return a
    pointer to the first non-whitespace one.
 */
@@ -496,5 +500,8 @@ void grab_focus_on_map (GtkWidget *widget);
 /* Get the number of free bytes in the root filesystem.
  */
 int64_t get_free_space ();
+
+/* Set a DBUS message to reboot the device */
+void send_reboot_message (void);
 
 #endif /* !UTIL_H */

@@ -23,6 +23,7 @@
 
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
+#include <mce/dbus-names.h>
 
 #include <string.h>
 #include <unistd.h>
@@ -33,6 +34,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <sys/statvfs.h>
+#include <signal.h>
 
 #include <gtk/gtk.h>
 #include <gconf/gconf-client.h>
@@ -2767,6 +2769,45 @@ run_cmd (char **argv,
   g_child_watch_add (child_pid, reap_process, c);
 }
 
+void
+close_apps (void)
+{
+  gchar *stdout = NULL;
+  gchar *stderr = NULL;
+  int exit_status;
+  gboolean script_retval;
+
+  /* Ignore SIGTERM from now on since otherwise we'll be killed too. */
+  signal (SIGTERM, SIG_IGN);
+	
+  script_retval = g_spawn_command_line_sync (
+	"/usr/sbin/osso-app-killer-restore.sh", 
+	&stdout, &stderr,
+	&exit_status,
+	NULL);
+
+  /* Restore SIGTERM. */
+  signal (SIGTERM, SIG_DFL);
+		 
+  if (!script_retval || exit_status != 0)
+    {
+      add_log ("Could not run osso-app-killer-restore.sh\n");
+    } 
+  else 
+    {
+      /* Redirect output from stdout and stderro to the log */
+      add_log (stdout);
+      add_log (stderr);
+      
+      /* Free strings with stdout and stderr outputs */
+      if (stdout != NULL)
+	g_free (stdout);
+      
+      if (stderr != NULL)
+	g_free (stderr);
+    }
+}
+
 const char *
 skip_whitespace (const char *str)
 {
@@ -3042,4 +3083,31 @@ get_free_space ()
   int64_t res = (int64_t)buf.f_bfree * (int64_t)buf.f_bsize;
   printf ("FREE: %Ld\n", res);
   return res;
+}
+
+void
+send_reboot_message (void)
+{
+  DBusConnection *conn;
+  DBusMessage *msg;
+  
+  /* Helps debugging. */
+  add_log ("Sending reboot message.\n");
+  
+  conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
+  if (!conn)
+    {
+      add_log ("Could not get system bus.\n");
+      return;
+    }
+  
+  msg = dbus_message_new_method_call (MCE_SERVICE,
+				      MCE_REQUEST_PATH,
+				      MCE_REQUEST_IF,
+				      MCE_REBOOT_REQ);
+  
+  dbus_connection_send (conn, msg, NULL);
+  dbus_connection_flush (conn);
+  
+  add_log ("Reboot message sent, quit the application.\n");
 }
