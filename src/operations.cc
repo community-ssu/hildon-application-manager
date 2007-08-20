@@ -591,7 +591,13 @@ ip_install_loop (ip_clos *c)
 
       if (c->n_successful > 0)
 	{
-	  if (c->all_packages->next == NULL)
+	  if (c->reboot)
+	    {
+	      /* ip_end will show the 'success' dialog for us.
+	       */
+	      ip_end (c);
+	    }
+	  else if (c->all_packages->next == NULL)
 	    {
 	      package_info *pi = (package_info *)c->all_packages->data;
 	      char *str = g_strdup_printf ((pi->installed_version != NULL
@@ -650,14 +656,6 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
       if (free_space < 0)
 	annoy_user_with_errno (errno, "get_free_space",
 			       ip_end, c);
-
-      /* XXX - What is the right thing to do when a packages that asks
-    	       for a reboot fails during installation?  Is it better
-    	       to reboot or not?
-      */
-
-      if (pi->info.install_flags & pkgflag_reboot)
-	c->reboot = true;
 
       if (pi->info.required_free_space + pi->info.download_size >= free_space)
 	{
@@ -839,6 +837,10 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (result_code == rescode_success)
     {
       c->n_successful += 1;
+
+      if (pi->info.install_flags & pkgflag_reboot)
+	c->reboot = true;
+
       ip_install_next (c);
     }
   else
@@ -1077,12 +1079,9 @@ ip_end (void *data)
   save_backup_data ();
 
   if (c->reboot)
-    {
-      /* XXX - L10N */
-      annoy_user (_("Some of the packages require to reboot.\nPress Ok to reboot now."), 
-		  ip_end_rebooting, 
-		  c);
-    }
+    annoy_user (_("ai_ni_device_restart"), 
+		ip_end_rebooting,
+		c);
   else
     ip_end_after_reboot (c);
 }
