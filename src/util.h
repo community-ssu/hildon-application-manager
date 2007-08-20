@@ -189,8 +189,17 @@ void scare_user_with_legalese (bool sure,
    START_ENTERTAINING_USER shows a progress bar dialog with a cancel
    button and STOP_ENTERTAINING_USER removes it.  These two functions
    must be called in pairs and must be properly nested with respect to
-   push_dialog_parent and pop_dialog_parent.  There can be only one
-   progress bar dialog active.
+   push_dialog_parent and pop_dialog_parent.  There will only be at
+   most one progress bar dialog active at any given time, and nesting
+   start_entertaining_user/stop_entertaining_user will just maintain a
+   counter of the nesting depth.
+
+   START_ENTERTAINING_USER_SILENTLY is like start_entertaining_user,
+   but does not actually show the progress dialog.  The effect of
+   using start_entertaining_user_silently is to keep a progress dialog
+   open until the corresponding stop_entertaining_user has been
+   called, but to wait for a nested call to start_entertaining_user
+   for actually showing the progress.
 
    SET_ENTERTAINMENT_FUN sets the state of the progress bar dialog.
    You can and should call this function before calling
@@ -217,6 +226,7 @@ void scare_user_with_legalese (bool sure,
  */
 
 void start_entertaining_user ();
+void start_entertaining_user_silently ();
 void stop_entertaining_user ();
 
 void set_entertainment_title (const char *main_title);

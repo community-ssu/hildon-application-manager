@@ -602,289 +602,13 @@ scare_user_with_legalese (bool sure,
   gtk_widget_show_all (dialog);
 }
 
-#if 0
-
-static GtkWidget *progress_dialog = NULL;
-static bool progress_cancelled;
-static GtkProgressBar *progress_bar;
-static const gchar *general_title;
-static apt_proto_operation current_status_operation = op_general;
-static gint pulse_id = -1;
-static int cancel_count;
-
-static gboolean
-pulse_progress (gpointer unused)
-{
-  if (progress_bar)
-    gtk_progress_bar_pulse (progress_bar);
-  return TRUE;
-}
-
-static void
-start_pulsing ()
-{
-  if (pulse_id < 0)
-    pulse_id = gtk_timeout_add (500, pulse_progress, NULL);
-}
-
-static void
-stop_pulsing ()
-{
-  if (pulse_id >= 0)
-    {
-      g_source_remove (pulse_id);
-      pulse_id = -1;
-    }
-}
-
-static void
-really_cancel_response (bool res, void *unused)
-{
-  gtk_main_quit ();
-}
-
-static void
-cancel_response (GtkDialog *dialog, gint response, gpointer data)
-{
-  if (current_status_operation == op_downloading)
-    {
-      progress_cancelled = true;
-      cancel_apt_worker ();
-    }
-  else
-    {
-      cancel_count++;
-      if (cancel_count < 10)
-	irritate_user (_("ai_ib_unable_cancel"));
-      else
-	ask_custom ("Cancelling now may harm your device.\n"
-		    "The Application manager will be closed.",
-		    "Cancel anyway", "Don't cancel",
-		    really_cancel_response, NULL);
-    }
-}
-
-bool
-progress_was_cancelled ()
-{
-  return progress_cancelled;
-}
-
-void
-reset_progress_was_cancelled ()
-{
-  progress_cancelled = false;
-  cancel_count = 0;
-}
-
-static void
-create_progress (const gchar *title, bool with_cancel)
-{
-  if (progress_dialog)
-    {
-      pop_dialog (GTK_WIDGET (progress_dialog));
-      gtk_widget_destroy (progress_dialog);
-      progress_dialog = NULL;
-      progress_bar = NULL;
-    }
-
-  if (title == NULL)
-    title = "";
-
-  // XXX - we make the title slightly longer so that there is a bit
-  //       room to grow without having to resize the dialog or risking
-  //       ellipsization.  This only matters when the total download
-  //       size changes during a download and it that case it would be
-  //       better to resize the dialog, but that doesn't seem to
-  //       happen...
-  //
-  //       The "XXXX" is never shown since we set a real title
-  //       immediately.
-  
-  gchar *longer_title = g_strconcat (title, "XXX", NULL);
-  progress_bar = GTK_PROGRESS_BAR (gtk_progress_bar_new ());
-  progress_dialog =
-    hildon_note_new_cancel_with_progress_bar (NULL,
-					      longer_title,
-					      progress_bar);
-  push_dialog (progress_dialog);
-  g_free (longer_title);
-  g_object_set (progress_dialog, "description", title, NULL);
-
-  if (!with_cancel)
-    {
-      GtkWidget *box = GTK_DIALOG (progress_dialog)->action_area;
-      GList *kids = gtk_container_get_children (GTK_CONTAINER (box));
-      if (kids)
-	gtk_container_remove (GTK_CONTAINER (box), GTK_WIDGET (kids->data));
-      g_list_free (kids);
-    }
-  else
-    {
-      respond_on_escape (GTK_DIALOG (progress_dialog), GTK_RESPONSE_CANCEL);
-      g_signal_connect (progress_dialog, "response",
-			G_CALLBACK (cancel_response), NULL);
-    }
-
-  gtk_widget_show (progress_dialog);
-}
-
-void
-set_general_progress_title (const char *title)
-{
-  general_title = title;
-}
-
-void
-show_progress (const char *title)
-{
-  create_progress (title, FALSE);
-
-  set_general_progress_title (title);
-  current_status_operation = op_general;
-  set_progress (op_general, -1, 0);
-
-  reset_progress_was_cancelled ();
-}
-
-void
-set_progress (apt_proto_operation op, int already, int total)
-{
-  const char *title = NULL;
-
-  // Determine if we need a new title
-
-  if (op == op_downloading)
-    {
-      // The downloading title can change dynamically when the total
-      // changes.
-
-      static int last_total;
-      static char *dynlabel = NULL;
-
-      if (dynlabel == NULL
-	  || total != last_total
-	  || current_status_operation != op_downloading)
-	{
-	  char size_buf[20];
-	  size_string_detailed (size_buf, 20, total);
-	  g_free (dynlabel);
-	  dynlabel = g_strdup_printf (_("ai_nw_downloading"), size_buf);
-	  title = dynlabel;
-	}
-    }
-  else if (op != current_status_operation)
-    {
-      // Otherwise the title only changes when the operation changes
-      
-      if (op == op_updating_cache)
-	title = _("ai_nw_updating_list");
-      else
-	title = general_title;
-    }
-
-  // printf ("STATUS: %s -- %f\n", title, fraction);
-
-  // We might need to change the progress title or we might need to
-  // create the whole dialog here.
-  //
-  // XXX - The dialog will only be created when the new operation is
-  // not op_updating_cache since apt-worker outputs progress messages
-  // with that operation that we don't want to show (for example,
-  // during startup).  The whole progress logic needs to be better
-  // defined and apt-worker made more silent, etc.
-
-  if (progress_dialog || op != op_updating_cache)
-    {
-      // 'title' is non-NULL when it needs to change.  Since the
-      // dialog does not resize when its contents changes, we simply
-      // recreate it, except when the operation is op_downloading.  In
-      // that case, title changes are frequent and recreating the
-      // dialog every time is annoying.  In that case, we simply set
-      // the new description.  CREATE_PROGRESS takes care that there
-      // is a bit of space for the title to grow.
-
-      if (title
-	  && op == op_downloading
-	  && current_status_operation == op_downloading
-	  && progress_dialog)
-	{
-	  g_object_set (progress_dialog, "description", title, NULL);
-	}
-      else if (title || progress_dialog == NULL)
-	{
-	  hide_progress ();
-	  create_progress (title, op == op_downloading);
-	}
-
-      if (already >= 0)
-	{
-	  stop_pulsing ();
-	  gtk_progress_bar_set_fraction (progress_bar,
-					 ((double)already)/total);
-	}
-      else
-	start_pulsing ();
-    }
-
-  current_status_operation = op;
-}
-
-void
-hide_progress ()
-{
-  if (progress_dialog)
-    {
-      stop_pulsing ();
-      pop_dialog (GTK_WIDGET (progress_dialog));
-      gtk_widget_destroy (GTK_WIDGET(progress_bar));
-      gtk_widget_destroy (progress_dialog);
-      progress_dialog = NULL;
-      progress_bar = NULL;
-    }
-  current_status_operation = op_general;
-}
-
-#endif
-
-#if 0
-void
-show_progress (const char *)
-{
-}
-
-void
-hide_progress ()
-{
-}
-
-void
-set_progress (apt_proto_operation op, int already, int total)
-{
-}
-
-void
-set_general_progress_title (const char *title)
-{
-}
-
-bool
-progress_was_cancelled ()
-{
-  return false;
-}
-
-void
-reset_progress_was_cancelled ()
-{
-}
-
-#endif
 
 /* Entertaining the user.
  */
 
 struct entertainment_data {
+  gint depth;
+
   GtkWidget *bar, *dialog, *cancel_button;
   gint pulse_id;
 
@@ -982,61 +706,75 @@ entertainment_insensitive_press (GtkWidget *widget, gpointer unused)
 }
 
 void
+start_entertaining_user_silently ()
+{
+  entertainment.depth++;
+}
+
+void
 start_entertaining_user ()
 {
-  g_return_if_fail (entertainment.dialog == NULL);
+  entertainment.depth++;
 
-  entertainment.was_cancelled = false;
+  if (entertainment.dialog == NULL)
+    {
+      entertainment.was_cancelled = false;
 
-  entertainment.bar = gtk_progress_bar_new ();
-  entertainment.dialog =
-    hildon_note_new_cancel_with_progress_bar 
-    (NULL,
-     entertainment.main_title,
-     GTK_PROGRESS_BAR (entertainment.bar));
-
-  gtk_widget_set_usize (entertainment.dialog, 400, -1);
-
-  {
-    GtkWidget *box = GTK_DIALOG (entertainment.dialog)->action_area;
-    GList *kids = gtk_container_get_children (GTK_CONTAINER (box));
-    if (kids)
-      {
-	entertainment.cancel_button = GTK_WIDGET (kids->data);
-	g_signal_connect (entertainment.cancel_button,
-			  "insensitive-press",
-			  G_CALLBACK (entertainment_insensitive_press),
-			  &entertainment);
-      }
-    else
-      entertainment.cancel_button = NULL;
-    g_list_free (kids);
-  }
-
-  respond_on_escape (GTK_DIALOG (entertainment.dialog), GTK_RESPONSE_CANCEL);
-  g_signal_connect (entertainment.dialog, "response",
-		    G_CALLBACK (entertainment_response), &entertainment);
-
-  entertainment_update_progress ();
-  entertainment_update_cancel ();
+      entertainment.bar = gtk_progress_bar_new ();
+      entertainment.dialog =
+	hildon_note_new_cancel_with_progress_bar 
+	(NULL,
+	 entertainment.main_title,
+	 GTK_PROGRESS_BAR (entertainment.bar));
+      
+      gtk_widget_set_usize (entertainment.dialog, 400, -1);
   
-  push_dialog (entertainment.dialog);
-  gtk_widget_show (entertainment.dialog);
+      {
+	GtkWidget *box = GTK_DIALOG (entertainment.dialog)->action_area;
+	GList *kids = gtk_container_get_children (GTK_CONTAINER (box));
+	if (kids)
+	  {
+	    entertainment.cancel_button = GTK_WIDGET (kids->data);
+	    g_signal_connect (entertainment.cancel_button,
+			      "insensitive-press",
+			      G_CALLBACK (entertainment_insensitive_press),
+			      &entertainment);
+	  }
+	else
+	  entertainment.cancel_button = NULL;
+	g_list_free (kids);
+      }
+
+      respond_on_escape (GTK_DIALOG (entertainment.dialog),
+			 GTK_RESPONSE_CANCEL);
+      g_signal_connect (entertainment.dialog, "response",
+			G_CALLBACK (entertainment_response), &entertainment);
+
+      entertainment_update_progress ();
+      entertainment_update_cancel ();
+  
+      push_dialog (entertainment.dialog);
+      gtk_widget_show (entertainment.dialog);
+    }
 }
 
 void
 stop_entertaining_user ()
 {
-  g_return_if_fail (entertainment.dialog != NULL);
+  entertainment.depth--;
 
-  entertainment_stop_pulsing ();
+  if (entertainment.depth == 0
+      && entertainment.dialog != NULL)
+    {
+      entertainment_stop_pulsing ();
 
-  pop_dialog (entertainment.dialog);
-  gtk_widget_destroy (entertainment.dialog);
+      pop_dialog (entertainment.dialog);
+      gtk_widget_destroy (entertainment.dialog);
   
-  entertainment.dialog = NULL;
-  entertainment.bar = NULL;
-  entertainment.cancel_button = NULL;
+      entertainment.dialog = NULL;
+      entertainment.bar = NULL;
+      entertainment.cancel_button = NULL;
+    }
 }
 
 void

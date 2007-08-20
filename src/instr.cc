@@ -409,7 +409,9 @@ execute_install_package (GKeyFile *keyfile, const char *entry,
     catalogues = comp_catalogues;
   else if (comp_catalogues)
     xexp_append (catalogues, comp_catalogues);
-  
+
+  start_entertaining_user_silently ();
+
   if (catalogues)
     {
       if (xexp_is_empty (catalogues))
@@ -434,6 +436,8 @@ static void
 eip_with_catalogues (bool res, void *data)
 {
   eip_clos *c = (eip_clos *)data;
+
+  stop_entertaining_user ();
 
   if (res && c->package)
     install_named_package (APTSTATE_DEFAULT, c->package,
@@ -527,6 +531,8 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
   c->cont = cont;
   c->data = data;
 
+  start_entertaining_user_silently ();
+
   set_temp_catalogues (card_catalogues, eci_with_temp_catalogues, c);
 }
 
@@ -549,6 +555,8 @@ static void
 eci_end (int n_successful, void *data)
 {
   struct eci_clos *c = (eci_clos *)data;
+
+  stop_entertaining_user ();
   
   c->cont (c->data);
   
