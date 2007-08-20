@@ -1,3 +1,32 @@
+2007-08-20  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Refactored catalogue management and cache refreshing.
+
+	* src/main.h, src/main.cc (refresh_package_cache,
+	refresh_package_cache_with_cont): Removed former and renamed
+	latter to former.  Added "catalogues" parameter.  Changed all
+	callers.  refresh_package_cache now implements setting the
+	catalogues and refreshing the cache in one place, including
+	letting the user edit the catalogues to correct failures.
+	
+	* src/repo.h (show_cat_dialog_with_catalogues,
+	get_failed_catalogues, render_catalogue_report): Removed.
+	(set_catalogues, set_temp_catalogues): Removed. Replaced users
+	with calls to the new refresh_package_cache.
+	(show_catalogue_dialog): New.
+	
+	* src/apt-worker.cc (reset_catalogue_errors): New.
+	(cmd_update_package_cache): Use to get a slean error slate.
+
+	* src/util.h, src/util.cc (start_entertaining_user_silently): New.
+	(start_entertaining_user, stop_entertaining_user): Allow calls to
+	be nested.
+	(annoy_user_with_arbitrary_details_2): New.
+
+	* src/instr.cc (execute_install_package, execute_card_install):
+	Use start_entertaining_user_silently to keep the progressbar
+	dialog open after the catalogues have been refreshed.
+
 2007-08-14  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/repo.h, src/repo.cc (struct cat_dialog_closure): Added a new
