@@ -1,5 +1,7 @@
 2007-08-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* configure.ac (HAM_DEPS): Check for "mce".
+
 	Refactored catalogue management and cache refreshing.
 
 	* src/main.h, src/main.cc (refresh_package_cache,
