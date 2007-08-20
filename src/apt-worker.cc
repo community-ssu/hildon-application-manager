@@ -2900,6 +2900,16 @@ update_package_cache (xexp *catalogues_for_report)
     }
 }
 
+static void
+reset_catalogue_errors (xexp *catalogues)
+{
+  if (catalogues == NULL)
+    return;
+
+  for (xexp *c = xexp_first (catalogues); c; c = xexp_rest (c))
+    xexp_adel (c, "errors");
+}
+
 void
 cmd_update_package_cache ()
 {
@@ -2923,6 +2933,8 @@ cmd_update_package_cache ()
     catalogues = xexp_read_file (TEMP_CATALOGUE_CONF);
   else
     catalogues = xexp_read_file (CATALOGUE_CONF);
+
+  reset_catalogue_errors (catalogues);
 
   int result_code = update_package_cache (catalogues);
 
