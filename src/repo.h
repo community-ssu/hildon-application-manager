@@ -30,6 +30,11 @@ extern "C" {
 
 void show_catalogue_dialog_flow ();
 
+void show_catalogue_dialog (xexp *catalogues,
+			    bool show_errors,
+			    void (*cont) (bool changed, void *data),
+			    void *data);
+
 /* A 'catalogue' is an association xexp with the following elements:
 
       - name
@@ -64,25 +69,11 @@ void show_catalogue_dialog_flow ();
   resolve this when reading the .install file.
 */
 
-void show_cat_dialog_with_catalogues (xexp *catalogues, void *user_data);
-
 void get_catalogues (void (*cont) (xexp *catalogues, void *data),
 		     void *data);
-
-void set_catalogues (xexp *catalogues, bool refresh, bool ask,
-		     void (*cont) (bool res, void *data),
-		     void *data);
-
-void set_temp_catalogues (xexp *catalogues,
-			  void (*cont) (bool res, void *data),
-			  void *data);
 
 void add_catalogues (xexp *catalogues, bool ask, bool update,
 		     void (*cont) (bool res, void *data),
 		     void *data);
-
-GString *render_catalogue_report (xexp *catalogue_report);
-
-xexp *get_failed_catalogues (xexp *catalogue_report);
 
 #endif /* !REPO_H */

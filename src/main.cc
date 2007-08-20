@@ -1200,59 +1200,110 @@ gipl_next (package_info *unused_1, void *data, bool unused_2)
 }
 
 /** Refreshing the package cache
+
+    0. Optionally set new catalogues
+
+    1. Optionally ask confirmation
+
+    2. Optionally establish network
+
+    3. Perform update_cache operation
+
+    4. Show report with the ability to adjust repositories.  Ask for
+       confirmation and go back to 3 if user changed any repositories.
+
+    5. Reget package list.
  */
 
+static void rpc_set_catalogues (void *data);
+static void rpc_set_catalogues_reply (int cmd, apt_proto_decoder *dec, 
+				      void *data);
+static void rpc_ask (void *data);
 static void rpc_do_it (bool res, void *data);
 static void rpc_with_network (bool success, void *data);
 static void rpc_update_cache_reply (int cmd, apt_proto_decoder *dec,
 				    void *data);
-static void rpc_show_report (void *data);
 static void rpc_show_detailed_report (void *data);
+static void rpc_detailed_report_done (bool changed, void *data);
+static void rpc_done (void *data);
 
-static void rpc_maybe_get_package_list (void *data);
-static void rpc_report_done (void *data);
-static void rpc_get_list_done (void *data);
 static void rpc_end (void *data);
 
 static bool refreshed_this_session = false;
 
 struct rpc_clos {
   int state;
+  bool ask;
 
-  xexp *catalogue_report;
+  xexp *catalogues;
   apt_proto_result_code result_code;
-
-  bool report_done, get_list_done;
 
   void (*cont) (bool res, void *data);
   void *data;
 };
 
 void
-refresh_package_cache (int state, bool ask)
-{
-  refresh_package_cache_with_cont (state, ask, NULL, NULL);
-}
-
-void
-refresh_package_cache_with_cont (int state,
-				 bool ask,
-				 void (*cont) (bool res, void *data), 
-				 void *data)
+refresh_package_cache (int state,
+		       xexp *new_catalogues,
+		       bool ask,
+		       void (*cont) (bool res, void *data), 
+		       void *data)
 {
   refreshed_this_session = true;
 
   rpc_clos *c = new rpc_clos;
+
+  c->ask = ask;
+  c->catalogues = new_catalogues;
   c->cont = cont;
   c->data = data;
   c->state = state;
 
-  c->report_done = c->get_list_done = false;
-
-  c->catalogue_report = NULL;
   c->result_code = rescode_failure;
 
-  if (ask)
+  rpc_set_catalogues (c);
+}
+
+static void
+rpc_set_catalogues (void *data)
+{
+  rpc_clos *c = (rpc_clos *)data;
+
+  if (c->catalogues)
+    apt_worker_set_catalogues (c->state, c->catalogues,
+			       rpc_set_catalogues_reply, c);
+  else
+    rpc_ask (c);
+}
+
+static void
+rpc_set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  rpc_clos *c = (rpc_clos *)data;
+  int success = 0;
+
+  if (dec)
+    success = dec->decode_int ();
+
+  if (!success)
+    {
+      if (dec)
+	what_the_fock_p ();
+      c->result_code = rescode_failure;
+      rpc_done (c);
+    }
+
+  save_backup_data ();
+
+  rpc_ask (c);
+}
+
+static void
+rpc_ask (void *data)
+{
+  rpc_clos *c = (rpc_clos *)data;
+  
+  if (c->ask)
     ask_yes_no (_("ai_nc_confirm_update"), rpc_do_it, c);
   else
     rpc_do_it (true, c);
@@ -1285,11 +1336,7 @@ rpc_do_it (bool res, void *data)
 	rpc_with_network (true, c);
     }
   else
-    {
-      c->report_done = true;
-      c->get_list_done = true;
-      rpc_end (c);
-    }
+    rpc_done (c);
 }
 
 static void
@@ -1301,12 +1348,10 @@ rpc_with_network (bool success, void *data)
     apt_worker_update_cache (c->state, rpc_update_cache_reply, c);
   else
     {
-      c->report_done = true;
-      c->get_list_done = true;
       stop_entertaining_user ();
 
       annoy_user (_("No network connection"),
-		  rpc_end, c);
+		  rpc_done, c);
     }
 }
 
@@ -1334,72 +1379,49 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
       /* Network connection failed or apt-worker crashed.  An error
 	 message has already been displayed.
       */
-      c->catalogue_report = NULL;
       c->result_code = rescode_failure;
+      rpc_done (c);
     }
   else if (entertainment_was_cancelled ())
     {
       /* The user hit cancel.  We don't care whether the operation was
 	 successful or not.
       */
-      c->catalogue_report = NULL;
       c->result_code = rescode_cancelled;
+      annoy_user (_("ai_ni_update_list_cancelled"), rpc_done, c);
     }
   else
     {
-      /* Something subtle might have happened.  Get the full report.
-       */
-      c->catalogue_report = dec->decode_xexp ();
+      xexp *catalogue_report = dec->decode_xexp ();
       c->result_code = apt_proto_result_code (dec->decode_int ());
-    }
 
-  /* Fork...
-   */
-  rpc_maybe_get_package_list (c);
-  rpc_show_report (c);
-}
-
-static void
-rpc_show_report (void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  if (c->result_code == rescode_cancelled)
-    {
-      /* User has cancelled.  We don't provide any more details.
-       */
-      annoy_user (_("ai_ni_update_list_cancelled"), rpc_report_done, c);
-    }
-  else if (c->result_code == rescode_failure
-	   && c->catalogue_report == NULL)
-    {
-      /* Operation didn't even start and an error message has been
-	 displayed.
-      */
-      rpc_report_done (c);
-    }
-  else if (c->result_code == rescode_failure
-	   && c->catalogue_report != NULL)
-    {
-      /* Operation was started but failed because of some global
-	 reason.  No error message has yet been displayed.
-      */
-      annoy_user (_("Unable to refresh list."), rpc_report_done, c);
-    }
-  else if (c->result_code == rescode_partial_success)
-    {
-      /* Operation was started but some (or all) catalogues had
-	 problems.
-      */
-      annoy_user_with_arbitrary_details (_("Unable to refresh some catalogues."),
-					 rpc_show_detailed_report,
-					 rpc_report_done, c);
-    }
-  else
-    {
-      /* Complete success, no report is shown.
-       */
-      rpc_report_done (c);
+      if (c->result_code != rescode_success)
+	{
+	  if (catalogue_report)
+	    {
+	      xexp_free (c->catalogues);
+	      c->catalogues = catalogue_report;
+	      
+	      annoy_user_with_arbitrary_details_2
+		(_("Unable to refresh some catalogues."),
+		 rpc_show_detailed_report,
+		 rpc_done, c);
+	    }
+	  else
+	    {
+	      /* General failure without catalogue report.
+	       */
+	      annoy_user (_("ai_ni_operation_failed"),
+			  rpc_done, c);
+	    }
+	}
+      else
+	{
+	  /* Complete success, no report is shown.
+	   */
+	  xexp_free (catalogue_report);
+	  rpc_done (c);
+	}
     }
 }
 
@@ -1407,15 +1429,25 @@ static void
 rpc_show_detailed_report (void *data)
 {
   rpc_clos *c = (rpc_clos *) data;
-  xexp *failed_catalogues = NULL;
-  bool failed_flag = true;
 
-  failed_catalogues = get_failed_catalogues (c->catalogue_report);
-  show_cat_dialog_with_catalogues (failed_catalogues, &failed_flag);
-}  
+  c->ask = true;
+  show_catalogue_dialog (c->catalogues, true,
+			 rpc_detailed_report_done, c);
+}
 
 static void
-rpc_maybe_get_package_list (void *data)
+rpc_detailed_report_done (bool changed, void *data)
+{
+  rpc_clos *c = (rpc_clos *) data;
+
+  if (changed)
+    rpc_set_catalogues (c);
+  else
+    rpc_done (c);
+}
+
+static void
+rpc_done (void *data)
 {
   rpc_clos *c = (rpc_clos *) data;
 
@@ -1424,28 +1456,10 @@ rpc_maybe_get_package_list (void *data)
     {
       last_update = time (NULL);
       save_state ();
-      get_package_list_with_cont (c->state, rpc_get_list_done, c);
+      get_package_list_with_cont (c->state, rpc_end, c);
     }
   else
-    rpc_get_list_done (c);
-}
-
-static void
-rpc_report_done (void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  c->report_done = true;
-  rpc_end (data);
-}
-
-static void
-rpc_get_list_done (void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  c->get_list_done = true;
-  rpc_end (data);
+    rpc_end (c);
 }
 
 static void
@@ -1453,17 +1467,12 @@ rpc_end (void *data)
 {
   rpc_clos *c = (rpc_clos *) data;
 
-  if (c->report_done
-      && c->get_list_done)
-    {
-      xexp_free (c->catalogue_report);
+  xexp_free (c->catalogues);
       
-      if (c->cont)
-	c->cont ((c->result_code == rescode_success
-		  || c->result_code == rescode_partial_success),
-		 c->data);
-      delete c;
-    }
+  c->cont ((c->result_code == rescode_success
+	    || c->result_code == rescode_partial_success),
+	   c->data);
+  delete c;
 }
 
 /* Refreshing the package cache, wrapped in an interaction flow
@@ -1479,8 +1488,9 @@ void
 refresh_package_cache_flow ()
 {
   if (start_interaction_flow ())
-    refresh_package_cache_with_cont (APTSTATE_DEFAULT, true,
-				     rpcf_end, NULL);
+    refresh_package_cache (APTSTATE_DEFAULT,
+			   NULL, true,
+			   rpcf_end, NULL);
 }
 
 static int
@@ -1514,7 +1524,7 @@ maybe_refresh_package_cache ()
       && days_elapsed_since (last_update) < 30)
     return;
 
-  refresh_package_cache (APTSTATE_DEFAULT, true);
+  refresh_package_cache_flow ();
 }
 
 static void
@@ -2294,8 +2304,9 @@ restore_packages_flow ()
       g_free (filename);
       
       if (backup)
-	refresh_package_cache_with_cont (APTSTATE_DEFAULT, false,
-					 rp_restore, backup);
+	refresh_package_cache (APTSTATE_DEFAULT,
+			       NULL, false,
+			       rp_restore, backup);
       else
 	annoy_user (_("ai_ni_operation_failed"), rp_unsuccessful, backup);
     }
@@ -2354,8 +2365,9 @@ void
 update_system_flow ()
 {
   if (start_interaction_flow ())
-    refresh_package_cache_with_cont (APTSTATE_DEFAULT, FALSE,
-				     us_get_system_packages, NULL);
+    refresh_package_cache (APTSTATE_DEFAULT,
+			   NULL, false,
+			   us_get_system_packages, NULL);
 }
 
 static void

@@ -118,12 +118,11 @@ void install_named_packages (int state, const char **packages,
 			     void (*cont) (int n_successful, void *data),
 			     void *data);
 
-void refresh_package_cache (int state, 
-			    bool ask);
-void refresh_package_cache_with_cont (int state,
-				      bool ask,
-				      void (*cont) (bool res, void *data), 
-				      void *data);
+void refresh_package_cache (int state,
+			    xexp *new_catalogues,
+			    bool ask,
+			    void (*cont) (bool res, void *data), 
+			    void *data);
 void refresh_package_cache_flow ();
 
 void install_from_file_flow (const char *filename);

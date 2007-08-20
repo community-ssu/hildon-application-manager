@@ -533,7 +533,10 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
 
   start_entertaining_user_silently ();
 
-  set_temp_catalogues (card_catalogues, eci_with_temp_catalogues, c);
+  refresh_package_cache (APTSTATE_TEMP,
+			 card_catalogues, false,
+			 eci_with_temp_catalogues, c);
+  c->card_catalogues = NULL;
 }
 
 static void

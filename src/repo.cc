@@ -157,84 +157,6 @@ get_catalogues (void (*cont) (xexp *catalogues, void *data),
   apt_worker_get_catalogues (get_catalogues_callback, c);
 }
 
-struct set_catalogues_closure {
-  int state;
-  bool refresh;
-  bool ask;
-  void (*cont) (bool res, void *data);
-  void *data;
-};
-
-static void
-set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
-{
-  set_catalogues_closure *c = (set_catalogues_closure *)data;
-  int success = 0;
-
-  if (dec)
-    success = dec->decode_int ();
-
-  if (!success)
-    {
-      if (dec)
-	what_the_fock_p ();
-      c->cont (false, c->data);
-      delete c;
-      return;
-    }
-
-  if (c->refresh)
-    {
-      refresh_package_cache_with_cont (c->state, c->ask,
-				       c->cont, c->data);
-      delete c;
-    }
-  else
-    {
-      c->cont (true, c->data);
-      delete c;
-    }
-
-  save_backup_data ();
-}
-
-static void
-set_catalogues_1 (int state,
-		  xexp *catalogues, bool refresh, bool ask,
-		  void (*cont) (bool res, void *data),
-		  void *data)
-{
-  set_catalogues_closure *c = new set_catalogues_closure;
-  c->state = state;
-  c->ask = ask;
-  c->refresh = refresh;
-  c->cont = cont;
-  c->data = data;
-
-  apt_worker_set_catalogues (state, catalogues,
-			     set_catalogues_reply, c);
-}
-
-void
-set_catalogues (xexp *catalogues, bool refresh, bool ask,
-		void (*cont) (bool res, void *data),
-		void *data)
-{
-  set_catalogues_1 (APTSTATE_DEFAULT, catalogues,
-		    refresh, ask,
-		    cont, data);
-}
-
-void
-set_temp_catalogues (xexp *catalogues,
-		     void (*cont) (bool res, void *data),
-		     void *data)
-{
-  set_catalogues_1 (APTSTATE_TEMP, catalogues,
-		    true, false,
-		    cont, data);
-}
-
 const char *
 catalogue_name (xexp *x)
 {
@@ -281,12 +203,15 @@ struct cat_dialog_closure {
   catcache *caches;
   xexp *catalogues_xexp;
   bool dirty;
-  bool failed_catalogues;
+  bool show_errors;
 
   GtkTreeView *tree;
   GtkListStore *store;
   GtkWidget *edit_button;
   GtkWidget *delete_button;
+
+  void (*cont) (bool changed, void *data);
+  void *data;
 };
 
 struct cat_edit_closure {
@@ -561,13 +486,13 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
 	return;
 
       gtk_widget_set_sensitive (c->edit_button, !cat->readonly && !cat->foreign);
-      if (!c->failed_catalogues)
+      if (!c->show_errors)
 	gtk_widget_set_sensitive (c->delete_button, !cat->readonly);
     }
   else
     {
       gtk_widget_set_sensitive (c->edit_button, FALSE);
-      if (!c->failed_catalogues)
+      if (!c->show_errors)
 	gtk_widget_set_sensitive (c->delete_button, FALSE);
     }
 }
@@ -621,6 +546,15 @@ set_cat_list (cat_dialog_closure *c)
   for (xexp *catx = xexp_first (c->catalogues_xexp); catx;
        catx = xexp_rest (catx))
     {
+      xexp *errors = (xexp_is (catx, "catalogue")
+		      ? xexp_aref (catx, "errors")
+		      : NULL);
+
+      if (c->show_errors
+	  && (errors == NULL
+	      || xexp_first (errors) == NULL))
+	continue;
+
       catcache *cat = make_catcache_from_xexp (c, catx);
       if (cat)
 	{
@@ -713,11 +647,6 @@ remove_cat_cont (bool res, void *data)
   delete c;
 }
 
-static void
-ignore_result (bool res, void *data)
-{
-}
-
 #define REPO_RESPONSE_NEW    1
 #define REPO_RESPONSE_EDIT   2
 #define REPO_RESPONSE_REMOVE 3
@@ -766,21 +695,11 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
 
   if (response == GTK_RESPONSE_CLOSE)
     {
-      if (c->dirty)
-	set_catalogues (c->catalogues_xexp, true, true,
-			ignore_result, NULL);
-
       reset_cat_list (c);
-      xexp_free (c->catalogues_xexp);
-
       pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
 
-      /* When using showing failed catalogues we must not to end the
-	 interaction flow, since it has never been started */
-      if (!c->failed_catalogues)
-	end_interaction_flow ();
-
+      c->cont (c->dirty, c->data);
       delete c;
     }
 }
@@ -799,26 +718,26 @@ insensitive_cat_delete_press (GtkButton *button, gpointer data)
 }
 
 void
-show_cat_dialog_with_catalogues (xexp *catalogues, void *user_data)
+show_catalogue_dialog (xexp *catalogues,
+		       bool show_errors,
+		       void (*cont) (bool changed, void *data),
+		       void *data)
 {
-  bool failed_catalogues = false;
-
-  if (catalogues == NULL)
-    return;
-
-  /* Check if user data contains some data */
-  if (user_data != NULL) 
-    failed_catalogues = *((bool *)user_data);
+  g_return_if_fail (catalogues != NULL);
 
   cat_dialog_closure *c = new cat_dialog_closure;
   c->caches = NULL;
   c->catalogues_xexp = catalogues;
   c->dirty = false;
-  c->failed_catalogues = failed_catalogues;
+  c->show_errors = show_errors;
+  c->cont = cont;
+  c->data = data;
+
+  xexp_write (stdout, catalogues);
 
   GtkWidget *dialog = gtk_dialog_new ();
 
-  if (failed_catalogues)
+  if (show_errors)
     gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_failed_repositories"));
   else
     gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_repository"));
@@ -827,7 +746,7 @@ show_cat_dialog_with_catalogues (xexp *catalogues, void *user_data)
   
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
-  if (!failed_catalogues)
+  if (!show_errors)
     gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			   _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
 
@@ -835,7 +754,7 @@ show_cat_dialog_with_catalogues (xexp *catalogues, void *user_data)
     gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			   _("ai_bd_repository_edit"), REPO_RESPONSE_EDIT);
 
-  if (!failed_catalogues)
+  if (!show_errors)
     c->delete_button =
       gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			     _("ai_bd_repository_delete"), REPO_RESPONSE_REMOVE);
@@ -848,7 +767,7 @@ show_cat_dialog_with_catalogues (xexp *catalogues, void *user_data)
 			       make_cat_list (c));
 
   gtk_widget_set_sensitive (c->edit_button, FALSE); 
-  if (!failed_catalogues)
+  if (!show_errors)
     {
       gtk_widget_set_sensitive (c->delete_button, FALSE);
       g_signal_connect (c->delete_button, "insensitive_press",
@@ -860,23 +779,66 @@ show_cat_dialog_with_catalogues (xexp *catalogues, void *user_data)
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (cat_response), c);
 
-  if (!failed_catalogues) 
-    gtk_widget_set_usize (dialog, 0, 250);
-  else
-    {
-      /* For the failed catalogues dialog we must set a bigger size */
-      gtk_widget_set_usize (dialog, 600, 300); 
-    }
-
+  gtk_widget_set_usize (dialog, 600, 300);
+  
   gtk_widget_show_all (dialog);
 }
+
+/* "Application Catalogues" interaction flow.
+ */
+
+struct scdf_clos {
+  xexp *catalogues;
+};
+
+static void scdf_with_catalogues (xexp *catalogues, void *data);
+static void scdf_dialog_done (bool changed, void *date);
+static void scdf_end (bool res, void *data);
 
 void
 show_catalogue_dialog_flow ()
 {
   if (start_interaction_flow ())
-    get_catalogues (show_cat_dialog_with_catalogues, NULL);
+    {
+      scdf_clos *c = new scdf_clos;
+      get_catalogues (scdf_with_catalogues, c);
+    }
 }
+
+static void
+scdf_with_catalogues (xexp *catalogues, void *data)
+{
+  scdf_clos *c = (scdf_clos *)data;
+
+  c->catalogues = catalogues;
+  show_catalogue_dialog (catalogues, false,
+			 scdf_dialog_done, c);
+}
+
+static void
+scdf_dialog_done (bool changed, void *data)
+{
+  scdf_clos *c = (scdf_clos *)data;
+
+  if (changed)
+    refresh_package_cache (APTSTATE_DEFAULT,
+			   c->catalogues, true,
+			   scdf_end, c);
+  else
+    {
+      xexp_free (c->catalogues);
+      scdf_end (true, c);
+    }
+      
+  c->catalogues = NULL;
+}
+
+static void
+scdf_end (bool res, void *data)
+{
+  end_interaction_flow ();
+}
+
 
 /* Adding catalogues 
  */
@@ -977,7 +939,6 @@ add_catalogues_cont_4 (bool res, void *data)
      installation of packages might continue.
   */
   c->cont (true, c->data);
-  xexp_free (c->catalogues);
   delete c;
 }
 
@@ -994,8 +955,12 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 	 the installation script later.
       */
       if (c->catalogues_changed || c->update)
-	set_catalogues (c->catalogues, true, !c->update,
-			add_catalogues_cont_4, c);
+	{
+	  refresh_package_cache (APTSTATE_DEFAULT,
+				 c->catalogues, !c->update,
+				 add_catalogues_cont_4, c);
+	  c->catalogues = NULL;
+	}
       else
 	{
 	  c->cont (true, c->data);
@@ -1033,7 +998,11 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 	      char *str;
 	      const char *name = catalogue_name (c->rest);
 
-	      if (c->update)
+	      if (cont == add_catalogues_cont_3_enable)
+		str = g_strdup_printf ("%s\n%s",
+				       _("ai_ia_add_catalogue_enable"),
+				       name);
+	      else if (c->update)
 		str = g_strdup_printf (_("ai_ia_add_catalogue_text"),
 				       name);
 	      else
