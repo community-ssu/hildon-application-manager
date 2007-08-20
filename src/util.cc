@@ -395,6 +395,7 @@ annoy_user (const gchar *text, void (*cont) (void *data), void *data)
 struct auwd_closure {
   package_info *pi;
   detail_kind kind;
+  int variant;
   void (*details) (void *data);
   void (*cont) (void *data);
   void *data;
@@ -416,8 +417,24 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
       if (c->pi)
 	show_package_details (c->pi, c->kind, true, APTSTATE_DEFAULT,
 			      annoy_details_done, c);
-      else if (c->details)
-	c->details (c->data);
+      else
+	{
+	  if (c->variant == 2)
+	    {
+	      pop_dialog (GTK_WIDGET (dialog));
+	      gtk_widget_destroy (GTK_WIDGET (dialog));
+	      if (c->pi)
+		c->pi->unref ();
+	      if (c->details)
+		c->details (c->data);
+	      delete c;
+	    }
+	  else
+	    {
+	      if (c->details)
+		c->details (c->data);
+	    }
+	}
     }
   else
     {
@@ -431,10 +448,18 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
     }
 }
 
+/* There are two variants of the "with-details" dialog (which might
+   get unified soon, or not).  Variant one uses the "Close" label and
+   runs the details callback as a subroutine of the dialog.  Variant 2
+   uses the "Ok" label and closes the dialog before invoking the
+   details callback.
+*/
+
 static void
 annoy_user_with_details_1 (const gchar *text,
 			   void (*details) (void *data),
 			   package_info *pi, detail_kind kind,
+			   int variant,
 			   void (*cont) (void *data),
 			   void *data)
 {
@@ -456,7 +481,10 @@ annoy_user_with_details_1 (const gchar *text,
     g_list_free (kids);
 
     gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_ni_bd_details"), 1);
-    gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_ni_bd_close"),
+    gtk_dialog_add_button (GTK_DIALOG (dialog),
+			   (variant == 1
+			    ? _("ai_ni_bd_close")
+			    : _("ai_bd_ok")),
 			   GTK_RESPONSE_CANCEL);
   }
 
@@ -464,6 +492,7 @@ annoy_user_with_details_1 (const gchar *text,
     pi->ref ();
   c->pi = pi;
   c->kind = kind;
+  c->variant = variant;
   c->details = details;
   c->cont = cont;
   c->data = data;
@@ -480,7 +509,7 @@ annoy_user_with_details (const gchar *text,
 {
   annoy_user_with_details_1 (text,
 			     NULL,
-			     pi, kind,
+			     pi, kind, 1,
 			     cont,
 			     data);
 }
@@ -493,7 +522,20 @@ annoy_user_with_arbitrary_details (const gchar *text,
 {
   annoy_user_with_details_1 (text,
 			     details,
-			     NULL, no_details,
+			     NULL, no_details, 1,
+			     cont,
+			     data);
+}
+
+void
+annoy_user_with_arbitrary_details_2 (const gchar *text,
+				     void (*details) (void *data),
+				     void (*cont) (void *data),
+				     void *data)
+{
+  annoy_user_with_details_1 (text,
+			     details,
+			     NULL, no_details, 2,
 			     cont,
 			     data);
 }

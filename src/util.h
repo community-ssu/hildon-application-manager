@@ -170,6 +170,10 @@ void annoy_user_with_arbitrary_details (const gchar *text,
 					void (*details) (void *data),
 					void (*cont) (void *data),
 					void *data);
+void annoy_user_with_arbitrary_details_2 (const gchar *text,
+					  void (*details) (void *data),
+					  void (*cont) (void *data),
+					  void *data);
 
 void annoy_user_with_errno (int err, const gchar *detail,
 			    void (*cont) (void *), void *data);
