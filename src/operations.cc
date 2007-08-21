@@ -443,7 +443,7 @@ ip_ensure_network (ip_clos *c)
 
   set_entertainment_fun (NULL, -1, 0);
   set_entertainment_cancel (NULL, NULL);
-  set_entertainment_title (_("Installing"));
+  set_entertainment_title ("");
   start_entertaining_user ();
   
   c->entertaining = true;
@@ -538,11 +538,12 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (some_domains_violated)
     {
       if (red_pill_mode)
-	ask_custom (_("Trusted upgrade path broken"),
-		    "Continue anyway", "Stop",
+	ask_custom (_("ai_ni_error_broken_path"),
+		    _("ai_bd_continue"),
+		    _("ai_bd_cancel"),
 		    ip_legalese_response, c);
       else
-	annoy_user (_("Trusted upgrade path broken"),
+	annoy_user (_("ai_ni_error_broken_path"),
 		    ip_end, c);
     }
   else if (some_not_certfied)
@@ -1279,7 +1280,7 @@ up_remove (up_clos *c)
   else
     {
       if (c->pi->info.removable_status == status_system_update_unremovable)
-	annoy_user (_("ai_ni_error_system"), up_end, c);
+	annoy_user (_("ai_ni_unable_to_uninstall_system_update"), up_end, c);
       else if (c->pi->info.removable_status == status_needed)
 	annoy_user_with_details (_("ai_ni_error_uninstall_packagesneeded"),
 				 c->pi, remove_details, up_end, c);
