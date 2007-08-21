@@ -1,6 +1,7 @@
 hildon-application-manager (1:1.9.20~unreleased) unstable; urgency=low
 
   * Build-Depend on mce-dev.
+  * Run update-sudoers instead of editing /etc/sudoers manually.
   * Fixes: NB#58480, NB#54796, NB#56245, NB#63856, NB#63862, NB#61786.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 26 Jul 2007 19:58:04 +0300

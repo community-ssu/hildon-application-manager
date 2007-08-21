@@ -2,15 +2,4 @@
 
 set -e
 
-rem_sudoer ()
-{
-    line="$1"
-    grep -v -F "$line" /etc/sudoers >/etc/sudoers.tmp || true
-    mv /etc/sudoers.tmp /etc/sudoers
-    chmod 0440 /etc/sudoers
-}
-
-## Remove the sudoer lines
-
-rem_sudoer 'user ALL = NOPASSWD: /usr/libexec/apt-worker'
-rem_sudoer 'user ALL = NOPASSWD: /usr/bin/hildon-application-manager-util restore-catalogues'
+update-sudoers || true
