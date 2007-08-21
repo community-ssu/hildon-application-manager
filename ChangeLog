@@ -1,3 +1,27 @@
+2007-08-21  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.h, src/main.c (refresh_package_cache): Cleanup once
+	more.  Added 'continued' parameter and changed meaning of result.
+	Updated all callers.
+
+	* src/instr.cc (execute_install_package, execute_card_install): Do
+	not use start_entertaining_user_silently, it's not good enough
+	after all.
+
+	* src/operations.cc (installable_status_to_message): Forcefully
+	include package name in all messages.  Needs to be improved.
+
+	* src/repo.cc (render_catalogue_errors): New.
+	(make_catcache_from_xexp): Use it to create the details for a
+	catcache.
+	(cat_text_func): Show detail of catalogue when appropriate.
+	(cat_selection_changed): Keep track of currently selected catcache
+	so that cat_text_func can do its thing.
+	
+	* hildon-application-manager.sudoers: New.
+	* Makefile.am: Install it.
+	(EXTRA_DIST): Add it.
+
 2007-08-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc (install_packages): Only reboot when a package
