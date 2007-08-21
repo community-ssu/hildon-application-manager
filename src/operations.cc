@@ -72,44 +72,54 @@ void
 installable_status_to_message (package_info *pi,
 			       char *&msg, bool &with_details)
 {
-  const char *smsg = NULL;
-
   if (pi->info.installable_status == status_missing)
     {
-      smsg = (pi->installed_version
-	      ? _("ai_ni_error_update_missing")
-	      : _("ai_ni_error_install_missing"));
+      msg = g_strdup_printf ("%s\n%s",
+			     (pi->installed_version
+			      ? _("ai_ni_error_update_missing")
+			      : _("ai_ni_error_install_missing")),
+			     pi->get_display_name (false));
       with_details = true;
     }
   else if (pi->info.installable_status == status_conflicting)
     {
-      smsg = (pi->installed_version
-	      ? _("ai_ni_error_update_conflict")
-	      : _("ai_ni_error_install_conflict"));
+      msg = g_strdup_printf ("%s\n%s",
+			     (pi->installed_version
+			      ? _("ai_ni_error_update_conflict")
+			      : _("ai_ni_error_install_conflict")),
+			     pi->get_display_name (false));
       with_details = true;
     }
   else if (pi->info.installable_status == status_corrupted)
     {
-      smsg = (pi->installed_version
-	      ? _("ai_ni_error_update_corrupted")
-	      : _("ai_ni_error_install_corrupted"));
+      msg = g_strdup_printf ("%s\n%s",
+			     (pi->installed_version
+			      ? _("ai_ni_error_update_corrupted")
+			      : _("ai_ni_error_install_corrupted")),
+			     pi->get_display_name (false));
       with_details = false;
     }
   else if (pi->info.installable_status == status_incompatible)
     {
-      smsg = (pi->installed_version
-	      ? _("ai_ni_error_update_incompatible")
-	      : _("ai_ni_error_install_incompatible"));
+      msg = g_strdup_printf ("%s\n%s",
+			     (pi->installed_version
+			      ? _("ai_ni_error_update_incompatible")
+			      : _("ai_ni_error_install_incompatible")),
+			     pi->get_display_name (false));
       with_details = false;
     }
   else if (pi->info.installable_status == status_incompatible_current)
     {
-      smsg = _("ai_ni_error_n770package_incompatible");
+      msg = g_strdup_printf ("%s\n%s",
+			     _("ai_ni_error_n770package_incompatible"),
+			     pi->get_display_name (false));
       with_details = false;
     }
   else if (pi->info.installable_status == status_not_found)
     {
-      smsg = _("ai_ni_error_download_missing");
+      msg = g_strdup_printf ("%s\n%s",
+			     _("ai_ni_error_download_missing"),
+			     pi->get_display_name (false));
       with_details = false;
     }
   else
@@ -120,9 +130,6 @@ installable_status_to_message (package_info *pi,
 			     pi->get_display_name (false));
       with_details = true;
     }
-
-  if (smsg)
-    msg = g_strdup (smsg);
 }
 
 /* INSTALL_PACKAGES - Overview
@@ -990,11 +997,8 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 
   GtkWidget *dialog;
 
-  if (is_last)
-    {
-      stop_entertaining_user ();
-      c->entertaining = false;
-    }
+  stop_entertaining_user ();
+  c->entertaining = false;
 
   // XXX - get the button texts correct, etc.
 
@@ -1006,7 +1010,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	    (NULL,
 	     msg,
 	     _("ai_ni_bd_details"), 1,
-	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
+	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
       else
@@ -1014,9 +1018,9 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	  dialog = hildon_note_new_confirmation_add_buttons 
 	    (NULL,
 	     msg,
-	     _("Continue"), GTK_RESPONSE_OK,
+	     _("ai_bd_continue"), GTK_RESPONSE_OK,
 	     _("ai_ni_bd_details"), 1,
-	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
+	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
     }
@@ -1027,7 +1031,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	  dialog = hildon_note_new_confirmation_add_buttons 
 	    (NULL,
 	     msg,
-	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
+	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
       else
@@ -1035,8 +1039,8 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	  dialog = hildon_note_new_confirmation_add_buttons 
 	    (NULL,
 	     msg,
-	     _("Continue"), GTK_RESPONSE_OK,
-	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
+	     _("ai_bd_continue"), GTK_RESPONSE_OK,
+	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
     }
@@ -1061,7 +1065,16 @@ ip_abort_response (GtkDialog *dialog, gint response, gpointer data)
       gtk_widget_destroy (GTK_WIDGET (dialog));
       
       if (response == GTK_RESPONSE_OK)
-	ip_install_next (c);
+	{
+	  /* We only get an OK response when there is another package
+	     to install.  Thus, we start the entertainment here again
+	     since we know that some action will happen.
+	  */
+	  start_entertaining_user ();
+	  c->entertaining = true;
+
+	  ip_install_next (c);
+	}
       else
 	ip_end (c);
     }
