@@ -1,0 +1,2 @@
+user ALL = NOPASSWD: /usr/libexec/apt-worker
+user ALL = NOPASSWD: /usr/bin/hildon-application-manager-util restore-catalogues
