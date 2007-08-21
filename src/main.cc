@@ -1223,7 +1223,9 @@ static void rpc_do_it (bool res, void *data);
 static void rpc_with_network (bool success, void *data);
 static void rpc_update_cache_reply (int cmd, apt_proto_decoder *dec,
 				    void *data);
-static void rpc_show_detailed_report (void *data);
+static void rpc_show_error_report (void *data);
+static void rpc_error_response (GtkWidget *dialog, gint response,
+				gpointer data);
 static void rpc_detailed_report_done (bool changed, void *data);
 static void rpc_done (void *data);
 
@@ -1233,10 +1235,12 @@ static bool refreshed_this_session = false;
 
 struct rpc_clos {
   int state;
-  bool ask;
+  bool ask, continued;
 
   xexp *catalogues;
+  xexp *catalogue_report;
   apt_proto_result_code result_code;
+  bool keep_going;
 
   void (*cont) (bool res, void *data);
   void *data;
@@ -1245,7 +1249,7 @@ struct rpc_clos {
 void
 refresh_package_cache (int state,
 		       xexp *new_catalogues,
-		       bool ask,
+		       bool ask, bool continued,
 		       void (*cont) (bool res, void *data), 
 		       void *data)
 {
@@ -1254,12 +1258,14 @@ refresh_package_cache (int state,
   rpc_clos *c = new rpc_clos;
 
   c->ask = ask;
+  c->continued = continued;
   c->catalogues = new_catalogues;
   c->cont = cont;
   c->data = data;
   c->state = state;
 
   c->result_code = rescode_failure;
+  c->keep_going = false;
 
   rpc_set_catalogues (c);
 }
@@ -1290,6 +1296,7 @@ rpc_set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
       if (dec)
 	what_the_fock_p ();
       c->result_code = rescode_failure;
+      c->keep_going = false;
       rpc_done (c);
     }
 
@@ -1349,7 +1356,9 @@ rpc_with_network (bool success, void *data)
   else
     {
       stop_entertaining_user ();
-
+      
+      c->result_code = rescode_failure;
+      c->keep_going = false;
       annoy_user (_("No network connection"),
 		  rpc_done, c);
     }
@@ -1380,6 +1389,7 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
 	 message has already been displayed.
       */
       c->result_code = rescode_failure;
+      c->keep_going = false;
       rpc_done (c);
     }
   else if (entertainment_was_cancelled ())
@@ -1388,51 +1398,85 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
 	 successful or not.
       */
       c->result_code = rescode_cancelled;
+      c->keep_going = false;
       annoy_user (_("ai_ni_update_list_cancelled"), rpc_done, c);
     }
   else
     {
-      xexp *catalogue_report = dec->decode_xexp ();
+      xexp_free (c->catalogues);
+      c->catalogues = dec->decode_xexp ();
       c->result_code = apt_proto_result_code (dec->decode_int ());
 
       if (c->result_code != rescode_success)
-	{
-	  if (catalogue_report)
-	    {
-	      xexp_free (c->catalogues);
-	      c->catalogues = catalogue_report;
-	      
-	      annoy_user_with_arbitrary_details_2
-		(_("Unable to refresh some catalogues."),
-		 rpc_show_detailed_report,
-		 rpc_done, c);
-	    }
-	  else
-	    {
-	      /* General failure without catalogue report.
-	       */
-	      annoy_user (_("ai_ni_operation_failed"),
-			  rpc_done, c);
-	    }
-	}
+	rpc_show_error_report (c);
       else
 	{
-	  /* Complete success, no report is shown.
-	   */
-	  xexp_free (catalogue_report);
+	  c->keep_going = true;
 	  rpc_done (c);
 	}
     }
 }
 
 static void
-rpc_show_detailed_report (void *data)
+rpc_show_error_report (void *data)
 {
   rpc_clos *c = (rpc_clos *) data;
 
-  c->ask = true;
-  show_catalogue_dialog (c->catalogues, true,
-			 rpc_detailed_report_done, c);
+  GtkWidget *dialog;
+  
+  if (c->result_code == rescode_partial_success)
+    {
+      if (c->continued)
+	dialog = hildon_note_new_confirmation_add_buttons 
+	  (NULL,
+	   _("ai_ni_update_partly_successful"),
+	   _("ai_bd_continue"), GTK_RESPONSE_OK,
+	   _("ai_ni_bd_details"), 1,
+	   _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
+	   NULL);
+      else
+	dialog = hildon_note_new_confirmation_add_buttons 
+	  (NULL,
+	   _("ai_ni_update_partly_successful"),
+	   _("ai_ni_bd_details"), 1,
+	   _("ai_bd_ok"), GTK_RESPONSE_CANCEL,
+	   NULL);
+    }
+  else
+    {
+      dialog = hildon_note_new_confirmation_add_buttons 
+	(NULL,
+	 _("ai_ni_update_list_not_successful"),
+	 _("ai_ni_bd_retry"), 2,
+	 _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
+	 NULL);
+    }
+  
+  push_dialog (dialog);
+  g_signal_connect (dialog, "response",
+		    G_CALLBACK (rpc_error_response), c);
+  gtk_widget_show_all (dialog);
+}
+
+static void
+rpc_error_response (GtkWidget *dialog, gint response, gpointer data)
+{
+  rpc_clos *c = (rpc_clos *) data;
+
+  pop_dialog (dialog);
+  gtk_widget_destroy (dialog);
+
+  if (response == 1)
+    show_catalogue_dialog (c->catalogues, true,
+			   rpc_detailed_report_done, c);
+  else if (response == 2)
+    rpc_do_it (true, c);
+  else 
+    {
+      c->keep_going = (response == GTK_RESPONSE_OK
+		       && c->result_code != rescode_failure);
+      rpc_done (c);
+    }
 }
 
 static void
@@ -1441,9 +1485,12 @@ rpc_detailed_report_done (bool changed, void *data)
   rpc_clos *c = (rpc_clos *) data;
 
   if (changed)
-    rpc_set_catalogues (c);
+    {
+      c->ask = true;
+      rpc_set_catalogues (c);
+    }
   else
-    rpc_done (c);
+    rpc_show_error_report (c);
 }
 
 static void
@@ -1469,9 +1516,7 @@ rpc_end (void *data)
 
   xexp_free (c->catalogues);
       
-  c->cont ((c->result_code == rescode_success
-	    || c->result_code == rescode_partial_success),
-	   c->data);
+  c->cont (c->keep_going, c->data);
   delete c;
 }
 
@@ -1489,7 +1534,7 @@ refresh_package_cache_flow ()
 {
   if (start_interaction_flow ())
     refresh_package_cache (APTSTATE_DEFAULT,
-			   NULL, true,
+			   NULL, true, false,
 			   rpcf_end, NULL);
 }
 
@@ -2305,7 +2350,7 @@ restore_packages_flow ()
       
       if (backup)
 	refresh_package_cache (APTSTATE_DEFAULT,
-			       NULL, false,
+			       NULL, false, true,
 			       rp_restore, backup);
       else
 	annoy_user (_("ai_ni_operation_failed"), rp_unsuccessful, backup);
@@ -2317,23 +2362,28 @@ rp_restore (bool res, void *data)
 {
   xexp *backup = (xexp *)data;
 
-  int len = xexp_length (backup);
-  const char **names = (const char **)new char* [len+1];
-
-  xexp *p = xexp_first (backup);
-  int i = 0;
-  while (p)
+  if (res)
     {
-      if (xexp_is (p, "pkg") && xexp_is_text (p))
-	names[i++] = xexp_text (p);
-      p = xexp_rest (p);
+      int len = xexp_length (backup);
+      const char **names = (const char **)new char* [len+1];
+      
+      xexp *p = xexp_first (backup);
+      int i = 0;
+      while (p)
+	{
+	  if (xexp_is (p, "pkg") && xexp_is_text (p))
+	    names[i++] = xexp_text (p);
+	  p = xexp_rest (p);
+	}
+      names[i] = NULL;
+      install_named_packages (APTSTATE_DEFAULT, names,
+			      INSTALL_TYPE_BACKUP, false,
+			      NULL, NULL,
+			      rp_end, backup);
+      delete names;
     }
-  names[i] = NULL;
-  install_named_packages (APTSTATE_DEFAULT, names,
-			  INSTALL_TYPE_BACKUP, false,
-			  NULL, NULL,
-			  rp_end, backup);
-  delete names;
+  else
+    rp_end (0, backup);
 }
 
 static void
@@ -2366,16 +2416,19 @@ update_system_flow ()
 {
   if (start_interaction_flow ())
     refresh_package_cache (APTSTATE_DEFAULT,
-			   NULL, false,
+			   NULL, false, true,
 			   us_get_system_packages, NULL);
 }
 
 static void
 us_get_system_packages (bool res, void *data)
 {
-  apt_worker_get_system_update_packages (APTSTATE_DEFAULT,
-					 us_get_system_packages_reply,
-					 NULL);
+  if (res)
+    apt_worker_get_system_update_packages (APTSTATE_DEFAULT,
+					   us_get_system_packages_reply,
+					   data);
+  else
+    us_end (0, data);
 }
 
 static void

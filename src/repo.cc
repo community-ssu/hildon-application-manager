@@ -197,6 +197,7 @@ struct catcache {
   xexp *catalogue_xexp;
   bool enabled, readonly, foreign;
   const char *name;
+  char *detail;
 };
 
 struct cat_dialog_closure {
@@ -204,6 +205,9 @@ struct cat_dialog_closure {
   xexp *catalogues_xexp;
   bool dirty;
   bool show_errors;
+
+  catcache *selected_cat;
+  GtkTreeIter selected_iter;
 
   GtkTreeView *tree;
   GtkListStore *store;
@@ -445,9 +449,24 @@ cat_text_func (GtkTreeViewColumn *column,
 	       GtkTreeIter *iter,
 	       gpointer data)
 {
+  cat_dialog_closure *cd = (cat_dialog_closure *)data;
   catcache *c;
+
   gtk_tree_model_get (model, iter, 0, &c, -1);
-  g_object_set (cell, "text", c? c->name : NULL, NULL);
+  
+  if (cd->show_errors
+      && c != NULL
+      && c->detail
+      && cd->selected_cat == c)
+    {
+      gchar *markup;
+      markup = g_markup_printf_escaped ("%s\n<small>%s</small>",
+					c->name, c->detail);
+      g_object_set (cell, "markup", markup, NULL);
+      g_free (markup);
+    }
+  else
+    g_object_set (cell, "text", c? c->name : NULL, NULL);
 }
 
 static void
@@ -472,22 +491,44 @@ cat_row_activated (GtkTreeView *treeview,
 }
 
 static void
+emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
+{
+  GtkTreePath *path;
+
+  path = gtk_tree_model_get_path (model, iter);
+  g_signal_emit_by_name (model, "row-changed", path, iter);
+  gtk_tree_path_free (path);
+}
+
+static void
 cat_selection_changed (GtkTreeSelection *selection, gpointer data)
 {
   GtkTreeModel *model;
   GtkTreeIter iter;
   cat_dialog_closure *c = (cat_dialog_closure *)data;
 
-  if (gtk_tree_selection_get_selected (selection, &model, &iter))
-    {
-      catcache *cat;
-      gtk_tree_model_get (model, &iter, 0, &cat, -1);
-      if (cat == NULL)
-	return;
+  catcache *old_selected = c->selected_cat;
+  catcache *new_selected;
 
-      gtk_widget_set_sensitive (c->edit_button, !cat->readonly && !cat->foreign);
+  if (gtk_tree_selection_get_selected (selection, &model, &iter))
+    gtk_tree_model_get (model, &iter, 0, &new_selected, -1);
+  else
+    new_selected = NULL;
+
+  c->selected_cat = new_selected;
+  if (old_selected)
+    emit_row_changed (model, &c->selected_iter);
+  c->selected_iter = iter;
+
+  if (new_selected)
+    {
+      emit_row_changed (model, &iter);
+      gtk_widget_set_sensitive (c->edit_button,
+				(!new_selected->readonly
+				 && !new_selected->foreign));
       if (!c->show_errors)
-	gtk_widget_set_sensitive (c->delete_button, !cat->readonly);
+	gtk_widget_set_sensitive (c->delete_button,
+				  !new_selected->readonly);
     }
   else
     {
@@ -495,6 +536,29 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
       if (!c->show_errors)
 	gtk_widget_set_sensitive (c->delete_button, FALSE);
     }
+}
+
+static char *
+render_catalogue_errors (xexp *cat)
+{
+  xexp *errors = xexp_aref (cat, "errors");
+  if (errors == NULL || xexp_first (errors) == NULL)
+    return NULL;
+
+  GString *report = g_string_new ("");
+
+  for (xexp *err = xexp_first (errors); err; err = xexp_rest (err))
+    {
+      g_string_append_printf (report, "%s\n %s",
+			      xexp_aref_text (err, "uri"),
+			      xexp_aref_text (err, "msg"));
+      if (xexp_rest (err))
+	g_string_append (report, "\n");
+    }
+
+  char *str = report->str;
+  g_string_free (report, 0);
+  return str;
 }
 
 static catcache *
@@ -509,6 +573,7 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
       cat->readonly = xexp_aref_bool (x, "essential");
       cat->foreign = false;
       cat->name = catalogue_name (x);
+      cat->detail = render_catalogue_errors (x);
     }
   else if (xexp_is (x, "source") && xexp_is_text (x))
     {
@@ -516,6 +581,7 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
       cat->readonly = true;
       cat->foreign = true;
       cat->name = xexp_text (x);
+      cat->detail = NULL;
     }
   else
     {
@@ -533,9 +599,11 @@ reset_cat_list (cat_dialog_closure *c)
   for (catcache *cat = c->caches; cat; cat = next)
     {
       next = cat->next;
+      delete cat->detail;
       delete cat;
     }
   c->caches = NULL;
+  c->selected_cat = NULL;
 }
 
 static void
@@ -565,6 +633,11 @@ set_cat_list (cat_dialog_closure *c)
 					     position,
 					     0, cat,
 					     -1);
+	  if (position == 0)
+	    {
+	      c->selected_cat = cat;
+	      c->selected_iter = iter;
+	    }
 	  position += 1;
 	}
     }
@@ -589,21 +662,23 @@ make_cat_list (cat_dialog_closure *c)
     GTK_TREE_VIEW (gtk_tree_view_new_with_model (GTK_TREE_MODEL (c->store)));
 
   renderer = gtk_cell_renderer_pixbuf_new ();
+  g_object_set (renderer, "yalign", 0.0, NULL);
   gtk_tree_view_insert_column_with_data_func (c->tree,
 					      -1,
 					      NULL,
 					      renderer,
 					      cat_icon_func,
-					      c->tree,
+					      c,
 					      NULL);
 
   renderer = gtk_cell_renderer_text_new ();
+  g_object_set (renderer, "yalign", 0.0, NULL);
   gtk_tree_view_insert_column_with_data_func (c->tree,
 					      -1,
 					      NULL,
 					      renderer,
 					      cat_text_func,
-					      c->tree,
+					      c,
 					      NULL);
 
   g_signal_connect (c->tree, "row-activated", 
@@ -730,6 +805,7 @@ show_catalogue_dialog (xexp *catalogues,
   c->catalogues_xexp = catalogues;
   c->dirty = false;
   c->show_errors = show_errors;
+  c->selected_cat = NULL;
   c->cont = cont;
   c->data = data;
 
@@ -822,7 +898,7 @@ scdf_dialog_done (bool changed, void *data)
 
   if (changed)
     refresh_package_cache (APTSTATE_DEFAULT,
-			   c->catalogues, true,
+			   c->catalogues, true, false,
 			   scdf_end, c);
   else
     {
@@ -934,11 +1010,7 @@ static void
 add_catalogues_cont_4 (bool res, void *data)
 {
   add_catalogues_closure *c = (add_catalogues_closure *)data;
-
-  /* We ignore errors from refreshing the cache here since
-     installation of packages might continue.
-  */
-  c->cont (true, c->data);
+  c->cont (res, c->data);
   delete c;
 }
 
@@ -957,7 +1029,8 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
       if (c->catalogues_changed || c->update)
 	{
 	  refresh_package_cache (APTSTATE_DEFAULT,
-				 c->catalogues, !c->update,
+				 c->catalogues,
+				 !c->update, c->update,
 				 add_catalogues_cont_4, c);
 	  c->catalogues = NULL;
 	}
