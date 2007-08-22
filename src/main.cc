@@ -2039,8 +2039,19 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
       dec->decode_string_in_place (); // available_icon
 
       if (parent == &install_applications_view)
-	find_in_section_list (&result,
-			      install_sections, name);
+	{
+	  // We only search the first section in INSTALL_SECTIONS.
+	  // The first section in the list is either the special "All"
+	  // section that contains all packages, or there is only one
+	  // section.  In both cases, it is correct to only search the
+	  // first section.
+
+	  if (install_sections)
+	    {
+	      section_info *si = (section_info *)install_sections->data;
+	      find_in_package_list (&result, si->packages, name);
+	    }
+	}
       else if (parent == &upgrade_applications_view)
 	find_in_package_list (&result,
 			      upgradeable_packages, name);
