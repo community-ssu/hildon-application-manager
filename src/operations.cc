@@ -219,6 +219,7 @@ struct ip_clos {
   void *data;
 };
 
+static void ip_confirm_with_info (package_info *pi, void *data, bool changed);
 static void ip_confirm_install_response (bool res, void *data);
 static void ip_select_package_response (gboolean res, GList *selected_packages,
 					void *data);
@@ -343,32 +344,42 @@ install_packages (GList *packages,
     }
   else if (c->install_type != INSTALL_TYPE_UPDATE_SYSTEM)
     {
-      GString *text = g_string_new ("");
-      char download_buf[20];
       package_info *pi;
-
+      
       c->cur = c->packages;
       pi = (package_info *)(c->cur->data);
 
-      size_string_general (download_buf, 20, pi->info.download_size);
-
-      g_string_printf (text,
-		       (pi->installed_version
-			? _("ai_nc_update")
-			: _("ai_nc_install")),
-		       pi->get_display_name (false),
-		       pi->available_version, download_buf);
-  
-      ask_yes_no_with_arbitrary_details ((pi->installed_version
-					  ? _("ai_ti_confirm_update")
-					  : _("ai_ti_confirm_install")),
-					 text->str,
-					 ip_confirm_install_response,
-					 ip_show_cur_details, c);
-      g_string_free (text, 1);
+      get_intermediate_package_info (pi, true,
+				     ip_confirm_with_info, c, c->state);
     }
   else
     ip_confirm_install_response (true, c);
+}
+
+static void
+ip_confirm_with_info (package_info *pi, void *data, bool changed)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  GString *text = g_string_new ("");
+  char download_buf[20];
+  
+  size_string_general (download_buf, 20, pi->info.download_size);
+
+  g_string_printf (text,
+		   (pi->installed_version
+		    ? _("ai_nc_update")
+		    : _("ai_nc_install")),
+		   pi->get_display_name (false),
+		   pi->available_version, download_buf);
+  
+  ask_yes_no_with_arbitrary_details ((pi->installed_version
+				      ? _("ai_ti_confirm_update")
+				      : _("ai_ti_confirm_install")),
+				     text->str,
+				     ip_confirm_install_response,
+				     ip_show_cur_details, c);
+  g_string_free (text, 1);
 }
 
 static void
@@ -1011,7 +1022,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	    (NULL,
 	     msg,
 	     _("ai_ni_bd_details"), 1,
-	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
+	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
       else
@@ -1032,7 +1043,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	  dialog = hildon_note_new_confirmation_add_buttons 
 	    (NULL,
 	     msg,
-	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
+	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
       else
