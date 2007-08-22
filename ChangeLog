@@ -1,4 +1,42 @@
+2007-08-22  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/hildon-application-manager-config.cc (element_description):
+	Handle localized name elements.
+
+	* src/search.cc (show_search_dialog_flow): Set default response
+	(N58335).
+
+	* utils/maemo-confirm-text-user.c (_): Use
+	"hildon-application-manager" text domain instead of
+	osso-application-installer.
+
+	* src/confutils.h (BACKUP_CATALOGUES, BACKUP_PACKAGES,
+	get_backup_catalogues): Moved here from apt-worker.cc.
+	(backup_catalogues): New.
+	* src/apt-worker.cc (cmd_save_backup_data): Call it instead of
+	doing it explicitly.
+	* src/hildon-application-manager.cc (update_conf): Call
+	backup_catalogues (N64617).
+	
+	* src/instr.cc (convert_compatibility_catalogue): Removed "dist"
+	parameter, se "filter_dist" element of catalogue xexps is not used
+	anymore.
+	(convert_compatibility_catalogues): Filter out unsuitable
+	compatibility catalogues here (N64802).
+
+	* src/repo.cc (cat_row_activated): Ignore read-only catalogues.
+
+	* src/main.cc (search_packages_reply): Only search the first
+	section to avoid duplicate results.
+
+	* src/operations.cc: (install_packages): Make sure that we have
+	the package info also for single package confirmations (N64800).
+	(ip_confirm_with_info): New.
+	
 2007-08-21  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/operations.cc (up_remove): Use correct logical id.
+	(ip_check_cert_reply): Likewise.
 
 	* src/main.h, src/main.c (refresh_package_cache): Cleanup once
 	more.  Added 'continued' parameter and changed meaning of result.
@@ -536,7 +574,7 @@
 
 	* utils/maemo-confirm-text-user.c (dialog_realized): Call
 	find_application_manager_window instead of
-	find_application_installer_window, stupid.
+	find_application_installer_window, stupid (N56154).
 
 2007-07-02  Marius Vollmer  <marius.vollmer@nokia.com>
 
