@@ -485,8 +485,11 @@ cat_row_activated (GtkTreeView *treeview,
       if (c == NULL)
 	return;
 
+      if (c->readonly)
+	return;
+
       show_cat_edit_dialog (c->cat_dialog, c->catalogue_xexp,
-			    false, c->readonly);
+			    false, false);
     }
 }
 
