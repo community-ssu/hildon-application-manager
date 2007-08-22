@@ -137,7 +137,7 @@ using namespace std;
 
 /* You know what this means.
  */
-#define DEBUG
+//#define DEBUG
 
 
 /** RUN-TIME CONFIGURATION
@@ -2728,8 +2728,6 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
 
   const char *match_uri = desc_uri.c_str ();
 
-  fprintf (stderr, "MATCHING %s\n", match_uri);
-
   for (xexp *cat = xexp_first (catalogues); cat; cat = xexp_rest (cat))
     {
       char *uri = g_strdup (xexp_aref_text (cat, "uri"));
@@ -2743,8 +2741,6 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
 
       while (uri[0] && uri[strlen(uri)-1] == '/')
 	uri[strlen(uri)-1] = '\0';
-
-      fprintf (stderr, "AGAINST %s %s\n", uri, dist);
 
       if (dist[0] && dist[strlen(dist)-1] == '/')
 	{
@@ -2776,8 +2772,6 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
 	      if (comp[0] == '\0')
 		continue;
 
-	      fprintf (stderr, "COMPS %s\n", comp);
-
 	      if (g_str_has_prefix (rest, comp)
 		  && rest[strlen(comp)] == '/')
 		goto found_it;
@@ -2796,8 +2790,6 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
       g_free (uri);
       return cat;
     }
-
-  fprintf (stderr, "NO MATCH\n");
 
   return NULL;
 }
@@ -2839,15 +2831,10 @@ update_package_cache (xexp *catalogues_for_report)
        I != Fetcher.ItemsEnd(); I++)
     {
       if ((*I)->Status == pkgAcquire::Item::StatDone)
-	{
-	  fprintf (stderr, "SUCCESS: %s\n", (*I)->DescURI().c_str());
-	  continue;
-	}
-      
+	continue;
+
       (*I)->Finished();
       
-      fprintf (stderr, "FAILED: %s\n", (*I)->DescURI().c_str());
-
       xexp *cat = find_catalogue_for_item_desc (catalogues_for_report,
 						(*I)->DescURI());
       if (cat)
@@ -3676,7 +3663,7 @@ operation (bool check_only)
        
        if ((*I)->Status == pkgAcquire::Item::StatIdle)
 	 continue;
-
+       
        fprintf (stderr, 
 		"Failed to fetch %s: %s\n",
 		(*I)->DescURI().c_str(),

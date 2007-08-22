@@ -80,22 +80,15 @@ push_dialog (GtkWidget *dialog)
   gtk_window_set_modal (GTK_WINDOW (dialog), parent_xid == None);
 
   if (dialog_stack)
-    {
-      fprintf (stderr, "PUSH %p <- %p\n", dialog, dialog_stack->data);
-      gtk_window_set_transient_for (GTK_WINDOW (dialog),
-				    GTK_WINDOW (dialog_stack->data));
-    }
+    gtk_window_set_transient_for (GTK_WINDOW (dialog),
+				  GTK_WINDOW (dialog_stack->data));
   else if (parent_xid != None)
-    {
-      fprintf (stderr, "PUSH %p <= %p\n", dialog, parent_xid);
-      g_signal_connect (dialog, "realize",
-			G_CALLBACK (dialog_realized), NULL);
-    }
+    g_signal_connect (dialog, "realize",
+		      G_CALLBACK (dialog_realized), NULL);
   else
     {
       /* This happens for dialogs outside of a interaction flow.
        */
-      fprintf (stderr, "PUSH %p <- main\n", dialog);
       gtk_window_set_transient_for (GTK_WINDOW (dialog),
 				    get_main_window ());
     }
@@ -107,8 +100,6 @@ void
 pop_dialog (GtkWidget *dialog)
 {
   g_assert (dialog_stack && dialog_stack->data == dialog);
-
-  fprintf (stderr, "POP %p\n", dialog);
 
   {
     GSList *old = dialog_stack;
@@ -136,8 +127,6 @@ start_interaction_flow ()
       return false;
     }
 
-  fprintf (stderr, "START %p\n", get_main_window ());
-
   g_assert (dialog_stack == NULL);
 
   interaction_flow_active = true;
@@ -155,8 +144,6 @@ start_foreign_interaction_flow (Window parent)
 
   g_assert (dialog_stack == NULL);
 
-  fprintf (stderr, "START FOREIGN %p\n", parent);
-
   interaction_flow_active = true;
   parent_xid = parent;
   return true;
@@ -172,8 +159,6 @@ end_interaction_flow ()
 
   interaction_flow_active = false;
   parent_xid = None;
-
-  fprintf (stderr, "END\n");
 }
 
 void

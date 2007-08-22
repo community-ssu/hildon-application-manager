@@ -58,8 +58,6 @@ dbus_mime_open (DBusConnection *conn, DBusMessage *message)
 			     DBUS_TYPE_STRING, &filename,
 			     DBUS_TYPE_INVALID))
     {
-      fprintf (stderr, "MIME_OPEN %s\n", filename);
-      
       present_main_window ();
       if (strcmp (filename, "magic:restore-packages") == 0)
 	restore_packages_flow ();
@@ -343,8 +341,6 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
     {
       DBusMessage *reply;
 
-      fprintf (stderr, "SHOW\n");
-
       present_main_window ();
 
       reply = dbus_message_new_method_return (message);
@@ -353,8 +349,6 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 
       return DBUS_HANDLER_RESULT_HANDLED;
     }
-
-  fprintf (stderr, "UNKNOWN METHOD CALL\n");
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }

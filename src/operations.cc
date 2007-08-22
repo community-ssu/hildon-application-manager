@@ -1439,8 +1439,6 @@ if_install_local_deb_file (void *data)
 {
   if_clos *c = (if_clos *)data;
 
-  fprintf (stderr, "INSTALL DEB: %s\n", c->filename);
-
   apt_worker_get_file_details (!(red_pill_mode && red_pill_show_all),
 			       c->filename, if_details_reply, c);
 }

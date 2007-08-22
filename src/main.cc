@@ -2797,8 +2797,6 @@ static pending_cont *pending_for_initial_packages = NULL;
 static void
 notice_initial_packages_available (gpointer data)
 {
-  fprintf (stderr, "GOT PACKAGES\n");
-
   initial_packages_available = true;
 
   while (pending_for_initial_packages)
