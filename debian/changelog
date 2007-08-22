@@ -4,6 +4,8 @@ hildon-application-manager (1:1.9.20~unreleased) unstable; urgency=low
   * Run update-sudoers instead of editing /etc/sudoers manually.
   * Fixes: NB#58480, NB#54796, NB#56245, NB#63856, NB#63862, NB#61786.
   * Implement new "Failed Catalogues" dialog.  Fixes: NB#56423.
+  * Workaround the limitation in osso-backup where one file can not be in
+    two categories.
   * Fixes: NB#64800, NB#64802, NB#64617, NB#56154, NB#56674, NB#58335.
 
   The following bugs should be retested with this version:
