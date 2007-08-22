@@ -130,10 +130,10 @@ find_element (xexp *conf, xexp *elt,
 const char *
 element_description (xexp *element)
 {
-  const char *desc = xexp_aref_text (element, "name");
-  if (desc == NULL)
-    desc = "<unnamed>";
-  return desc;
+  xexp *desc = xexp_aref (element, "name");
+  if (xexp_is_text (desc))
+    return xexp_text (desc);
+  return xexp_aref_text (desc, "default");
 }
 
 void
