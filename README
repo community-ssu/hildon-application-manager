@@ -214,13 +214,10 @@ documented in the header files.
 BUGS
 ----
 
-- Polish multi-package flow
-- Implement close-apps, suggest-backup, and reboot flags
+- Implement close-apps flags
 - Implement smart download location chosing.
 - Explain non-removable system updates in Details dialog.
 - check autoremoval
-- Implement catalogue filtering in instr.cc
-- Put in hack for backup/restore limitation
 - Be more strict with failed signature verification and expired keys
 
 Cleanup
