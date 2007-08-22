@@ -1,5 +1,15 @@
 2007-08-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Work around a osso-backup limitations.
+	
+	* src/confutils.h (BACKUP_CATALOGUES2): New.
+	* src/confutils.cc (backup_catalogues): Write the catalogues into
+	two files.
+	* src/hildon-application-manager-util: Added restore-catalogues2
+	subcommand.
+	* hildon-application-manager.sudoers: Allow it.
+	* hildon-application-manager.sh: Handle catalogues2.backup file.
+
 	* src/hildon-application-manager-config.cc (element_description):
 	Handle localized name elements.
 
