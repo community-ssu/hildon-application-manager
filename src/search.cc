@@ -142,6 +142,7 @@ show_search_dialog_flow ()
 					    _("ai_bd_search_cancel"),
 					    GTK_RESPONSE_CANCEL,
 					    NULL);
+      gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
       push_dialog (dialog);
       gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
       set_dialog_help (dialog, AI_TOPIC ("search"));
