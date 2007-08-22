@@ -247,8 +247,7 @@ parse_quoted_word (char **start, char **end, bool term)
 }
 
 static xexp *
-convert_compatibility_catalogue (const char *deb_line, const char *dist,
-				 const char *name)
+convert_compatibility_catalogue (const char *deb_line, const char *name)
 {
   char *start, *end;
 
@@ -288,9 +287,6 @@ convert_compatibility_catalogue (const char *deb_line, const char *dist,
   if (name)
     xexp_cons (x, xexp_text_new ("name", name));
 
-  if (dist)
-    xexp_cons (x, xexp_text_new ("filter_dist", dist));
-
   xexp_reverse (x);
   return x;
 }
@@ -306,19 +302,23 @@ convert_compatibility_catalogues (GKeyFile *keyfile, const char *group)
 
   if (repo_deb || repo_deb_3)
     {
+      /* We have at least one catalogue so we return a list of them.
+	 When both are filtered out, the list will be empty and that
+	 is the signal that the .install file is incompatible.
+      */
+
       x = xexp_list_new ("catalogues");
-      if (repo_deb_3)
+
+      if (!strcmp (DEFAULT_DIST, "bora") && repo_deb_3)
 	{
-	  xexp *c = convert_compatibility_catalogue (repo_deb_3, "bora",
-						     repo_name);
+	  xexp *c = convert_compatibility_catalogue (repo_deb_3, repo_name);
 	  if (c)
 	    xexp_cons (x, c);
 	}
 
-      if (repo_deb)
+      if (!strcmp (DEFAULT_DIST, "mistral") && repo_deb)
 	{
-	  xexp *c = convert_compatibility_catalogue (repo_deb, "mistral",
-						     repo_name);
+	  xexp *c = convert_compatibility_catalogue (repo_deb, repo_name);
 	  if (c)
 	    xexp_cons (x, c);
 	}
