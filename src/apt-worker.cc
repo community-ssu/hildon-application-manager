@@ -134,11 +134,6 @@ using namespace std;
 #define TEMP_CATALOGUE_CONF "/var/lib/hildon-application-manager/catalogues.temp"
 #define TEMP_APT_SOURCE_LIST "/var/lib/hildon-application-manager/sources.list.temp"
 
-/* The file where we store our backup data.
- */
-#define BACKUP_CATALOGUES "/var/lib/hildon-application-manager/catalogues.backup"
-#define BACKUP_PACKAGES "/var/lib/hildon-application-manager/packages.backup"
-
 
 /* You know what this means.
  */
@@ -4215,25 +4210,6 @@ cmd_install_file ()
  */
 
 static xexp *
-get_backup_catalogues ()
-{
-  xexp *catalogues = xexp_read_file (CATALOGUE_CONF);
-  if (catalogues)
-    {
-      xexp *c = xexp_first (catalogues);
-      while(c)
-	{
-	  xexp *r = xexp_rest (c);
-	  if (xexp_aref_bool (c, "nobackup"))
-	    xexp_del (catalogues, c);
-	  c = r;
-	}
-    }
-
-  return catalogues;
-}
-
-static xexp *
 get_backup_packages ()
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
@@ -4269,13 +4245,8 @@ get_backup_packages ()
 void
 cmd_save_backup_data ()
 {
-  xexp *catalogues = get_backup_catalogues ();
-  if (catalogues)
-    {
-      xexp_write_file (BACKUP_CATALOGUES, catalogues);
-      xexp_free (catalogues);
-    }
-  
+  backup_catalogues ();
+
   xexp *packages = get_backup_packages ();
   if (packages)
     {

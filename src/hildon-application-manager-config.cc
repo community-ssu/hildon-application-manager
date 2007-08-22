@@ -114,6 +114,7 @@ update_conf ()
 {
   if (!write_sources_list (CATALOGUE_APT_SOURCE, catalogues))
     exit (1);
+  backup_catalogues ();
 }
 
 xexp *

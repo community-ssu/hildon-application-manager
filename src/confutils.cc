@@ -138,6 +138,36 @@ write_sources_list (const char *filename, xexp *catalogues)
   return true;
 }
 
+static xexp *
+get_backup_catalogues ()
+{
+  xexp *catalogues = xexp_read_file (CATALOGUE_CONF);
+  if (catalogues)
+    {
+      xexp *c = xexp_first (catalogues);
+      while(c)
+	{
+	  xexp *r = xexp_rest (c);
+	  if (xexp_aref_bool (c, "nobackup"))
+	    xexp_del (catalogues, c);
+	  c = r;
+	}
+    }
+
+  return catalogues;
+}
+
+void
+backup_catalogues ()
+{
+  xexp *catalogues = get_backup_catalogues ();
+  if (catalogues)
+    {
+      xexp_write_file (BACKUP_CATALOGUES, catalogues);
+      xexp_free (catalogues);
+    }
+}
+
 /* Domains
  */
 

@@ -40,6 +40,11 @@ extern "C" {
  */
 #define DOMAIN_CONF "/etc/hildon-application-manager/domains"
 
+/* The files where we store our backup data.
+ */
+#define BACKUP_CATALOGUES "/var/lib/hildon-application-manager/catalogues.backup"
+#define BACKUP_PACKAGES "/var/lib/hildon-application-manager/packages.backup"
+
 /* NULL and empty strings are considered equal.  Whitespace at the
    beginning and end is ignored.  Sequences of whitespaces are equal
    to each other.
@@ -54,6 +59,8 @@ xexp *find_catalogue (xexp *catalogues, xexp *cat);
 bool catalogue_is_valid (xexp *cat);
 
 bool write_sources_list (const char *filename, xexp *catalogues);
+
+void backup_catalogues ();
 
 /* Domains
  */
