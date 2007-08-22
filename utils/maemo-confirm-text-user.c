@@ -38,7 +38,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 
-#define _(x) dgettext ("osso-application-installer", x)
+#define _(x) dgettext ("hildon-application-manager", x)
 
 static PangoFontDescription *
 get_small_font (GtkWidget *widget)
