@@ -160,10 +160,20 @@ get_backup_catalogues ()
 void
 backup_catalogues ()
 {
+  /* We write the catalogues to two backup files since the catalogues
+     are in two backup categories ("Settings" and "List of
+     Applications") and osso-backup can not put one file into two
+     categories.
+     
+     When restoring, we use the one that has been restored.  When both
+     have been restored, we use either one since they will be identical.
+  */
+
   xexp *catalogues = get_backup_catalogues ();
   if (catalogues)
     {
       xexp_write_file (BACKUP_CATALOGUES, catalogues);
+      xexp_write_file (BACKUP_CATALOGUES2, catalogues);
       xexp_free (catalogues);
     }
 }

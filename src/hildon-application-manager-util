@@ -6,9 +6,12 @@
 set -e
 
 cats="/var/lib/hildon-application-manager/catalogues.backup"
+cats2="/var/lib/hildon-application-manager/catalogues2.backup"
 
 if [ "$1" = "restore-catalogues" ]; then
   /usr/bin/hildon-application-manager-config add "$cats"
+elif [ "$1" = "restore-catalogues2" ]; then
+  /usr/bin/hildon-application-manager-config add "$cats2"
 elif [ "$1" = "run-after-restore" ]; then
   dbus-send --type=method_call \
             --print-reply \

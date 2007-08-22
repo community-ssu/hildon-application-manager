@@ -41,8 +41,13 @@ extern "C" {
 #define DOMAIN_CONF "/etc/hildon-application-manager/domains"
 
 /* The files where we store our backup data.
+ *
+ * See backup_catalogues for an explanation why we have two backups of
+ * the catalogues.
+ *
  */
 #define BACKUP_CATALOGUES "/var/lib/hildon-application-manager/catalogues.backup"
+#define BACKUP_CATALOGUES2 "/var/lib/hildon-application-manager/catalogues2.backup"
 #define BACKUP_PACKAGES "/var/lib/hildon-application-manager/packages.backup"
 
 /* NULL and empty strings are considered equal.  Whitespace at the
