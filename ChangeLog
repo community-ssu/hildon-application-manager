@@ -1,8 +1,8 @@
 2007-08-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
-	* utils/maemo-select-menu-location.c,
+	* utils/maemo-select-menu-location-main.c,
 	utils/maemo-select-menu-location: New.
-	* utils/Makefile.am: Build and install it.
+	* utils/Makefile.am: Build and install them.
 
 2007-08-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
