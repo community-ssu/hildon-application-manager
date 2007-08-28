@@ -1,0 +1,2 @@
+#! /bin/sh
+exec maemo-invoker /usr/bin/maemo-select-menu-location.launch "$@"
