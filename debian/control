@@ -8,8 +8,8 @@ Standards-Version: 3.6.0
 Package: hildon-application-manager
 Architecture: any
 Depends: ${shlibs:Depends}, maemo-launcher, hildon-application-manager-l10n-mr0 | hildon-application-manager-l10n-mr
-Conflicts: osso-application-installer
-Replaces: osso-application-installer
+Conflicts: osso-application-installer, maemo-select-menu-location
+Replaces: osso-application-installer, maemo-select-menu-location
 Provides: maemo-installer-utils, maemo-select-menu-location
 Description: A program for managing user installed applications.
  The Application manager is a frontend for dpkg and apt.  It allows
