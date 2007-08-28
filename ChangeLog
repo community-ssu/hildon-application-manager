@@ -1,3 +1,9 @@
+2007-08-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* utils/maemo-select-menu-location.c,
+	utils/maemo-select-menu-location: New.
+	* utils/Makefile.am: Build and install it.
+
 2007-08-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.20
