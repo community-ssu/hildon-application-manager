@@ -54,6 +54,10 @@
 #include "operations.h"
 #include "apt-worker-client.h"
 
+extern "C" {
+#include <libhildonwm/hd-wm.h>
+}
+
 #define _(x) gettext (x)
 
 static Window parent_xid = None;
@@ -2537,40 +2541,41 @@ run_cmd (char **argv,
 void
 close_apps (void)
 {
-  gchar *stdout = NULL;
-  gchar *stderr = NULL;
-  int exit_status;
-  gboolean script_retval;
+  HDWM *hdwm = NULL;
+  HDWMEntryInfo *info = NULL;
+  GList *applications = NULL;
+  GList *l = NULL;
+  gchar *ham_appname = NULL;
+  gchar *current_appname = NULL;
 
-  /* Ignore SIGTERM from now on since otherwise we'll be killed too. */
-  signal (SIGTERM, SIG_IGN);
-	
-  script_retval = g_spawn_command_line_sync (
-	"/usr/sbin/osso-app-killer-restore.sh", 
-	&stdout, &stderr,
-	&exit_status,
-	NULL);
+  /* Get the HDM instance and the running applications list */
+  hdwm = hd_wm_get_singleton ();
+  hd_wm_update_client_list (hdwm);
+  applications = hd_wm_get_applications (hdwm);
 
-  /* Restore SIGTERM. */
-  signal (SIGTERM, SIG_DFL);
-		 
-  if (!script_retval || exit_status != 0)
+  add_log ("Closing %d applications\n", g_list_length (applications) - 1);
+
+  /* Close all running applications except the HAM */
+  ham_appname = g_strdup ("Application manager");
+  for (l = applications; l; l = l->next) 
     {
-      add_log ("Could not run osso-app-killer-restore.sh\n");
-    } 
-  else 
-    {
-      /* Redirect output from stdout and stderro to the log */
-      add_log (stdout);
-      add_log (stderr);
-      
-      /* Free strings with stdout and stderr outputs */
-      if (stdout != NULL)
-	g_free (stdout);
-      
-      if (stderr != NULL)
-	g_free (stderr);
+      info = (HDWMEntryInfo *) l->data;
+		
+      /* Avoid closing HAM */
+      current_appname = hd_wm_entry_info_get_app_name (info);
+      if (!current_appname || strcmp (ham_appname, current_appname) != 0) 
+	{
+	  add_log ("\tApp:'%s', Title:'%s'\n", 
+		   hd_wm_entry_info_get_app_name (info),
+		   hd_wm_entry_info_get_title (info));
+    
+	  hd_wm_close_application (hdwm, info);
+	}
     }
+
+  /* Free allocated resources */
+  g_free (ham_appname);
+  g_free (current_appname);
 }
 
 const char *

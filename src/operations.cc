@@ -978,8 +978,7 @@ ip_close_apps (bool res, void *data)
     {
       close_apps ();
 
-      /* Make sure we are done before killing apps, also makes things look
-       * smoother. */
+      /* Make sure we are done before continuing */
       while (gtk_events_pending ())
 	gtk_main_iteration ();
 

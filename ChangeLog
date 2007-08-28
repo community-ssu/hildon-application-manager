@@ -1,3 +1,14 @@
+2007-08-28  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (close_apps): Re-implemented using the libhildonwm
+	library, to allow closing all the applications except the HAM when
+	it's required (tipically, when installing a package with the
+	'close-apps' flag).
+	* src/test-app-killer.c: Removed an incorrect include (config.h).
+	* src/Makefile.am: Build the test-app-killer, but don't install it.
+	* configure.ac (HAM_DEPS): Check for "libhildonwm".
+	* debian/control: Added libhildonwm-dev to Build-Depends.
+
 2007-08-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* utils/maemo-select-menu-location-main.c,

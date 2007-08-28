@@ -1,5 +1,7 @@
 /*
- * This file is part of osso-backup
+ * This file is part of hildon-application-manager.
+ *
+ * Original version is part of osso-backup.
  *
  * Copyright (C) 2007 Nokia Corporation.
  *
@@ -21,7 +23,7 @@
  *
  */
 
-#include <config.h>
+
 #include <stdlib.h>
 #include <string.h>
 
