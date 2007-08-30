@@ -1,3 +1,15 @@
+2007-08-30  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (is_user_section, package_visible): New.
+	(set_global_package_list): Use them to filter out packages that
+	should be invisible.  This is needed for packages where the
+	installed version should be invisible but the available one should
+	not, for example.
+
+	* src/apt-worker.cc (cmd_get_package_list): Only skip packages
+	when both the installed and the candidate version should be
+	invisible.  Put the "magic:sys" package into the user segment.
+
 2007-08-28  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (close_apps): Re-implemented using the libhildonwm
