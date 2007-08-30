@@ -1,5 +1,7 @@
 2007-08-30  Marius Vollmer  <marius.vollmer@nokia.com>
 
+        Released 1.9.21
+
 	* src/settings.h, src/settings.cc
 	(red_pill_include_details_in_log): New.
 	* src/details.cc (add_table_field): Dump field to log when

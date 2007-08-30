@@ -1,9 +1,11 @@
-hildon-application-manager (1:1.9.21~unreleased) unstable; urgency=low
+hildon-application-manager (1:1.9.21) unstable; urgency=low
 
   * Provide/conflict/replace maemo-select-menu-location.  This utility is
     now here.
-
- -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 28 Aug 2007 10:35:24 +0300
+  * Handle packages that differ in visibility between installed and
+    available versions.
+  
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 30 Aug 2007 15:41:51 +0300
 
 hildon-application-manager (1:1.9.20) unstable; urgency=low
 
