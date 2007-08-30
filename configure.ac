@@ -25,7 +25,7 @@ AC_EGREP_HEADER(apt_set_index_trust_level_for_package_hook,
                 
 PKG_CHECK_MODULES(HAM_DEPS, glib-2.0 gtk+-2.0 hildon-1 hildon-fm-2 libosso
                             conic gconf-2.0 gnome-vfs-2.0 hildon-help mce
-                            libhildonwm)
+                            libhildonwm libhildonmenu)
 AC_SUBST(HAM_DEPS_CFLAGS)
 AC_SUBST(HAM_DEPS_LIBS)
 
