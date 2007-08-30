@@ -69,7 +69,15 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
   else
     {
       entry = gtk_entry_new ();
-      g_object_set (entry, "autocap", autocap, NULL);
+
+      int mode;
+      g_object_get (entry, "hildon-input-mode", &mode, NULL);
+      if (autocap)
+	mode |= int (HILDON_GTK_INPUT_MODE_AUTOCAP);
+      else
+	mode &= ~int (HILDON_GTK_INPUT_MODE_AUTOCAP);
+      g_object_set (entry, "hildon-input-mode", mode, NULL);
+      
       if (text)
 	{
 	  if (end == NULL)
