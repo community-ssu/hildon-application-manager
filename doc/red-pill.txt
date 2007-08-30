@@ -52,3 +52,12 @@ are available in "Tools > Settings".
    Updating that package will do something similar to "apt-get
    upgrade".  It is not yet fully defined what it will do exactly.
    This feature might become available in blue-pill mode at one point.
+
+ - *Include package details in log*
+
+   When this setting is active, opening a package details dialog will
+   dump its content into the Log so that you more easily save it.
+   This should be useful when reporting complicated dependency issues.
+
+   This setting can only be changed in red-pill mode, but it's effect
+   stays active also in blue-pill mode.
