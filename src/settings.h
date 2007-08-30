@@ -42,6 +42,7 @@ extern bool red_pill_mode;
 extern bool red_pill_show_deps;
 extern bool red_pill_show_all;
 extern bool red_pill_show_magic_sys;
+extern bool red_pill_include_details_in_log;
 
 #define UPDATE_INTERVAL_SESSION 0
 #define UPDATE_INTERVAL_WEEK    1

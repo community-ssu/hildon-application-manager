@@ -47,6 +47,7 @@ bool red_pill_mode = false;
 bool red_pill_show_deps = true;
 bool red_pill_show_all = true;
 bool red_pill_show_magic_sys = true;
+bool red_pill_include_details_in_log = false;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
@@ -98,6 +99,9 @@ load_settings ()
 	    red_pill_show_all = val;
 	  else if (sscanf (line, "red-pill-show-magic-sys %d", &val) == 1)
 	    red_pill_show_magic_sys = val;
+	  else if (sscanf (line, "red-pill-include-details-in-log %d", &val)
+		   == 1)
+	    red_pill_include_details_in_log = val;
 	  else if (sscanf (line, "assume-connection %d", &val) == 1)
 	    assume_connection = val;
 	  else
@@ -126,6 +130,8 @@ save_settings ()
       fprintf (f, "red-pill-show-deps %d\n", red_pill_show_deps);
       fprintf (f, "red-pill-show-all %d\n", red_pill_show_all);
       fprintf (f, "red-pill-show-magic-sys %d\n", red_pill_show_magic_sys);
+      fprintf (f, "red-pill-include-details-in-log %d\n", 
+	       red_pill_include_details_in_log);
       fprintf (f, "assume-connection %d\n", assume_connection);
       fclose (f);
     }
@@ -208,6 +214,9 @@ make_settings_tab (settings_closure *c)
       make_boolean_option (c, tab, group,
 			   "Show magic system package",
 			   &red_pill_show_magic_sys);
+      make_boolean_option (c, tab, group,
+			   "Include package details in log",
+			   &red_pill_include_details_in_log);
     }
 
   g_object_unref (group);

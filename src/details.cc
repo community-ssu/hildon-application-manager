@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include "details.h"
+#include "log.h"
 #include "util.h"
 #include "settings.h"
 #include "apt-worker-client.h"
@@ -210,6 +211,9 @@ add_table_field (GtkWidget *table, int row,
       gtk_table_attach (GTK_TABLE (table), label, 1, 2, row, row+1,
 			GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL,
 			0, 0);
+
+      if (red_pill_include_details_in_log)
+	add_log ("%s %s\n", field? field : "\t", value);
     }
 }
 
