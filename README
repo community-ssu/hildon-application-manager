@@ -214,11 +214,10 @@ documented in the header files.
 BUGS
 ----
 
-- Implement close-apps flags
+- Add "New Folder" functionality to maemo-select-menu-location.
 - Implement smart download location chosing.
 - Explain non-removable system updates in Details dialog.
 - check autoremoval
-- Be more strict with failed signature verification and expired keys
 
 Cleanup
 -------
