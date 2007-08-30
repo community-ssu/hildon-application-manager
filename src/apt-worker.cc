@@ -2063,41 +2063,18 @@ cmd_get_package_list ()
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
       pkgCache::VerIterator installed = pkg.CurrentVer ();
-
-      // skip non user packages if requested
-      //
-      if (only_user
-	  && !installed.end ()
-	  && !is_user_package (installed))
-	continue;
-
-      // skip not-installed packages if requested
-      //
-      if (only_installed
-	  && installed.end ())
-	continue;
-
       pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
 
-      // skip non user packages if requested
+      // skip non user packages if requested.  Both the installed and
+      // candidate versions must be non-user packages for a package to
+      // be skipped completely.
       //
       if (only_user
-	  && !candidate.end ()
-	  && !is_user_package (candidate))
+	  && (installed.end () || !is_user_package (installed))
+	  && (candidate.end () || !is_user_package (candidate)))
 	continue;
 
-      // skip non-available packages if requested
-      //
-      if (only_available
-	  && candidate.end ())
-	continue;
-
-      // skip packages that are not installed and not available
-      //
-      if (installed.end () && candidate.end ())
-	continue;
-
-      // skip system updates that are not installed
+      // skip system update meta-packages that are not installed
       //
       if (installed.end () && !candidate.end ())
 	{
@@ -2106,6 +2083,21 @@ cmd_get_package_list ()
 	  if (flags & pkgflag_system_update)
 	    continue;
 	}
+
+      // skip not-installed packages if requested
+      //
+      if (only_installed && installed.end ())
+	continue;
+
+      // skip non-available packages if requested
+      //
+      if (only_available && candidate.end ())
+	continue;
+
+      // skip packages that are not installed and not available
+      //
+      if (installed.end () && candidate.end ())
+	continue;
 
       // skip packages that don't match the pattern if requested
       //
