@@ -1,5 +1,8 @@
 2007-08-30  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/repo.cc (add_entry): Use "hildon-input-mode" property
+	instead of "autocap".
+
 	* utils/maemo-select-menu-location-main.c: It's the real thing
 	now.
 	* configure.ac: Added libhildonmenu to HAM_DEPS.
