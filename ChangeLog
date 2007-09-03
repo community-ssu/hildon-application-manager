@@ -1,3 +1,9 @@
+2007-08-28  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* debian/control: Added libhildonmenu-dev to Build-Depends.
+	* maemo-select-menu-location-main.c: fixed incorrect include of
+	hildon.caption.h. 
+
 2007-08-30  Marius Vollmer  <marius.vollmer@nokia.com>
 
         Released 1.9.21

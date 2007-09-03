@@ -53,7 +53,7 @@
 #include <gdk/gdkx.h>
 #include <libintl.h>
 #include <libhildonmenu.h>
-#include <hildon-widgets/hildon-caption.h>
+#include <hildon/hildon-caption.h>
 
 #define _ai_(a) dgettext ("hildon-application-manager", a)
 #define _dt_(a) dgettext ("maemo-af-desktop", a)
