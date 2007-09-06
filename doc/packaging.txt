@@ -241,6 +241,22 @@ performing an installation or update, the values of the
 and the AM refuses to start the operation when the root partition
 doesn't have enough free space.
 
+'Maemo-Required-Free-Space' should not include the size of the .deb
+package files themselves.  The check whether there is enough space or
+not is done at two points: before downloading the packages, and before
+installing them.
+
+Before downloading the packages, a check is made whether there is
+enough space for both the package files plus the required free space
+from their 'Maemo-Required-Free-Space' fields.  The package files are
+downloaded to one of the available memory cards if necessary to ensure
+that enough space is available in the root filesystem afterwards.
+
+Once the package files have been downloaded and before they are
+installed, the second check for the 'Maemo-Required-Free-Space' is
+performed.
+
+
 ### Installation and removal policy
 
 The Hildon Application Manager has its own rules for automatically
