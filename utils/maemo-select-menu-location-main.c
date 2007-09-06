@@ -48,11 +48,12 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <string.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <libintl.h>
-#include <libhildonmenu.h>
+#include <libhildondesktop/libhildonmenu.h>
 #include <hildon/hildon-caption.h>
 
 #define _ai_(a) dgettext ("hildon-application-manager", a)
@@ -61,7 +62,9 @@
 
 #define RESPONSE_CHANGE_FOLDER 1
 
+#if 0
 #define DEBUG
+#endif
 
 static void move_to_location (GtkTreeModel *model, const gchar *desktop_id,
 			      const gchar *location);
@@ -498,7 +501,6 @@ selection_location_response (GtkDialog *dialog, int response, gpointer data)
     change_folder (c);
   else
     {
-      set_separators (c->model);
       set_menu_contents (c->model);
       g_free (c);
       gtk_widget_destroy (GTK_WIDGET (dialog));
