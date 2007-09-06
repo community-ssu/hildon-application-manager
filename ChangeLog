@@ -1,3 +1,17 @@
+2007-09-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 1.9.22
+	
+	Use libhildondesktop instead of libhildonmenu, which is
+	deprecated.
+	
+	* configure.ac (HAM_DEPS): Use libhildondesktop instead of
+	libhildonmenu.
+
+	* utils/maemo-select-menu-location-main.c: Include
+	<libhildondesktop/libhildonmenu.h>.
+	(selection_location_response): Don't call set_separators.
+
 2007-09-03  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* debian/control: Added libhildonmenu-dev to Build-Depends.
