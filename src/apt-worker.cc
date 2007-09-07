@@ -134,7 +134,6 @@ using namespace std;
 #define TEMP_CATALOGUE_CONF "/var/lib/hildon-application-manager/catalogues.temp"
 #define TEMP_APT_SOURCE_LIST "/var/lib/hildon-application-manager/sources.list.temp"
 
-
 /* You know what this means.
  */
 //#define DEBUG
@@ -305,6 +304,8 @@ public:
   unsigned int package_count;
   bool cache_generate;
   bool init_cache_after_request;
+  bool using_alt_archives_dir;
+  string saved_dir_cache_archives;
   extra_info_struct *extra_info;
   void InitializeValues ();
   static AptWorkerState *current_state;
@@ -364,6 +365,7 @@ void
 AptWorkerState::InitializeValues (void)
 {
   this->cache = NULL;
+  this->using_alt_archives_dir = false;
   this->init_cache_after_request = false;
   this->package_count = 0;
 }
@@ -3056,7 +3058,11 @@ cmd_set_catalogues ()
   response.encode_int (success);
 }
 
-int operation (bool only_check);
+static int64_t get_free_space_at_path (const char *path);
+static bool set_alt_dir_cache_archives (const char *alt_download_root);
+static void restore_dir_cache_archives ();
+
+int operation (bool only_check, const char *alt_download_root);
 
 /* APTCMD_INSTALL_CHECK
  *
@@ -3076,7 +3082,7 @@ cmd_install_check ()
   if (ensure_cache ())
     {
       found = mark_named_package_for_install (package);
-      result_code = operation (true);
+      result_code = operation (true, NULL);
       cache_reset ();
     }
 
@@ -3093,6 +3099,7 @@ void
 cmd_install_package ()
 {
   const char *package = request.decode_string_in_place ();
+  const char *alt_download_root = request.decode_string_in_place ();
   const char *http_proxy = request.decode_string_in_place ();
   const char *https_proxy = request.decode_string_in_place ();
   int result_code = rescode_failure;
@@ -3112,7 +3119,17 @@ cmd_install_package ()
   if (ensure_cache ())
     {
       if (mark_named_package_for_install (package))
-	result_code = operation (false);
+	{
+	  AptWorkerState *state = AptWorkerState::GetCurrent ();
+
+	  result_code = operation (false, alt_download_root);
+
+	  /* Restore Dir::Cache::Archives if needed */
+	  if (state->using_alt_archives_dir)
+	    {
+	      restore_dir_cache_archives ();
+	    }
+	}
       else
 	result_code = rescode_packages_not_found;
     }
@@ -3166,7 +3183,7 @@ cmd_remove_package ()
       if (!pkg.end ())
 	{
 	  mark_for_remove (pkg);
-	  result_code = operation (false);
+	  result_code = operation (false, NULL);
 	}
     }
 
@@ -3521,6 +3538,92 @@ combine_rescodes (int all, int one)
     return rescode_failure;
 }
 
+static int64_t
+get_free_space (const char *path)
+{
+  struct statvfs buf;
+
+  if (statvfs(path, &buf) != 0)
+    return -1;
+
+  int64_t res = (int64_t)buf.f_bfree * (int64_t)buf.f_bsize;
+  return res;
+}
+
+static bool
+set_alt_dir_cache_archives (const char *alt_download_root)
+{
+  if (alt_download_root == NULL)
+    return false;
+
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  char *unique_dir = NULL;
+  bool result = false;
+
+  /* Prepare data to create a temporary directory */
+  unique_dir = g_strdup_printf ("%s/.hildon-application-manager.XXXXXX",
+				   alt_download_root);
+
+  /* Create temporary dir to use it as download location */
+  if (mkdtemp (unique_dir))
+    {
+      char *partial_dir = g_strdup_printf ("%s/partial", unique_dir);
+      if ((mkdir (partial_dir, 0777) != -1)  || (errno == EEXIST))
+	{
+	  /* Update APT configuration */
+	  state->using_alt_archives_dir = true;
+	  state->saved_dir_cache_archives =
+	    _config->Find ("Dir::Cache::Archives");
+
+	  _config->Set ("Dir::Cache::Archives", unique_dir);
+
+	  result = true;
+	}
+      else
+	{
+	  _error->Error("Can't create directory at %s: %m", partial_dir);
+	}
+
+      g_free (partial_dir);
+    }
+  else
+    {
+      _error->Error ("Can't create temporary directory at %s: %m", unique_dir);
+    }
+
+  g_free (unique_dir);
+
+  return result;
+}
+
+static void
+restore_dir_cache_archives ()
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+
+  if (state->using_alt_archives_dir)
+    {
+      string alt_path;
+      char *cmd = NULL;
+
+      /* Restore APT configuration */
+      alt_path = _config->FindDir ("Dir::Cache::Archives");
+      _config->Set ("Dir::Cache::Archives", state->saved_dir_cache_archives);
+      state->using_alt_archives_dir = false;
+
+      /* Remove alternative path. I've use a very dummy check to
+	 ensure I'm going to remove files in a MMC temporary dir */
+      if (alt_path.substr(0, 10) == "/media/mmc" && 
+	  alt_path.substr(12, 28) == ".hildon-application-manager.")
+      {
+	cmd = g_strdup_printf ("rm -rf %s", alt_path.c_str());
+ 	system (cmd);
+	g_free (cmd);
+      }
+    }
+}
+
+
 /* operation () is used to run pending apt operations
  * (removals or installations). If check_only parameter is
  * enabled, it will only check if the operation is doable.
@@ -3530,10 +3633,15 @@ combine_rescodes (int all, int one)
  */
 
 int
-operation (bool check_only)
+operation (bool check_only, const char *alt_download_root)
 {
    AptWorkerState *state = AptWorkerState::GetCurrent ();
    pkgCacheFile &Cache = *(state->cache);
+   SPtr<myDPkgPM> Pm;
+   std::auto_ptr<pkgAcquire> Fetcher;
+   double FetchBytes = 0.0;
+   double FetchPBytes = 0.0;
+   bool repeat = false;
 
    if (_config->FindB("APT::Get::Purge",false) == true)
      {
@@ -3548,90 +3656,127 @@ operation (bool check_only)
    if (Cache->DelCount() == 0 && Cache->InstCount() == 0 &&
        Cache->BadCount() == 0)
       return rescode_success;
-   
+
    // Create the text record parser
    pkgRecords Recs (Cache);
    if (_error->PendingError() == true)
       return rescode_failure;
-   
-   // Lock the archive directory
-   FileFd Lock;
-   if (_config->FindB("Debug::NoLocking",false) == false)
-   {
-      Lock.Fd(ForceLock(_config->FindDir("Dir::Cache::Archives") + "lock"));
-      if (_error->PendingError() == true)
-	{
-	  _error->Error("Unable to lock the download directory");
-	  return rescode_failure;
-	}
-   }
-   
-   // Create the download object
-   DownloadStatus Stat;
-   pkgAcquire Fetcher (&Stat);
 
-   // Read the source list
-   pkgSourceList List;
-   if (List.ReadMainList() == false)
+   /* If alt_download_root is set, then use that path if possible */
+   if (alt_download_root != NULL &&
+       !set_alt_dir_cache_archives (alt_download_root))
      {
-       _error->Error("The list of sources could not be read.");
-       return rescode_failure;
-     }
-   
-   cur_sources = &List;
-
-   // Create the package manager
-   //
-   SPtr<myDPkgPM> Pm = new myDPkgPM (Cache);
-   
-   // Create the order list explicitely in a way that we like.  We
-   // have to do it explicitely since CreateOrderList is not virtual.
-   //
-   if (!Pm->CreateOrderList ())
-     return rescode_failure;
-
-   // Prepare to download
-   //
-   reset_new_domains ();
-   if (Pm->GetArchives(&Fetcher,&List,&Recs) == false || 
-       _error->PendingError() == true)
-     return rescode_failure;
-
-   double FetchBytes = Fetcher.FetchNeeded();
-   double FetchPBytes = Fetcher.PartialPresent();
-   double DebBytes = Fetcher.TotalNeeded();
-
-   if (_error->PendingError() == true)
-      return rescode_failure;
-
-   if (check_only)
-     {
-       encode_trust_summary ();
-       encode_upgrades ();
-       return rescode_success;
+       /* Log error, but keep working with default value */
+       fprintf (stderr,
+		"Failed using a MMC to download packages. Using default.\n");
      }
 
-   collect_new_domains ();
+   do
+     {
+       repeat = false;
 
-   /* Check for enough free space. */
-   {
-     struct statvfs Buf;
-     string OutputDir = _config->FindDir("Dir::Cache::Archives");
-     if (statvfs(OutputDir.c_str(),&Buf) != 0)
-       {
-	 _error->Errno("statvfs","Couldn't determine free space in %s",
-		       OutputDir.c_str());
+       // Lock the archive directory
+       FileFd Lock;
+       if (_config->FindB("Debug::NoLocking",false) == false)
+	 {
+	   Lock.Fd(ForceLock(_config->FindDir("Dir::Cache::Archives") + "lock"));
+	   if (_error->PendingError() == true)
+	     {
+	       _error->Error("Unable to lock the download directory");
+	       return rescode_failure;
+	     }
+	 }
+
+       // Create the download object
+       DownloadStatus Stat;
+       Fetcher.reset (new pkgAcquire (&Stat));
+
+       // Read the source list
+       pkgSourceList List;
+       if (List.ReadMainList() == false)
+	 {
+	   _error->Error("The list of sources could not be read.");
+	   return rescode_failure;
+	 }
+
+       cur_sources = &List;
+
+       // Create the package manager
+       //
+       if (Pm.Get() != 0)
+	 delete (Pm.Get());
+
+       Pm = new myDPkgPM (Cache);
+
+       // Create the order list explicitely in a way that we like.  We
+       // have to do it explicitely since CreateOrderList is not virtual.
+       //
+       if (!Pm->CreateOrderList ())
 	 return rescode_failure;
-       }
 
-     if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
+       // Prepare to download
+       //
+       reset_new_domains ();
+       if (Pm->GetArchives(Fetcher.get(),&List,&Recs) == false ||
+	   _error->PendingError() == true)
+	 return rescode_failure;
+
+       FetchBytes = Fetcher->FetchNeeded();
+       FetchPBytes = Fetcher->PartialPresent();
+
+       if (_error->PendingError() == true)
+	 return rescode_failure;
+
+       if (check_only)
+	 {
+	   encode_trust_summary ();
+	   encode_upgrades ();
+	   return rescode_success;
+	 }
+
+       collect_new_domains ();
+
+       /* Check for enough free space. */
        {
-	 _error->Error("You don't have enough free space in %s.",
-		       OutputDir.c_str());
-	 return rescode_out_of_space;
+	 struct statvfs Buf;
+	 string OutputDir = _config->FindDir("Dir::Cache::Archives");
+	 double download_size = FetchBytes - FetchPBytes;
+
+	 /* Check ouput dir info */
+	 if (statvfs(OutputDir.c_str(),&Buf) != 0)
+	   {
+	     _error->Errno("statvfs","Couldn't determine free space in %s",
+			   OutputDir.c_str());
+	     return rescode_failure;
+	   }
+
+	 if (!state->using_alt_archives_dir)
+	   {
+	     /* Downloading packages to the usual place */
+
+	     if (unsigned(Buf.f_bfree) <= download_size / Buf.f_bsize)
+	       {
+		 _error->Error("You don't have enough free space in %s.",
+			       OutputDir.c_str());
+		 return rescode_out_of_space;
+	       }
+	   }
+	 else
+	   {
+	     /* Downloading packages to the an alternative place */
+
+	     /* Check free space at ouput dir to download the packages */
+	     if (unsigned(Buf.f_bfree) <= download_size / Buf.f_bsize)
+	       {
+		 /* Not enough space: Let's try again just ignoring
+		    the alternative place, and using "/" instead */
+		 restore_dir_cache_archives ();
+		 repeat = true;
+	       }
+	   }
        }
-   }
-   
+     } while (repeat);
+
    /* Send a status report now if we are going to download something.
       This makes sure that the progress dialog is shown even if the
       first pulse of the fetcher takes a long time to arrive.
@@ -3639,24 +3784,24 @@ operation (bool check_only)
    if ((int)(FetchBytes - FetchPBytes) > 0)
      send_status (op_downloading, 0, (int)(FetchBytes - FetchPBytes), 0);
 
-   if (Fetcher.Run() == pkgAcquire::Failed)
+   if (Fetcher->Run() == pkgAcquire::Failed)
      return rescode_failure;
-      
+
    /* Print out errors and distill the failure reasons into a
       apt_proto_rescode.
    */
    int result = rescode_success;
-   for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
-	I != Fetcher.ItemsEnd(); I++)
+   for (pkgAcquire::ItemIterator I = Fetcher->ItemsBegin();
+	I != Fetcher->ItemsEnd(); I++)
      {
        if ((*I)->Status == pkgAcquire::Item::StatDone &&
 	   (*I)->Complete == true)
 	 continue;
-       
+
        if ((*I)->Status == pkgAcquire::Item::StatIdle)
 	 continue;
-       
-       fprintf (stderr, 
+
+       fprintf (stderr,
 		"Failed to fetch %s: %s\n",
 		(*I)->DescURI().c_str(),
 		(*I)->ErrorText.c_str());
@@ -3677,22 +3822,47 @@ operation (bool check_only)
 
    if (result != rescode_success)
      return (result == rescode_failure)? rescode_download_failed : result;
-      
+
    send_status (op_general, -1, 0, 0);
-      
-   _system->UnLock();
-   pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
-   _system->Lock();
 
-   save_extra_info ();
+   /* Compute required free space for install the packages */
+   int64_t required_free_space = 0;
+   pkgDepCache &cache = *(state->cache);
+   for (pkgCache::PkgIterator pkg = cache.PkgBegin();
+	pkg.end() != true;
+	pkg++)
+     {
+       if (cache[pkg].Upgrade())
+	 {
+	   pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
+	   package_record rec (ver);
+	   required_free_space += get_required_free_space (rec);
+	 }
+     }
 
-   if (Res == pkgPackageManager::Failed || _error->PendingError() == true)
-     return rescode_failure;
+   /* Check free space for installation */
+   if (required_free_space < get_free_space ("/"))
+     {
+       /* Do install */
+       _system->UnLock();
+       pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
+       _system->Lock();
 
-   if (Res == pkgPackageManager::Completed)
-     return rescode_success;
-     
-   return rescode_failure;
+       save_extra_info ();
+
+       if (Res == pkgPackageManager::Failed || _error->PendingError() == true)
+	 return rescode_failure;
+
+       if (Res == pkgPackageManager::Completed)
+	 return rescode_success;
+
+       return rescode_failure;
+     }
+   else
+     {
+       _error->Error("You don't have enough free space in /.");
+       return rescode_out_of_space;
+     }
 }
 
 /* APTCMD_CLEAN

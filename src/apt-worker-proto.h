@@ -375,9 +375,10 @@ enum apt_proto_pkgtrust {
 //
 // Parameters:
 //
-// - name (string).         The package to be installed.
-// - http_proxy (string).   The value of the http_proxy envvar to use.
-// - https_proxy (string).  The value of the https_proxy envvar to use.
+// - name (string).              The package to be installed.
+// - alt_download_root (string). Alternative download root filesystem.
+// - http_proxy (string).        The value of the http_proxy envvar to use.
+// - https_proxy (string).       The value of the https_proxy envvar to use.
 //
 // Response:
 //

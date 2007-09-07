@@ -515,6 +515,13 @@ void grab_focus_on_map (GtkWidget *widget);
  */
 int64_t get_free_space ();
 
+/* Get the number of free bytes at the specified path.
+ */
+int64_t get_free_space_at_path (const char *path);
+
+/* Checks if there's some volume mounted in the specified path */
+gboolean volume_path_is_mounted (const gchar *path);
+
 /* Set a DBUS message to reboot the device */
 void send_reboot_message (void);
 

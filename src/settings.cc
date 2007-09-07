@@ -48,6 +48,7 @@ bool red_pill_show_deps = true;
 bool red_pill_show_all = true;
 bool red_pill_show_magic_sys = true;
 bool red_pill_include_details_in_log = false;
+bool red_pill_download_packages_to_mmc = false;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
@@ -102,6 +103,8 @@ load_settings ()
 	  else if (sscanf (line, "red-pill-include-details-in-log %d", &val)
 		   == 1)
 	    red_pill_include_details_in_log = val;
+	  else if (sscanf (line, "red-pill-download-packages-to-mmc %d", &val) == 1)
+	    red_pill_download_packages_to_mmc = val;
 	  else if (sscanf (line, "assume-connection %d", &val) == 1)
 	    assume_connection = val;
 	  else
@@ -132,6 +135,7 @@ save_settings ()
       fprintf (f, "red-pill-show-magic-sys %d\n", red_pill_show_magic_sys);
       fprintf (f, "red-pill-include-details-in-log %d\n", 
 	       red_pill_include_details_in_log);
+      fprintf (f, "red-pill-download-packages-to-mmc %d\n", red_pill_download_packages_to_mmc);
       fprintf (f, "assume-connection %d\n", assume_connection);
       fclose (f);
     }
@@ -217,6 +221,9 @@ make_settings_tab (settings_closure *c)
       make_boolean_option (c, tab, group,
 			   "Include package details in log",
 			   &red_pill_include_details_in_log);
+      make_boolean_option (c, tab, group,
+			   "Use MMC to download packages",
+			   &red_pill_download_packages_to_mmc);
     }
 
   g_object_unref (group);

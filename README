@@ -215,7 +215,6 @@ BUGS
 ----
 
 - Add "New Folder" functionality to maemo-select-menu-location.
-- Implement smart download location chosing.
 - Explain non-removable system updates in Details dialog.
 - check autoremoval
 

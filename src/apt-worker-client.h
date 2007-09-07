@@ -100,8 +100,9 @@ void apt_worker_install_check (int state,
 			       apt_worker_callback *callback,
 			       void *data);
 
-void apt_worker_install_package (int state, 
+void apt_worker_install_package (int state,
 				 const char *package,
+				 const char *alt_download_root,
 				 bool updating,
 				 apt_worker_callback *callback,
 				 void *data);

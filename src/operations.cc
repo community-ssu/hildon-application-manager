@@ -43,6 +43,10 @@
 
 #define HAM_BACKUP_RESPONSE 1
 
+/* MMC mountpoints */
+#define INTERNAL_MMC_MOUNTPOINT "/media/mmc2"
+#define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
+
 /* Common utilities
  */
 
@@ -207,6 +211,7 @@ struct ip_clos {
   // per installation iteration
   int flags;
   int64_t free_space;       // the required free storage space in bytes
+  char *alt_download_root;  // Alternative download root filesystem.
   GSList *upgrade_names;    // the packages and versions that we are going
   GSList *upgrade_versions; // to upgrade to.
 
@@ -285,6 +290,7 @@ install_packages (GList *packages,
   c->all_packages = packages;
   c->cont = cont;
   c->data = data;
+  c->alt_download_root = NULL;
   c->upgrade_names = NULL;
   c->upgrade_versions = NULL;
   c->n_successful = 0;
@@ -676,8 +682,50 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 	annoy_user_with_errno (errno, "get_free_space",
 			       ip_end, c);
 
-      if (pi->info.required_free_space + pi->info.download_size >= free_space)
+      bool keep_installing = false;
+      if (pi->info.required_free_space < free_space)
 	{
+	  /* Check MMCs first if red-pill option is enabled */
+	  if (red_pill_mode && red_pill_download_packages_to_mmc)
+	    {
+	      if (volume_path_is_mounted (INTERNAL_MMC_MOUNTPOINT) &&
+		  pi->info.download_size < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT))
+		{
+		  c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
+		  keep_installing = true;
+		}
+	      else if (volume_path_is_mounted (REMOVABLE_MMC_MOUNTPOINT) &&
+		       pi->info.download_size < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT))
+		{
+		  c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
+		  keep_installing = true;
+		}
+	    }
+
+	  /* Check internal flash if not using MMCs */
+	  if ((!red_pill_mode || !keep_installing) &&
+	      (free_space > (pi->info.required_free_space + pi->info.download_size)))
+	    {
+	      keep_installing = true;
+	    }
+	}
+
+      /* If there's enough space somewhere, proceed with installation */
+      if (keep_installing)
+	{
+	  if (pi->info.install_flags & pkgflag_close_apps)
+	    {
+	      ask_yes_no (_("ai_nc_close_apps"), ip_close_apps, c);
+	    }
+	  else
+	    {
+	      apt_worker_install_check (c->state, pi->name,
+					ip_check_upgrade_reply, c);
+	    }
+	}
+      else
+	{
+	  /* Not enough free space */
 	  char free_string[20];
 	  char required_string[20];
 	  size_string_detailed (free_string, 20, free_space);
@@ -687,17 +735,7 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 
 	  char *msg = g_strdup_printf ("Not enough storage\n%s < %s",
 				       free_string, required_string);
-
 	  ip_abort_cur (c, msg, false);
-	}
-      else if (pi->info.install_flags & pkgflag_close_apps)
-	{
-	  ask_yes_no (_("ai_nc_close_apps"), ip_close_apps, c);
-	}
-      else
-	{
-	  apt_worker_install_check (c->state, pi->name,
-				    ip_check_upgrade_reply, c);
 	}
     }
   else
@@ -831,6 +869,7 @@ ip_install_cur (void *data)
 
   set_log_start ();
   apt_worker_install_package (c->state, pi->name,
+			      c->alt_download_root,
 			      pi->installed_version != NULL,
 			      ip_install_cur_reply, c);
 }

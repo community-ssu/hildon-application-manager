@@ -61,3 +61,17 @@ are available in "Tools > Settings".
 
    This setting can only be changed in red-pill mode, but it's effect
    stays active also in blue-pill mode.
+
+ - *Use MMC to download packages*
+
+   If activated, all the packages will be downloaded to a temporary
+   directory in an available MMC with enough free space, then
+   installed in the flash memory. The MMC's are considered in order:
+   first the internal MMC and then the removable MMC, If no MMC is
+   available, or no MMC has enough free space, the internal flash
+   memory will be used as usual.
+
+   Using this option is useful to install/upgrade packages when
+   there's enough free space at the root filesystem to install, but
+   not to download plus install/upgrade, so you can use an alternative
+   storage just to download such those packages.

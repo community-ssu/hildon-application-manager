@@ -1,3 +1,83 @@
+2007-09-07  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	Implemented the smart download location choosing bug in README.
+
+	* src/settings.h (red_pill_download_packages_to_mmc): New. Red
+	pill option for using a MMC to download packages when possible.
+
+	* src/settings.cc (load_settings): Added code to parse the new red
+	pill option from the configuration file.
+	(save_settings): Added code to save settings with the new option.
+	(make_settings_tab): Added new boolean option to the tab, to allow
+	the user to select the new option.
+
+	* src/apt-worker-proto.h: Added new parameter definition for the
+	INSTALL_PACKAGE command: alt_download_root (string).
+
+	* src/apt-worker-client.h, src/apt-worker-client.cc
+	(apt_worker_install_package): Added new parameter to the function,
+	to allow sending and alternative download path from HAM to the
+	apt-worker. Updated request encoding to add this new parameter.
+
+	* src/operations.cc
+	(INTERNAL_MMC_MOUNTPOINT, REMOVABLE_MMC_MOUNTPOINT): New defines
+	to hard-code the mount-points /media/mmc2 and /media/mmc1.
+	(struct ip_clos): Added a new field to store
+	the optional alt_download_root value.
+	(install_packages): Initialized the new field commented above.
+	(ip_install_with_info): Modified to check the red-pill mode and
+	the red-pill-download-to-mmc value. If true, it looks for an
+	alternative storage with enough free space to set it as the
+	alt_download_root value. If not true, or if not alternative
+	storage was finally chosen, it checks the available free space in
+	the default download dir and continues with the install operation,
+	showing an error message if there's not enough space left there
+	either.
+	(ip_install_cur): Modified to use the new version of the protocol
+	client function apt_worker_install_package.
+
+	* src/util.h, src/util.cc (get_free_space_at_path): New. It checks
+	how much free space there is at the specified path.
+	(get_free_space): Modified. Now it works using the new
+	get_free_space_at_path function.
+	(volume_path_is_mounted): New. It checks if there is a mounted
+	device at the specified path using GnomeVFS.
+
+	* src/apt-worker.cc (class AptWorkerState): Added new fields to
+	mark when an alternative download path is being used, as well as
+	the original path before changing it, to restore it later.
+	(cmd_install_package): It decodes the new parameter coming with
+	the request, uses it to invoke the modified operation() function
+	and makes a clean up of the current download directory if needed.
+	(cmd_install_check): Updated calling to operation() with the new
+	parameter required.
+	(cmd_remove_package): Updated calling to operation() with the new
+	parameter required.
+	(get_free_space_at_path): New. Private function that checks how
+	much free space is at the specified path.
+	(set_alt_dir_cache_archives): New. Private function that creates a
+	temporary directory under a specified path to download packages,
+	updating the APT configuration, too.
+	(restore_dir_cache_archives): New. Private function that makes a
+	clean up of the temporary directory created with
+	set_alt_dir_cache_archives and restores APT configuration.
+	(operation): Now it receives an additional parameter with the
+	optional alt_download_root value, to see if it's necessary to use
+	an alternative download directory for the packages. It also checks
+	now for enough free space considering the optional alternative
+	download place and, and if there's no enough space there, trying
+	once again with default directory as usual. At last, computed the
+	required_free_space for all the packages to be installed, so it's
+	possible to check whether there's enough free space to install
+	them in the root file-system after the download process, or not.
+
+	* doc/red-pill.txt: Added explanation for the new red pill option.
+
+	* README: Removed "Implement smart download location choosing" from
+	the bugs list.
+
+	* configure.ac: Just removed an ugly trailing white space.
+
 2007-09-06  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.22

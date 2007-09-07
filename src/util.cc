@@ -157,7 +157,7 @@ void
 end_interaction_flow ()
 {
   g_assert (interaction_flow_active);
-  
+
   if (parent_xid == None)
     pop_dialog (GTK_WIDGET (get_main_window ()));
 
@@ -206,7 +206,7 @@ static void
 yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
 {
   ayn_closure *c = (ayn_closure *)clos;
-  
+
   if (response == 1)
     {
       if (c->pi)
@@ -216,8 +216,8 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
 	c->details (c->data);
       return;
     }
- 
-  void (*cont) (bool res, void *data) = c->cont; 
+
+  void (*cont) (bool res, void *data) = c->cont;
   void *data = c->data;
   if (c->pi)
     c->pi->unref ();
@@ -262,7 +262,7 @@ ask_custom (const gchar *question,
   c->details = NULL;
   c->data = data;
 
-  dialog = hildon_note_new_confirmation_add_buttons 
+  dialog = hildon_note_new_confirmation_add_buttons
     (NULL,
      question,
      ok_label, GTK_RESPONSE_OK,
@@ -358,7 +358,7 @@ annoy_user_response (GtkDialog *dialog, gint response, gpointer data)
   pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
-  if (closure_data != NULL) 
+  if (closure_data != NULL)
     {
       if (closure_data->cont != NULL)
 	closure_data->cont (closure_data->data);
@@ -376,7 +376,7 @@ annoy_user (const gchar *text, void (*cont) (void *data), void *data)
   push_dialog (dialog);
   closure_data->cont = cont;
   closure_data->data = data;
-  g_signal_connect (dialog, "response", 
+  g_signal_connect (dialog, "response",
 		    G_CALLBACK (annoy_user_response), closure_data);
   gtk_widget_show_all (dialog);
 }
@@ -485,7 +485,7 @@ annoy_user_with_details_1 (const gchar *text,
   c->details = details;
   c->cont = cont;
   c->data = data;
-  g_signal_connect (dialog, "response", 
+  g_signal_connect (dialog, "response",
 		    G_CALLBACK (annoy_user_with_details_response), c);
   gtk_widget_show_all (dialog);
 }
@@ -550,7 +550,7 @@ annoy_user_with_errno (int err, const gchar *detail,
 		    "sfil_ni_not_enough_memory");
   else
     msg = _("ai_ni_operation_failed");
-  
+
   annoy_user (msg, cont, data);
 }
 
@@ -718,7 +718,7 @@ entertainment_update_title ()
 	title = entertainment.sub_title;
       else
 	title = entertainment.main_title;
-    
+
       g_object_set (entertainment.dialog, "description", title, NULL);
     }
 }
@@ -753,13 +753,13 @@ start_entertaining_user ()
 
       entertainment.bar = gtk_progress_bar_new ();
       entertainment.dialog =
-	hildon_note_new_cancel_with_progress_bar 
+	hildon_note_new_cancel_with_progress_bar
 	(NULL,
 	 entertainment.main_title,
 	 GTK_PROGRESS_BAR (entertainment.bar));
-      
+
       gtk_widget_set_usize (entertainment.dialog, 400, -1);
-  
+
       {
 	GtkWidget *box = GTK_DIALOG (entertainment.dialog)->action_area;
 	GList *kids = gtk_container_get_children (GTK_CONTAINER (box));
@@ -783,7 +783,7 @@ start_entertaining_user ()
 
       entertainment_update_progress ();
       entertainment_update_cancel ();
-  
+
       push_dialog (entertainment.dialog);
       gtk_widget_show (entertainment.dialog);
     }
@@ -801,7 +801,7 @@ stop_entertaining_user ()
 
       pop_dialog (entertainment.dialog);
       gtk_widget_destroy (entertainment.dialog);
-  
+
       entertainment.dialog = NULL;
       entertainment.bar = NULL;
       entertainment.cancel_button = NULL;
@@ -829,7 +829,7 @@ set_entertainment_fun (const char *sub_title,
 		       int64_t already, int64_t total)
 {
   // fprintf (stderr, "FUN: %s %Ld %Ld\n", sub_title, already, total);
-  
+
   if ((sub_title
        && (entertainment.sub_title == NULL
 	   || strcmp (entertainment.sub_title, sub_title)))
@@ -894,7 +894,7 @@ refresh_updating_banner ()
 
   if (show_it && updating_banner == NULL)
     {
-      updating_banner = 
+      updating_banner =
 	hildon_banner_show_animation (GTK_WIDGET (get_main_window ()),
 				      NULL,
 				      updating_label);
@@ -965,7 +965,7 @@ get_small_font (GtkWidget *widget)
       fontstyle = gtk_rc_get_style_by_paths (gtk_widget_get_settings (GTK_WIDGET(widget)),
                                              "osso-SystemFont", NULL,
                                              G_TYPE_NONE);
-  
+
       if (fontstyle) {
         small_font = pango_font_description_copy (fontstyle->font_desc);
       } else {
@@ -974,7 +974,7 @@ get_small_font (GtkWidget *widget)
       size = pango_font_description_get_size(small_font);
       size = gint (size * PANGO_SCALE_SMALL);
       pango_font_description_set_size(small_font, size);
-       
+
     }
 
   return small_font;
@@ -993,7 +993,7 @@ make_small_text_view (const char *text)
   GtkWidget *scroll;
   GtkWidget *view;
   GtkTextBuffer *buffer;
-  
+
   scroll = gtk_scrolled_window_new (NULL, NULL);
   view = gtk_text_view_new ();
   buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
@@ -1259,7 +1259,7 @@ global_package_list_key_pressed (GtkWidget * widget,
 {
   GtkTreePath *cursor_path = NULL;
 
-  switch (event->keyval) 
+  switch (event->keyval)
     {
     case HILDON_HARDKEY_LEFT:
       return TRUE;
@@ -1270,28 +1270,28 @@ global_package_list_key_pressed (GtkWidget * widget,
     case HILDON_HARDKEY_UP:
       // we set the focus to the last button of the main_trail
       gtk_tree_view_get_cursor (GTK_TREE_VIEW (widget), &cursor_path, NULL);
-        
-      if (cursor_path) 
+
+      if (cursor_path)
         {
           if (!gtk_tree_path_prev (cursor_path))
             {
               GList *children = NULL;
 
-              children = 
+              children =
                 gtk_container_get_children (GTK_CONTAINER (get_main_trail()));
 
-              if (children) 
+              if (children)
                 {
                   GList *last_child = g_list_last (children);
 
-                  while (last_child && 
+                  while (last_child &&
                          ((!GTK_WIDGET_CAN_FOCUS (last_child->data)) ||
                          (!GTK_WIDGET_IS_SENSITIVE (last_child->data))))
                     last_child = g_list_previous (last_child);
 
                   if (last_child)
                     gtk_widget_grab_focus (GTK_WIDGET (last_child->data));
-                  
+
                   g_list_free (children);
                   gtk_tree_path_free(cursor_path);
                   return TRUE;
@@ -1300,7 +1300,7 @@ global_package_list_key_pressed (GtkWidget * widget,
 
           gtk_tree_path_free(cursor_path);
         }
-    
+
       break;
     }
 
@@ -1387,10 +1387,10 @@ make_global_package_list (GList *packages,
     g_object_set (renderer, "yalign", 0.0, NULL);
     g_object_set (renderer, "xalign", 1.0, NULL);
     gtk_tree_view_column_pack_end (column, renderer, TRUE);
-    gtk_tree_view_column_set_cell_data_func (column, renderer, 
+    gtk_tree_view_column_set_cell_data_func (column, renderer,
 					     global_size_func, tree,
 					     NULL);
-  
+
     renderer = gtk_cell_renderer_text_new ();
     gtk_tree_view_column_pack_end (column, renderer, FALSE);
 
@@ -1409,7 +1409,7 @@ make_global_package_list (GList *packages,
      "changed",
      G_CALLBACK (global_selection_changed), NULL);
 
-  g_signal_connect (tree, "row-activated", 
+  g_signal_connect (tree, "row-activated",
 		    G_CALLBACK (global_row_activated), NULL);
 
   g_signal_connect (tree, "key-press-event",
@@ -1427,7 +1427,7 @@ make_global_package_list (GList *packages,
   if (global_target_path)
     {
       GtkTreeIter iter;
-      
+
       if (!gtk_tree_model_get_iter (GTK_TREE_MODEL (global_list_store),
 				    &iter, global_target_path))
 	gtk_tree_path_prev (global_target_path);
@@ -1451,7 +1451,7 @@ is_user_section (const char *section)
 
   if (!strncmp (section, "maemo/", 6))
     return true;
-  
+
   return !strncmp (section, "user/", 5);
 }
 
@@ -1486,7 +1486,7 @@ set_global_package_list (GList *packages,
   global_selection_callback = selected;
   global_activation_callback = activated;
   global_packages = packages;
-  
+
   int pos = 0;
   for (GList *p = global_packages; p; p = p->next)
     {
@@ -1714,7 +1714,7 @@ struct spl_closure
   GList *package_list;
   char *title;
   char *question;
-  
+
   GtkListStore *list_store;
   void (*cont) (gboolean res, GList *package_list, void *data);
   void *data;
@@ -1831,7 +1831,7 @@ select_package_list_with_info (void *data)
   gtk_widget_set_parent (GTK_WIDGET (dialog), NULL);
   ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_bd_ok"), GTK_RESPONSE_OK);
   gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_bd_cancel"), GTK_RESPONSE_CANCEL);
-  
+
   push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
@@ -1841,10 +1841,10 @@ select_package_list_with_info (void *data)
   message_label = gtk_label_new (c->question);
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), message_label,
 		      FALSE, FALSE, padding);
-  
+
   /* Add required space label */
   required_space_label = gtk_label_new (NULL);
-  gtk_box_pack_end (GTK_BOX(GTK_DIALOG(dialog)->vbox), required_space_label, 
+  gtk_box_pack_end (GTK_BOX(GTK_DIALOG(dialog)->vbox), required_space_label,
 		    FALSE, FALSE, padding);
   fill_required_space_label (required_space_label, total_size);
 
@@ -1853,36 +1853,36 @@ select_package_list_with_info (void *data)
   g_object_set (G_OBJECT(tree_view), "allow-checkbox-mode", FALSE, NULL);
   renderer = gtk_cell_renderer_toggle_new ();
   gtk_cell_renderer_toggle_set_radio (GTK_CELL_RENDERER_TOGGLE (renderer), FALSE);
-  g_signal_connect (G_OBJECT (renderer), "toggled", 
+  g_signal_connect (G_OBJECT (renderer), "toggled",
 		    G_CALLBACK (package_selected_toggled_callback), tree_view);
-  column = gtk_tree_view_column_new_with_attributes ("Marked", renderer, 
-						     "active", COLUMN_SP_SELECTED, 
+  column = gtk_tree_view_column_new_with_attributes ("Marked", renderer,
+						     "active", COLUMN_SP_SELECTED,
 						     NULL);
   gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
 			       column);
   renderer = gtk_cell_renderer_text_new ();
-  column = gtk_tree_view_column_new_with_attributes ("Name", renderer, 
-						     "text", COLUMN_SP_NAME, 
+  column = gtk_tree_view_column_new_with_attributes ("Name", renderer,
+						     "text", COLUMN_SP_NAME,
 						     NULL);
   gtk_tree_view_column_set_expand(column, TRUE);
   gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
 			       column);
   renderer = gtk_cell_renderer_text_new ();
-  column = gtk_tree_view_column_new_with_attributes ("Size", renderer, 
-						     "text", COLUMN_SP_SIZE, 
+  column = gtk_tree_view_column_new_with_attributes ("Size", renderer,
+						     "text", COLUMN_SP_SIZE,
 						     NULL);
   gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
 			       column);
 
   /* Set up an scrolled window for the treeview */
   scroller = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller), 
-				  GTK_POLICY_NEVER, 
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
+				  GTK_POLICY_NEVER,
 				  GTK_POLICY_AUTOMATIC);
   gtk_container_add (GTK_CONTAINER (scroller), tree_view);
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), scroller,
 		      TRUE, TRUE, padding);
-  
+
   /* Add separator */
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), gtk_hseparator_new (),
 		      FALSE, FALSE, padding);
@@ -1898,15 +1898,15 @@ select_package_list_with_info (void *data)
   g_signal_connect (list_store, "row-changed",
 		    G_CALLBACK (update_packages_list_selection),
 		    upls_data);
-  g_signal_connect (ok_button, "insensitive_press", 
-		    G_CALLBACK (packages_list_insensitive_ok_button), 
+  g_signal_connect (ok_button, "insensitive_press",
+		    G_CALLBACK (packages_list_insensitive_ok_button),
 		    NULL);
 
   gtk_widget_set_usize (dialog, 600, 320);
   gtk_widget_show_all (dialog);
 
   /* Run dialog, waiting for a response */
-  result = gtk_dialog_run (GTK_DIALOG (dialog)); 
+  result = gtk_dialog_run (GTK_DIALOG (dialog));
   select_package_list_response (GTK_DIALOG (dialog), result, c);
 
   delete upls_data;
@@ -2020,7 +2020,7 @@ static void
 fcd_response (GtkDialog *dialog, gint response, gpointer clos)
 {
   fcd_closure *c = (fcd_closure *)clos;
-  void (*cont) (char *uri, void *data) = c->cont; 
+  void (*cont) (char *uri, void *data) = c->cont;
   void *data = c->data;
   delete c;
 
@@ -2187,7 +2187,7 @@ b64decode (const unsigned char *str, GdkPixbufLoader *loader)
 	    }
         }
     }
-  
+
   gdk_pixbuf_loader_write (loader, loader_buf, loader_ptr - loader_buf,
 			   &error);
   if (error)
@@ -2216,7 +2216,7 @@ pixbuf_from_base64 (const char *base64)
       g_object_unref (loader);
       return NULL;
     }
-  
+
   GdkPixbuf *pixbuf = gdk_pixbuf_loader_get_pixbuf (loader);
   if (pixbuf)
     g_object_ref (pixbuf);
@@ -2260,7 +2260,7 @@ call_copy_cont (GnomeVFSResult result)
     {
       cleanup_temp_file ();
       g_free (copy_target);
-      
+
       if (result == GNOME_VFS_ERROR_IO)
 	{
 	  annoy_user (dgettext ("hildon-common-strings",
@@ -2367,7 +2367,7 @@ do_copy (const char *source, GnomeVFSURI *source_uri,
   set_entertainment_cancel (cancel_copy, NULL);
   set_entertainment_title (dgettext ("hildon-fm",
 				     "docm_nw_opening_file"));
-  
+
   start_entertaining_user ();
 
   result = gnome_vfs_async_xfer (&handle,
@@ -2432,7 +2432,7 @@ localize_file_and_keep_it_open (const char *uri,
       /* Open the file to protect against unmounting of the MMC, etc.
        */
       GnomeVFSResult result;
-      
+
       result = gnome_vfs_open_uri (&copy_vfs_handle, vfs_uri,
 				   GNOME_VFS_OPEN_READ);
       if (result != GNOME_VFS_OK)
@@ -2479,7 +2479,7 @@ localize_file_and_keep_it_open (const char *uri,
 	  do_copy (uri, vfs_uri, copy_target);
 	}
     }
-      
+
   gnome_vfs_uri_unref (vfs_uri);
 }
 
@@ -2535,7 +2535,7 @@ run_cmd (char **argv,
   int stdout_fd, stderr_fd;
   GError *error = NULL;
   GPid child_pid;
-  
+
   if (!g_spawn_async_with_pipes (NULL,
 				 argv,
 				 NULL,
@@ -2548,7 +2548,7 @@ run_cmd (char **argv,
 				 &stderr_fd,
 				 &error))
     {
-      if (error->domain != G_SPAWN_ERROR 
+      if (error->domain != G_SPAWN_ERROR
 	  || error->code != G_SPAWN_ERROR_NOENT)
 	add_log ("Can't run %s: %s\n", argv[0], error->message);
       g_error_free (error);
@@ -2584,18 +2584,18 @@ close_apps (void)
 
   /* Close all running applications except the HAM */
   ham_appname = g_strdup ("Application manager");
-  for (l = applications; l; l = l->next) 
+  for (l = applications; l; l = l->next)
     {
       info = (HDWMEntryInfo *) l->data;
-		
+
       /* Avoid closing HAM */
       current_appname = hd_wm_entry_info_get_app_name (info);
-      if (!current_appname || strcmp (ham_appname, current_appname) != 0) 
+      if (!current_appname || strcmp (ham_appname, current_appname) != 0)
 	{
-	  add_log ("\tApp:'%s', Title:'%s'\n", 
+	  add_log ("\tApp:'%s', Title:'%s'\n",
 		   hd_wm_entry_info_get_app_name (info),
 		   hd_wm_entry_info_get_title (info));
-    
+
 	  hd_wm_close_application (hdwm, info);
 	}
     }
@@ -2640,7 +2640,7 @@ ensure_network_cont (bool success)
 {
   void (*callback) (bool success, void *data) = en_callback;
   void *data = en_data;
-  
+
   en_callback = NULL;
   en_data = NULL;
 
@@ -2654,7 +2654,7 @@ iap_callback (ConIcConnection *connection,
 	      gpointer user_data)
 {
   bool success = false;
-  
+
   switch (con_ic_connection_event_get_status (event))
     {
     case CON_IC_STATUS_CONNECTED:
@@ -2698,7 +2698,7 @@ ensure_network (void (*callback) (bool success, void *data), void *data)
       g_signal_connect (connection_object, "connection-event",
  			G_CALLBACK (iap_callback), NULL);
     }
-   
+
   if (con_ic_connection_connect (connection_object, CON_IC_CONNECT_FLAG_NONE))
     {
       set_entertainment_fun (_("ai_nw_connecting"), -1, 0);
@@ -2872,14 +2872,64 @@ grab_focus_on_map (GtkWidget *widget)
 int64_t
 get_free_space ()
 {
+  return get_free_space_at_path ("/");
+}
+
+int64_t
+get_free_space_at_path (const char *path)
+{
   struct statvfs buf;
 
-  if (statvfs("/", &buf) != 0)
+  if (statvfs(path, &buf) != 0)
     return -1;
-  
+
   int64_t res = (int64_t)buf.f_bfree * (int64_t)buf.f_bsize;
   printf ("FREE: %Ld\n", res);
   return res;
+}
+
+gboolean
+volume_path_is_mounted (const gchar *path)
+{
+  gboolean result = false;
+
+  g_return_val_if_fail (path, FALSE);
+  gchar *path_as_uri = g_filename_to_uri (path, NULL, NULL);
+  g_return_val_if_fail (path_as_uri, FALSE);
+
+  if (!gnome_vfs_init ())
+    {
+      call_copy_cont (GNOME_VFS_ERROR_GENERIC);
+      return FALSE;
+    }
+
+  /* Get the monitor singleton: */
+  GnomeVFSVolumeMonitor *monitor = gnome_vfs_get_volume_monitor();
+
+  /* Get the mounted volumes from the monitor: */
+  GList *list = gnome_vfs_volume_monitor_get_mounted_volumes (monitor);
+  GList *iter = NULL;
+  for (iter = list; iter; iter = g_list_next (iter))
+    {
+      GnomeVFSVolume *volume = (GnomeVFSVolume*)iter->data;
+      if (volume)
+	{
+	  gchar *uri =
+	    gnome_vfs_volume_get_activation_uri (volume);
+	  if (uri && (strcmp (uri, path_as_uri) == 0))
+	    {
+	      result = TRUE;
+	      g_free (uri);
+	      break;
+	    }
+	  g_free (uri);
+	  gnome_vfs_volume_unref (volume);
+	}
+    }
+
+  g_list_free (list);
+  g_free (path_as_uri);
+  return result;
 }
 
 void
@@ -2887,24 +2937,24 @@ send_reboot_message (void)
 {
   DBusConnection *conn;
   DBusMessage *msg;
-  
+
   /* Helps debugging. */
   add_log ("Sending reboot message.\n");
-  
+
   conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
   if (!conn)
     {
       add_log ("Could not get system bus.\n");
       return;
     }
-  
+
   msg = dbus_message_new_method_call (MCE_SERVICE,
 				      MCE_REQUEST_PATH,
 				      MCE_REQUEST_IF,
 				      MCE_REBOOT_REQ);
-  
+
   dbus_connection_send (conn, msg, NULL);
   dbus_connection_flush (conn);
-  
+
   add_log ("Reboot message sent, quit the application.\n");
 }
