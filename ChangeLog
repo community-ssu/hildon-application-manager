@@ -1,3 +1,36 @@
+2007-09-10  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	Done some changes to the smart download location choosing
+	implementation:
+
+	* src/settings.h, src/settings.cc (red_pill_download_packages_to_mmc):
+	Renamed into download_packages_to_mmc, since it's an optional
+	configuration value that is always functional, not only in
+	red-pill mode. Changed its default value to true, since
+	downloading packages to MMC is now the default behavior, which
+	can be disabled with red-pill mode.
+
+	* src/operations.cc (ip_install_with_info): Changed according to the
+	renamed variable mentioned above. Replaced a hard-coded string
+	with an appropriate logical_id: sfil_ni_not_enough_memory.
+
+	* src/apt-worker.cc (class AptWorkerState): Removed
+	saved_dir_cache_archives field, since it's not useful anymore with
+	the current changes.
+	(restore_dir_cache_archives): Removed, since it's not useful
+	anymore with the current changes.
+	(set_alt_dir_cache_archives): Removed.
+	(set_dir_cache_archives): New. Allows to change the download
+	location with an alternative path, updating the APT configuration
+	but without creating a unique temporary directory each time it's
+	called. It also allows to restore the default location by passing
+	NULL as its only parameter.
+	(operation): Now the alternative directory is only set (and
+	created, if needed) when it's not being already used by the
+	apt-worker. If an alternative directory is being used and
+	alt_download_root is NULL, then default values are restored in APT
+	configuration. Improved the check for enough free space, too.
+
 2007-09-07  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Implemented the smart download location choosing bug in README.

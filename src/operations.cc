@@ -685,8 +685,8 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
       bool keep_installing = false;
       if (pi->info.required_free_space < free_space)
 	{
-	  /* Check MMCs first if red-pill option is enabled */
-	  if (red_pill_mode && red_pill_download_packages_to_mmc)
+	  /* Check MMCs first if download to mmc option is enabled */
+	  if (download_packages_to_mmc)
 	    {
 	      if (volume_path_is_mounted (INTERNAL_MMC_MOUNTPOINT) &&
 		  pi->info.download_size < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT))
@@ -702,8 +702,8 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 		}
 	    }
 
-	  /* Check internal flash if not using MMCs */
-	  if ((!red_pill_mode || !keep_installing) &&
+	  /* Check internal flash if it's still needed */
+	  if (!keep_installing &&
 	      (free_space > (pi->info.required_free_space + pi->info.download_size)))
 	    {
 	      keep_installing = true;
@@ -733,7 +733,8 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 				pi->info.required_free_space
 				+ pi->info.download_size);
 
-	  char *msg = g_strdup_printf ("Not enough storage\n%s < %s",
+	  char *msg = g_strdup_printf ("%s\n%s < %s",
+				       _("sfil_ni_not_enough_memory"),
 				       free_string, required_string);
 	  ip_abort_cur (c, msg, false);
 	}

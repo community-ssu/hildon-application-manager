@@ -43,12 +43,12 @@ int  package_sort_sign = 1;
 bool clean_after_install = true;
 bool assume_connection = false;
 bool break_locks = true;
+bool download_packages_to_mmc = true;
 bool red_pill_mode = false;
 bool red_pill_show_deps = true;
 bool red_pill_show_all = true;
 bool red_pill_show_magic_sys = true;
 bool red_pill_include_details_in_log = false;
-bool red_pill_download_packages_to_mmc = false;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
@@ -92,6 +92,8 @@ load_settings ()
 	    package_sort_sign = val;
 	  else if (sscanf (line, "break-locks %d", &val) == 1)
 	    break_locks = val;
+	  else if (sscanf (line, "download-packages-to-mmc %d", &val) == 1)
+	    download_packages_to_mmc = val;
 	  else if (sscanf (line, "red-pill-mode %d", &val) == 1)
 	    red_pill_mode = val;
 	  else if (sscanf (line, "red-pill-show-deps %d", &val) == 1)
@@ -103,8 +105,6 @@ load_settings ()
 	  else if (sscanf (line, "red-pill-include-details-in-log %d", &val)
 		   == 1)
 	    red_pill_include_details_in_log = val;
-	  else if (sscanf (line, "red-pill-download-packages-to-mmc %d", &val) == 1)
-	    red_pill_download_packages_to_mmc = val;
 	  else if (sscanf (line, "assume-connection %d", &val) == 1)
 	    assume_connection = val;
 	  else
@@ -129,13 +129,13 @@ save_settings ()
       fprintf (f, "package-sort-key %d\n", package_sort_key);
       fprintf (f, "package-sort-sign %d\n", package_sort_sign);
       fprintf (f, "break-locks %d\n", break_locks);
+      fprintf (f, "download-packages-to-mmc %d\n", download_packages_to_mmc);
       fprintf (f, "red-pill-mode %d\n", red_pill_mode);
       fprintf (f, "red-pill-show-deps %d\n", red_pill_show_deps);
       fprintf (f, "red-pill-show-all %d\n", red_pill_show_all);
       fprintf (f, "red-pill-show-magic-sys %d\n", red_pill_show_magic_sys);
       fprintf (f, "red-pill-include-details-in-log %d\n", 
 	       red_pill_include_details_in_log);
-      fprintf (f, "red-pill-download-packages-to-mmc %d\n", red_pill_download_packages_to_mmc);
       fprintf (f, "assume-connection %d\n", assume_connection);
       fclose (f);
     }
@@ -223,7 +223,7 @@ make_settings_tab (settings_closure *c)
 			   &red_pill_include_details_in_log);
       make_boolean_option (c, tab, group,
 			   "Use MMC to download packages",
-			   &red_pill_download_packages_to_mmc);
+			   &download_packages_to_mmc);
     }
 
   g_object_unref (group);

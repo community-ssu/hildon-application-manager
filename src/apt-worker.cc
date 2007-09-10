@@ -134,6 +134,10 @@ using namespace std;
 #define TEMP_CATALOGUE_CONF "/var/lib/hildon-application-manager/catalogues.temp"
 #define TEMP_APT_SOURCE_LIST "/var/lib/hildon-application-manager/sources.list.temp"
 
+/* APT CACHE ARCHIVES DIRECTORIES */
+#define DEFAULT_DIR_CACHE_ARCHIVES "archives/"
+#define ALT_DIR_CACHE_ARCHIVES ".apt-archive-cache/"
+
 /* You know what this means.
  */
 //#define DEBUG
@@ -305,7 +309,6 @@ public:
   bool cache_generate;
   bool init_cache_after_request;
   bool using_alt_archives_dir;
-  string saved_dir_cache_archives;
   extra_info_struct *extra_info;
   void InitializeValues ();
   static AptWorkerState *current_state;
@@ -3058,9 +3061,8 @@ cmd_set_catalogues ()
   response.encode_int (success);
 }
 
-static int64_t get_free_space_at_path (const char *path);
-static bool set_alt_dir_cache_archives (const char *alt_download_root);
-static void restore_dir_cache_archives ();
+static int64_t get_free_space (const char *path);
+static bool set_dir_cache_archives (const char *alt_download_root);
 
 int operation (bool only_check, const char *alt_download_root);
 
@@ -3119,17 +3121,7 @@ cmd_install_package ()
   if (ensure_cache ())
     {
       if (mark_named_package_for_install (package))
-	{
-	  AptWorkerState *state = AptWorkerState::GetCurrent ();
-
-	  result_code = operation (false, alt_download_root);
-
-	  /* Restore Dir::Cache::Archives if needed */
-	  if (state->using_alt_archives_dir)
-	    {
-	      restore_dir_cache_archives ();
-	    }
-	}
+	result_code = operation (false, alt_download_root);
       else
 	result_code = rescode_packages_not_found;
     }
@@ -3550,77 +3542,64 @@ get_free_space (const char *path)
   return res;
 }
 
+/* Sets an alternative cache directory to download packages.
+   If alt_download_root is NULL, then the default path is set */
 static bool
-set_alt_dir_cache_archives (const char *alt_download_root)
+set_dir_cache_archives (const char *alt_download_root)
 {
-  if (alt_download_root == NULL)
-    return false;
-
   AptWorkerState *state = AptWorkerState::GetCurrent ();
-  char *unique_dir = NULL;
   bool result = false;
 
-  /* Prepare data to create a temporary directory */
-  unique_dir = g_strdup_printf ("%s/.hildon-application-manager.XXXXXX",
-				   alt_download_root);
-
-  /* Create temporary dir to use it as download location */
-  if (mkdtemp (unique_dir))
+  if (alt_download_root == NULL)
     {
-      char *partial_dir = g_strdup_printf ("%s/partial", unique_dir);
-      if ((mkdir (partial_dir, 0777) != -1)  || (errno == EEXIST))
-	{
-	  /* Update APT configuration */
-	  state->using_alt_archives_dir = true;
-	  state->saved_dir_cache_archives =
-	    _config->Find ("Dir::Cache::Archives");
+      /* Setting default location */
 
-	  _config->Set ("Dir::Cache::Archives", unique_dir);
+      /* Update APT configuration */
+      state->using_alt_archives_dir = false;
 
-	  result = true;
-	}
-      else
-	{
-	  _error->Error("Can't create directory at %s: %m", partial_dir);
-	}
+      /* If setting to default set just the relative path */
+      _config->Set ("Dir::Cache::Archives", DEFAULT_DIR_CACHE_ARCHIVES);
 
-      g_free (partial_dir);
+      result = true;
     }
   else
     {
-      _error->Error ("Can't create temporary directory at %s: %m", unique_dir);
-    }
+      char *archives_dir = NULL;
+      /* Setting an alternative location */
 
-  g_free (unique_dir);
+      /* Prepare data to create a temporary directory */
+      archives_dir = g_strdup_printf ("%s/%s",
+				       alt_download_root,
+				       ALT_DIR_CACHE_ARCHIVES);
+
+      /* Create temporary dir to use it as download location */
+      if (mkdir (archives_dir, 0777) < 0 && errno != EEXIST)
+	{
+	  _error->Error ("Can't create directory at %s: %m", archives_dir);
+	}
+      else
+	{
+	  char *partial_dir = g_strdup_printf ("%s/partial", archives_dir);
+	  if (mkdir (partial_dir, 0777) < 0  && errno != EEXIST)
+	    {
+	      _error->Error("Can't create directory at %s: %m", partial_dir);
+	    }
+	  else
+	    {
+	      /* Update APT configuration */
+	      state->using_alt_archives_dir = true;
+
+	      /* If not setting to default set the full path */
+	      _config->Set ("Dir::Cache::Archives", archives_dir);
+
+	      result = true;
+	    }
+	  g_free (partial_dir);
+	}
+      g_free (archives_dir);
+    }
 
   return result;
-}
-
-static void
-restore_dir_cache_archives ()
-{
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-
-  if (state->using_alt_archives_dir)
-    {
-      string alt_path;
-      char *cmd = NULL;
-
-      /* Restore APT configuration */
-      alt_path = _config->FindDir ("Dir::Cache::Archives");
-      _config->Set ("Dir::Cache::Archives", state->saved_dir_cache_archives);
-      state->using_alt_archives_dir = false;
-
-      /* Remove alternative path. I've use a very dummy check to
-	 ensure I'm going to remove files in a MMC temporary dir */
-      if (alt_path.substr(0, 10) == "/media/mmc" && 
-	  alt_path.substr(12, 28) == ".hildon-application-manager.")
-      {
-	cmd = g_strdup_printf ("rm -rf %s", alt_path.c_str());
- 	system (cmd);
-	g_free (cmd);
-      }
-    }
 }
 
 
@@ -3663,12 +3642,20 @@ operation (bool check_only, const char *alt_download_root)
       return rescode_failure;
 
    /* If alt_download_root is set, then use that path if possible */
-   if (alt_download_root != NULL &&
-       !set_alt_dir_cache_archives (alt_download_root))
+   if (alt_download_root != NULL && !state->using_alt_archives_dir)
      {
-       /* Log error, but keep working with default value */
-       fprintf (stderr,
-		"Failed using a MMC to download packages. Using default.\n");
+       /* Set alternative location if it's not previously set */
+       if (!set_dir_cache_archives (alt_download_root))
+	 {
+	   /* Log error, but keep working with default value */
+	   fprintf (stderr,
+		    "Failed using a MMC to download packages. Using default.\n");
+	 }
+     }
+   else if (alt_download_root == NULL && state->using_alt_archives_dir)
+     {
+       /* Restore default location if requested */
+       set_dir_cache_archives (NULL);
      }
 
    do
@@ -3750,28 +3737,23 @@ operation (bool check_only, const char *alt_download_root)
 	     return rescode_failure;
 	   }
 
-	 if (!state->using_alt_archives_dir)
+	 if (unsigned(Buf.f_bfree) <= download_size / Buf.f_bsize)
 	   {
-	     /* Downloading packages to the usual place */
-
-	     if (unsigned(Buf.f_bfree) <= download_size / Buf.f_bsize)
+	     if (state->using_alt_archives_dir)
 	       {
+		 /* Downloading packages to an alternative place */
+
+		 /* Not enough space: Let's try again just ignoring
+		    the alternative place, and using default instead */
+		 set_dir_cache_archives (NULL);
+		 repeat = true;
+	       }
+	     else
+	       {
+		 /* Downloading packages to the usual place */
 		 _error->Error("You don't have enough free space in %s.",
 			       OutputDir.c_str());
 		 return rescode_out_of_space;
-	       }
-	   }
-	 else
-	   {
-	     /* Downloading packages to the an alternative place */
-
-	     /* Check free space at ouput dir to download the packages */
-	     if (unsigned(Buf.f_bfree) <= download_size / Buf.f_bsize)
-	       {
-		 /* Not enough space: Let's try again just ignoring
-		    the alternative place, and using "/" instead */
-		 restore_dir_cache_archives ();
-		 repeat = true;
 	       }
 	   }
        }
