@@ -605,12 +605,11 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
 static void
 reset_cat_list (cat_dialog_closure *c)
 {
-  gtk_list_store_clear (c->store);
   catcache *next;
   for (catcache *cat = c->caches; cat; cat = next)
     {
       next = cat->next;
-      delete cat->detail;
+      g_free (cat->detail);
       delete cat;
     }
   c->caches = NULL;
@@ -622,6 +621,11 @@ set_cat_list (cat_dialog_closure *c)
 {
   gint position = 0;
   catcache **catptr = &c->caches;
+
+  /* If it exists, clear previous list store */
+ if (c->store)
+    gtk_list_store_clear (c->store);
+
   for (xexp *catx = xexp_first (c->catalogues_xexp); catx;
        catx = xexp_rest (catx))
     {

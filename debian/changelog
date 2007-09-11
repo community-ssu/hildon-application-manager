@@ -1,6 +1,7 @@
 hildon-application-manager (1:1.9.22) unstable; urgency=low
 
   * Build-Depend on libhildondesktop-dev instead of libhildonmenu-dev.
+  * Fixes: NB#67698.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 06 Sep 2007 14:08:25 +0300
 

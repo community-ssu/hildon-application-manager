@@ -1,3 +1,12 @@
+2007-09-11  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/repo.cc (reset_cat_list): Fixed a mistake using delete when
+	g_free was the right choice. Removed gtk_list_store_clear to avoid
+	a problem later reading an already freed memory block from
+	emit_row_signal (N67698).
+	(set_cat_list): Added gtk_list_store_clear here to clear the list
+	(if needed) when setting a new GtkListStore (N67698).
+
 2007-09-10  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Done some changes to the smart download location choosing
