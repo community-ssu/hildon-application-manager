@@ -15,6 +15,9 @@
 	(ip_abort_cur): Fixed localization issue for the continue button
 	and the dialog main text (N68736).
 
+	* src/apt-worker.cc (operation): Fixed a bug that made the
+	installation of certain packages to kill the apt-worker.
+
 2007-09-11  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/repo.cc (reset_cat_list): Fixed a mistake using delete when

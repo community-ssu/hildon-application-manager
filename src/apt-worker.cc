@@ -3614,237 +3614,247 @@ set_dir_cache_archives (const char *alt_download_root)
 int
 operation (bool check_only, const char *alt_download_root)
 {
-   AptWorkerState *state = AptWorkerState::GetCurrent ();
-   pkgCacheFile &Cache = *(state->cache);
-   SPtr<myDPkgPM> Pm;
-   std::auto_ptr<pkgAcquire> Fetcher;
-   double FetchBytes = 0.0;
-   double FetchPBytes = 0.0;
-   bool repeat = false;
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgCacheFile &Cache = *(state->cache);
+  SPtr<myDPkgPM> Pm;
+  double FetchBytes = 0.0;
+  double FetchPBytes = 0.0;
+  bool repeat;
 
-   if (_config->FindB("APT::Get::Purge",false) == true)
-     {
-       pkgCache::PkgIterator I = Cache->PkgBegin();
-       for (; I.end() == false; I++)
-	 {
-	   if (I.Purge() == false && Cache[I].Mode == pkgDepCache::ModeDelete)
-	     Cache->MarkDelete(I,true);
-	 }
-     }
+  if (_config->FindB("APT::Get::Purge",false) == true)
+    {
+      pkgCache::PkgIterator I = Cache->PkgBegin();
+      for (; I.end() == false; I++)
+	{
+	  if (I.Purge() == false && Cache[I].Mode == pkgDepCache::ModeDelete)
+	    Cache->MarkDelete(I,true);
+	}
+    }
 
-   if (Cache->DelCount() == 0 && Cache->InstCount() == 0 &&
-       Cache->BadCount() == 0)
-      return rescode_success;
+  if (Cache->DelCount() == 0 && Cache->InstCount() == 0 &&
+      Cache->BadCount() == 0)
+    return rescode_success;
 
-   // Create the text record parser
-   pkgRecords Recs (Cache);
-   if (_error->PendingError() == true)
-      return rescode_failure;
+  // Create the text record parser
+  pkgRecords Recs (Cache);
+  if (_error->PendingError() == true)
+    return rescode_failure;
 
-   /* If alt_download_root is set, then use that path if possible */
-   if (alt_download_root != NULL && !state->using_alt_archives_dir)
-     {
-       /* Set alternative location if it's not previously set */
-       if (!set_dir_cache_archives (alt_download_root))
-	 {
-	   /* Log error, but keep working with default value */
-	   fprintf (stderr,
-		    "Failed using a MMC to download packages. Using default.\n");
-	 }
-     }
-   else if (alt_download_root == NULL && state->using_alt_archives_dir)
-     {
-       /* Restore default location if requested */
-       set_dir_cache_archives (NULL);
-     }
+  /* If alt_download_root is set, then use that path if possible */
+  if (alt_download_root != NULL && !state->using_alt_archives_dir)
+    {
+      /* Set alternative location if it's not previously set */
+      if (!set_dir_cache_archives (alt_download_root))
+	{
+	  /* Log error, but keep working with default value */
+	  fprintf (stderr,
+		   "Failed using a MMC to download packages. Using default.\n");
+	}
+    }
+  else if (alt_download_root == NULL && state->using_alt_archives_dir)
+    {
+      /* Restore default location if requested */
+      set_dir_cache_archives (NULL);
+    }
 
-   do
-     {
-       repeat = false;
+  do
+    {
+      repeat = false;
 
-       // Lock the archive directory
-       FileFd Lock;
-       if (_config->FindB("Debug::NoLocking",false) == false)
-	 {
-	   Lock.Fd(ForceLock(_config->FindDir("Dir::Cache::Archives") + "lock"));
-	   if (_error->PendingError() == true)
-	     {
-	       _error->Error("Unable to lock the download directory");
-	       return rescode_failure;
-	     }
-	 }
+      // Lock the archive directory
+      FileFd Lock;
+      if (_config->FindB("Debug::NoLocking",false) == false)
+	{
+	  Lock.Fd(ForceLock(_config->FindDir("Dir::Cache::Archives") + "lock"));
+	  if (_error->PendingError() == true)
+	    {
+	      _error->Error("Unable to lock the download directory");
+	      return rescode_failure;
+	    }
+	}
 
-       // Create the download object
-       DownloadStatus Stat;
-       Fetcher.reset (new pkgAcquire (&Stat));
+      // Create the download object
+      DownloadStatus Stat;
+      pkgAcquire Fetcher (&Stat);
 
-       // Read the source list
-       pkgSourceList List;
-       if (List.ReadMainList() == false)
-	 {
-	   _error->Error("The list of sources could not be read.");
-	   return rescode_failure;
-	 }
+      // Read the source list
+      pkgSourceList List;
+      if (List.ReadMainList() == false)
+	{
+	  _error->Error("The list of sources could not be read.");
+	  return rescode_failure;
+	}
 
-       cur_sources = &List;
+      cur_sources = &List;
 
-       // Create the package manager
-       //
-       if (Pm.Get() != 0)
-	 delete (Pm.Get());
+      // Create the package manager
+      //
+      if (Pm.Get() != 0)
+	delete (Pm.Get());
 
-       Pm = new myDPkgPM (Cache);
+      Pm = new myDPkgPM (Cache);
 
-       // Create the order list explicitely in a way that we like.  We
-       // have to do it explicitely since CreateOrderList is not virtual.
-       //
-       if (!Pm->CreateOrderList ())
-	 return rescode_failure;
+      // Create the order list explicitely in a way that we like.  We
+      // have to do it explicitely since CreateOrderList is not virtual.
+      //
+      if (!Pm->CreateOrderList ())
+	return rescode_failure;
 
-       // Prepare to download
-       //
-       reset_new_domains ();
-       if (Pm->GetArchives(Fetcher.get(),&List,&Recs) == false ||
-	   _error->PendingError() == true)
-	 return rescode_failure;
+      // Prepare to download
+      //
+      reset_new_domains ();
+      if (Pm->GetArchives(&Fetcher,&List,&Recs) == false ||
+	  _error->PendingError() == true)
+	return rescode_failure;
 
-       FetchBytes = Fetcher->FetchNeeded();
-       FetchPBytes = Fetcher->PartialPresent();
+      FetchBytes = Fetcher.FetchNeeded();
+      FetchPBytes = Fetcher.PartialPresent();
 
-       if (_error->PendingError() == true)
-	 return rescode_failure;
+      if (_error->PendingError() == true)
+	return rescode_failure;
 
-       if (check_only)
-	 {
-	   encode_trust_summary ();
-	   encode_upgrades ();
-	   return rescode_success;
-	 }
+      if (check_only)
+	{
+	  encode_trust_summary ();
+	  encode_upgrades ();
+	  return rescode_success;
+	}
 
-       collect_new_domains ();
+      collect_new_domains ();
 
-       /* Check for enough free space. */
-       {
-	 struct statvfs Buf;
-	 string OutputDir = _config->FindDir("Dir::Cache::Archives");
-	 double download_size = FetchBytes - FetchPBytes;
+      /* Check for enough free space. */
+      {
+	struct statvfs Buf;
+	string OutputDir = _config->FindDir("Dir::Cache::Archives");
+	double download_size = FetchBytes - FetchPBytes;
 
-	 /* Check ouput dir info */
-	 if (statvfs(OutputDir.c_str(),&Buf) != 0)
-	   {
-	     _error->Errno("statvfs","Couldn't determine free space in %s",
-			   OutputDir.c_str());
-	     return rescode_failure;
-	   }
+	/* Check ouput dir info */
+	if (statvfs(OutputDir.c_str(),&Buf) != 0)
+	  {
+	    _error->Errno("statvfs","Couldn't determine free space in %s",
+			  OutputDir.c_str());
+	    return rescode_failure;
+	  }
 
-	 if (unsigned(Buf.f_bfree) <= download_size / Buf.f_bsize)
-	   {
-	     if (state->using_alt_archives_dir)
-	       {
-		 /* Downloading packages to an alternative place */
+	if (unsigned(Buf.f_bfree) <= download_size / Buf.f_bsize)
+	  {
+	    if (state->using_alt_archives_dir)
+	      {
+		/* Downloading packages to an alternative place */
 
-		 /* Not enough space: Let's try again just ignoring
-		    the alternative place, and using default instead */
-		 set_dir_cache_archives (NULL);
-		 repeat = true;
-	       }
-	     else
-	       {
-		 /* Downloading packages to the usual place */
-		 _error->Error("You don't have enough free space in %s.",
-			       OutputDir.c_str());
-		 return rescode_out_of_space;
-	       }
-	   }
-       }
-     } while (repeat);
+		/* Not enough space: Let's try again just ignoring
+		   the alternative place, and using default instead */
+		set_dir_cache_archives (NULL);
+		repeat = true;
+	      }
+	    else
+	      {
+		/* Downloading packages to the usual place */
+		_error->Error("You don't have enough free space in %s.",
+			      OutputDir.c_str());
+		return rescode_out_of_space;
+	      }
+	  }
+      }
 
-   /* Send a status report now if we are going to download something.
-      This makes sure that the progress dialog is shown even if the
-      first pulse of the fetcher takes a long time to arrive.
-   */
-   if ((int)(FetchBytes - FetchPBytes) > 0)
-     send_status (op_downloading, 0, (int)(FetchBytes - FetchPBytes), 0);
+      /* This is just a workaround to extend the scope of certain
+	 variables declared in the "real" loop (before these lines)
+	 that are going to be used out of it */
+      if (!repeat)
+	{
+	  /* Send a status report now if we are going to download
+	     something.  This makes sure that the progress dialog is
+	     shown even if the first pulse of the fetcher takes a long
+	     time to arrive.
+	  */
 
-   if (Fetcher->Run() == pkgAcquire::Failed)
-     return rescode_failure;
+	  if ((int)(FetchBytes - FetchPBytes) > 0)
+	    send_status (op_downloading, 0, (int)(FetchBytes - FetchPBytes), 0);
 
-   /* Print out errors and distill the failure reasons into a
-      apt_proto_rescode.
-   */
-   int result = rescode_success;
-   for (pkgAcquire::ItemIterator I = Fetcher->ItemsBegin();
-	I != Fetcher->ItemsEnd(); I++)
-     {
-       if ((*I)->Status == pkgAcquire::Item::StatDone &&
-	   (*I)->Complete == true)
-	 continue;
+	  if (Fetcher.Run() == pkgAcquire::Failed)
+	    return rescode_failure;
 
-       if ((*I)->Status == pkgAcquire::Item::StatIdle)
-	 continue;
+	  /* Print out errors and distill the failure reasons into a
+	     apt_proto_rescode.
+	  */
+	  int result = rescode_success;
+	  for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
+	       I != Fetcher.ItemsEnd(); I++)
+	    {
+	      if ((*I)->Status == pkgAcquire::Item::StatDone &&
+		  (*I)->Complete == true)
+		continue;
 
-       fprintf (stderr,
-		"Failed to fetch %s: %s\n",
-		(*I)->DescURI().c_str(),
-		(*I)->ErrorText.c_str());
+	      if ((*I)->Status == pkgAcquire::Item::StatIdle)
+		continue;
 
-       int this_result;
+	      fprintf (stderr,
+		       "Failed to fetch %s: %s\n",
+		       (*I)->DescURI().c_str(),
+		       (*I)->ErrorText.c_str());
 
-       if (g_str_has_prefix ((*I)->ErrorText.c_str(), "404"))
-	 this_result = rescode_packages_not_found;
-       else if (g_str_has_prefix ((*I)->ErrorText.c_str(), "Size mismatch"))
-	 this_result = rescode_package_corrupted;
-       else if (g_str_has_prefix ((*I)->ErrorText.c_str(), "MD5Sum mismatch"))
-       	 this_result = rescode_package_corrupted;
-       else
-       	 this_result = rescode_failure;
+	      int this_result;
 
-       result = combine_rescodes (result, this_result);
-     }
+	      if (g_str_has_prefix ((*I)->ErrorText.c_str(), "404"))
+		this_result = rescode_packages_not_found;
+	      else if (g_str_has_prefix ((*I)->ErrorText.c_str(), 
+					 "Size mismatch"))
+		this_result = rescode_package_corrupted;
+	      else if (g_str_has_prefix ((*I)->ErrorText.c_str(), 
+					 "MD5Sum mismatch"))
+		this_result = rescode_package_corrupted;
+	      else
+		this_result = rescode_failure;
 
-   if (result != rescode_success)
-     return (result == rescode_failure)? rescode_download_failed : result;
+	      result = combine_rescodes (result, this_result);
+	    }
 
-   send_status (op_general, -1, 0, 0);
+	  if (result != rescode_success)
+	    return (result == rescode_failure)?rescode_download_failed:result;
 
-   /* Compute required free space for install the packages */
-   int64_t required_free_space = 0;
-   pkgDepCache &cache = *(state->cache);
-   for (pkgCache::PkgIterator pkg = cache.PkgBegin();
-	pkg.end() != true;
-	pkg++)
-     {
-       if (cache[pkg].Upgrade())
-	 {
-	   pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
-	   package_record rec (ver);
-	   required_free_space += get_required_free_space (rec);
-	 }
-     }
+	  send_status (op_general, -1, 0, 0);
 
-   /* Check free space for installation */
-   if (required_free_space < get_free_space ("/"))
-     {
-       /* Do install */
-       _system->UnLock();
-       pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
-       _system->Lock();
+	  /* Compute required free space for install the packages */
+	  int64_t required_free_space = 0;
+	  pkgDepCache &cache = *(state->cache);
+	  for (pkgCache::PkgIterator pkg = cache.PkgBegin();
+	       pkg.end() != true;
+	       pkg++)
+	    {
+	      if (cache[pkg].Upgrade())
+		{
+		  pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
+		  package_record rec (ver);
+		  required_free_space += get_required_free_space (rec);
+		}
+	    }
 
-       save_extra_info ();
+	  /* Check free space for installation */
+	  if (required_free_space < get_free_space ("/"))
+	    {
+	      /* Do install */
+	      _system->UnLock();
+	      pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
+	      _system->Lock();
 
-       if (Res == pkgPackageManager::Failed || _error->PendingError() == true)
-	 return rescode_failure;
+	      save_extra_info ();
 
-       if (Res == pkgPackageManager::Completed)
-	 return rescode_success;
+	      if (Res == pkgPackageManager::Failed || 
+		  _error->PendingError() == true)
+		return rescode_failure;
 
-       return rescode_failure;
-     }
-   else
-     {
-       _error->Error("You don't have enough free space in /.");
-       return rescode_out_of_space;
-     }
+	      if (Res == pkgPackageManager::Completed)
+		return rescode_success;
+
+	      return rescode_failure;
+	    }
+	  else
+	    {
+	      _error->Error("You don't have enough free space in /.");
+	      return rescode_out_of_space;
+	    }
+	}
+    } while (repeat);
 }
 
 /* APTCMD_CLEAN
