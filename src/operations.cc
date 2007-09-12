@@ -1119,17 +1119,13 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	}
     }
 
+  g_free (final_msg);
+
   push_dialog (dialog);
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (ip_abort_response), c);
   gtk_widget_show_all (dialog);
-
-  /* Free msg string is needed */
-  if (!is_last)
-    {
-      g_free (final_msg);
-    }
 }
 
 static void
