@@ -349,6 +349,7 @@ static GList *upgradeable_packages = NULL;
 static GList *installed_packages = NULL;
 static GList *search_result_packages = NULL;
 static GList *temp_packages = NULL;
+static gboolean package_list_ready = false;
 
 static char *cur_section_name;
 
@@ -906,6 +907,12 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
       break;
     default:
       delete c;
+    }
+
+  /* At least the first package list load is done */
+  if (!package_list_ready)
+    {
+      package_list_ready = true;
     }
 }
 
@@ -1788,7 +1795,13 @@ check_catalogues_reply (xexp *catalogues, void *data)
 static void
 check_catalogues ()
 {
-  get_catalogues (check_catalogues_reply, NULL);
+  if (package_list_ready)
+    {
+      /* Avoid to call get_catalogues if packages_list it not ready,
+	 because that function finally calls to get_catalogues too,
+	 and they could conflict during start up */
+      get_catalogues (check_catalogues_reply, NULL);
+    }
 }
 
 GtkWidget *

@@ -1,3 +1,13 @@
+2007-09-12  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (static gboolean package_list_ready): New global
+	variable to take care of the status for the first package list
+	load in main function (N56637).
+	(get_package_list_reply): Update the value of the new global
+	variable when needed (N56637).
+	(check_catalogues): Don't get catalogues if the package list is
+	not ready yet (N56637).
+
 2007-09-11  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/repo.cc (reset_cat_list): Fixed a mistake using delete when
