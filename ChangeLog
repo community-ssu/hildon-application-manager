@@ -7,6 +7,13 @@
 	variable when needed (N56637).
 	(check_catalogues): Don't get catalogues if the package list is
 	not ready yet (N56637).
+	(rpc_show_error_report): Fixed localization issue for the continue
+	button and the dialog main text (N68736).
+
+	* src/operations.cc (ip_check_cert_reply): Fixed localization
+	issue for the continue button and the dialog main text (N68736).
+	(ip_abort_cur): Fixed localization issue for the continue button
+	and the dialog main text (N68736).
 
 2007-09-11  Mario Sanchez Prada  <msanchez@maemo.org>
 

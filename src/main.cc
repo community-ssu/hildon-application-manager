@@ -1434,13 +1434,22 @@ rpc_show_error_report (void *data)
   if (c->result_code == rescode_partial_success)
     {
       if (c->continued)
-	dialog = hildon_note_new_confirmation_add_buttons 
-	  (NULL,
-	   _("ai_ni_update_partly_successful"),
-	   _("ai_bd_continue"), GTK_RESPONSE_OK,
-	   _("ai_ni_bd_details"), 1,
-	   _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
-	   NULL);
+	{
+	  gchar *msg =
+	    g_strdup_printf ("%s\n%s",
+			     _("ai_ni_update_partly_successful"),
+			     _("ai_ni_continue_install"));
+
+	  dialog = hildon_note_new_confirmation_add_buttons 
+	    (NULL,
+	     msg,
+	     _("ai_bd_ok"), GTK_RESPONSE_OK,
+	     _("ai_ni_bd_details"), 1,
+	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
+	     NULL);
+
+	  g_free (msg);
+	}
       else
 	dialog = hildon_note_new_confirmation_add_buttons 
 	  (NULL,

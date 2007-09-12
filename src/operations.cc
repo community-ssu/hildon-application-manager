@@ -555,10 +555,19 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (some_domains_violated)
     {
       if (red_pill_mode)
-	ask_custom (_("ai_ni_error_broken_path"),
-		    _("ai_bd_continue"),
-		    _("ai_bd_cancel"),
-		    ip_legalese_response, c);
+	{
+	  gchar *msg =
+	    g_strdup_printf ("%s\n%s",
+			     _("ai_ni_error_broken_path"),
+			     _("ai_ni_continue_install"));
+
+	  ask_custom (msg,
+		      _("ai_bd_ok"),
+		      _("ai_bd_cancel"),
+		      ip_legalese_response, c);
+
+	  g_free (msg);
+	}
       else
 	annoy_user (_("ai_ni_error_broken_path"),
 		    ip_end, c);
@@ -1047,11 +1056,25 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
   bool is_last = (c->cur->next == NULL);
 
   GtkWidget *dialog;
+  gchar *final_msg = NULL;
 
   stop_entertaining_user ();
   c->entertaining = false;
 
   // XXX - get the button texts correct, etc.
+
+  /* Build the final string to be shown as the dialog main text */
+  if (!is_last)
+    {
+      final_msg =
+	g_strdup_printf ("%s\n%s", 
+			 msg,
+			 _("ai_ni_continue_install"));
+    }
+  else
+    {
+      final_msg = g_strdup (msg);
+    }
 
   if (with_details)
     {
@@ -1059,7 +1082,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	{
 	  dialog = hildon_note_new_confirmation_add_buttons 
 	    (NULL,
-	     msg,
+	     final_msg,
 	     _("ai_ni_bd_details"), 1,
 	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
 	     NULL);
@@ -1068,8 +1091,8 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	{
 	  dialog = hildon_note_new_confirmation_add_buttons 
 	    (NULL,
-	     msg,
-	     _("ai_bd_continue"), GTK_RESPONSE_OK,
+	     final_msg,
+	     _("ai_bd_ok"), GTK_RESPONSE_OK,
 	     _("ai_ni_bd_details"), 1,
 	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
@@ -1081,7 +1104,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	{
 	  dialog = hildon_note_new_confirmation_add_buttons 
 	    (NULL,
-	     msg,
+	     final_msg,
 	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
@@ -1089,8 +1112,8 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	{
 	  dialog = hildon_note_new_confirmation_add_buttons 
 	    (NULL,
-	     msg,
-	     _("ai_bd_continue"), GTK_RESPONSE_OK,
+	     final_msg,
+	     _("ai_bd_ok"), GTK_RESPONSE_OK,
 	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
@@ -1101,6 +1124,12 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (ip_abort_response), c);
   gtk_widget_show_all (dialog);
+
+  /* Free msg string is needed */
+  if (!is_last)
+    {
+      g_free (final_msg);
+    }
 }
 
 static void
