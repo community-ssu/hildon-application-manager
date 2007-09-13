@@ -1,3 +1,4 @@
+
 /*
  * This file is part of the hildon-application-manager.
  *
@@ -51,25 +52,31 @@
  */
 
 static char *
-result_code_to_message (apt_proto_result_code result_code, bool upgrading)
+result_code_to_message (package_info *pi, 
+			apt_proto_result_code result_code)
 {
-  const char *msg = NULL;
+  char *msg = NULL;
+  bool upgrading = (pi->installed_version != NULL);
 
   if (result_code == rescode_download_failed)
-    msg = _("ai_ni_error_download_failed");
+    msg = g_strdup_printf (_("ai_ni_error_download_failed"),
+			   pi->get_display_name (false));
   else if (result_code == rescode_packages_not_found)
-    msg = _("ai_ni_error_download_missing");
+    msg = g_strdup_printf (_("ai_ni_error_download_missing"),
+			   pi->get_display_name (false));
   else if (result_code == rescode_package_corrupted)
     {
       if (upgrading)
-	msg = _("ai_ni_error_update_corrupted");
+	msg = g_strdup_printf (_("ai_ni_error_update_corrupted"),
+			       pi->get_display_name (true));
       else
-	msg = _("ai_ni_error_install_corrupted");
+	msg = g_strdup_printf (_("ai_ni_error_install_corrupted"),
+			       pi->get_display_name (false));
     }
   else if (result_code == rescode_out_of_space)
-    msg = dgettext ("hildon-common-strings", "sfil_ni_not_enough_memory");
+    msg = g_strdup (dgettext ("hildon-common-strings", "sfil_ni_not_enough_memory"));
 
-  return g_strdup (msg);
+  return msg;
 }
 
 void
@@ -919,8 +926,7 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 	{
 	  result_code = scan_log_for_result_code (result_code);
 	  char *msg =
-	    result_code_to_message (result_code,
-				    pi->installed_version != NULL);
+	    result_code_to_message (pi, result_code);
 	  if (msg == NULL)
 	    msg = g_strdup_printf ((pi->installed_version != NULL
 				    ? _("ai_ni_error_update_failed")
@@ -1660,8 +1666,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
       apt_proto_result_code result_code = rescode_failure;
       result_code = scan_log_for_result_code (result_code);
 
-      char *msg = result_code_to_message (result_code, 
-					  c->pi->installed_version != NULL);
+      char *msg = result_code_to_message (c->pi, result_code);
       if (msg == NULL)
 	msg = g_strdup_printf (c->pi->installed_version
 			       ? _("ai_ni_error_update_failed")

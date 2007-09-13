@@ -1,3 +1,14 @@
+2007-09-13  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/operations.cc (result_code_to_message): Changed
+	implementation and list of parameters to also receive package info
+	struct and to take it into account to include its name in the
+	returned string (N68825) (N68832).
+	(ip_install_cur_reply): Changed the way of calling to
+	result_code_to_message (N68825) (N68832).
+	(ip_install_reply): Changed the way of calling to
+	result_code_to_message (N68825) (N68832).
+
 2007-09-12  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (static gboolean package_list_ready): New global
