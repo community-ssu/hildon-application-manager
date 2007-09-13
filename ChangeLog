@@ -13,6 +13,8 @@
 	(installable_status_to_message): Fixed some mistakes setting the
 	final localized strings with the name of the packages inside of
 	them (N68879) (N68886) (N68898).
+	(ip_install_with_info): Set the logical id for the "Not enough
+	memory" message (N68911).
 
 	* src/util.cc (entertainment_insensitive_press): Replaced
 	hardcoded string with the right l10n logical id (N68844).

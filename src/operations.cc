@@ -744,7 +744,7 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
 				+ pi->info.download_size);
 
 	  char *msg = g_strdup_printf ("%s\n%s < %s",
-				       _("sfil_ni_not_enough_memory"),
+				       dgettext ("hildon-common-strings", "sfil_ni_not_enough_memory"),
 				       free_string, required_string);
 	  ip_abort_cur (c, msg, false);
 	}
