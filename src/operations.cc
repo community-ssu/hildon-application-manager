@@ -85,8 +85,7 @@ installable_status_to_message (package_info *pi,
 {
   if (pi->info.installable_status == status_missing)
     {
-      msg = g_strdup_printf ("%s\n%s",
-			     (pi->installed_version
+      msg = g_strdup_printf ((pi->installed_version
 			      ? _("ai_ni_error_update_missing")
 			      : _("ai_ni_error_install_missing")),
 			     pi->get_display_name (false));
@@ -94,8 +93,7 @@ installable_status_to_message (package_info *pi,
     }
   else if (pi->info.installable_status == status_conflicting)
     {
-      msg = g_strdup_printf ("%s\n%s",
-			     (pi->installed_version
+      msg = g_strdup_printf ((pi->installed_version
 			      ? _("ai_ni_error_update_conflict")
 			      : _("ai_ni_error_install_conflict")),
 			     pi->get_display_name (false));
@@ -103,8 +101,7 @@ installable_status_to_message (package_info *pi,
     }
   else if (pi->info.installable_status == status_corrupted)
     {
-      msg = g_strdup_printf ("%s\n%s",
-			     (pi->installed_version
+      msg = g_strdup_printf ((pi->installed_version
 			      ? _("ai_ni_error_update_corrupted")
 			      : _("ai_ni_error_install_corrupted")),
 			     pi->get_display_name (false));
@@ -112,8 +109,7 @@ installable_status_to_message (package_info *pi,
     }
   else if (pi->info.installable_status == status_incompatible)
     {
-      msg = g_strdup_printf ("%s\n%s",
-			     (pi->installed_version
+      msg = g_strdup_printf ((pi->installed_version
 			      ? _("ai_ni_error_update_incompatible")
 			      : _("ai_ni_error_install_incompatible")),
 			     pi->get_display_name (false));
@@ -121,15 +117,13 @@ installable_status_to_message (package_info *pi,
     }
   else if (pi->info.installable_status == status_incompatible_current)
     {
-      msg = g_strdup_printf ("%s\n%s",
-			     _("ai_ni_error_n770package_incompatible"),
+      msg = g_strdup_printf (_("ai_ni_error_n770package_incompatible"),
 			     pi->get_display_name (false));
       with_details = false;
     }
   else if (pi->info.installable_status == status_not_found)
     {
-      msg = g_strdup_printf ("%s\n%s",
-			     _("ai_ni_error_download_missing"),
+      msg = g_strdup_printf (_("ai_ni_error_download_missing"),
 			     pi->get_display_name (false));
       with_details = false;
     }
