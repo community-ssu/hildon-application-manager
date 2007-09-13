@@ -1366,8 +1366,7 @@ rpc_with_network (bool success, void *data)
       
       c->result_code = rescode_failure;
       c->keep_going = false;
-      annoy_user (_("No network connection"),
-		  rpc_done, c);
+      rpc_done (c);
     }
 }
 

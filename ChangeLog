@@ -17,6 +17,10 @@
 	* src/util.cc (entertainment_insensitive_press): Replaced
 	hardcoded string with the right l10n logical id (N68844).
 
+	* src/main.cc (rpc_with_network): Removed dialog shown when
+	there's no available network connection. Just stop current
+	operation silently in that case (N68894).
+
 2007-09-12  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (static gboolean package_list_ready): New global
