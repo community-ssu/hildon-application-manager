@@ -733,7 +733,7 @@ entertainment_response (GtkWidget *widget, int response, void *data)
 void
 entertainment_insensitive_press (GtkWidget *widget, gpointer unused)
 {
-  irritate_user (_("Can't cancel now"));
+  irritate_user (_("ai_ib_unable_cancel"));
 }
 
 void
