@@ -1363,8 +1363,12 @@ up_remove (up_clos *c)
       if (c->pi->info.removable_status == status_system_update_unremovable)
 	annoy_user (_("ai_ni_unable_to_uninstall_system_update"), up_end, c);
       else if (c->pi->info.removable_status == status_needed)
-	annoy_user_with_details (_("ai_ni_error_uninstall_packagesneeded"),
-				 c->pi, remove_details, up_end, c);
+	{
+	  char *str = g_strdup_printf (_("ai_ni_error_uninstall_packagesneeded"),
+				       c->pi->get_display_name (true));
+	  annoy_user_with_details (str, c->pi, remove_details, up_end, c);
+	  g_free (str);
+	}
       else
 	{
 	  char *str = g_strdup_printf (_("ai_ni_error_uninstallation_failed"),

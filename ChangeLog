@@ -8,6 +8,8 @@
 	result_code_to_message (N68825) (N68832).
 	(ip_install_reply): Changed the way of calling to
 	result_code_to_message (N68825) (N68832).
+	(up_remove): Added the name of the application to the string shown
+	when uninstalling a package is not possible (N68850).
 
 	* src/util.cc (entertainment_insensitive_press): Replaced
 	hardcoded string with the right l10n logical id (N68844).
