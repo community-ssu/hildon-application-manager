@@ -2511,7 +2511,19 @@ install_from_file_flow (const char *filename)
       if (filename == NULL)
 	show_deb_file_chooser (iff_with_filename, NULL);
       else
-	iff_with_filename (g_strdup (filename), NULL);
+	{
+	  /* Try to convert filename to GnomeVFS uri */
+	  char *fileuri = 
+	    gnome_vfs_get_uri_from_local_path (filename);
+
+	  /* If there's an error then user filename as is */
+	  if (fileuri == NULL)
+	    {
+	      fileuri = g_strdup (filename);
+	    }
+
+	  iff_with_filename (fileuri, NULL);
+	}
     }
 }
 

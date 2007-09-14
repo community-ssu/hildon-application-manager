@@ -1,3 +1,8 @@
+2007-09-14  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (install_from_file_flow): Added extra logic to
+	convert the filename received to a valid GnomeVFS uri (N66407).
+
 2007-09-13  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operations.cc (result_code_to_message): Changed
