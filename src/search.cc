@@ -124,6 +124,15 @@ set_search_area_default (GtkWidget *widget, gpointer data)
 }
 
 void
+emit_dialog_response (GtkEntry *entry, gpointer dialog)
+{
+  g_return_if_fail (GTK_IS_DIALOG (dialog));
+
+  /* Emit response signal for dialog */
+  gtk_dialog_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
+}
+
+void
 show_search_dialog_flow ()
 {
   if (start_interaction_flow ())
@@ -176,6 +185,12 @@ show_search_dialog_flow ()
 	 has been mapped.
       */
       gtk_combo_box_set_active (GTK_COMBO_BOX (combo), 1);
+
+      g_signal_connect (GTK_WIDGET (gtk_bin_get_child (GTK_BIN (entry))),
+			"activate",
+			G_CALLBACK (emit_dialog_response),
+			dialog);
+
       g_signal_connect (combo, "map",
 			G_CALLBACK (set_search_area_default), NULL);
 

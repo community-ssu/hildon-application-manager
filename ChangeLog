@@ -3,6 +3,12 @@
 	* src/main.cc (install_from_file_flow): Added extra logic to
 	convert the filename received to a valid GnomeVFS uri (N66407).
 
+	* src/search.cc (emit_dialog_response): New callback. It emits the
+	"response" signal for the search dialog with GTK_RESPONSE_OK as
+	the response ID (N58335).
+	(show_search_dialog_flow): Signal "activate" of GtkEntry for
+	 search words connected to the new callback (N58335).
+
 2007-09-13  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operations.cc (result_code_to_message): Changed
