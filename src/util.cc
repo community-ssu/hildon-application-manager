@@ -127,7 +127,7 @@ start_interaction_flow ()
   if (dialog_stack != NULL
       || interaction_flow_active)
     {
-      irritate_user (_("Operation in progress"));
+      irritate_user (_("ai_ni_operation_progress"));
       return false;
     }
 

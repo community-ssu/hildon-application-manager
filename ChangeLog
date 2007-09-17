@@ -3,6 +3,9 @@
 	* src/operations.cc (ip_suggest_backup): Fixed bug when trying to
 	cancel the suggest-backup dialog with escape hardkey (N69652).
 
+	* src/util.cc (start_interaction_flow): Fixed a localization error
+	for the "operation in progress" message (N68912).
+
 2007-09-14  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (install_from_file_flow): Added extra logic to
