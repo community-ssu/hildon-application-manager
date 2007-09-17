@@ -956,7 +956,7 @@ ip_suggest_backup (ip_clos *c)
 {
   GtkWidget *dialog = NULL;
   gint result = G_MAXINT; 
-  gboolean keep_asking = TRUE;
+  gboolean keep_asking = FALSE;
   
   /* Show custom dialog if suggest_backup flag is present */
   dialog = gtk_dialog_new_with_buttons
@@ -978,29 +978,18 @@ ip_suggest_backup (ip_clos *c)
 
   /* Use gtk_dialog_run to block execution while the dialog is
      not closed */
-  while (keep_asking)
+  do
     {
       char *argv[] = {"/usr/bin/osso-backup", NULL};
       result = gtk_dialog_run (GTK_DIALOG (dialog));
-      switch (result)
+
+      keep_asking = FALSE;
+      if (result == HAM_BACKUP_RESPONSE)
 	{
-	case GTK_RESPONSE_OK:
-	  /* Do nothing, just continue with the process */	  
-	  keep_asking = FALSE;
-	  break;
-	    
-	case GTK_RESPONSE_CANCEL:
-	  keep_asking = FALSE;
-	  break;
-	    
-	case HAM_BACKUP_RESPONSE:
  	  run_cmd (argv, ip_suggest_backup_cmd_done, NULL);
-	  break;
-	    
-	default:
-	  g_assert_not_reached ();
+	  keep_asking = TRUE;
 	}
-    }
+    } while (keep_asking);
 
   pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));

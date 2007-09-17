@@ -1,3 +1,8 @@
+2007-09-17  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/operations.cc (ip_suggest_backup): Fixed bug when trying to
+	cancel the suggest-backup dialog with escape hardkey (N69652).
+
 2007-09-14  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (install_from_file_flow): Added extra logic to
