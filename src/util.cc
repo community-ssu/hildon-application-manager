@@ -1349,6 +1349,9 @@ make_global_package_list (GList *packages,
   gtk_tree_view_column_pack_end (column, renderer, TRUE);
   gtk_tree_view_column_set_cell_data_func (column, renderer, global_name_func, tree, NULL);
 
+  /* Set odd/even rows in different colors */
+  gtk_tree_view_set_rules_hint(GTK_TREE_VIEW (tree), TRUE);
+
   gtk_tree_view_insert_column (GTK_TREE_VIEW (tree), column, -1);
 
   column = gtk_tree_view_get_column (GTK_TREE_VIEW (tree), 0);
