@@ -334,7 +334,7 @@ make_folder_tree_view (GtkTreeModel *model)
   GtkTreeModel *folder_model;
   GtkWidget *treeview;
 
-  folder_model = gtk_tree_model_filter_new (model, gtk_tree_path_new_first ());
+  folder_model = gtk_tree_model_filter_new (model, NULL);
 
   gtk_tree_model_filter_set_visible_func 
     (GTK_TREE_MODEL_FILTER (folder_model),

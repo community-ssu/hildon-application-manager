@@ -8,6 +8,9 @@
 	(make_global_package_list): Show logical background colors for
 	even/odd rows in the package list (N69616).
 
+	* utils/maemo-select-menu-location-main.c (make_folder_tree_view):
+	Fixed a mistake creating a GtkTreeModelFilter (N69644).
+
 2007-09-14  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (install_from_file_flow): Added extra logic to
