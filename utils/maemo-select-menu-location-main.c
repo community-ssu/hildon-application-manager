@@ -212,6 +212,25 @@ find_application_manager_window ()
 }
 
 static void
+dialog_exposed (GtkWidget *widget, GdkEventExpose *event, gpointer data)
+{
+  GdkWindow *win  = widget->window;
+  GtkWidget *child = NULL;
+
+  /* Raise this window to the top of the X stack */
+  gdk_window_raise (win);
+
+  /* Progate expose event to children */
+  child = gtk_bin_get_child (GTK_BIN (widget));
+  if (child)
+    {
+      gtk_container_propagate_expose (GTK_CONTAINER (widget),
+				      child,
+				      event);
+    }
+}
+
+static void
 dialog_realized (GtkWidget *widget, gpointer data)
 {
   GdkWindow *win = widget->window;
@@ -535,6 +554,9 @@ run_select_location_dialog (GtkTreeModel *model,
 
   g_signal_connect (c->dialog, "realize",
 		    G_CALLBACK (dialog_realized), NULL);
+
+  g_signal_connect (c->dialog, "expose-event",
+		    G_CALLBACK (dialog_exposed), NULL);
 
   vbox = GTK_DIALOG (c->dialog)->vbox;
 

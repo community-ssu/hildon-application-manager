@@ -1,3 +1,11 @@
+2007-09-19  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* utils/maemo-select-menu-location-main.c (dialog_exposed):
+	New. Callback to ensure that the select location dialog is always
+	drawn on top of HAM windows (N69646).
+	(run_select_location_dialog): Connected the 'expose-event' signal
+	to new callback commented above (N69646).
+
 2007-09-17  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operations.cc (ip_suggest_backup): Fixed bug when trying to
