@@ -240,7 +240,7 @@ struct cat_edit_closure {
 };
 
 static void reset_cat_list (cat_dialog_closure *c);
-static void set_cat_list (cat_dialog_closure *c);
+static void set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select);
 
 static void
 cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
@@ -276,7 +276,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
       if (all_whitespace (dist))
 	dist = NULL;
-      
+
       reset_cat_list (c->cat_dialog);
       if (c->isnew)
 	xexp_append_1 (c->cat_dialog->catalogues_xexp, c->catalogue);
@@ -285,7 +285,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       xexp_aset_text (c->catalogue, "components", comps);
       xexp_aset_text (c->catalogue, "dist", dist);
       xexp_aset_text (c->catalogue, "uri", uri);
-      set_cat_list (c->cat_dialog);
+      set_cat_list (c->cat_dialog, &c->cat_dialog->selected_iter);
       c->cat_dialog->dirty = true;
     }
   else if (c->isnew)
@@ -617,10 +617,18 @@ reset_cat_list (cat_dialog_closure *c)
 }
 
 static void
-set_cat_list (cat_dialog_closure *c)
+set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
 {
   gint position = 0;
   catcache **catptr = &c->caches;
+  GtkTreePath *path_to_select = NULL;
+
+ /* Retrieve path to select if needed (used inside the loop) */
+ if (iter_to_select)
+   {
+     path_to_select = gtk_tree_model_get_path (GTK_TREE_MODEL (c->store),
+					       iter_to_select);
+   }
 
   /* If it exists, clear previous list store */
  if (c->store)
@@ -648,22 +656,52 @@ set_cat_list (cat_dialog_closure *c)
 					     position,
 					     0, cat,
 					     -1);
-	  if (position == 0)
+	  /* Select first item by default */
+ 	  if (position == 0)
 	    {
 	      c->selected_cat = cat;
 	      c->selected_iter = iter;
 	    }
+	  else if (path_to_select)
+	    {
+	      /* Select specified item if available */
+
+	      GtkTreePath *current_path =
+		gtk_tree_model_get_path (GTK_TREE_MODEL (c->store),
+					 &iter);
+
+	      /* Compare current iter with iter_to_select */
+	      if (current_path &&
+		  !gtk_tree_path_compare (current_path, path_to_select))
+		{
+		  c->selected_cat = cat;
+		  c->selected_iter = iter;
+		}
+
+	      gtk_tree_path_free (current_path);
+	    }
+
 	  position += 1;
 	}
     }
+
+  /* Set the focus in the right list element */
+  GtkTreeSelection *tree_selection =
+    gtk_tree_view_get_selection (GTK_TREE_VIEW (c->tree));
+  gtk_tree_selection_select_iter (tree_selection, &c->selected_iter);
+  g_signal_emit_by_name (GTK_TREE_MODEL (c->store), "changed",
+			 tree_selection, c);
+
   *catptr = NULL;
+
+  gtk_tree_path_free (path_to_select);
 }
 
 static void
 refresh_cat_list (cat_dialog_closure *c)
 {
   reset_cat_list (c);
-  set_cat_list (c);
+  set_cat_list (c, NULL);
 }
 
 static GtkWidget *
@@ -730,7 +768,7 @@ remove_cat_cont (bool res, void *data)
     {
       reset_cat_list (d);
       xexp_del (d->catalogues_xexp, c->catalogue);
-      set_cat_list (d);
+      set_cat_list (d, NULL);
       d->dirty = true;
     }
 
@@ -854,9 +892,6 @@ show_catalogue_dialog (xexp *catalogues,
 			 _("ai_bd_repository_close"), GTK_RESPONSE_CLOSE);
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
   
-  gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox),
-			       make_cat_list (c));
-
   gtk_widget_set_sensitive (c->edit_button, FALSE); 
   if (!show_errors)
     {
@@ -866,7 +901,10 @@ show_catalogue_dialog (xexp *catalogues,
 
       set_dialog_help (dialog, AI_TOPIC ("repository"));
     }
-    
+
+  gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox),
+			       make_cat_list (c));
+
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (cat_response), c);
 

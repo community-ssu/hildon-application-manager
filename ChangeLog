@@ -1,3 +1,18 @@
+2007-09-20  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/repo.cc (set_cat_list): Added a new parameter to specify a
+	GtkTreeIter pointing to the element of the treeview that will be
+	focused after rendering it (N67880).
+	(cat_edit_response): Update call to set_cat_list to set the
+	currently selected iter as the iter to be focused (N67880).
+	(refresh_cat_list): Update call to set_cat_list using NULL as the
+	new parameter, since it's not needed to focus any iter (N67880).
+	(remove_cat_cont): Update call to set_cat_list using NULL as the
+	new parameter, since it's not needed to focus any iter (N67880).
+	(show_catalogue_dialog): Moved the creation of the treeview after
+	setting the sensitiveness to buttons, to let the signals work and
+	set it as is needed according to the selected item (N67880).
+
 2007-09-19  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* utils/maemo-select-menu-location-main.c (dialog_exposed):
