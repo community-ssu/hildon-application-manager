@@ -1,3 +1,7 @@
+2007-09-24  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 1.9.23
+
 2007-09-20  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/repo.cc (set_cat_list): Added a new parameter to specify a
