@@ -1,6 +1,6 @@
 # configure.ac for hildon-application-manager
 
-AC_INIT(hildon-application-manager, 1.9.23)
+AC_INIT(hildon-application-manager, 1.9.24)
 AC_CONFIG_SRCDIR([src/main.cc])
 AM_INIT_AUTOMAKE
 
