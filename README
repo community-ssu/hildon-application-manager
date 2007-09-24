@@ -217,6 +217,13 @@ BUGS
 - Add "New Folder" functionality to maemo-select-menu-location.
 - Explain non-removable system updates in Details dialog.
 - check autoremoval
+- Consider autolaunching.
+- Do not break already installed packages by updating away their
+  dependencies: when this happens, it is not considered an error since
+  the affected package is not part of the operation (not a diretc or
+  indirect dependency of the installed packages).  This matters for
+  packages that have '=' or '<=' dependencies, which is rare.
+
 
 Cleanup
 -------
