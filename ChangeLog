@@ -1,3 +1,19 @@
+2007-09-25  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.h, src/main.cc (get_osso_context): New. Function to
+	retrieve the osso_context_t variable initialized in the main
+	function from out of main.cc (N70767).
+	(Include <libosso.h>): Moved from main.cc to main.h, to define the
+	new function commented above (N70767).
+
+	* src/operations.cc (ip_suggest_backup): Changed the method to
+	invoke the osso-backup application: now using the
+	osso_application_top function instead of the run_cmd utility
+	function, to avoid having more than one instance of osso-backup
+	when pressing the 'Backup' button (N70767).
+	(ip_suggest_backup_cmd_done): Removed, since it's not needed
+	because run_cmd it's not used now to launch osso-backup (N70767).
+
 2007-09-24  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.23

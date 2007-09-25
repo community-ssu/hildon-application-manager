@@ -56,7 +56,6 @@
 extern "C" {
   #include <hildon/hildon-window.h>
   #include <hildon/hildon-note.h>
-  #include <libosso.h>
   #include <hildon/hildon-help.h>
   #include <hildon/hildon-bread-crumb-trail.h>
 }
@@ -2854,6 +2853,12 @@ with_initialized_packages (void (*cont) (void *data), void *data)
       c->next = pending_for_initial_packages;
       pending_for_initial_packages = c;
     }
+}
+
+osso_context_t *
+get_osso_context ()
+{
+  return osso_ctxt;
 }
 
 int

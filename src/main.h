@@ -28,6 +28,10 @@
 
 #include "apt-worker-proto.h"
 
+extern "C" {
+  #include <libosso.h>
+}
+
 enum detail_kind {
   no_details = 0,
   install_details = 1,
@@ -174,5 +178,7 @@ void set_dialog_help (GtkWidget *dialog, const char *topic);
 void show_help ();
 
 void with_initialized_packages (void (*cont) (void *data), void *data);
+
+osso_context_t *get_osso_context (void);
 
 #endif /* !MAIN_H */

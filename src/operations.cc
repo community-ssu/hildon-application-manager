@@ -250,7 +250,6 @@ static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
 
 static gboolean ip_suggest_backup (ip_clos *c);
-static void ip_suggest_backup_cmd_done (int status, void *data);
 static void ip_close_apps (bool res, void *data);
 
 static void ip_show_cur_details (void *data);
@@ -955,9 +954,9 @@ static gboolean
 ip_suggest_backup (ip_clos *c)
 {
   GtkWidget *dialog = NULL;
-  gint result = G_MAXINT; 
+  gint result = G_MAXINT;
   gboolean keep_asking = FALSE;
-  
+
   /* Show custom dialog if suggest_backup flag is present */
   dialog = gtk_dialog_new_with_buttons
     (_("ai_ti_create_backup"),
@@ -968,25 +967,35 @@ ip_suggest_backup (ip_clos *c)
      _("ai_bd_confirm_cancel"), GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
-	  
+
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   GtkWidget *label = gtk_label_new (_("ai_ia_backup"));
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
-		     label);	  
+		     label);
   gtk_widget_show_all (dialog);
 
   /* Use gtk_dialog_run to block execution while the dialog is
      not closed */
   do
     {
-      char *argv[] = {"/usr/bin/osso-backup", NULL};
       result = gtk_dialog_run (GTK_DIALOG (dialog));
 
       keep_asking = FALSE;
       if (result == HAM_BACKUP_RESPONSE)
 	{
- 	  run_cmd (argv, ip_suggest_backup_cmd_done, NULL);
+	  /* Launch osso-backup as a single instance */
+	  osso_context_t *osso_context = NULL;
+	  if (osso_context = get_osso_context ())
+	    {
+	      if (osso_application_top (osso_context,
+					"com.nokia.backup",
+					NULL) != OSSO_OK)
+		{
+		  what_the_fock_p ();
+		  add_log ("Could not launch backup application.\n");
+		}
+	    }
 	  keep_asking = TRUE;
 	}
     } while (keep_asking);
@@ -995,16 +1004,6 @@ ip_suggest_backup (ip_clos *c)
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
   return (result == GTK_RESPONSE_OK);
-}
-
-static void
-ip_suggest_backup_cmd_done (int status, void *data)
-{
-  if (status == -1 || !WIFEXITED (status))
-    {
-      what_the_fock_p ();
-      add_log ("Could not launch backup application.\n");
-    }
 }
 
 static void
