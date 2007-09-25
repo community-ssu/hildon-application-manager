@@ -14,6 +14,11 @@
 	(ip_suggest_backup_cmd_done): Removed, since it's not needed
 	because run_cmd it's not used now to launch osso-backup (N70767).
 
+	* src/apt-worker.cc (operation): Changed to use recursion instead
+	of an iterative loop here, in order to have a cleaner and better
+	understandable code, and taking into account that there shouldn't
+	be noticeable efficiency problems in this case.
+
 2007-09-24  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 1.9.23
