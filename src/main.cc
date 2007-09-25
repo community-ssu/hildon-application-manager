@@ -1443,7 +1443,7 @@ rpc_show_error_report (void *data)
 	     msg,
 	     _("ai_bd_ok"), GTK_RESPONSE_OK,
 	     _("ai_ni_bd_details"), 1,
-	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
+	     _("ai_bd_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
 
 	  g_free (msg);
@@ -1461,8 +1461,8 @@ rpc_show_error_report (void *data)
       dialog = hildon_note_new_confirmation_add_buttons 
 	(NULL,
 	 _("ai_ni_update_list_not_successful"),
-	 _("ai_ni_bd_retry"), 2,
-	 _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
+	 _("ai_bd_ok"), 2,
+	 _("ai_bd_cancel"), GTK_RESPONSE_CANCEL,
 	 NULL);
     }
   

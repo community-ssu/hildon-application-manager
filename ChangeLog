@@ -5,6 +5,8 @@
 	function from out of main.cc (N70767).
 	(Include <libosso.h>): Moved from main.cc to main.h, to define the
 	new function commented above (N70767).
+	(rpc_show_error_report): Replaced the ai_ni_bd_retry logical id
+	for notice dialog with ai_bd_ok (N70914).
 
 	* src/operations.cc (ip_suggest_backup): Changed the method to
 	invoke the osso-backup application: now using the
