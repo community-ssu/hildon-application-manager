@@ -1,3 +1,10 @@
+2007-09-26  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* utils/maemo-select-menu-location-main.c (run_move_to_dialog):
+	Replaced hard coded "Ok" with the "ckdg_bd_change_folder_ok"
+	logical id provided by OSSO1.1 File management in OSSO UI
+	specification (N71172).
+
 2007-09-25  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.h, src/main.cc (get_osso_context): New. Function to

@@ -403,7 +403,8 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
 					(GTK_DIALOG_MODAL
 					 | GTK_DIALOG_DESTROY_WITH_PARENT
 					 | GTK_DIALOG_NO_SEPARATOR),
-					"Ok", GTK_RESPONSE_OK,
+					_fm_("ckdg_bd_change_folder_ok"),
+					GTK_RESPONSE_OK,
 					NULL);
 
   box = gtk_hbox_new (TRUE, 12);
