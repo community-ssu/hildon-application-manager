@@ -1,3 +1,8 @@
+2007-10-01  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/log.cc (save_log): Return immediately when uri is NULL
+	(N71169).
+
 2007-09-26  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* utils/maemo-select-menu-location-main.c (run_move_to_dialog):

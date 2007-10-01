@@ -113,6 +113,13 @@ save_log (char *uri, void *data)
   GnomeVFSFileInfo info;
   GnomeVFSResult result;
 
+  if (uri == NULL)
+    {
+      /* Dialog was cancelled, do nothing.
+       */
+      return;
+    }
+
   /* XXX - Using gnome_vfs_create with exclusive == true to check for
            file existence doesn't work with obex.  Why am I not
            surprised?
