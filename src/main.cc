@@ -2184,8 +2184,12 @@ install_named_package (int state, const char *package,
   c->data = data;
 
   if (p == NULL)
-    annoy_user (_("ai_ni_error_download_missing"),
-		inp_no_package, c);
+    {
+      char *text = g_strdup_printf (_("ai_ni_error_download_missing"),
+				    package);
+      annoy_user (text, inp_no_package, c);
+      g_free (text);
+    }
   else
     {
       package_info *pi = (package_info *) p->data;

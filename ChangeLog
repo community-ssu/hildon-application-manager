@@ -1,3 +1,8 @@
+2007-09-25  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (install_named_package): Included the package name
+	with the error message for ai_ni_error_download_missing (N66899).
+
 2007-10-01  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/log.cc (save_log): Return immediately when uri is NULL
