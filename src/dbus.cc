@@ -361,7 +361,13 @@ device_name ()
   if (btname != NULL)
     return btname;
   else
-    return dgettext ("hildon-fm", "sfil_li_folder_root");
+    {
+      const char *name = getenv ("OSSO_PRODUCT_NAME");
+      if (name)
+	return name;
+
+      return "";
+    }
 }
 
 static void
