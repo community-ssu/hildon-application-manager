@@ -5,6 +5,10 @@
 
 2007-10-01  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/dbus.cc (device_name): Use OSSO_PRODUCT_INFO environment
+	variable instead of logical id when the Bluetooth name is not
+	available.
+
 	* src/log.cc (save_log): Return immediately when uri is NULL
 	(N71169).
 
