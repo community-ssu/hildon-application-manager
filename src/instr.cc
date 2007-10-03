@@ -364,9 +364,15 @@ execute_add_catalogues (GKeyFile *keyfile, const char *entry,
       /* All catalogues were filtered out (or the list was empty
 	 to begin with, which we treat the same).  That means that
 	 this installation script was not for us.
+
+	 XXX - We don't have a good name to use in this case, so we
+	       just use "".
       */
-      annoy_user (_("ai_ni_error_install_incompatible"), cont, data);
+      char *msg = g_strdup_printf (_("ai_ni_error_install_incompatible"),
+				   "");
+      annoy_user (msg, cont, data);
       xexp_free (catalogues);
+      g_free (msg);
       return;
     }
     
@@ -418,8 +424,10 @@ execute_install_package (GKeyFile *keyfile, const char *entry,
 	     to begin with, which we treat the same).  That means that
 	     this installation script was not for us.
 	  */
-	  annoy_user (_("ai_ni_error_install_incompatible"),
-		      eip_unsuccessful, c);
+	  char *msg = g_strdup_printf (_("ai_ni_error_install_incompatible"),
+				       package);
+	  annoy_user (msg, eip_unsuccessful, c);
+	  g_free (msg);
 	  return;
 	}
 
