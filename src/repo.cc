@@ -581,7 +581,10 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
   if (xexp_is (x, "catalogue") && xexp_is_list (x))
     {
       cat->enabled = !xexp_aref_bool (x, "disabled");
-      cat->readonly = xexp_aref_bool (x, "essential");
+      if (red_pill_mode)
+	cat->readonly = false;
+      else
+	cat->readonly = xexp_aref_bool (x, "essential");
       cat->foreign = false;
       cat->name = catalogue_name (x);
       cat->detail = render_catalogue_errors (x);
