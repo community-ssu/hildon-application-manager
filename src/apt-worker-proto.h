@@ -379,7 +379,8 @@ enum apt_proto_pkgtrust {
 // - alt_download_root (string). Alternative download root filesystem.
 // - http_proxy (string).        The value of the http_proxy envvar to use.
 // - https_proxy (string).       The value of the https_proxy envvar to use.
-//
+// - check_free_space (int).     Whether or not to check the
+//                               "Required-Free-Space" field of the packages
 // Response:
 //
 // - result_code (int).

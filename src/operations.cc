@@ -240,6 +240,8 @@ static void ip_legalese_response (bool res, void *data);
 static void ip_install_start (ip_clos *c);
 static void ip_install_loop (ip_clos *c);
 static void ip_install_with_info (package_info *pi, void *data, bool changed);
+static void ip_maybe_continue (bool res, void *data);
+static void ip_check_upgrade (void *data);
 static void ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec,
 				    void *data);
 static void ip_check_upgrade_loop (ip_clos *c);
@@ -495,7 +497,6 @@ ip_check_cert_loop (ip_clos *c)
   if (c->cur)
     {
       package_info *pi = (package_info *)c->cur->data;
-      printf ("CHECK CERT: %s\n", pi->name);
 
       if (pi->have_info 
 	  && pi->info.installable_status == status_not_found)
@@ -723,33 +724,74 @@ ip_install_with_info (package_info *pi, void *data, bool changed)
       if (keep_installing)
 	{
 	  if (pi->info.install_flags & pkgflag_close_apps)
-	    {
-	      ask_yes_no (_("ai_nc_close_apps"), ip_close_apps, c);
-	    }
+	    ask_yes_no (_("ai_nc_close_apps"), ip_close_apps, c);
 	  else
-	    {
-	      apt_worker_install_check (c->state, pi->name,
-					ip_check_upgrade_reply, c);
-	    }
+	    ip_check_upgrade (c);
 	}
       else
 	{
 	  /* Not enough free space */
-	  char free_string[20];
-	  char required_string[20];
-	  size_string_detailed (free_string, 20, free_space);
-	  size_string_detailed (required_string, 20,
-				pi->info.required_free_space
-				+ pi->info.download_size);
 
-	  char *msg = g_strdup_printf ("%s\n%s < %s",
-				       dgettext ("hildon-common-strings", "sfil_ni_not_enough_memory"),
-				       free_string, required_string);
-	  ip_abort_cur (c, msg, false);
+	  if (red_pill_mode)
+	    {
+	      /* Allow continuation
+	       */
+	      char *msg =
+		g_strdup_printf ("%s\n%s",
+				 dgettext ("hildon-common-strings",
+					   "sfil_ni_not_enough_memory"),
+				 _("ai_ni_continue_install"));
+	      ask_yes_no (msg, ip_maybe_continue, c);
+	      g_free (msg);
+	    }
+	  else
+	    ip_abort_cur (c, dgettext ("hildon-common-strings",
+				       "sfil_ni_not_enough_memory"),
+			  false);
 	}
     }
   else
     ip_abort_cur_with_status_details (c);
+}
+
+static void
+ip_maybe_continue (bool res, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (res)
+    ip_check_upgrade (c);
+  else
+    ip_install_next (c);
+}
+
+static void
+ip_close_apps (bool res, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (res)
+    {
+      close_apps ();
+
+      /* Make sure we are done before continuing */
+      while (gtk_events_pending ())
+	gtk_main_iteration ();
+
+      ip_check_upgrade (c);
+    }
+  else
+    ip_end (c);
+}
+
+static void
+ip_check_upgrade (void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
+
+  apt_worker_install_check (c->state, pi->name,
+			    ip_check_upgrade_reply, c);
 }
 
 static void
@@ -792,12 +834,6 @@ ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   int success = dec->decode_int ();
 
-  {
-    package_info *pi = (package_info *)(c->cur->data);
-    printf ("FLAGS: %x\n", pi->info.install_flags);
-    printf ("SPACE: %lu\n", pi->info.required_free_space);
-  }
-
   if (success)
     ip_check_upgrade_loop (c);
   else
@@ -811,8 +847,6 @@ ip_check_upgrade_loop (ip_clos *c)
     {
       char *name = (char *)(c->upgrade_names->data);
       char *version = (char *)(c->upgrade_versions->data);
-
-      printf ("CHECKRM %s %s\n", name, version);
 
       char *cmd =
 	g_strdup_printf ("/var/lib/hildon-application-manager/info/%s.checkrm",
@@ -867,8 +901,6 @@ ip_install_cur (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
-  printf ("INSTALL %s\n", pi->name);
-
   char *title = g_strdup_printf (pi->installed_version
 				 ? _("ai_nw_updating")
 				 : _("ai_nw_installing"),
@@ -877,9 +909,12 @@ ip_install_cur (void *data)
   set_entertainment_fun (NULL, -1, 0);
   g_free (title);
 
+  printf ("INSTALL %s %s\n", pi->name, c->alt_download_root);
+  
   set_log_start ();
   apt_worker_install_package (c->state, pi->name,
 			      c->alt_download_root,
+			      red_pill_mode == FALSE,
 			      pi->installed_version != NULL,
 			      ip_install_cur_reply, c);
 }
@@ -1007,25 +1042,6 @@ ip_suggest_backup (ip_clos *c)
 }
 
 static void
-ip_close_apps (bool res, void *data)
-{
-  ip_clos *c = (ip_clos *)data;
-
-  if (res)
-    {
-      close_apps ();
-
-      /* Make sure we are done before continuing */
-      while (gtk_events_pending ())
-	gtk_main_iteration ();
-
-      ip_install_cur (c);
-    }
-  else
-    ip_end (c);
-}
-
-static void
 ip_abort_cur_with_status_details (ip_clos *c)
 {
   package_info *pi = (package_info *)(c->cur->data);
@@ -1048,8 +1064,6 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 
   stop_entertaining_user ();
   c->entertaining = false;
-
-  // XXX - get the button texts correct, etc.
 
   /* Build the final string to be shown as the dialog main text */
   if (!is_last)
@@ -1546,11 +1560,14 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
   pi->have_detail_kind = install_details;
 
   if (pi->info.installable_status == status_incompatible)
-    pi->summary = g_strdup (_("ai_ni_error_install_incompatible"));
+    pi->summary = g_strdup_printf (_("ai_ni_error_install_incompatible"),
+				   pi->get_display_name (false));
   else if (pi->info.installable_status == status_incompatible_current)
-    pi->summary = g_strdup (_("ai_ni_error_n770package_incompatible"));
+    pi->summary = g_strdup_printf (_("ai_ni_error_n770package_incompatible"),
+				   pi->get_display_name (false));
   else if (pi->info.installable_status == status_corrupted)
-    pi->summary = g_strdup (_("ai_ni_error_install_corrupted"));
+    pi->summary = g_strdup_printf (_("ai_ni_error_install_corrupted"),
+				   pi->get_display_name (false));
   else
     decode_summary (dec, pi, install_details);
 

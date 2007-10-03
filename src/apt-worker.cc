@@ -3064,7 +3064,8 @@ cmd_set_catalogues ()
 static int64_t get_free_space (const char *path);
 static bool set_dir_cache_archives (const char *alt_download_root);
 
-int operation (bool only_check, const char *alt_download_root);
+int operation (bool only_check, const char *alt_download_root,
+	       bool check_free_space);
 
 /* APTCMD_INSTALL_CHECK
  *
@@ -3084,7 +3085,7 @@ cmd_install_check ()
   if (ensure_cache ())
     {
       found = mark_named_package_for_install (package);
-      result_code = operation (true, NULL);
+      result_code = operation (true, NULL, true);
       cache_reset ();
     }
 
@@ -3104,6 +3105,8 @@ cmd_install_package ()
   const char *alt_download_root = request.decode_string_in_place ();
   const char *http_proxy = request.decode_string_in_place ();
   const char *https_proxy = request.decode_string_in_place ();
+  int check_free_space = request.decode_int ();
+
   int result_code = rescode_failure;
 
   if (http_proxy)
@@ -3121,7 +3124,7 @@ cmd_install_package ()
   if (ensure_cache ())
     {
       if (mark_named_package_for_install (package))
-	result_code = operation (false, alt_download_root);
+	result_code = operation (false, alt_download_root, check_free_space);
       else
 	result_code = rescode_packages_not_found;
     }
@@ -3175,7 +3178,7 @@ cmd_remove_package ()
       if (!pkg.end ())
 	{
 	  mark_for_remove (pkg);
-	  result_code = operation (false, NULL);
+	  result_code = operation (false, NULL, false);
 	}
     }
 
@@ -3612,7 +3615,8 @@ set_dir_cache_archives (const char *alt_download_root)
  */
 
 int
-operation (bool check_only, const char *alt_download_root)
+operation (bool check_only, const char *alt_download_root,
+	   bool check_free_space)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgCacheFile &Cache = *(state->cache);
@@ -3738,7 +3742,7 @@ operation (bool check_only, const char *alt_download_root)
 	    /* Not enough space: Let's try again just ignoring
 	       the alternative place, and using default instead */
 	    set_dir_cache_archives (NULL);
-	    return operation (check_only, NULL);
+	    return operation (check_only, NULL, check_free_space);
 	  }
 	else
 	  {
@@ -3804,16 +3808,19 @@ operation (bool check_only, const char *alt_download_root)
 
   /* Compute required free space for install the packages */
   int64_t required_free_space = 0;
-  pkgDepCache &cache = *(state->cache);
-  for (pkgCache::PkgIterator pkg = cache.PkgBegin();
-       pkg.end() != true;
-       pkg++)
+  if (check_free_space)
     {
-      if (cache[pkg].Upgrade())
+      pkgDepCache &cache = *(state->cache);
+      for (pkgCache::PkgIterator pkg = cache.PkgBegin();
+	   pkg.end() != true;
+	   pkg++)
 	{
-	  pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
-	  package_record rec (ver);
-	  required_free_space += get_required_free_space (rec);
+	  if (cache[pkg].Upgrade())
+	    {
+	      pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
+	      package_record rec (ver);
+	      required_free_space += get_required_free_space (rec);
+	    }
 	}
     }
 
