@@ -758,7 +758,7 @@ start_entertaining_user ()
 	 entertainment.main_title,
 	 GTK_PROGRESS_BAR (entertainment.bar));
 
-      gtk_widget_set_usize (entertainment.dialog, 400, -1);
+      gtk_widget_set_usize (entertainment.dialog, 450, -1);
 
       {
 	GtkWidget *box = GTK_DIALOG (entertainment.dialog)->action_area;

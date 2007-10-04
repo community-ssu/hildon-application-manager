@@ -1,3 +1,9 @@
+2007-10-04  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (start_entertaining_user): Make the dialog wider to
+	fix wrong wrap of text after changes applied in	2.10.12-0osso16
+	version of gtk (N71864) (N71866).
+
 2007-10-02  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (install_named_package): Included the package name
