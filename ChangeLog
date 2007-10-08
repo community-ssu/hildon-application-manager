@@ -4,6 +4,34 @@
 	fix wrong wrap of text after changes applied in	2.10.12-0osso16
 	version of gtk (N71864) (N71866).
 
+2007-10-03  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/instr.cc (execute_add_catalogues, execute_install_package):
+	Provide the package name for the hidden "%s" in the translations.
+	* src/operations.cc (if_details_reply): Likewise.
+
+	* src/apt-worker.cc (operation): Added check_free_space parameter
+	and omit required_free_space check when it is false.  Updated all
+	callers.
+	(cmd_install_package): Get check_free_space parameter from request
+	and apss to operation.
+	* src/apt-worker-proto.h, src/apt-worker-client.h,
+	src/apt-worker-client.cc (APTCMD_INSTALL_PACKAGE,
+	apt_worker_install_package): Added check_free_space parameter to
+	protocol.
+	* src/operations.cc (ip_install_cur): Only set check_free_space
+	when not in red-pill mode.
+
+	* src/operations.cc (ip_upgrade_check, ip_maybe_continue): New.
+	(ip_close_apps): Call ip_ugrade_check instead of ip_install_cur so
+	that the checking is also done for packages with the close-apps
+	flag.
+	(ip_install_with_info): Allow continuation in red-pill mode when
+	the required-free-space test fails.
+	
+	* src/repo.cc (make_catcache_from_xexp): Never make catalogues
+	read-only in red-pill mode.
+
 2007-10-02  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (install_named_package): Included the package name
