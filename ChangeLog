@@ -1,3 +1,7 @@
+2007-10-08  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 1.9.24
+
 2007-10-04  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (start_entertaining_user): Make the dialog wider to
