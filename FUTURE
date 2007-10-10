@@ -1,0 +1,68 @@
+New features for the Hildon Application Manager
+===============================================
+
+* Automatic checking for updates in the background
+
+- APTCMD_UPDATE_PACKAGE_CACHE is renamed to APTCMD_CHECK_UPDATES and
+  made cancellable at every point, not just during downloading.  Also,
+  it should not report errors at the end of the operation but store
+  them away for later retrieval.  It should also collect the
+  information necessary for the notification plugin (number of
+  available updates, classified into "OS", "Nokia", and "Other") and
+  store it away.
+
+- The apt-worker should be able to be invoked from the command-line to
+  perform the APTCMD_CHECK_UPDATES operation.  When invoked in this
+  way, the operation should be cancellable (using SIGINT, say).  Also,
+  it refuse to run when the apt-worker is already running as the
+  backend for the AM.
+
+- When the apt-worker starts in its usual role as the backend for the
+  Application Manager, it should cancel already running instances of
+  itself that have been started from the command line.
+
+- The Application Manager should have the new "Update All" button in
+  the "Check for Updates" view.
+
+- There is a new component: the notification statusbar plugin.  The
+  notification plugin runs always and is in one of three different
+  states: invisible/visible/blinking.
+
+- The notification plugin invokes the apt-worker in comand-line mode
+  to perform APTCMD_CHECK_UPDATES 'occasionally'.  Such a operation is
+  attempted when the following conditions are all true:
+
+  - The last APTCMD_CHECK_UPDATES has stopped (successfully or not,
+    interrupted or not) 24 hours or more ago.
+
+  - There is a active WLAN connection (no Bluetooth).
+
+  When the APTCMD_CHECK_UPDATES can not be performed because the
+  apt-worker is already running as the backend for the Application
+  Manager, the notification plugin should send a message to the AM
+  that requests it to do the operation instead.
+
+- When the Application Manager receives such a request, it will
+  perform it as early as possible.  It is possible to do it when the
+  AM has been idle for at least one minute.  Idle means: no
+  interaction flow is active.
+
+- The state changes of the plugin are as follows:
+
+  - when the user taps it (to open the menu), it stops blinking.
+
+  - when a APTCMD_CHECK_UPDATES initiated by the plugin itself was
+    sucessful and updates are available and the plugin was invisible
+    before, it starts blinking.
+
+  - when the "Check for updates" view in the Application Manager is
+    opened, or when the user invokes the Application Manager from the
+    plugin menu and the "Check for Updates" view is already open, the
+    plugin becomes invisible.
+
+- The notification plugin should store its visibility state
+  permanently across reboots.
+
+- The notification plugin should be notified by apt-worker whenever
+  the information for it changes, and the plugin should then read that
+  information and reconstruct its menu.
