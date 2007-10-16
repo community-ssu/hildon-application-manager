@@ -1,3 +1,31 @@
+2007-10-16  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (cancel_updating_list): New. Used then 'Cancel'
+	button is tapped while refreshing the application list.
+	(rpc_do_it): Set the cancel_updating_list function as the callback
+	for the 'Cancel' button after the downloading process.
+	(apt_status_callback): Avoid setting the entertaining cancel
+	function to NULL here, to allow the user to cancel the updating
+	process at any point, not only during the downloading process.
+
+	* src/instr.cc (open_local_install_instructions): fixed a memory
+	leak freeing a GKeyFile variable.
+	(execute_add_catalogues): Changed to be compliant with that fix.
+	(execute_install_package): Likewise.
+
+	* src/util.cc (stop_entertaining_user): Set to NULL the
+	entertaining cancel callback and its associated data when the
+	entertaining process is finished.
+
+	* src/apt-worker.cc (APTCMD_UPDATE_PACKAGE_CACHE): renamed to
+	APTCMD_CHECK_UPDATES.
+
+	* src/apt-worker-proto.h (APTCMD_UPDATE_PACKAGE_CACHE): renamed to
+	APTCMD_CHECK_UPDATES.
+
+	* src/apt-worker-client.cc (APTCMD_UPDATE_PACKAGE_CACHE): renamed
+	to APTCMD_CHECK_UPDATES.
+
 2007-10-08  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.0.0

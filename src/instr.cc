@@ -351,7 +351,6 @@ execute_add_catalogues (GKeyFile *keyfile, const char *entry,
 			void (*cont) (void *data), void *data)
 {
   xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues", NULL);
-  g_key_file_free (keyfile);
   
   if (catalogues == NULL)
     {
@@ -402,8 +401,6 @@ execute_install_package (GKeyFile *keyfile, const char *entry,
   gchar *package = g_key_file_get_string (keyfile, entry, "package", NULL);
   xexp *catalogues = convert_catalogues (keyfile, entry, "catalogues", NULL);
   xexp *comp_catalogues = convert_compatibility_catalogues (keyfile, entry);
-
-  g_key_file_free (keyfile);
 
   eip_clos *c = new eip_clos;
   c->catalogues = catalogues;
@@ -599,8 +596,9 @@ open_local_install_instructions (const char *filename,
 			  cont, data);
   else
     {
-      g_key_file_free (keyfile);
       add_log ("Unrecognized .install file variant\n");
       annoy_user (_("ai_ni_operation_failed"), cont, data);
     }
+
+  g_key_file_free (keyfile);
 }

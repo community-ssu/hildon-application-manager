@@ -805,6 +805,9 @@ stop_entertaining_user ()
       entertainment.dialog = NULL;
       entertainment.bar = NULL;
       entertainment.cancel_button = NULL;
+
+      entertainment.cancel_callback = NULL;
+      entertainment.cancel_data = NULL;
     }
 }
 

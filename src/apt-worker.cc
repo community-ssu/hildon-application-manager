@@ -816,7 +816,7 @@ handle_request ()
       cmd_get_package_details ();
       break;
 
-    case APTCMD_UPDATE_PACKAGE_CACHE:
+    case APTCMD_CHECK_UPDATES:
       cmd_update_package_cache ();
       break;
 
@@ -2687,7 +2687,7 @@ cmd_get_package_details ()
     }
 }
 
-/* APTCMD_UPDATE_PACKAGE_CACHE
+/* APTCMD_CHECK_UPDATES
 */
 
 static xexp *

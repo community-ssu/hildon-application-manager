@@ -1323,6 +1323,12 @@ rpc_ask (void *data)
 }
 
 static void
+cancel_updating_list (void *unused)
+{
+  cancel_apt_worker ();
+}
+
+static void
 rpc_do_it (bool res, void *data)
 {
   rpc_clos *c = (rpc_clos *)data;
@@ -1330,7 +1336,7 @@ rpc_do_it (bool res, void *data)
   if (res)
     {
       set_entertainment_fun (NULL, -1, 0);
-      set_entertainment_cancel (NULL, NULL);
+      set_entertainment_cancel (cancel_updating_list, NULL);
       set_entertainment_title (_("ai_nw_updating_list"));
 
       start_entertaining_user ();
@@ -2600,7 +2606,6 @@ apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
       else
 	{
 	  set_entertainment_fun (NULL, already, total);
-	  set_entertainment_cancel (NULL, NULL);
 	}
     }
 }

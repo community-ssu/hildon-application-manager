@@ -606,7 +606,7 @@ apt_worker_update_cache (int state, apt_worker_callback *callback, void *data)
   request.encode_string (https_proxy);
   g_free (https_proxy);
   
-  call_apt_worker (APTCMD_UPDATE_PACKAGE_CACHE, state, 
+  call_apt_worker (APTCMD_CHECK_UPDATES, state, 
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
