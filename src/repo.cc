@@ -203,7 +203,7 @@ struct catcache {
   catcache *next;
   struct cat_dialog_closure *cat_dialog;
   xexp *catalogue_xexp;
-  bool enabled, readonly, foreign;
+  bool enabled, readonly, foreign, refresh_failed;
   const char *name;
   char *detail;
 };
@@ -212,7 +212,7 @@ struct cat_dialog_closure {
   catcache *caches;
   xexp *catalogues_xexp;
   bool dirty;
-  bool show_errors;
+  bool show_only_errors;
 
   catcache *selected_cat;
   GtkTreeIter selected_iter;
@@ -429,12 +429,21 @@ cat_icon_func (GtkTreeViewColumn *column,
 	       GtkTreeIter *iter,
 	       gpointer data)
 {
-  static GdkPixbuf *browser_pixbuf = NULL;
+  static GdkPixbuf *ok_browser_pixbuf = NULL;
+  static GdkPixbuf *fail_browser_pixbuf = NULL;
+  GdkPixbuf *browser_pixbuf = NULL;
 
-  if (browser_pixbuf == NULL)
+  gchar *icon_name = NULL;
+  catcache *c = NULL;
+
+  gtk_tree_model_get (model, iter, 0, &c, -1);
+
+  /* Load icon for successfully refreshed catalogues */
+  if (ok_browser_pixbuf == NULL)
     {
       GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
-      browser_pixbuf =
+
+      ok_browser_pixbuf =
 	gtk_icon_theme_load_icon (icon_theme,
 				  "qgn_list_browser",
 				  26,
@@ -442,8 +451,27 @@ cat_icon_func (GtkTreeViewColumn *column,
 				  NULL);
     }
 
-  catcache *c;
-  gtk_tree_model_get (model, iter, 0, &c, -1);
+  /* Load icon for catalogues which failed while refreshing */
+  if (fail_browser_pixbuf == NULL)
+    {
+      GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
+
+      /* FIXME: use the real icon for failing catalogues
+	 when available in the UI specs */
+      fail_browser_pixbuf =
+	gtk_icon_theme_load_icon (icon_theme,
+				  "qgn_list_gene_invalid",
+				  26,
+				  GtkIconLookupFlags (0),
+				  NULL);
+    }
+
+  /* Select icon to show */
+  if (c->refresh_failed)
+    browser_pixbuf = fail_browser_pixbuf;
+  else
+    browser_pixbuf = ok_browser_pixbuf;
+
   g_object_set (cell,
 		"pixbuf", (c && c->foreign)? NULL : browser_pixbuf,
 		"sensitive", c && c->enabled,
@@ -458,23 +486,40 @@ cat_text_func (GtkTreeViewColumn *column,
 	       gpointer data)
 {
   cat_dialog_closure *cd = (cat_dialog_closure *)data;
-  catcache *c;
+  catcache *c = NULL;
+  gchar *full_name = NULL;
 
   gtk_tree_model_get (model, iter, 0, &c, -1);
-  
-  if (cd->show_errors
-      && c != NULL
+
+  /* set 'failed catalogue' suffix when needed */
+  if (!cd->show_only_errors && c->refresh_failed)
+    {
+      full_name = g_strdup_printf("%s - %s",
+				  c->name,
+				  _("ai_ti_failed_catalogue"));
+    }
+  else
+    full_name = g_strdup (c->name);
+
+  /* set full text for element */
+  if (c != NULL
       && c->detail
       && cd->selected_cat == c)
     {
-      gchar *markup;
+      gchar *markup = NULL;
+
       markup = g_markup_printf_escaped ("%s\n<small>%s</small>",
-					c->name, c->detail);
+					full_name, c->detail);
       g_object_set (cell, "markup", markup, NULL);
+
       g_free (markup);
     }
   else
-    g_object_set (cell, "text", c? c->name : NULL, NULL);
+    {
+	g_object_set (cell, "text", c? full_name : NULL, NULL);
+    }
+
+  g_free (full_name);
 }
 
 static void
@@ -537,14 +582,14 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
       gtk_widget_set_sensitive (c->edit_button,
 				(!new_selected->readonly
 				 && !new_selected->foreign));
-      if (!c->show_errors)
+      if (!c->show_only_errors)
 	gtk_widget_set_sensitive (c->delete_button,
 				  !new_selected->readonly);
     }
   else
     {
       gtk_widget_set_sensitive (c->edit_button, FALSE);
-      if (!c->show_errors)
+      if (!c->show_only_errors)
 	gtk_widget_set_sensitive (c->delete_button, FALSE);
     }
 }
@@ -578,8 +623,11 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
   catcache *cat = new catcache;
   cat->catalogue_xexp = x;
   cat->cat_dialog = c;
+  cat->refresh_failed = false;
   if (xexp_is (x, "catalogue") && xexp_is_list (x))
     {
+      xexp *errors = NULL;
+
       cat->enabled = !xexp_aref_bool (x, "disabled");
       if (red_pill_mode)
 	cat->readonly = false;
@@ -588,6 +636,11 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
       cat->foreign = false;
       cat->name = catalogue_name (x);
       cat->detail = render_catalogue_errors (x);
+
+      /* Check for errors during the last refresh */
+      errors = xexp_aref (x, "errors");
+      if (errors != NULL && xexp_first (errors) != NULL)
+	cat->refresh_failed = true;
     }
   else if (xexp_is (x, "source") && xexp_is_text (x))
     {
@@ -644,7 +697,7 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
 		      ? xexp_aref (catx, "errors")
 		      : NULL);
 
-      if (c->show_errors
+      if (c->show_only_errors
 	  && (errors == NULL
 	      || xexp_first (errors) == NULL))
 	continue;
@@ -692,8 +745,6 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
   GtkTreeSelection *tree_selection =
     gtk_tree_view_get_selection (GTK_TREE_VIEW (c->tree));
   gtk_tree_selection_select_iter (tree_selection, &c->selected_iter);
-  g_signal_emit_by_name (GTK_TREE_MODEL (c->store), "changed",
-			 tree_selection, c);
 
   *catptr = NULL;
 
@@ -850,7 +901,7 @@ insensitive_cat_delete_press (GtkButton *button, gpointer data)
 
 void
 show_catalogue_dialog (xexp *catalogues,
-		       bool show_errors,
+		       bool show_only_errors,
 		       void (*cont) (bool changed, void *data),
 		       void *data)
 {
@@ -860,7 +911,7 @@ show_catalogue_dialog (xexp *catalogues,
   c->caches = NULL;
   c->catalogues_xexp = catalogues;
   c->dirty = false;
-  c->show_errors = show_errors;
+  c->show_only_errors = show_only_errors;
   c->selected_cat = NULL;
   c->cont = cont;
   c->data = data;
@@ -869,7 +920,7 @@ show_catalogue_dialog (xexp *catalogues,
 
   GtkWidget *dialog = gtk_dialog_new ();
 
-  if (show_errors)
+  if (show_only_errors)
     gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_failed_repositories"));
   else
     gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_repository"));
@@ -878,7 +929,7 @@ show_catalogue_dialog (xexp *catalogues,
   
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
-  if (!show_errors)
+  if (!show_only_errors)
     gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			   _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
 
@@ -886,7 +937,7 @@ show_catalogue_dialog (xexp *catalogues,
     gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			   _("ai_bd_repository_edit"), REPO_RESPONSE_EDIT);
 
-  if (!show_errors)
+  if (!show_only_errors)
     c->delete_button =
       gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			     _("ai_bd_repository_delete"), REPO_RESPONSE_REMOVE);
@@ -896,7 +947,7 @@ show_catalogue_dialog (xexp *catalogues,
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
   
   gtk_widget_set_sensitive (c->edit_button, FALSE); 
-  if (!show_errors)
+  if (!show_only_errors)
     {
       gtk_widget_set_sensitive (c->delete_button, FALSE);
       g_signal_connect (c->delete_button, "insensitive_press",

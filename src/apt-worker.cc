@@ -138,6 +138,9 @@ using namespace std;
 #define DEFAULT_DIR_CACHE_ARCHIVES "archives/"
 #define ALT_DIR_CACHE_ARCHIVES ".apt-archive-cache/"
 
+/* File to store errors about refreshed catalogues */
+#define FAILED_CATALOGUES_FILE "/var/lib/hildon-application-manager/failed_catalogues.xml"
+
 /* You know what this means.
  */
 //#define DEBUG
@@ -150,7 +153,6 @@ using namespace std;
    database if necessary.
 */
 bool flag_break_locks = false;
-
 
 /** GENERAL UTILITIES
  */
@@ -710,6 +712,20 @@ void cmd_get_file_details ();
 void cmd_install_file ();
 void cmd_save_backup_data ();
 void cmd_get_system_update_packages ();
+
+
+/** MANAGEMENT FOR FAILED CATALOGUES LOG FILE
+ */
+
+/* Since it's needed to save the full report (including errors) after
+   any refresh of the catalogues list, three functions where implemented
+   to take care of the writting/reading to/from disk process 
+*/
+
+static void save_failed_catalogues (xexp *failed_catalogues);
+static xexp *load_failed_catalogues ();
+static void clean_failed_catalogues ();
+
 
 /* Commands can request the package cache to be refreshed by calling
    NEED_CACHE_INIT before they return.  The cache will then be
@@ -2882,6 +2898,9 @@ update_package_cache (xexp *catalogues_for_report)
 static void
 reset_catalogue_errors (xexp *catalogues)
 {
+  /* Clean the catalogues errors */
+  clean_failed_catalogues ();
+
   if (catalogues == NULL)
     return;
 
@@ -2900,7 +2919,7 @@ cmd_update_package_cache ()
       setenv ("http_proxy", http_proxy, 1);
       DBG ("http_proxy: %s", http_proxy);
     }
-  
+
   if (https_proxy)
     {
       setenv ("https_proxy", https_proxy, 1);
@@ -2916,6 +2935,12 @@ cmd_update_package_cache ()
   reset_catalogue_errors (catalogues);
 
   int result_code = update_package_cache (catalogues);
+
+  if (result_code != rescode_success)
+    {
+      /* Save errors to disk */
+      save_failed_catalogues (catalogues);
+    }
 
   response.encode_xexp (catalogues);
   response.encode_int (result_code);
@@ -3018,16 +3043,21 @@ void
 cmd_get_catalogues ()
 {
   xexp *catalogues;
-  
-  catalogues = xexp_read_file (CATALOGUE_CONF);
-  
+
+  /* First check if there's an errors file after the last refresh */
+  catalogues = load_failed_catalogues ();
+
+  /* If there's no error file, check sources list files, as usual */
+  if (catalogues == NULL)
+    catalogues = xexp_read_file (CATALOGUE_CONF);
+
   string Main = _config->FindFile("Dir::Etc::sourcelist");
   if (FileExists(Main) == true)
-    append_system_sources (catalogues, Main);   
+    append_system_sources (catalogues, Main);
 
   string Parts = _config->FindDir("Dir::Etc::sourceparts");
   if (FileExists(Parts) == true)
-    append_system_source_dir (catalogues, Parts);   
+    append_system_source_dir (catalogues, Parts);
 
   response.encode_xexp (catalogues);
   xexp_free (catalogues);
@@ -4387,4 +4417,49 @@ cmd_save_backup_data ()
       xexp_write_file (BACKUP_PACKAGES, packages);
       xexp_free (packages);
     }
+}
+
+
+/* MANAGEMENT FOR FAILED CATALOGUES LOG FILE */
+
+static int
+compare_failed_catalogues (xexp *cat1, xexp *cat2)
+{
+  xexp *errors = xexp_aref (cat1, "errors");
+
+  /* Regardless of the second catalogue having got errors, if the
+     first one has got, show it after the second one */
+  if (errors != NULL && xexp_first (errors) != NULL)
+    return 1;
+
+  /* If no errors were found, leave the order as is */
+  return -1;
+}
+
+static void
+save_failed_catalogues (xexp *failed_catalogues)
+{
+  if (failed_catalogues)
+    {
+      xexp *sorted_catalogues =
+	xexp_list_sort (failed_catalogues, compare_failed_catalogues);
+
+      xexp_write_file (FAILED_CATALOGUES_FILE, sorted_catalogues);
+    }
+}
+
+static xexp *
+load_failed_catalogues ()
+{
+  xexp *failed_catalogues = NULL;
+
+  failed_catalogues = xexp_read_file (FAILED_CATALOGUES_FILE);
+  return failed_catalogues;
+}
+
+static void
+clean_failed_catalogues ()
+{
+  if (unlink (FAILED_CATALOGUES_FILE) < 0)
+    log_stderr ("error unlinking %s: %m", FAILED_CATALOGUES_FILE);
 }

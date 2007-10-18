@@ -1,3 +1,46 @@
+2007-10-18  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/repo.h, src/repo.cc (struct catcache): Added a new field
+	('refresh_failed') to flag catalogues which has been failed during
+	the last refresh process.
+	(struct cat_dialog_closure): Changed field 'show_errors' into
+	'show_only_errors', since in Diablo version of HAM errors will
+	also be shown in the catalogues dialog. Updated callers.
+	(show_catalogue_dialog): Changed parameter 'show_errors' into
+	'show_only_errors' (Updated also in repo.h). Same reason.
+	(cat_icon_func): Considered a new possible icon to show in the
+	catalogues dialog which catalogues failed while refreshing.
+	(cat_text_func): Added a new 'failed to refresh' suffix to failed
+	catalogues in the catalogues dialog.
+	(make_catcache_from_xexp): Set a proper value to the new
+	'refresh_failed' field in struct catcache for each package.
+	(set_cat_lits): Fixed a mistake using g_signal_emit_by_name when
+	it was not even needed to set the focus in a catalog.
+
+	* src/xexp.h, src/xexp.c (xexp_list_sort): New. Function that
+	sorts a xexp list as it's specified by a specific comparison
+	function passed as the second parameter.
+
+	* src/apt-worker.cc (FAILED_CATALOGUES_FILE): New define pointing
+	to a file under /var/lib/hildon-application-manager which will
+	store the errors report after refreshing all the catalogues.
+	(save_failed_catalogues): New. Function to store a failed
+	catalogues report into disk.
+	(load_failed_catalogues): New. Function to load a failed
+	catalogues report from disk. If not available, it returns NULL.
+	(clean_failed_catalogues): New. Clean the failed catalogues report
+	by deleting the file from disk.
+	(compare_failed_catalogues): New. Used by save_failed_catalogues
+	to sort the failed catalogues report before storing it into disk,
+	by using the new xexp_list_sort function.
+	(reset_catalogue_errors): Clean a previously existing failed
+	catalogues report when calling to this function.
+	(cmd_update_package_cache): Save a failed catalogues report to
+	disk when the application catalogue is not successfully refreshed.
+	(cmd_get_catalogues): Try to load a failed catalogues report from
+	disk, if it exists. If not, proceed by reading the usual
+	catalogues file.
+
 2007-10-16  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (cancel_updating_list): New. Used then 'Cancel'

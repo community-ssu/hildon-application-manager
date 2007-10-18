@@ -296,6 +296,7 @@ void xexp_free (xexp *x);
 /* Lists
  */
 xexp *xexp_list_new (const char *tag);
+xexp *xexp_list_sort (xexp *x, int (*xexp_compare_func) (xexp *x1, xexp *x2));
 int xexp_is_list (xexp *x);
 xexp *xexp_first (xexp *x);
 int xexp_length (xexp *x);

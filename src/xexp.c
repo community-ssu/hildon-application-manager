@@ -112,6 +112,58 @@ xexp_list_new (const char *tag)
   return x;
 }
 
+xexp *
+xexp_list_sort (xexp *x,
+		int (*xexp_compare_func) (xexp *x1, xexp *x2))
+{
+  /* If ist not a list, return NULL */
+  if (!xexp_is_list (x))
+    return NULL;
+
+  /* Build a GSList to sort it */
+  GSList *x_slist = NULL;
+  xexp *x_item = NULL;
+
+  for (x_item = x->first; x_item; x_item = x_item->rest)
+    x_slist = g_slist_prepend (x_slist, x_item);
+
+  x_slist = g_slist_reverse (x_slist);
+
+  if (x_slist)
+    {
+      GSList *l_item = NULL;
+      xexp *x_item1 = NULL;
+      xexp *x_item2 = NULL;
+
+      /* Sort the list */
+      x_slist = g_slist_sort (x_slist, xexp_compare_func);
+
+      /* Rebuild the xexp expression from the sorted list */
+
+      /* Get first element and update root xexp element to point to it */
+      x_item1 = (xexp *)x_slist->data;
+      x->first = x_item1;
+
+      /* Reassign 'rest' links with new order */
+      for (l_item = g_slist_next (x_slist);
+	   l_item;
+	   l_item = g_slist_next (l_item))
+	{
+	  x_item2 = (xexp *)l_item->data;
+	  x_item1->rest = x_item2;
+	  x_item1 = x_item2;
+	}
+
+      /* Finish the list */
+      x_item1->rest = NULL;
+
+      g_slist_free (x_slist);
+    }
+
+  /* Return sorted xexp expression */
+  return x;
+}
+
 int
 xexp_is_list (xexp *x)
 {

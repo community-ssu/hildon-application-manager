@@ -31,7 +31,7 @@ extern "C" {
 void show_catalogue_dialog_flow ();
 
 void show_catalogue_dialog (xexp *catalogues,
-			    bool show_errors,
+			    bool show_only_errors,
 			    void (*cont) (bool changed, void *data),
 			    void *data);
 
