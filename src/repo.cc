@@ -434,6 +434,7 @@ cat_icon_func (GtkTreeViewColumn *column,
   GdkPixbuf *browser_pixbuf = NULL;
 
   gchar *icon_name = NULL;
+  cat_dialog_closure *cd = (cat_dialog_closure *)data;
   catcache *c = NULL;
 
   gtk_tree_model_get (model, iter, 0, &c, -1);
@@ -466,8 +467,8 @@ cat_icon_func (GtkTreeViewColumn *column,
 				  NULL);
     }
 
-  /* Select icon to show */
-  if (c->refresh_failed)
+  /* Select icon to show when showing the application catalogue dialog */
+  if (!cd->show_only_errors && c->refresh_failed)
     browser_pixbuf = fail_browser_pixbuf;
   else
     browser_pixbuf = ok_browser_pixbuf;
