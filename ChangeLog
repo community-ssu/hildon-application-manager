@@ -1,5 +1,28 @@
 2007-10-18  Mario Sanchez Prada  <msanchez@maemo.org>
 
+	* src/xexp.h, src/xexp.c (xexp_list_map): New. Function that maps
+	a xexp list as it's specified by a mapping function passed as the
+	second parameter. It returns a new xexp list.
+	(xexp_list_filter): New. Function that filters a xexp list as it's
+	specified by a filtering function passed as the second
+	parameter. It returns a new xexp list.
+
+	* src/apt-worker.cc (cmd_set_catalogues): Filter the xexp
+	structure with catalogues configuration before saving it to disk,
+	not to contain error details for each failed catalogue.
+	(cmd_set_catalogues): Also filter the xexp structure generated
+	from the catalogues configuration file, just in case it still had
+	error details for some of the available catalogues.
+	(map_catalogue_error_details): New. Mapping function to be passed
+	to the new xexp_list_map function, to remove errors details parts
+	from catalogues configuration xexp structures when needed.
+	(save_failed_catalogues): Added an extra check before saving
+	failed catalogues report to disk.
+	(clean_failed_catalogues): Added an extra check in order not to
+	log an error when trying to unlink a non existing file.
+
+2007-10-18  Mario Sanchez Prada  <msanchez@maemo.org>
+
 	* src/repo.h, src/repo.cc (struct catcache): Added a new field
 	('refresh_failed') to flag catalogues which has been failed during
 	the last refresh process.

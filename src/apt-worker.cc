@@ -726,6 +726,11 @@ static void save_failed_catalogues (xexp *failed_catalogues);
 static xexp *load_failed_catalogues ();
 static void clean_failed_catalogues ();
 
+/** MAPPING FUNCTION TO FILTER ERROR DETAILS 
+    IN CATALOGUES CONFIGURATION FILE
+*/
+static xexp *map_catalogue_error_details (xexp *x);
+
 
 /* Commands can request the package cache to be refreshed by calling
    NEED_CACHE_INIT before they return.  The cache will then be
@@ -3049,7 +3054,12 @@ cmd_get_catalogues ()
 
   /* If there's no error file, check sources list files, as usual */
   if (catalogues == NULL)
-    catalogues = xexp_read_file (CATALOGUE_CONF);
+    {
+      /* Map the catalogue report to delete error reports from it */
+      xexp *tmp_catalogues = xexp_read_file (CATALOGUE_CONF);
+      catalogues = xexp_list_map (tmp_catalogues, map_catalogue_error_details);
+      xexp_free (tmp_catalogues);
+    }
 
   string Main = _config->FindFile("Dir::Etc::sourcelist");
   if (FileExists(Main) == true)
@@ -3076,15 +3086,23 @@ cmd_set_catalogues ()
 
   if (AptWorkerState::IsTemp ())
     {
-      success = 
+      success =
 	(xexp_write_file (TEMP_CATALOGUE_CONF, catalogues)
 	 && write_sources_list (TEMP_APT_SOURCE_LIST, catalogues));
     }
   else
     {
+      /* Map the catalogue report to delete error reports from it */
+      xexp *mapped_catalogues =
+	xexp_list_map (catalogues, map_catalogue_error_details);
+
+      /* Write the new sources list to disk */
       success =
-	(xexp_write_file (CATALOGUE_CONF, catalogues)
+	(xexp_write_file (CATALOGUE_CONF, mapped_catalogues)
 	 && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
+
+      /* Free memory */
+      xexp_free (mapped_catalogues);
     }
 
   xexp_free (catalogues);
@@ -4444,7 +4462,8 @@ save_failed_catalogues (xexp *failed_catalogues)
       xexp *sorted_catalogues =
 	xexp_list_sort (failed_catalogues, compare_failed_catalogues);
 
-      xexp_write_file (FAILED_CATALOGUES_FILE, sorted_catalogues);
+      if (sorted_catalogues)
+	xexp_write_file (FAILED_CATALOGUES_FILE, sorted_catalogues);
     }
 }
 
@@ -4460,6 +4479,20 @@ load_failed_catalogues ()
 static void
 clean_failed_catalogues ()
 {
-  if (unlink (FAILED_CATALOGUES_FILE) < 0)
+  if (unlink (FAILED_CATALOGUES_FILE) < 0 && errno != ENOENT)
     log_stderr ("error unlinking %s: %m", FAILED_CATALOGUES_FILE);
+}
+
+static xexp *
+map_catalogue_error_details (xexp *x)
+{
+  xexp *mapped_x = xexp_copy (x);
+  xexp *errors_item = xexp_aref (mapped_x, "errors");
+
+  /* If containing errors details, remove errors */
+  if (errors_item)
+    xexp_del (mapped_x, errors_item);
+
+  /* Return the mapped xexp */
+  return mapped_x;
 }

@@ -116,7 +116,7 @@ xexp *
 xexp_list_sort (xexp *x,
 		int (*xexp_compare_func) (xexp *x1, xexp *x2))
 {
-  /* If ist not a list, return NULL */
+  /* If it's not a list, return NULL */
   if (!xexp_is_list (x))
     return NULL;
 
@@ -162,6 +162,82 @@ xexp_list_sort (xexp *x,
 
   /* Return sorted xexp expression */
   return x;
+}
+
+xexp *
+xexp_list_filter (xexp *x, int (*xexp_filter_func) (xexp *x))
+{
+  /* If it's not a list, return NULL */
+  if (!xexp_is_list (x))
+    return NULL;
+
+  xexp *filtered_xexp = NULL;
+  xexp *last_inserted_item = NULL;
+  xexp *x_item = NULL;
+
+  /* Create a new list */
+  filtered_xexp = xexp_list_new (x->tag);
+
+  /* Fill the list */
+  for (x_item = x->first; x_item; x_item = x_item->rest)
+    {
+      if (xexp_filter_func (x_item))
+	{
+	  xexp *valid_item = xexp_copy (x_item);
+
+	  /* Check if it's the first item or not */
+	  if (last_inserted_item == NULL)
+	    filtered_xexp->first = valid_item;
+	  else
+	    last_inserted_item->rest = valid_item;
+
+	  last_inserted_item = valid_item;
+	}
+    }
+
+  /* Finish the list */
+  if (last_inserted_item)
+    last_inserted_item->rest = NULL;
+
+  return filtered_xexp;
+}
+
+xexp *
+xexp_list_map (xexp *x, xexp * (*xexp_map_func) (xexp *x))
+{
+  /* If it's not a list, return NULL */
+  if (!xexp_is_list (x))
+    return NULL;
+
+  xexp *mapped_xexp = NULL;
+  xexp *last_inserted_item = NULL;
+  xexp *x_item = NULL;
+
+  /* Create a new list */
+  mapped_xexp = xexp_list_new (x->tag);
+
+  /* Fill the list */
+  for (x_item = x->first; x_item; x_item = x_item->rest)
+    {
+      xexp *mapped_item = xexp_map_func (x_item);
+
+      if (mapped_item)
+	{
+	  /* Check if it's the first item or not */
+	  if (last_inserted_item == NULL)
+	    mapped_xexp->first = mapped_item;
+	  else
+	    last_inserted_item->rest = mapped_item;
+
+	  last_inserted_item = mapped_item;
+	}
+    }
+
+  /* Finish the list */
+  if (last_inserted_item)
+    last_inserted_item->rest = NULL;
+
+  return mapped_xexp;
 }
 
 int

@@ -137,6 +137,33 @@
 
    Return true when X is a list xexp, false otherwise.
 
+   - xexp *xexp_list_sort (xexp *X, int (*xexp_compare_func) (xexp *X1, xexp *X2));
+
+   Sorts the X xexp list as it's specified by a specific comparison
+   function passed as parameter: xexp_compare_func. This function
+   should return a negative value if x1 < x2, zero if x1 = x2, and a
+   positive value if x1 > x2, where the "smaller" xexp value would be
+   first in the sorted list returned. It doesn't create a new xexp
+   list, it returns the same elements sorted, without allocating new
+   memory neither for them nor for the xexp list itself. Returns NULL
+   if X is not a xexp list.
+
+   - xexp *xexp_list_filter (xexp *X, int (*xexp_filter_func) (xexp *Y));
+
+   Filters the X xexp list as it's specified by a filtering function
+   passed as the second parameter: xexp_filter_func. This function
+   should return zero when the element being checked is not valid for
+   the new filtered list, and something different than zero when it is.
+   It returns a new allocated xexp list. Returns NULL if X is not a
+   xexp list.
+
+   - xexp *xexp_list_map (xexp *X, xexp * (*xexp_map_func) (xexp *Y));
+
+   Maps the X xexp list as it's specified by a mapping function passed
+   as the second parameter: xexp_map_func. This function should return
+   a new allocated version of the xexp element being mapped. It returns
+   a new allocated xexp list. Returns NULL if X is not a xexp list.
+
    - xexp *xexp_first (xexp *X)
 
    Return the first child of X.  X must be a list xexp.  The returned
@@ -297,6 +324,8 @@ void xexp_free (xexp *x);
  */
 xexp *xexp_list_new (const char *tag);
 xexp *xexp_list_sort (xexp *x, int (*xexp_compare_func) (xexp *x1, xexp *x2));
+xexp *xexp_list_filter (xexp *x, int (*xexp_filter_func) (xexp *x));
+xexp *xexp_list_map (xexp *x, xexp * (*xexp_map_func) (xexp *x));
 int xexp_is_list (xexp *x);
 xexp *xexp_first (xexp *x);
 int xexp_length (xexp *x);
