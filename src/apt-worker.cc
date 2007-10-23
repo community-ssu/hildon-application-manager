@@ -138,8 +138,13 @@ using namespace std;
 #define DEFAULT_DIR_CACHE_ARCHIVES "archives/"
 #define ALT_DIR_CACHE_ARCHIVES ".apt-archive-cache/"
 
-/* File to store errors about refreshed catalogues */
-#define FAILED_CATALOGUES_FILE "/var/lib/hildon-application-manager/failed_catalogues.xml"
+/* Files related to the 'check for updates' process */
+#define FAILED_CATALOGUES_FILE "/var/lib/hildon-application-manager/failed_catalogues"
+#define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available_updates"
+
+/* Domain names associated with "OS" and "Nokia" updates */
+#define OS_UPDATES_DOMAIN_NAME "nokia-system"
+#define NOKIA_UPDATES_DOMAIN_NAME "nokia-certified"
 
 /* You know what this means.
  */
@@ -2076,6 +2081,9 @@ cmd_get_package_list ()
   bool only_available = request.decode_int ();
   const char *pattern = request.decode_string_in_place ();
   bool show_magic_sys = request.decode_int ();
+  int os_count = 0;
+  int nokia_count = 0;
+  int other_count = 0;
 
   if (!ensure_cache ())
     {
@@ -2171,6 +2179,36 @@ cmd_get_package_list ()
 	encode_version_info (1, candidate, false);
       else
 	encode_empty_version_info (false);
+
+      // Save it in list if it's an update for an installed package
+      if (!candidate.end () && !installed.end() && installed.CompareVer (candidate) < 0)
+	{
+	  int i = 0;
+	  int domain_index = state->extra_info[pkg->ID].cur_domain;
+
+	  /* Count the number of domains */
+	  while (domains[i].name != NULL)
+	    i++;
+
+	  if (domain_index >= 0 && domain_index < i)
+	    {
+	      const char *domain_name = domains[domain_index].name;
+
+	      package_record rec (candidate);
+	      int flags = get_flags (rec);
+
+	      /* Update right counter */
+	      if ((flags & pkgflag_system_update) ||
+		  !strcmp(OS_UPDATES_DOMAIN_NAME, domain_name))
+		os_count++;
+	      else if (!strcmp(NOKIA_UPDATES_DOMAIN_NAME, domain_name))
+		nokia_count++;
+	      else
+		other_count++;
+	    }
+	  else
+	    other_count++;
+	}
     }
 
   if (show_magic_sys)
@@ -2199,7 +2237,47 @@ cmd_get_package_list ()
       response.encode_string ("Operating System");
       response.encode_string ("Updates to all system packages");
       response.encode_string (NULL);
+
+      /* Update information for the xexp structure */
+      os_count++;
     }
+
+  /* Write xexp to file, or delete it if there are no updates */
+  if ((os_count + nokia_count + other_count) > 0)
+    {
+      gchar *str_count = NULL;
+
+      /* Prepare xexp structure to save info about updates to disk */
+      xexp *x_updates = xexp_list_new ("updates");
+      xexp *x_os = xexp_list_new ("os-updates");
+      xexp *x_nokia = xexp_list_new ("nokia-updates");
+      xexp *x_other = xexp_list_new ("other-updates");
+
+      xexp_cons (x_updates, x_other);
+      xexp_cons (x_updates, x_nokia);
+      xexp_cons (x_updates, x_os);
+
+      /* Save updates counters into the xexp structure */
+      str_count = g_strdup_printf ("%d", os_count);
+      xexp_cons (x_os, xexp_text_new ("count", str_count));
+      g_free (str_count);
+
+      str_count = g_strdup_printf ("%d", nokia_count);
+      xexp_cons (x_nokia, xexp_text_new ("count", str_count));
+      g_free (str_count);
+
+      str_count = g_strdup_printf ("%d", other_count);
+      xexp_cons (x_other, xexp_text_new ("count", str_count));
+      g_free (str_count);
+
+      /* Write to disk */
+      xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
+
+      /* Free xexp structure */
+      xexp_free (x_updates);
+    }
+  else if (unlink (AVAILABLE_UPDATES_FILE) < 0 && errno != ENOENT)
+    log_stderr ("error unlinking %s: %m", AVAILABLE_UPDATES_FILE);
 }
 
 void
@@ -4436,7 +4514,6 @@ cmd_save_backup_data ()
       xexp_free (packages);
     }
 }
-
 
 /* MANAGEMENT FOR FAILED CATALOGUES LOG FILE */
 

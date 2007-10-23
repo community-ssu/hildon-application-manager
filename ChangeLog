@@ -1,4 +1,18 @@
-2007-10-18  Mario Sanchez Prada  <msanchez@maemo.org>
+2007-10-23  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker.cc (FAILED_CATALOGUES_FILE): Removed '.xml'
+	suffix from the filename.
+	(AVAILABLE_UPDATES_FILE): New define pointing to a file under
+	/var/lib/hildon-application-manager which will store information
+	about available updates for the installed packages.
+	(OS_UPDATES_DOMAIN_NAME): New define. Name of the domain which is
+	supposed to contain updates for the OS.
+	(NOKIA_UPDATES_DOMAIN_NAME): New define. Name of the domain which
+	is supposed to contain updates for Nokia certified applications.
+	(cmd_get_package_list): Modified to also write the file pointed by
+	AVAILABLE_UPDATES_FILE with information about available updates.
+
+2007-10-19  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/xexp.h, src/xexp.c (xexp_list_map): New. Function that maps
 	a xexp list as it's specified by a mapping function passed as the
