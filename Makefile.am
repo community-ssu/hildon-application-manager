@@ -20,6 +20,8 @@ sudoers_DATA = hildon-application-manager.sudoers
 
 etcdir = $(sysconfdir)/hildon-application-manager/
 
+vardir = /var/lib/hildon-application-manager/
+
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(etcdir)
 	if [ ! -f $(DESTDIR)$(etcdir)/catalogues ]; then \
@@ -28,6 +30,10 @@ install-data-local:
 	if [ ! -f $(DESTDIR)$(etcdir)/domains ]; then \
           echo "<domains/>" >$(DESTDIR)$(etcdir)/domains; \
         fi
+	$(mkinstalldirs) $(vardir)
+	if [ ! -f $(vardir)/available_updates ]; then \
+          echo "<updates/>" >$(vardir)/available_updates; \
+        fi
 
 uninstall-local:
 	if [ -f $(DESTDIR)$(etcdir)/catalogues ]; then \
@@ -35,6 +41,9 @@ uninstall-local:
         fi
 	if [ -f $(DESTDIR)$(etcdir)/domains ]; then \
           rm $(DESTDIR)$(etcdir)/domains; \
+        fi
+	if [ -f $(vardir)/available_updates ]; then \
+          rm $(vardir)/available_updates; \
         fi
 
 EXTRA_DIST = hildon-application-manager.desktop			\

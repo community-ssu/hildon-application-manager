@@ -12,6 +12,9 @@
 	(cmd_get_package_list): Modified to also write the file pointed by
 	AVAILABLE_UPDATES_FILE with information about available updates.
 
+	* Makefile.am: Added install-local and uninstall-local rules to
+	properly create and remove the new AVAILABLE_UPDATES_FILE file.
+
 2007-10-19  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/xexp.h, src/xexp.c (xexp_list_map): New. Function that maps

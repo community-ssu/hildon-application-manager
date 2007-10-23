@@ -2242,33 +2242,48 @@ cmd_get_package_list ()
       os_count++;
     }
 
-  /* Write xexp to file, or delete it if there are no updates */
+  /* Write xexp to file, or do nothing if there are no updates */
   if ((os_count + nokia_count + other_count) > 0)
     {
       gchar *str_count = NULL;
 
       /* Prepare xexp structure to save info about updates to disk */
       xexp *x_updates = xexp_list_new ("updates");
-      xexp *x_os = xexp_list_new ("os-updates");
-      xexp *x_nokia = xexp_list_new ("nokia-updates");
-      xexp *x_other = xexp_list_new ("other-updates");
 
-      xexp_cons (x_updates, x_other);
-      xexp_cons (x_updates, x_nokia);
-      xexp_cons (x_updates, x_os);
+      /* Save updates counters ( > 0 ) into the xexp structure */
 
-      /* Save updates counters into the xexp structure */
-      str_count = g_strdup_printf ("%d", os_count);
-      xexp_cons (x_os, xexp_text_new ("count", str_count));
-      g_free (str_count);
+      /* Others updates */
+      if (other_count > 0)
+	{
+	  xexp *x_other = xexp_list_new ("other-updates");
+	  xexp_cons (x_updates, x_other);
 
-      str_count = g_strdup_printf ("%d", nokia_count);
-      xexp_cons (x_nokia, xexp_text_new ("count", str_count));
-      g_free (str_count);
+	  str_count = g_strdup_printf ("%d", other_count);
+	  xexp_cons (x_other, xexp_text_new ("count", str_count));
+	  g_free (str_count);
+	}
 
-      str_count = g_strdup_printf ("%d", other_count);
-      xexp_cons (x_other, xexp_text_new ("count", str_count));
-      g_free (str_count);
+      /* Nokia updates */
+      if (nokia_count > 0)
+	{
+	  xexp *x_nokia = xexp_list_new ("nokia-updates");
+	  xexp_cons (x_updates, x_nokia);
+
+	  str_count = g_strdup_printf ("%d", nokia_count);
+	  xexp_cons (x_nokia, xexp_text_new ("count", str_count));
+	  g_free (str_count);
+	}
+
+      /* OS updates */
+      if (os_count > 0)
+	{
+	  xexp *x_os = xexp_list_new ("os-updates");
+	  xexp_cons (x_updates, x_os);
+
+	  str_count = g_strdup_printf ("%d", os_count);
+	  xexp_cons (x_os, xexp_text_new ("count", str_count));
+	  g_free (str_count);
+	}
 
       /* Write to disk */
       xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
@@ -2276,8 +2291,6 @@ cmd_get_package_list ()
       /* Free xexp structure */
       xexp_free (x_updates);
     }
-  else if (unlink (AVAILABLE_UPDATES_FILE) < 0 && errno != ENOENT)
-    log_stderr ("error unlinking %s: %m", AVAILABLE_UPDATES_FILE);
 }
 
 void
