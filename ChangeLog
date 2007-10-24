@@ -1,3 +1,23 @@
+2007-10-24  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/update-notifier.c, src/update-notifier.h,
+	src/hildon-update-notifier.desktop: New.
+	* src/Makefile.am: Build and install them.
+	* configure.ac: Check for what they need.
+	
+	* src/util.cc (set_update_notifier_visibility): New.
+	* src/main.cc (show_check_for_updates_view): New, call
+	set_update_notifier_visibility.
+	(make_main_view): Use show_check_for_updates_view for the "Check
+	for Updates" button.
+
+	* src/apt-worker.cc (FAILED_CATALOGUES_FILE,
+	AVAILABLE_UPDATES_FILE): Use a dash to separate words, to keep the
+	style.
+
+	* src/main.cc (get_next_package_info): Do not unref PI when
+	getting its info failed, there is no ref for this (N72881).
+
 2007-10-24  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker.cc (update_available_updates_file): New. Specific
