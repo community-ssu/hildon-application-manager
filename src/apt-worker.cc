@@ -146,6 +146,12 @@ using namespace std;
 #define OS_UPDATES_DOMAIN_NAME "nokia-system"
 #define NOKIA_UPDATES_DOMAIN_NAME "nokia-certified"
 
+/* Available operations for command line mode */
+enum cmdline_commands {
+  CMDLINE_NOOP = 0,
+  CMDLINE_CHECK_UPDATES,
+};
+
 /* You know what this means.
  */
 //#define DEBUG
@@ -191,6 +197,9 @@ struct domain_info {
 xexp *domain_conf = NULL;
 domain_info *domains = NULL;
 int default_domain = -1;
+
+/* Set to true if apt-worker was invoked from command-line */
+bool cmdline_mode = false;
 
 #define DOMAIN_INVALID  -1
 #define DOMAIN_UNSIGNED  0
@@ -705,7 +714,7 @@ apt_proto_encoder response;
 void cmd_get_package_list ();
 void cmd_get_package_info ();
 void cmd_get_package_details ();
-void cmd_check_updates ();
+int cmd_check_updates ();
 void cmd_get_catalogues ();
 void cmd_set_catalogues ();
 void cmd_install_check ();
@@ -915,6 +924,38 @@ handle_request ()
     }
 }
 
+int
+handle_cmdline_request (int cmdline_op)
+{
+  AptWorkerState * state = 0;
+  int result_code = -1;
+
+  ensure_state (APTSTATE_DEFAULT);
+  state = AptWorkerState::GetCurrent ();
+
+  response.reset ();
+
+  switch (cmdline_op)
+    {
+    case CMDLINE_NOOP:
+      // Nothing to do.
+      break;
+
+    case CMDLINE_CHECK_UPDATES:
+      request.reset (NULL, 0);
+      result_code = cmd_check_updates ();
+      break;
+
+    default:
+      log_stderr ("unrecognized command: %d", cmdline_op);
+      break;
+    }
+
+  _error->DumpErrors ();
+
+  return result_code;
+}
+
 static int index_trust_level_for_package (pkgIndexFile *index,
 					  const pkgCache::VerIterator &ver);
 
@@ -923,64 +964,89 @@ static const char *lc_messages;
 int
 main (int argc, char **argv)
 {
-  const char *options;
+  int cmdline_op = CMDLINE_NOOP;
 
-  if (argc != 6)
+  if (argc > 1 && !strcmp (argv[1], "--check-updates"))
+    {
+      cmdline_op = CMDLINE_CHECK_UPDATES;
+    }
+  else if (argc != 6)
     {
       log_stderr ("wrong invocation");
       exit (1);
     }
 
-  DBG ("starting up");
+  /* Check if using the command line mode */
+  cmdline_mode = (cmdline_op != CMDLINE_NOOP);
 
-  input_fd = must_open (argv[1], O_RDONLY | O_NONBLOCK);
-  cancel_fd = must_open (argv[4], O_RDONLY | O_NONBLOCK);
-  output_fd = must_open (argv[2], O_WRONLY);
-  status_fd = must_open (argv[3], O_WRONLY);
+  /* If not in command line mode, work as usual with the frontend */
+  if (!cmdline_mode)
+    {
+      const char *options;
 
-  /* This tells the frontend that the fifos are open.
-   */
-  send_status (op_general, 0, 0, -1);
+      DBG ("starting up");
 
-  /* This blocks until the frontend has opened our input fifo for
-     writing.
-  */
-  block_for_read (input_fd);
+      input_fd = must_open (argv[1], O_RDONLY | O_NONBLOCK);
+      cancel_fd = must_open (argv[4], O_RDONLY | O_NONBLOCK);
+      output_fd = must_open (argv[2], O_WRONLY);
+      status_fd = must_open (argv[3], O_WRONLY);
 
-  /* Reset the O_NONBLOCK flag for the input_fd since we want to block
-     until a new request arrives.  The cancel_fd remains in
-     non-blocking mode since we just poll it periodically.
-  */
-  must_set_flags (input_fd, O_RDONLY);
+      /* This tells the frontend that the fifos are open.
+       */
+      send_status (op_general, 0, 0, -1);
 
-  options = argv[5];
-  lc_messages = getenv ("LC_MESSAGES");
+      /* This blocks until the frontend has opened our input fifo for
+	 writing.
+      */
+      block_for_read (input_fd);
 
-  DBG ("starting with pid %d, in %d, out %d, stat %d, cancel %d, options %s",
-       getpid (), input_fd, output_fd, status_fd, cancel_fd,
-       options);
-  DBG ("LC_MESSAGES %s", lc_messages);
+      /* Reset the O_NONBLOCK flag for the input_fd since we want to block
+	 until a new request arrives.  The cancel_fd remains in
+	 non-blocking mode since we just poll it periodically.
+      */
+      must_set_flags (input_fd, O_RDONLY);
 
-  if (strchr (options, 'B'))
-    flag_break_locks = true;
+      options = argv[5];
+      lc_messages = getenv ("LC_MESSAGES");
 
-  /* Don't let our heavy lifting starve the UI.
-   */
-  errno = 0;
-  if (nice (20) == -1 && errno != 0)
-    log_stderr ("nice: %m");
+      DBG ("starting with pid %d, in %d, out %d, stat %d, cancel %d, options %s",
+	   getpid (), input_fd, output_fd, status_fd, cancel_fd,
+	   options);
+      DBG ("LC_MESSAGES %s", lc_messages);
+
+      if (strchr (options, 'B'))
+	flag_break_locks = true;
+
+      /* Don't let our heavy lifting starve the UI.
+       */
+      errno = 0;
+      if (nice (20) == -1 && errno != 0)
+	log_stderr ("nice: %m");
+    }
 
   read_domain_conf ();
 
+  /* Initialize apt-worker and set cmdline_mode value */
   AptWorkerState::Initialize ();
+
   cache_init (false);
 
 #ifdef HAVE_APT_TRUST_HOOK
   apt_set_index_trust_level_for_package_hook (index_trust_level_for_package);
 #endif
 
-  while (true)
-    handle_request ();
+  /* If not using command line mode, get ready to handle frontend requests */
+  if (!cmdline_mode)
+    {
+      while (true)
+	handle_request ();
+    }
+  else
+    {
+      /* Handle a single cmdline mode request and return the result
+	 code for the requested operation */
+      return handle_cmdline_request (cmdline_op);
+    }
 }
 
 /** CACHE HANDLING
@@ -2842,7 +2908,7 @@ update_package_cache (xexp *catalogues_for_report)
    
   // Create the download object
   DownloadStatus Stat;
-  pkgAcquire Fetcher(&Stat);
+  pkgAcquire Fetcher (cmdline_mode ? NULL : &Stat);
 
   // Populate it with the source selection
   if (List.GetIndexes(&Fetcher) == false)
@@ -2903,7 +2969,7 @@ update_package_cache (xexp *catalogues_for_report)
     }
   else
     {
-      cache_init ();
+      cache_init (!cmdline_mode);
       return rescode_success;
     }
 }
@@ -2921,7 +2987,7 @@ reset_catalogue_errors (xexp *catalogues)
     xexp_adel (c, "errors");
 }
 
-void
+int
 cmd_check_updates ()
 {
   const char *http_proxy = request.decode_string_in_place ();
@@ -2950,7 +3016,8 @@ cmd_check_updates ()
   int result_code = update_package_cache (catalogues);
 
   /* Write file with information about available updates */
-  update_available_updates_file ();
+  if (result_code != rescode_failure)
+    update_available_updates_file ();
 
   if (result_code != rescode_success)
     {
@@ -2960,6 +3027,9 @@ cmd_check_updates ()
 
   response.encode_xexp (catalogues);
   response.encode_int (result_code);
+
+  /* Return code for the cmdline mode */
+  return result_code;
 }
 
 /* APTCMD_GET_CATALOGUES
@@ -4499,8 +4569,13 @@ update_available_updates_file ()
   int os_count = 0;
   int nokia_count = 0;
   int other_count = 0;
-
+  xexp *x_updates = NULL;
   AptWorkerState *state = AptWorkerState::GetCurrent ();
+
+  /* Check cache first. If not valid, do nothing */
+  if (!state->cache)
+    return;
+
   pkgDepCache &cache = *(state->cache);
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
@@ -4510,44 +4585,45 @@ update_available_updates_file ()
 
       // Check if it's an update for an installed package
       if (!candidate.end () && !installed.end() && installed.CompareVer (candidate) < 0)
-        {
-          int i = 0;
-          int domain_index = state->extra_info[pkg->ID].cur_domain;
+	{
+	  int i = 0;
+	  int domain_index = state->extra_info[pkg->ID].cur_domain;
 
-          /* Count the number of domains */
-          while (domains[i].name != NULL)
-            i++;
+	  /* Count the number of domains */
+	  while (domains[i].name != NULL)
+	    i++;
 
 	  /* Update counter */
-          if (domain_index >= 0 && domain_index < i)
-            {
-              const char *domain_name = domains[domain_index].name;
-              package_record rec (candidate);
-              int flags = get_flags (rec);
+	  if (domain_index >= 0 && domain_index < i)
+	    {
+	      const char *domain_name = domains[domain_index].name;
+	      package_record rec (candidate);
+	      int flags = get_flags (rec);
 
 	      /* Packages with 'system-update' flag and non-user
 		 packages are considered as "OS" as well */
-              if ((flags & pkgflag_system_update) ||
+	      if ((flags & pkgflag_system_update) ||
 		  !is_user_package (candidate) ||
-                  !strcmp(OS_UPDATES_DOMAIN_NAME, domain_name))
-                os_count++;
-              else if (!strcmp(NOKIA_UPDATES_DOMAIN_NAME, domain_name))
-                nokia_count++;
-              else
-                other_count++;
-            }
-          else
-            other_count++;
-        }
+		  !strcmp(OS_UPDATES_DOMAIN_NAME, domain_name))
+		os_count++;
+	      else if (!strcmp(NOKIA_UPDATES_DOMAIN_NAME, domain_name))
+		nokia_count++;
+	      else
+		other_count++;
+	    }
+	  else
+	    other_count++;
+	}
     }
 
-  /* Write xexp to file, or do nothing if there are no updates */
+  /* Write xexp to file */
+
+  /* Prepare xexp structure to save info about updates to disk */
+  x_updates = xexp_list_new ("updates");
+
   if ((os_count + nokia_count + other_count) > 0)
     {
       gchar *str_count = NULL;
-
-      /* Prepare xexp structure to save info about updates to disk */
-      xexp *x_updates = xexp_list_new ("updates");
 
       /* Save updates counters ( > 0 ) into the xexp structure */
 
@@ -4583,13 +4659,13 @@ update_available_updates_file ()
           xexp_cons (x_os, xexp_text_new ("count", str_count));
           g_free (str_count);
         }
-
-      /* Write to disk */
-      xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
-
-      /* Free xexp structure */
-      xexp_free (x_updates);
     }
+
+  /* Write to disk */
+  xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
+
+  /* Free xexp structure */
+  xexp_free (x_updates);
 }
 
 static xexp *

@@ -25,10 +25,27 @@
 	available updates (AVAILABLE_UPDATES_FILE).
 	(cmd_get_package_list): Moved code to write the 'available
 	updates' file to the new function commented above.
-	(cmd_update_package_cache): Renamed to cmd_check_updates and updated
-	callers. Added a call to update_available_updates_file after
-	refreshing the packages list cache.
+	(cmd_update_package_cache): Renamed to cmd_check_updates and
+	updated callers. Added a call to update_available_updates_file
+	after refreshing the packages list cache, if the process didn't
+	fail. Also, it now returns 'int' instead of 'void' to be able to
+	use such that return value when using it in the command line mode.
 	(cmd_names): Replaced UPDATE_PACKAGE_CACHE with CHECK_UPDATES.
+	(enum cmdline_commands): New. Enumeration with a list of available
+	commands for the command-line mode. Only CMDLINE_NOOP (no command)
+	and CMDLINE_CHECK_UPDATES were added at this moment.
+	(cmdline_mode): New global boolean variable to set when the
+	apt-worker is working in command line mode.
+	(handle_cmdline_request): New. Function to manage command line
+	commands, which doesn't need the file based fifos.
+	(main): Modified to consider the new command line mode and the
+	only available operation at this moment: 'check for updates'.
+	(update_package_cache): Consider the new command line mode to
+	create the Fetcher without a DownloadStat object and to call
+	cache_init with 'with_status=false' when needed.
+
+	* src/Makefile.am (bin_PROGRAMS): Added apt-worker to be also
+	installed as a program under /usr/bin
 
 2007-10-23  Mario Sanchez Prada  <msanchez@maemo.org>
 
