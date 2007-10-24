@@ -14,8 +14,8 @@ New features for the Hildon Application Manager
 - The apt-worker should be able to be invoked from the command-line to
   perform the APTCMD_CHECK_UPDATES operation.  When invoked in this
   way, the operation should be cancellable (using SIGINT, say).  Also,
-  it refuse to run when the apt-worker is already running as the
-  backend for the AM.
+  it should refuse to run when the apt-worker is already running as
+  the backend for the AM.
 
 - When the apt-worker starts in its usual role as the backend for the
   Application Manager, it should cancel already running instances of
