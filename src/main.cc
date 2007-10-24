@@ -47,6 +47,8 @@
 #include "repo.h"
 #include "dbus.h"
 
+#include "update-notifier.h"
+
 #define MAX_PACKAGES_NO_CATEGORIES 7
 
 #define _(x) gettext (x)
@@ -323,8 +325,8 @@ make_main_view (view *v)
   hbox = gtk_hbox_new (FALSE, 0);
   btn = make_padded_button (_("ai_li_update"));
   g_signal_connect (G_OBJECT (btn), "clicked",
-		    G_CALLBACK (show_view_callback),
-		    &upgrade_applications_view);
+		    G_CALLBACK (show_check_for_updates_view),
+		    NULL);
   gtk_size_group_add_widget(btn_group, btn);
   // 36 padding = 26 icon size + 10 padding
   gtk_box_pack_start (GTK_BOX (hbox),  btn,  FALSE, FALSE, 36);
@@ -1857,6 +1859,13 @@ make_install_applications_view (view *v)
   enable_search (true);
   
   return view;
+}
+
+void
+show_check_for_updates_view ()
+{
+  set_update_notifier_visibility (UPNO_ICON_INVISIBLE);
+  show_view (&upgrade_applications_view);
 }
 
 GtkWidget *

@@ -113,6 +113,8 @@ void get_package_list_with_cont (int state,
 void show_current_details ();
 void do_current_operation ();
 
+void show_check_for_updates_view ();
+
 void install_named_package (int state, const char *package,
 			    void (*cont) (int n_successful, void *data),
 			    void *data);

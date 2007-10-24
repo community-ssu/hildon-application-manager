@@ -525,4 +525,9 @@ gboolean volume_path_is_mounted (const gchar *path);
 /* Set a DBUS message to reboot the device */
 void send_reboot_message (void);
 
+/* Set the visibility status of the update notifier icon
+ */
+void set_update_notifier_visibility (int state);
+
 #endif /* !UTIL_H */
+

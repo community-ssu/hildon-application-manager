@@ -53,6 +53,7 @@
 #include "menu.h"
 #include "operations.h"
 #include "apt-worker-client.h"
+#include "update-notifier.h"
 
 extern "C" {
 #include <libhildonwm/hd-wm.h>
@@ -2963,4 +2964,12 @@ send_reboot_message (void)
   dbus_connection_flush (conn);
 
   add_log ("Reboot message sent, quit the application.\n");
+}
+
+void
+set_update_notifier_visibility (int state)
+{
+  GConfClient *conf = gconf_client_get_default ();
+  
+  gconf_client_set_int (conf, UPNO_GCONF_STATE, state, NULL);
 }
