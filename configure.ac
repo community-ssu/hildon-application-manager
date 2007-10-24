@@ -7,6 +7,7 @@ AM_INIT_AUTOMAKE
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
+AC_PROG_LIBTOOL
 
 AC_LANG_CPLUSPLUS
 
@@ -32,6 +33,16 @@ AC_SUBST(HAM_DEPS_LIBS)
 PKG_CHECK_MODULES(AW_DEPS, glib-2.0)
 AC_SUBST(AW_DEPS_CFLAGS)
 AC_SUBST(AW_DEPS_LIBS)
+
+PKG_CHECK_MODULES(NOTIFIER_DEPS, gtk+-2.0 glib-2.0 libhildondesktop gconf-2.0)
+AC_SUBST(NOTIFIER_DEPS_LIBS)
+AC_SUBST(NOTIFIER_DEPS_CFLAGS)
+
+hildonstatusbarplugindir=`pkg-config osso-af-settings --variable=hildondesktoplibdir`
+hildonstatusbardesktopdir=`pkg-config osso-af-settings --variable=statusbardesktopentrydir`
+
+AC_SUBST(hildonstatusbarplugindir)
+AC_SUBST(hildonstatusbardesktopdir)
 
 # Debian architecture
 #

@@ -3,6 +3,8 @@ bin_PROGRAMS = hildon-application-manager.launch \
 dist_bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server test-app-killer
 libexec_PROGRAMS = apt-worker
+hildonstatusbarplugin_LTLIBRARIES = libhildon-update-notifier.la
+
 
 hildon_application_manager_launch_SOURCES = main.h			\
                                             main.cc			\
@@ -33,8 +35,8 @@ hildon_application_manager_launch_SOURCES = main.h			\
 					    apt-worker-proto.h		\
 					    apt-worker-proto.cc		\
                                             confutils.h			\
-                                            confutils.cc
-
+                                            confutils.cc		\
+                                            update-notifier.h
 hildon_application_manager_launch_CFLAGS =   $(HAM_DEPS_CFLAGS) -shared
 hildon_application_manager_launch_CXXFLAGS = $(HAM_DEPS_CFLAGS) -shared \
                                              -fno-rtti -fno-exceptions
@@ -68,6 +70,15 @@ apt_worker_SOURCES = apt-worker.cc		\
 apt_worker_CFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
+
+libhildon_update_notifier_la_SOURCES = update-notifier.h	\
+	                               update-notifier.c	\
+                                       xexp.h			\
+                                       xexp.c
+libhildon_update_notifier_la_CFLAGS = $(NOTIFIER_DEPS_CFLAGS)
+libhildon_update_notifier_la_LIBADD = $(NOTIFIER_DEPS_LIBS)
+
+hildonstatusbardesktop_DATA = hildon-update-notifier.desktop
 
 mime_open_SOURCES = mime-open.c
 mime_open_CFLAGS =   $(HAM_DEPS_CFLAGS)
