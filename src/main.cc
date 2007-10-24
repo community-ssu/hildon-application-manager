@@ -1071,10 +1071,7 @@ get_next_package_info (package_info *pi, void *unused, bool changed)
   int state = APTSTATE_DEFAULT;
 
   if (pi && !pi->have_info)
-    {
-      pi->unref ();
-      return;
-    }
+    return;
 
   if (pi && changed)
     global_package_info_changed (pi);
