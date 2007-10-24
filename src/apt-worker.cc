@@ -705,7 +705,7 @@ apt_proto_encoder response;
 void cmd_get_package_list ();
 void cmd_get_package_info ();
 void cmd_get_package_details ();
-void cmd_update_package_cache ();
+void cmd_check_updates ();
 void cmd_get_catalogues ();
 void cmd_set_catalogues ();
 void cmd_install_check ();
@@ -730,6 +730,9 @@ void cmd_get_system_update_packages ();
 static void save_failed_catalogues (xexp *failed_catalogues);
 static xexp *load_failed_catalogues ();
 static void clean_failed_catalogues ();
+
+/** MANAGEMENT OF FILE WITH INFO ABOUT AVAILABLE UPDATES */
+static void update_available_updates_file ();
 
 /** MAPPING FUNCTION TO FILTER ERROR DETAILS 
     IN CATALOGUES CONFIGURATION FILE
@@ -785,7 +788,7 @@ static char *cmd_names[] = {
   "GET_PACKAGE_LIST",
   "GET_PACKAGE_INFO",
   "GET_PACKAGE_DETAILS",
-  "UPDATE_PACKAGE_CACHE",
+  "CHECK_UPDATES",
   "GET_CATALOGUES",
   "SET_CATALOGUES",
   "INSTALL_CHECK",
@@ -843,7 +846,7 @@ handle_request ()
       break;
 
     case APTCMD_CHECK_UPDATES:
-      cmd_update_package_cache ();
+      cmd_check_updates ();
       break;
 
     case APTCMD_GET_CATALOGUES:
@@ -2081,9 +2084,6 @@ cmd_get_package_list ()
   bool only_available = request.decode_int ();
   const char *pattern = request.decode_string_in_place ();
   bool show_magic_sys = request.decode_int ();
-  int os_count = 0;
-  int nokia_count = 0;
-  int other_count = 0;
 
   if (!ensure_cache ())
     {
@@ -2179,36 +2179,6 @@ cmd_get_package_list ()
 	encode_version_info (1, candidate, false);
       else
 	encode_empty_version_info (false);
-
-      // Save it in list if it's an update for an installed package
-      if (!candidate.end () && !installed.end() && installed.CompareVer (candidate) < 0)
-	{
-	  int i = 0;
-	  int domain_index = state->extra_info[pkg->ID].cur_domain;
-
-	  /* Count the number of domains */
-	  while (domains[i].name != NULL)
-	    i++;
-
-	  if (domain_index >= 0 && domain_index < i)
-	    {
-	      const char *domain_name = domains[domain_index].name;
-
-	      package_record rec (candidate);
-	      int flags = get_flags (rec);
-
-	      /* Update right counter */
-	      if ((flags & pkgflag_system_update) ||
-		  !strcmp(OS_UPDATES_DOMAIN_NAME, domain_name))
-		os_count++;
-	      else if (!strcmp(NOKIA_UPDATES_DOMAIN_NAME, domain_name))
-		nokia_count++;
-	      else
-		other_count++;
-	    }
-	  else
-	    other_count++;
-	}
     }
 
   if (show_magic_sys)
@@ -2237,59 +2207,6 @@ cmd_get_package_list ()
       response.encode_string ("Operating System");
       response.encode_string ("Updates to all system packages");
       response.encode_string (NULL);
-
-      /* Update information for the xexp structure */
-      os_count++;
-    }
-
-  /* Write xexp to file, or do nothing if there are no updates */
-  if ((os_count + nokia_count + other_count) > 0)
-    {
-      gchar *str_count = NULL;
-
-      /* Prepare xexp structure to save info about updates to disk */
-      xexp *x_updates = xexp_list_new ("updates");
-
-      /* Save updates counters ( > 0 ) into the xexp structure */
-
-      /* Others updates */
-      if (other_count > 0)
-	{
-	  xexp *x_other = xexp_list_new ("other-updates");
-	  xexp_cons (x_updates, x_other);
-
-	  str_count = g_strdup_printf ("%d", other_count);
-	  xexp_cons (x_other, xexp_text_new ("count", str_count));
-	  g_free (str_count);
-	}
-
-      /* Nokia updates */
-      if (nokia_count > 0)
-	{
-	  xexp *x_nokia = xexp_list_new ("nokia-updates");
-	  xexp_cons (x_updates, x_nokia);
-
-	  str_count = g_strdup_printf ("%d", nokia_count);
-	  xexp_cons (x_nokia, xexp_text_new ("count", str_count));
-	  g_free (str_count);
-	}
-
-      /* OS updates */
-      if (os_count > 0)
-	{
-	  xexp *x_os = xexp_list_new ("os-updates");
-	  xexp_cons (x_updates, x_os);
-
-	  str_count = g_strdup_printf ("%d", os_count);
-	  xexp_cons (x_os, xexp_text_new ("count", str_count));
-	  g_free (str_count);
-	}
-
-      /* Write to disk */
-      xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
-
-      /* Free xexp structure */
-      xexp_free (x_updates);
     }
 }
 
@@ -2307,7 +2224,7 @@ cmd_get_system_update_packages ()
     {
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
-      
+
       if (installed.end () || candidate.end ())
 	continue;
 
@@ -3005,7 +2922,7 @@ reset_catalogue_errors (xexp *catalogues)
 }
 
 void
-cmd_update_package_cache ()
+cmd_check_updates ()
 {
   const char *http_proxy = request.decode_string_in_place ();
   const char *https_proxy = request.decode_string_in_place ();
@@ -3031,6 +2948,9 @@ cmd_update_package_cache ()
   reset_catalogue_errors (catalogues);
 
   int result_code = update_package_cache (catalogues);
+
+  /* Write file with information about available updates */
+  update_available_updates_file ();
 
   if (result_code != rescode_success)
     {
@@ -4571,6 +4491,105 @@ clean_failed_catalogues ()
 {
   if (unlink (FAILED_CATALOGUES_FILE) < 0 && errno != ENOENT)
     log_stderr ("error unlinking %s: %m", FAILED_CATALOGUES_FILE);
+}
+
+static void
+update_available_updates_file ()
+{
+  int os_count = 0;
+  int nokia_count = 0;
+  int other_count = 0;
+
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgDepCache &cache = *(state->cache);
+
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+    {
+      pkgCache::VerIterator installed = pkg.CurrentVer ();
+      pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+
+      // Check if it's an update for an installed package
+      if (!candidate.end () && !installed.end() && installed.CompareVer (candidate) < 0)
+        {
+          int i = 0;
+          int domain_index = state->extra_info[pkg->ID].cur_domain;
+
+          /* Count the number of domains */
+          while (domains[i].name != NULL)
+            i++;
+
+	  /* Update counter */
+          if (domain_index >= 0 && domain_index < i)
+            {
+              const char *domain_name = domains[domain_index].name;
+              package_record rec (candidate);
+              int flags = get_flags (rec);
+
+	      /* Packages with 'system-update' flag and non-user
+		 packages are considered as "OS" as well */
+              if ((flags & pkgflag_system_update) ||
+		  !is_user_package (candidate) ||
+                  !strcmp(OS_UPDATES_DOMAIN_NAME, domain_name))
+                os_count++;
+              else if (!strcmp(NOKIA_UPDATES_DOMAIN_NAME, domain_name))
+                nokia_count++;
+              else
+                other_count++;
+            }
+          else
+            other_count++;
+        }
+    }
+
+  /* Write xexp to file, or do nothing if there are no updates */
+  if ((os_count + nokia_count + other_count) > 0)
+    {
+      gchar *str_count = NULL;
+
+      /* Prepare xexp structure to save info about updates to disk */
+      xexp *x_updates = xexp_list_new ("updates");
+
+      /* Save updates counters ( > 0 ) into the xexp structure */
+
+      /* Others updates */
+      if (other_count > 0)
+        {
+          xexp *x_other = xexp_list_new ("other-updates");
+          xexp_cons (x_updates, x_other);
+
+          str_count = g_strdup_printf ("%d", other_count);
+          xexp_cons (x_other, xexp_text_new ("count", str_count));
+          g_free (str_count);
+        }
+
+      /* Nokia updates */
+      if (nokia_count > 0)
+        {
+          xexp *x_nokia = xexp_list_new ("nokia-updates");
+          xexp_cons (x_updates, x_nokia);
+
+          str_count = g_strdup_printf ("%d", nokia_count);
+          xexp_cons (x_nokia, xexp_text_new ("count", str_count));
+          g_free (str_count);
+        }
+
+      /* OS updates */
+      if (os_count > 0)
+        {
+          xexp *x_os = xexp_list_new ("os-updates");
+          xexp_cons (x_updates, x_os);
+
+          str_count = g_strdup_printf ("%d", os_count);
+          xexp_cons (x_os, xexp_text_new ("count", str_count));
+          g_free (str_count);
+        }
+
+      /* Write to disk */
+      xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
+
+      /* Free xexp structure */
+      xexp_free (x_updates);
+    }
 }
 
 static xexp *

@@ -1,3 +1,15 @@
+2007-10-24  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker.cc (update_available_updates_file): New. Specific
+	function to update the content of the file with information about
+	available updates (AVAILABLE_UPDATES_FILE).
+	(cmd_get_package_list): Moved code to write the 'available
+	updates' file to the new function commented above.
+	(cmd_update_package_cache): Renamed to cmd_check_updates and updated
+	callers. Added a call to update_available_updates_file after
+	refreshing the packages list cache.
+	(cmd_names): Replaced UPDATE_PACKAGE_CACHE with CHECK_UPDATES.
+
 2007-10-23  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker.cc (FAILED_CATALOGUES_FILE): Removed '.xml'
