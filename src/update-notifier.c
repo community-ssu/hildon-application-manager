@@ -25,16 +25,21 @@
 
    - Localize
    - Make sure icon doesn't blink when screen is off
+   - Plug all the leaks
 */
 
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include <libhildondesktop/libhildondesktop.h>
 #include <libhildondesktop/statusbar-item.h>
 
 #include <gconf/gconf-client.h>
+#include <dbus/dbus.h>
 
 #include "update-notifier.h"
 #include "pixbufblinkifier.h"
@@ -63,6 +68,9 @@ struct _UpdateNotifier
   guint timeout_id;
 
   GConfClient *gconf;
+  DBusConnection *dbus;
+  
+  gboolean checking_active;
 };
 
 struct _UpdateNotifierClass
@@ -76,8 +84,14 @@ HD_DEFINE_PLUGIN (UpdateNotifier, update_notifier, STATUSBAR_TYPE_ITEM);
 
 static void set_icon_visibility (UpdateNotifier *upno, int state);
 
+static void setup_dbus (UpdateNotifier *upno);
+static void setup_http_proxy ();
+
 static void update_icon_visibility (UpdateNotifier *upno, GConfValue *value);
 static void update_menu (UpdateNotifier *upno);
+
+static void show_check_for_updates_view (UpdateNotifier *upno);
+static void check_for_updates (UpdateNotifier *upno);
 
 static void update_notifier_finalize (GObject *object);
 
@@ -133,7 +147,7 @@ menu_activated (GtkWidget *menu, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
 
-  fprintf (stderr, "INVOKING\n");
+  show_check_for_updates_view (upno);
 }
 
 static void
@@ -186,7 +200,6 @@ update_notifier_init (UpdateNotifier *upno)
   gtk_widget_show (upno->blinkifier);
   gtk_widget_show (upno->button);
 
-
   upno->menu = gtk_menu_new ();
   item = gtk_menu_item_new_with_label ("Foo");
   gtk_menu_append (upno->menu, item);
@@ -194,7 +207,9 @@ update_notifier_init (UpdateNotifier *upno)
 
   g_signal_connect (upno->button, "pressed",
 		    G_CALLBACK (button_pressed), upno);
-  
+
+  setup_dbus (upno);
+
   update_menu (upno);
   update_icon_visibility (upno, gconf_client_get (upno->gconf,
 						  UPNO_GCONF_STATE,
@@ -295,8 +310,6 @@ update_menu (UpdateNotifier *upno)
     {
       xexp *x;
 
-      xexp_write (stderr, updates);
-
       if ((x = xexp_aref (updates, "os-updates")))
 	n_os = xexp_aref_int (x, "count", 0);
       
@@ -305,6 +318,8 @@ update_menu (UpdateNotifier *upno)
 
       if ((x = xexp_aref (updates, "other-updates")))
 	n_other = xexp_aref_int (x, "count", 0);
+
+      xexp_free (updates);
     }
 
   if (upno->menu)
@@ -335,4 +350,198 @@ set_icon_visibility (UpdateNotifier *upno, int state)
 			UPNO_GCONF_STATE,
 			state,
 			NULL);
+}
+
+static DBusHandlerResult 
+dbus_filter (DBusConnection *conn, DBusMessage *message, void *data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_update_notifier",
+				   "check_for_updates"))
+    {
+      DBusMessage *reply;
+
+      check_for_updates (upno);
+
+      reply = dbus_message_new_method_return (message);
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
+
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+static void
+setup_dbus (UpdateNotifier *upno)
+{
+  upno->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+
+  if (upno->dbus)
+    {
+      dbus_connection_add_filter (upno->dbus, dbus_filter, upno, NULL);
+      dbus_bus_request_name (upno->dbus,
+			     "com.nokia.hildon_update_notifier",
+			     DBUS_NAME_FLAG_DO_NOT_QUEUE,
+			     NULL);
+    }
+}
+
+static void
+show_check_for_updates_view (UpdateNotifier *upno)
+{
+  DBusMessage     *msg;
+  gchar           *service = "com.nokia.hildon_application_manager";
+  gchar           *object_path = "/com/nokia/hildon_application_manager";
+  gchar           *interface = "com.nokia.hildon_application_manager";
+
+  if (upno->dbus)
+    {
+      msg = dbus_message_new_method_call (service, object_path,
+					  interface,
+					  "show_check_for_updates_view");
+      if (msg)
+	{
+	  dbus_connection_send (upno->dbus, msg, NULL);
+	  dbus_message_unref (msg);
+	}
+    }
+}
+
+static void
+check_for_updates_done (GPid pid, int status, gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+
+  upno->checking_active = FALSE;
+
+  if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
+    {
+      /* XXX - only blink if there is something new, of course...
+       */
+      set_icon_visibility (upno, UPNO_ICON_BLINKING);
+    }
+  else
+    {
+      /* Ask the Application Manager to do perform the update, but
+	 don't start it if it isn't running already.
+       */
+
+      DBusMessage     *msg;
+      gchar           *service = "com.nokia.hildon_application_manager";
+      gchar           *object_path = "/com/nokia/hildon_application_manager";
+      gchar           *interface = "com.nokia.hildon_application_manager";
+      
+      fprintf (stderr, "FAILED: %d\n", status);
+
+      if (upno->dbus)
+	{
+	  msg = dbus_message_new_method_call (service, object_path,
+					      interface,
+					      "check_for_updates");
+	  if (msg)
+	    {
+	      dbus_message_set_auto_start (msg, FALSE);
+	      dbus_connection_send (upno->dbus, msg, NULL);
+	      dbus_message_unref (msg);
+	    }
+	}
+    }
+}
+
+static void
+check_for_updates (UpdateNotifier *upno)
+{
+  GError *error = NULL;
+  GPid child_pid;
+  char *argv[] = { "/usr/libexec/apt-worker", "--check-updates", NULL };
+
+  if (upno->checking_active)
+    return;
+
+  upno->checking_active = TRUE;
+
+  setup_http_proxy ();
+
+  if (!g_spawn_async_with_pipes (NULL,
+				 argv,
+				 NULL,
+				 G_SPAWN_DO_NOT_REAP_CHILD,
+				 NULL,
+				 NULL,
+				 &child_pid,
+				 NULL,
+				 NULL,
+				 NULL,
+				 &error))
+    {
+      fprintf (stderr, "can't run %s: %s\n", argv[0], error->message);
+      g_error_free (error);
+      return;
+    }
+
+  g_child_watch_add (child_pid, check_for_updates_done, upno);
+}
+
+static void
+setup_http_proxy ()
+{
+  GConfClient *conf;
+  char *proxy;
+
+  if ((proxy = getenv ("http_proxy")) != NULL)
+    return;
+
+  conf = gconf_client_get_default ();
+
+  if (gconf_client_get_bool (conf, "/system/http_proxy/use_http_proxy",
+			     NULL))
+    {
+      char *user = NULL;
+      char *password = NULL;
+      char *host = NULL;
+      gint port;
+
+      if (gconf_client_get_bool (conf, "/system/http_proxy/use_authentication",
+				 NULL))
+	{
+	  user = gconf_client_get_string
+	    (conf, "/system/http_proxy/authentication_user", NULL);
+	  password = gconf_client_get_string
+	    (conf, "/system/http_proxy/authentication_password", NULL);
+	}
+
+      host = gconf_client_get_string (conf, "/system/http_proxy/host", NULL);
+      port = gconf_client_get_int (conf, "/system/http_proxy/port", NULL);
+
+      if (user)
+	{
+	  // XXX - encoding of '@', ':' in user and password?
+
+	  if (password)
+	    proxy = g_strdup_printf ("http://%s:%s@%s:%d",
+				     user, password, host, port);
+	  else
+	    proxy = g_strdup_printf ("http://%s@%s:%d", user, host, port);
+	}
+      else
+	proxy = g_strdup_printf ("http://%s:%d", host, port);
+
+      g_free (user);
+      g_free (password);
+      g_free (host);
+
+      /* XXX - there is also ignore_hosts, which we ignore for now,
+	       since transcribing it to no_proxy is hard... mandatory,
+	       non-transparent proxies are evil anyway.
+      */
+
+      setenv ("http_proxy", proxy, 1);
+      g_free (proxy);
+    }
+
+  g_object_unref (conf);
 }
