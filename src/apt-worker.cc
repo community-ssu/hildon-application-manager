@@ -139,8 +139,8 @@ using namespace std;
 #define ALT_DIR_CACHE_ARCHIVES ".apt-archive-cache/"
 
 /* Files related to the 'check for updates' process */
-#define FAILED_CATALOGUES_FILE "/var/lib/hildon-application-manager/failed_catalogues"
-#define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available_updates"
+#define FAILED_CATALOGUES_FILE "/var/lib/hildon-application-manager/failed-catalogues"
+#define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
 
 /* Domain names associated with "OS" and "Nokia" updates */
 #define OS_UPDATES_DOMAIN_NAME "nokia-system"
@@ -154,7 +154,7 @@ enum cmdline_commands {
 
 /* You know what this means.
  */
-//#define DEBUG
+#define DEBUG
 
 
 /** RUN-TIME CONFIGURATION
@@ -2824,8 +2824,10 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
     {
       char *uri = g_strdup (xexp_aref_text (cat, "uri"));
       const char *dist = xexp_aref_text (cat, "dist");
-      gchar **comps = g_strsplit_set (xexp_aref_text (cat, "components"),
-				      " \t\n", 0);
+      const char *comp_element = xexp_aref_text (cat, "components");
+      gchar **comps = (comp_element
+		       ? g_strsplit_set (comp_element, " \t\n", 0)
+		       : NULL);
       char *pfx = NULL;
 
       if (dist == NULL)
@@ -2857,16 +2859,19 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
 	  if (!strchr (rest, '/'))
 	    goto found_it;
 
-	  for (int i = 0; comps[i]; i++)
+	  if (comps)
 	    {
-	      gchar *comp = comps[i];
-
-	      if (comp[0] == '\0')
-		continue;
-
-	      if (g_str_has_prefix (rest, comp)
-		  && rest[strlen(comp)] == '/')
-		goto found_it;
+	      for (int i = 0; comps[i]; i++)
+		{
+		  gchar *comp = comps[i];
+		  
+		  if (comp[0] == '\0')
+		    continue;
+		  
+		  if (g_str_has_prefix (rest, comp)
+		      && rest[strlen(comp)] == '/')
+		    goto found_it;
+		}
 	    }
 	}
 
@@ -4621,7 +4626,9 @@ update_available_updates_file ()
   /* Prepare xexp structure to save info about updates to disk */
   x_updates = xexp_list_new ("updates");
 
+#if 0
   if ((os_count + nokia_count + other_count) > 0)
+#endif
     {
       gchar *str_count = NULL;
 
