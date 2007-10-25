@@ -1,5 +1,10 @@
 2007-10-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker.cc (find_catalogue_for_item_desc): Cleanly handle
+	missing "components" element.
+	(FAILED_CATALOGUES_FILE, AVAILABLE_UPDATES_FILE): Use a dash to
+	separate words, to keep the style.
+
 	* src/pixbufblinkifier.h, src/pixbufblinkifier.c: New.
 	* src/update-notifier.c: Use them instead of blinking the icon
 	ourselves.
@@ -17,10 +22,6 @@
 	set_update_notifier_visibility.
 	(make_main_view): Use show_check_for_updates_view for the "Check
 	for Updates" button.
-
-	* src/apt-worker.cc (FAILED_CATALOGUES_FILE,
-	AVAILABLE_UPDATES_FILE): Use a dash to separate words, to keep the
-	style.
 
 	* src/main.cc (get_next_package_info): Do not unref PI when
 	getting its info failed, there is no ref for this (N72881).
