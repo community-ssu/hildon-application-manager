@@ -71,12 +71,12 @@ apt_worker_CFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
 
-libhildon_update_notifier_la_SOURCES = update-notifier.h	\
-	                               update-notifier.c	\
-                                       xexp.h			\
-                                       xexp.c			\
-                                       pixbufblinkifier.h	\
-                                       pixbufblinkifier.c
+libhildon_update_notifier_la_SOURCES = update-notifier.h		\
+	                               update-notifier.c		\
+	                               hn-app-pixbuf-anim-blinker.h	\
+	                               hn-app-pixbuf-anim-blinker.c	\
+                                       xexp.h				\
+                                       xexp.c
 libhildon_update_notifier_la_CFLAGS = $(NOTIFIER_DEPS_CFLAGS)
 libhildon_update_notifier_la_LIBADD = $(NOTIFIER_DEPS_LIBS)
 

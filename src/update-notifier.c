@@ -42,7 +42,7 @@
 #include <dbus/dbus.h>
 
 #include "update-notifier.h"
-#include "pixbufblinkifier.h"
+#include "hn-app-pixbuf-anim-blinker.h"
 #include "xexp.h"
 
 #define USE_BLINKIFIER 1
@@ -64,6 +64,7 @@ struct _UpdateNotifier
   GtkWidget *button;
   GtkWidget *blinkifier;
   GtkWidget *menu;
+  GdkPixbuf *static_pic;
 
   guint timeout_id;
 
@@ -185,11 +186,8 @@ update_notifier_init (UpdateNotifier *upno)
 					  GTK_ICON_LOOKUP_NO_SVG,
 					  NULL);
 #if USE_BLINKIFIER
-  upno->blinkifier = g_object_new (PIXBUF_BLINKIFIER_TYPE,
-				   "pixbuf", icon_pixbuf,
-				   "frame-time", 100,
-				   "n-frames", 10,
-				   NULL);
+  upno->static_pic = icon_pixbuf;
+  upno->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
 #else
   upno->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
 #endif
@@ -254,9 +252,10 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 		NULL);
 
 #if USE_BLINKIFIER
-  g_object_set (upno->blinkifier,
-		"blinking", (state == UPNO_ICON_BLINKING),
-		NULL);
+  if (state == UPNO_ICON_BLINKING)
+    g_object_set(upno->blinkifier, "pixbuf-animation", hn_app_pixbuf_anim_blinker_new(upno->static_pic, 1000, -1, 100), NULL);
+  else
+    g_object_set(upno->blinkifier, "pixbuf", upno->static_pic, NULL);
 #else
   if (state == UPNO_ICON_BLINKING)
     {
