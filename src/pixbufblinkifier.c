@@ -58,6 +58,8 @@ instance_init(GTypeInstance *inst, gpointer klass)
   priv->n_frames = 10;
   priv->counter = 0;
 
+  GTK_WIDGET_SET_FLAGS(inst, GTK_NO_WINDOW);
+
   gtk_widget_add_events(GTK_WIDGET(inst), GDK_EXPOSURE_MASK);
 }
 
@@ -96,8 +98,8 @@ draw_scene(GtkWidget *widget, PBBPrivate *priv)
   gdk_pixbuf_composite(priv->pb, priv->pb_priv, 0, 0, priv->cx, priv->cy, 0, 0, 1, 1, GDK_INTERP_NEAREST,
     ((int)(255.0 * ((double)(ABS(counter)))/((double)(priv->n_frames - 1)))));
 
-  x_offset = (widget->allocation.width - priv->cx) * GTK_MISC(widget)->xalign;
-  y_offset = (widget->allocation.height - priv->cy) * GTK_MISC(widget)->yalign;
+  x_offset = ((widget->allocation.width - priv->cx) >> 1) + widget->allocation.x;
+  y_offset = ((widget->allocation.height - priv->cy) >> 1) + widget->allocation.y;
 
   gdk_window_clear_area(widget->window, x_offset, y_offset, priv->cx, priv->cy);
   gdk_draw_pixbuf(widget->window, gc, priv->pb_priv, 0, 0, x_offset, y_offset, priv->cx, priv->cy, GDK_RGB_DITHER_NONE, 0, 0);
@@ -317,7 +319,7 @@ pixbuf_blinkifier_get_type()
       .value_table    = NULL
     };
 
-  the_type = g_type_register_static(GTK_TYPE_MISC, "PixbufBlinkifier", &info, 0);
+  the_type = g_type_register_static(GTK_TYPE_WIDGET, "PixbufBlinkifier", &info, 0);
   }
 
   return the_type;

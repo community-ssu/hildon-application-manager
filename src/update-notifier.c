@@ -40,7 +40,7 @@
 #include "pixbufblinkifier.h"
 #include "xexp.h"
 
-#define USE_BLINKIFIER 0
+#define USE_BLINKIFIER 1
 
 typedef struct _UpdateNotifier      UpdateNotifier;
 typedef struct _UpdateNotifierClass UpdateNotifierClass;

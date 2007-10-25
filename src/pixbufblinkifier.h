@@ -33,12 +33,12 @@ typedef struct _PixbufBlinkifierClass PixbufBlinkifierClass;
 
 struct _PixbufBlinkifier
 {
-  GtkMisc parent_instance;
+  GtkWidget parent_instance;
 };
 
 struct _PixbufBlinkifierClass
 {
-  GtkMiscClass parent_class;
+  GtkWidgetClass parent_class;
 };
 
 GType pixbuf_blinkifier_get_type();

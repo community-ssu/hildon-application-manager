@@ -1,5 +1,9 @@
 2007-10-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/pixbufblinkifier.c, src/pixbufblinkifier.h: Use GtkWidget as
+	the parent instead of GtkMisc so that we can set the NO_WINDOW
+	flag, which should give us transparency.
+
 	* src/update-notifier.c (USE_BLINKIFIER): New, to make the use of
 	pixbufblinkifier optional.
 
