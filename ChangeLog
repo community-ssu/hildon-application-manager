@@ -1,5 +1,8 @@
 2007-10-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/Makefile.am (bin_PROGRAMS): Removed apt-worker again since
+	it is not supposed to be invoked by the user.
+
 	* src/dbus.cc (dbus_handler): Handle "show_check_for_updates_view"
 	and "check_for_updates" method calls.
 
