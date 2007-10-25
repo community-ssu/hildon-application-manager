@@ -942,6 +942,11 @@ handle_cmdline_request (int cmdline_op)
       break;
 
     case CMDLINE_CHECK_UPDATES:
+      /* XXX - fail early here until locking works
+       */
+      if (state->cache == NULL)
+	return rescode_failure;
+
       request.reset (NULL, 0);
       result_code = cmd_check_updates ();
       break;
@@ -1043,10 +1048,16 @@ main (int argc, char **argv)
     }
   else
     {
+      int result_code;
+
       /* Handle a single cmdline mode request and return the result
 	 code for the requested operation */
-      return handle_cmdline_request (cmdline_op);
+      result_code = handle_cmdline_request (cmdline_op);
+      if (result_code != rescode_success)
+	exit (1);
     }
+
+  return 0;
 }
 
 /** CACHE HANDLING
@@ -3033,8 +3044,14 @@ cmd_check_updates ()
   response.encode_xexp (catalogues);
   response.encode_int (result_code);
 
-  /* Return code for the cmdline mode */
-  return result_code;
+  /* Return code for the cmdline mode.  We only return success or
+     failure.
+  */
+  if (result_code == rescode_success
+      || result_code == rescode_partial_success)
+    return rescode_success;
+  else
+    return rescode_failure;
 }
 
 /* APTCMD_GET_CATALOGUES
