@@ -34,7 +34,8 @@ PKG_CHECK_MODULES(AW_DEPS, glib-2.0)
 AC_SUBST(AW_DEPS_CFLAGS)
 AC_SUBST(AW_DEPS_LIBS)
 
-PKG_CHECK_MODULES(NOTIFIER_DEPS, gtk+-2.0 glib-2.0 libhildondesktop gconf-2.0)
+PKG_CHECK_MODULES(NOTIFIER_DEPS, gtk+-2.0 glib-2.0 libhildondesktop gconf-2.0
+                                 dbus-1)
 AC_SUBST(NOTIFIER_DEPS_LIBS)
 AC_SUBST(NOTIFIER_DEPS_CFLAGS)
 
