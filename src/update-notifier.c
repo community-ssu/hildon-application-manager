@@ -31,6 +31,7 @@
 #include <gconf/gconf-client.h>
 
 #include "update-notifier.h"
+#include "pixbufblinkifier.h"
 #include "xexp.h"
 
 typedef struct _UpdateNotifier      UpdateNotifier;
@@ -48,7 +49,7 @@ struct _UpdateNotifier
   StatusbarItem parent;
 
   GtkWidget *button;
-  GtkWidget *icon;
+  GtkWidget *blinkifier;
   GtkWidget *menu;
 
   guint timeout_id;
@@ -161,12 +162,18 @@ update_notifier_init (UpdateNotifier *upno)
 					  40,
 					  GTK_ICON_LOOKUP_NO_SVG,
 					  NULL);
-  upno->icon = gtk_image_new_from_pixbuf (icon_pixbuf);
-
-  gtk_container_add (GTK_CONTAINER (upno->button), upno->icon);
+  upno->blinkifier = g_object_new (PIXBUF_BLINKIFIER_TYPE,
+				   "pixbuf", icon_pixbuf,
+				   "frame-time", 100,
+				   "n-frames", 10,
+				   NULL);
+  
+  gtk_container_add (GTK_CONTAINER (upno->button), upno->blinkifier);
   gtk_container_add (GTK_CONTAINER (upno), upno->button);
 
+  gtk_widget_show (upno->blinkifier);
   gtk_widget_show (upno->button);
+
 
   upno->menu = gtk_menu_new ();
   item = gtk_menu_item_new_with_label ("Foo");
@@ -191,6 +198,7 @@ update_notifier_finalize (GObject *object)
 		  (G_OBJECT_GET_CLASS(object)))->finalize(object);
 }
 
+#if 0
 static gboolean
 blink_icon (gpointer data)
 {
@@ -203,6 +211,7 @@ blink_icon (gpointer data)
 
   return TRUE;
 }
+#endif
 
 static void
 update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
@@ -217,6 +226,11 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 			      || state == UPNO_ICON_BLINKING),
 		NULL);
 
+  g_object_set (upno->blinkifier,
+		"blinking", (state == UPNO_ICON_BLINKING),
+		NULL);
+  
+#if 0
   if (state == UPNO_ICON_BLINKING)
     {
       if (upno->timeout_id == 0)
@@ -231,6 +245,7 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 	  upno->timeout_id = 0;
 	}
     }
+#endif
 }
 
 static void
