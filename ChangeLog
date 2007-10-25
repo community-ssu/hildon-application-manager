@@ -1,3 +1,10 @@
+2007-10-25  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/pixbufblinkifier.h, src/pixbufblinkifier.c: New.
+	* src/update-notifier.c: Use them instead of blinking the icon
+	ourselves.
+	* src/Makefile.am: Add them.
+
 2007-10-24  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/update-notifier.c, src/update-notifier.h,
