@@ -75,7 +75,9 @@ apt_worker_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
 libhildon_update_notifier_la_SOURCES = update-notifier.h	\
 	                               update-notifier.c	\
                                        xexp.h			\
-                                       xexp.c
+                                       xexp.c			\
+                                       pixbufblinkifier.h	\
+                                       pixbufblinkifier.c
 libhildon_update_notifier_la_CFLAGS = $(NOTIFIER_DEPS_CFLAGS)
 libhildon_update_notifier_la_LIBADD = $(NOTIFIER_DEPS_LIBS)
 
