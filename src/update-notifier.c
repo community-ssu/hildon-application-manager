@@ -21,6 +21,12 @@
  *
  */
 
+/* XXX
+
+   - Localize
+   - Make sure icon doesn't blink when screen is off
+*/
+
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <stdarg.h>
@@ -33,6 +39,8 @@
 #include "update-notifier.h"
 #include "pixbufblinkifier.h"
 #include "xexp.h"
+
+#define USE_BLINKIFIER 0
 
 typedef struct _UpdateNotifier      UpdateNotifier;
 typedef struct _UpdateNotifierClass UpdateNotifierClass;
@@ -162,11 +170,15 @@ update_notifier_init (UpdateNotifier *upno)
 					  40,
 					  GTK_ICON_LOOKUP_NO_SVG,
 					  NULL);
+#if USE_BLINKIFIER
   upno->blinkifier = g_object_new (PIXBUF_BLINKIFIER_TYPE,
 				   "pixbuf", icon_pixbuf,
 				   "frame-time", 100,
 				   "n-frames", 10,
 				   NULL);
+#else
+  upno->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
+#endif
   
   gtk_container_add (GTK_CONTAINER (upno->button), upno->blinkifier);
   gtk_container_add (GTK_CONTAINER (upno), upno->button);
@@ -198,16 +210,16 @@ update_notifier_finalize (GObject *object)
 		  (G_OBJECT_GET_CLASS(object)))->finalize(object);
 }
 
-#if 0
+#if !USE_BLINKIFIER
 static gboolean
 blink_icon (gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
   
-  if (GTK_WIDGET_VISIBLE (upno->icon))
-    gtk_widget_hide (upno->icon);
+  if (GTK_WIDGET_VISIBLE (upno->blinkifier))
+    gtk_widget_hide (upno->blinkifier);
   else
-    gtk_widget_show (upno->icon);
+    gtk_widget_show (upno->blinkifier);
 
   return TRUE;
 }
@@ -226,11 +238,11 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 			      || state == UPNO_ICON_BLINKING),
 		NULL);
 
+#if USE_BLINKIFIER
   g_object_set (upno->blinkifier,
 		"blinking", (state == UPNO_ICON_BLINKING),
 		NULL);
-  
-#if 0
+#else
   if (state == UPNO_ICON_BLINKING)
     {
       if (upno->timeout_id == 0)
@@ -238,7 +250,7 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
     }
   else
     {
-      gtk_widget_show (upno->icon);
+      gtk_widget_show (upno->blinkifier);
       if (upno->timeout_id > 0)
 	{
 	  g_source_remove (upno->timeout_id);
@@ -285,13 +297,13 @@ update_menu (UpdateNotifier *upno)
 
       xexp_write (stderr, updates);
 
-      if (x = xexp_aref (updates, "os-updates"))
+      if ((x = xexp_aref (updates, "os-updates")))
 	n_os = xexp_aref_int (x, "count", 0);
       
-      if (x = xexp_aref (updates, "nokia-updates"))
+      if ((x = xexp_aref (updates, "nokia-updates")))
 	n_nokia = xexp_aref_int (x, "count", 0);
 
-      if (x = xexp_aref (updates, "other-updates"))
+      if ((x = xexp_aref (updates, "other-updates")))
 	n_other = xexp_aref_int (x, "count", 0);
     }
 

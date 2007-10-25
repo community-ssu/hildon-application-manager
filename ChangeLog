@@ -1,5 +1,8 @@
 2007-10-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/update-notifier.c (USE_BLINKIFIER): New, to make the use of
+	pixbufblinkifier optional.
+
 	* src/apt-worker.cc (find_catalogue_for_item_desc): Cleanly handle
 	missing "components" element.
 	(FAILED_CATALOGUES_FILE, AVAILABLE_UPDATES_FILE): Use a dash to
