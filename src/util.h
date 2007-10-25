@@ -53,6 +53,10 @@
   END_INTERACTION_FLOW, as well as calls to PUSH_DIALOG and
   POP_DIALOG.
 
+  The function IS_IDLE can be used to check whether there is currently
+  a active interaction flow.  When it returns FALSE, a call to
+  start_interaction_flow would fail.
+
   See "Exiting" for how interaction flows influence the life
   time of the application.
 */
@@ -63,6 +67,8 @@ void end_interaction_flow ();
 
 void push_dialog (GtkWidget *dialog);
 void pop_dialog (GtkWidget *dialog);
+
+bool is_idle ();
 
 /** The main window
 

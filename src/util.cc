@@ -116,6 +116,12 @@ pop_dialog (GtkWidget *dialog)
 static bool interaction_flow_active = false;
 
 bool
+is_idle ()
+{
+  return dialog_stack == NULL && !interaction_flow_active;
+}
+
+bool
 start_interaction_flow ()
 {
   /* XXX - We don't allow interaction flows to start when a dialog is
