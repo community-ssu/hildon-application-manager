@@ -1,5 +1,25 @@
 2007-10-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/dbus.cc (dbus_handler): Handle "show_check_for_updates_view"
+	and "check_for_updates" method calls.
+
+	* src/apt-worker.cc (handle_cmdline_request): Fail early when
+	there is no cache.  This is a weak indication that the Application
+	Manager is running.
+	(main): Turn result_code returned by handle_cmdline_request into a
+	exit code.
+	(cmd_check_updates): Only return rescode_success and
+	rescode_failure since we don't communicate more information than
+	this in the exit code.
+
+	* src/util.cc, src/util.h (is_idle): New.
+
+	* src/hildon-application-manager-util: Added check-for-updates
+	command.
+	
+	* src/update-notifier.c: Added D-Bus interactions and running of
+	the apt-worker.
+
 	* src/pixbufblinkifier.c, src/pixbufblinkifier.h: Use GtkWidget as
 	the parent instead of GtkMisc so that we can set the NO_WINDOW
 	flag, which should give us transparency.
