@@ -197,6 +197,7 @@ struct domain_info {
 xexp *domain_conf = NULL;
 domain_info *domains = NULL;
 int default_domain = -1;
+int domains_number = 0;
 
 /* Set to true if apt-worker was invoked from command-line */
 bool cmdline_mode = false;
@@ -217,7 +218,7 @@ read_domain_conf ()
   if (domain_conf)
     n_domains += xexp_length (domain_conf);
 
-  domains = new domain_info[n_domains+1];
+  domains = new domain_info[n_domains];
 
   /* Setup the two implicit domains.
    */
@@ -254,13 +255,15 @@ read_domain_conf ()
 	  i += 1;
 	}
     }
-  domains[i].name = NULL;
+
+  /* Update domains number */
+  domains_number = i;
 }
 
 static domain_t
 find_domain_by_tag (const char *tag, const char *val)
 {
-  for (int i = 0; domains[i].name; i++)
+  for (int i = 0; i < domains_number; i++)
     {
       if (domains[i].conf == NULL)
 	continue;
@@ -733,7 +736,7 @@ void cmd_get_system_update_packages ();
 
 /* Since it's needed to save the full report (including errors) after
    any refresh of the catalogues list, three functions where implemented
-   to take care of the writting/reading to/from disk process 
+   to take care of the writting/reading to/from disk process.
 */
 
 static void save_failed_catalogues (xexp *failed_catalogues);
@@ -741,9 +744,20 @@ static xexp *load_failed_catalogues ();
 static void clean_failed_catalogues ();
 
 /** MANAGEMENT OF FILE WITH INFO ABOUT AVAILABLE UPDATES */
-static void update_available_updates_file ();
 
-/** MAPPING FUNCTION TO FILTER ERROR DETAILS 
+typedef struct update_counters
+{
+  int os_count;
+  int nokia_count;
+  int other_count;
+};
+
+static void update_available_update_counter (const pkgCache::PkgIterator &pkg,
+					     update_counters *counters);
+static update_counters *get_available_updates_counts ();
+static void update_available_updates_file (update_counters *counters);
+
+/** MAPPING FUNCTION TO FILTER ERROR DETAILS
     IN CATALOGUES CONFIGURATION FILE
 */
 static xexp *map_catalogue_error_details (xexp *x);
@@ -1095,7 +1109,8 @@ main (int argc, char **argv)
     couldn't be created in the past because of some transient error,
     it might be able to create it now.  Thus, every command handler
     that needs a cache should call ensure_cache.  When ensure_cache
-    actually does some work, it will send STATUS messages.
+    actually does some work, it will send STATUS messages if it was
+    specified with its only parameter.
 
     - cache_reset ()
 
@@ -1227,7 +1242,7 @@ save_extra_info ()
       fclose (f);
     }
 
-  for (domain_t i = 0; domains[i].name != NULL; i++)
+  for (domain_t i = 0; i < domains_number; i++)
     {
       char *name =
 	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
@@ -1295,7 +1310,7 @@ load_extra_info ()
       fclose (f);
     }
 
-  for (domain_t i = 0; domains[i].name != NULL; i++)
+  for (domain_t i = 0; i < domains_number; i++)
     {
       char *name =
 	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
@@ -1521,13 +1536,13 @@ cache_init (bool with_status)
 }
 
 bool
-ensure_cache ()
+ensure_cache (bool with_status)
 {
   AptWorkerState * state = NULL;
 
   state = AptWorkerState::GetCurrent ();
   if (state->cache == NULL)
-    cache_init (true);
+    cache_init (with_status);
 
   return state->cache != NULL;
 }
@@ -2162,7 +2177,13 @@ cmd_get_package_list ()
   const char *pattern = request.decode_string_in_place ();
   bool show_magic_sys = request.decode_int ();
 
-  if (!ensure_cache ())
+  /* Counters to check available updates after getting a new list */
+  update_counters *counters = new update_counters;
+  counters->os_count = 0;
+  counters->nokia_count = 0;
+  counters->other_count = 0;
+
+  if (!ensure_cache (true))
     {
       response.encode_int (0);
       return;
@@ -2173,6 +2194,10 @@ cmd_get_package_list ()
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
+      /* Update update counters, if needed */
+      update_available_update_counter (pkg, counters);
+
+      /* Get installed and candidate iterators for current package */
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
 
@@ -2285,6 +2310,10 @@ cmd_get_package_list ()
       response.encode_string ("Updates to all system packages");
       response.encode_string (NULL);
     }
+
+  /* Update file with information about available updates */
+  update_available_updates_file (counters);
+  delete counters;
 }
 
 void
@@ -2292,7 +2321,7 @@ cmd_get_system_update_packages ()
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
 
-  if (!ensure_cache ())
+  if (!ensure_cache (true))
     return;
 
   pkgDepCache &cache = *(state->cache);
@@ -2415,7 +2444,7 @@ cmd_get_package_info ()
   info.removable_status = status_unknown;
   info.remove_user_size_delta = 0;
 
-  if (ensure_cache ())
+  if (ensure_cache (true))
     {
       AptWorkerState *state = AptWorkerState::GetCurrent ();
       pkgDepCache &cache = *(state->cache);
@@ -3033,7 +3062,14 @@ cmd_check_updates ()
 
   /* Write file with information about available updates */
   if (result_code != rescode_failure)
-    update_available_updates_file ();
+    {
+      update_counters *counters = get_available_updates_counts ();
+      if (counters)
+	{
+	  update_available_updates_file (counters);
+	  delete counters;
+	}
+    }
 
   if (result_code != rescode_success)
     {
@@ -3233,7 +3269,7 @@ cmd_install_check ()
   bool found = false;
   int result_code = rescode_failure;
   
-  if (ensure_cache ())
+  if (ensure_cache (true))
     {
       found = mark_named_package_for_install (package);
       result_code = operation (true, NULL, true);
@@ -3272,7 +3308,7 @@ cmd_install_package ()
       DBG ("https_proxy: %s", https_proxy);
     }
 
-  if (ensure_cache ())
+  if (ensure_cache (true))
     {
       if (mark_named_package_for_install (package))
 	result_code = operation (false, alt_download_root, check_free_space);
@@ -3289,7 +3325,7 @@ cmd_remove_check ()
 {
   const char *package = request.decode_string_in_place ();
 
-  if (ensure_cache ())
+  if (ensure_cache (true))
     {
       AptWorkerState *state = AptWorkerState::GetCurrent ();
       pkgDepCache &cache = *(state->cache);
@@ -3320,7 +3356,7 @@ cmd_remove_package ()
   const char *package = request.decode_string_in_place ();
   int result_code = rescode_failure;
 
-  if (ensure_cache ())
+  if (ensure_cache (true))
     {
       AptWorkerState *state = AptWorkerState::GetCurrent ();
       pkgDepCache &cache = *(state->cache);
@@ -3585,7 +3621,7 @@ static void
 encode_upgrades ()
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
-  if (ensure_cache ())
+  if (ensure_cache (true))
     {
       pkgDepCache &cache = *(state->cache);
 
@@ -4145,7 +4181,7 @@ static bool
 check_dependency (string &package, string &version, unsigned int op)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
-  if (!ensure_cache ())
+  if (!ensure_cache (true))
     return false;
 
   pkgDepCache &cache = (*(state->cache));
@@ -4404,7 +4440,7 @@ cmd_get_file_details ()
   const char *installed_version = NULL;
   int64_t installed_size = 0;
 
-  if (ensure_cache ())
+  if (ensure_cache (true))
     {
       AptWorkerState *state = AptWorkerState::GetCurrent ();
       pkgDepCache &cache = *(state->cache);
@@ -4499,7 +4535,7 @@ get_backup_packages ()
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
 
-  if (!ensure_cache ())
+  if (!ensure_cache (true))
     return NULL;
 
   xexp *packages = xexp_list_new ("backup");
@@ -4586,103 +4622,112 @@ clean_failed_catalogues ()
 }
 
 static void
-update_available_updates_file ()
+update_available_update_counter (const pkgCache::PkgIterator &pkg,
+				 update_counters *counters)
 {
-  int os_count = 0;
-  int nokia_count = 0;
-  int other_count = 0;
-  xexp *x_updates = NULL;
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-
-  /* Check cache first. If not valid, do nothing */
-  if (!state->cache)
+  if (counters == NULL)
     return;
 
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
 
-  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+  pkgCache::VerIterator installed = pkg.CurrentVer ();
+  pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+
+  // Check if it's an update for an installed package
+  if (!candidate.end () && !installed.end() &&
+      installed.CompareVer (candidate) < 0)
     {
-      pkgCache::VerIterator installed = pkg.CurrentVer ();
-      pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+      int domain_index = state->extra_info[pkg->ID].cur_domain;
 
-      // Check if it's an update for an installed package
-      if (!candidate.end () && !installed.end() && installed.CompareVer (candidate) < 0)
+      /* Update counter */
+      if (domain_index >= 0 && domain_index < domains_number)
 	{
-	  int i = 0;
-	  int domain_index = state->extra_info[pkg->ID].cur_domain;
+	  const char *domain_name = domains[domain_index].name;
+	  package_record rec (candidate);
+	  int flags = get_flags (rec);
 
-	  /* Count the number of domains */
-	  while (domains[i].name != NULL)
-	    i++;
-
-	  /* Update counter */
-	  if (domain_index >= 0 && domain_index < i)
-	    {
-	      const char *domain_name = domains[domain_index].name;
-	      package_record rec (candidate);
-	      int flags = get_flags (rec);
-
-	      /* Packages with 'system-update' flag and non-user
-		 packages are considered as "OS" as well */
-	      if ((flags & pkgflag_system_update) ||
-		  !is_user_package (candidate) ||
-		  !strcmp(OS_UPDATES_DOMAIN_NAME, domain_name))
-		os_count++;
-	      else if (!strcmp(NOKIA_UPDATES_DOMAIN_NAME, domain_name))
-		nokia_count++;
-	      else
-		other_count++;
-	    }
+	  /* Packages with 'system-update' flag and non-user
+	     packages are considered as "OS" as well */
+	  if ((flags & pkgflag_system_update) ||
+	      !is_user_package (candidate) ||
+	      !strcmp(OS_UPDATES_DOMAIN_NAME, domain_name))
+	    counters->os_count++;
+	  else if (!strcmp(NOKIA_UPDATES_DOMAIN_NAME, domain_name))
+	    counters->nokia_count++;
 	  else
-	    other_count++;
+	    counters->other_count++;
 	}
+      else
+	counters->other_count++;
+    }
+}
+
+static update_counters *
+get_available_updates_counts ()
+{
+  /* Check cache first. If not valid, do nothing */
+  if (!ensure_cache (false))
+    return NULL;
+
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgDepCache &cache = *(state->cache);
+
+  /* Init counters */
+  update_counters *counters = new update_counters;
+  counters->os_count = 0;
+  counters->nokia_count = 0;
+  counters->other_count = 0;
+
+  /* Update counters considering all the packages */
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+    update_available_update_counter (pkg, counters);
+
+  return counters;
+}
+
+static void
+update_available_updates_file (update_counters *counters)
+{
+  if (counters == NULL)
+    return;
+
+  xexp *x_updates = xexp_list_new ("updates");
+  gchar *str_count = NULL;
+
+  /* Save updates counters ( > 0 ) into the xexp structure */
+
+  /* Others updates */
+  if (counters->other_count > 0)
+    {
+      xexp *x_other = xexp_list_new ("other-updates");
+      xexp_cons (x_updates, x_other);
+
+      str_count = g_strdup_printf ("%d", counters->other_count);
+      xexp_cons (x_other, xexp_text_new ("count", str_count));
+      g_free (str_count);
     }
 
-  /* Write xexp to file */
-
-  /* Prepare xexp structure to save info about updates to disk */
-  x_updates = xexp_list_new ("updates");
-
-#if 0
-  if ((os_count + nokia_count + other_count) > 0)
-#endif
+  /* Nokia updates */
+  if (counters->nokia_count > 0)
     {
-      gchar *str_count = NULL;
+      xexp *x_nokia = xexp_list_new ("nokia-updates");
+      xexp_cons (x_updates, x_nokia);
 
-      /* Save updates counters ( > 0 ) into the xexp structure */
+      str_count = g_strdup_printf ("%d", counters->nokia_count);
+      xexp_cons (x_nokia, xexp_text_new ("count", str_count));
+      g_free (str_count);
+    }
 
-      /* Others updates */
-      if (other_count > 0)
-        {
-          xexp *x_other = xexp_list_new ("other-updates");
-          xexp_cons (x_updates, x_other);
+  /* OS updates */
+  if (counters->os_count > 0)
+    {
+      xexp *x_os = xexp_list_new ("os-updates");
+      xexp_cons (x_updates, x_os);
 
-          str_count = g_strdup_printf ("%d", other_count);
-          xexp_cons (x_other, xexp_text_new ("count", str_count));
-          g_free (str_count);
-        }
-
-      /* Nokia updates */
-      if (nokia_count > 0)
-        {
-          xexp *x_nokia = xexp_list_new ("nokia-updates");
-          xexp_cons (x_updates, x_nokia);
-
-          str_count = g_strdup_printf ("%d", nokia_count);
-          xexp_cons (x_nokia, xexp_text_new ("count", str_count));
-          g_free (str_count);
-        }
-
-      /* OS updates */
-      if (os_count > 0)
-        {
-          xexp *x_os = xexp_list_new ("os-updates");
-          xexp_cons (x_updates, x_os);
-
-          str_count = g_strdup_printf ("%d", os_count);
-          xexp_cons (x_os, xexp_text_new ("count", str_count));
-          g_free (str_count);
-        }
+      str_count = g_strdup_printf ("%d", counters->os_count);
+      xexp_cons (x_os, xexp_text_new ("count", str_count));
+      g_free (str_count);
     }
 
   /* Write to disk */

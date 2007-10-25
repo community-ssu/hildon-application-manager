@@ -1,3 +1,33 @@
+2007-10-25  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker.cc (domains_number): New global variable. Useful
+	for some new functions, it makes the use of the last element of
+	the domains array useless from now on, therefore removed.
+	(read_domain_conf): Updated to set domains_number instead of
+	setting the last element's name to NULL. Also, the domains list
+	has now only n_domains elements instead of n_domains + 1.
+	(find_domain_by_tag): Updated to use domains_number in the loop.
+	(save_extra_info). Likewise.
+	(load_extra_info). Likewise.
+	(ensure cache): Added a boolean parameter 'with_status' to allow
+	use this function so calling to cache_init () will also use this
+	value, therefore being able to use cache_init (false).
+	(struct update_counters): New. Struct to store together the value
+	of all the counters for available updates: OS, Nokia and Others.
+	(update_available_updates_file): Now it only writes an xexp
+	structure to disk based on the value of the counters passed as
+	parameter through a struct update_counters variable.
+	(get_available_updates_counts): New. It returns a struct
+	update_counters with the value of its counters updated.
+	(update_available_update_counter). New. For a given package and a
+	struct update_counters parameter, it updates the right counter in
+	the struct if the package is considered to be an available update.
+	(cmd_get_package_list): Now uses update_available_update_counter()
+	function to check if a package is an available update or not.
+	(cmd_check_updates): It uses now get_available_updates_counts and
+	update_available_updates_file to get the number of available
+	updates and to store such that information to disk, respectively.
+
 2007-10-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/Makefile.am (bin_PROGRAMS): Removed apt-worker again since
