@@ -350,6 +350,42 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_application_manager",
+				   "show_check_for_updates_view"))
+    {
+      DBusMessage *reply;
+
+      present_main_window ();
+      if (is_idle ())
+	show_check_for_updates_view ();
+      
+      reply = dbus_message_new_method_return (message);
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
+
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_application_manager",
+				   "check_for_updates"))
+    {
+      DBusMessage *reply;
+
+      /* XXX - Do this only after the application has been idle for
+	       one minute.  Use the new "Checking for updates, please
+	       wait" dialog, etc.
+      */
+      refresh_package_cache_flow ();
+      
+      reply = dbus_message_new_method_return (message);
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
+
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 
