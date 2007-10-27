@@ -1,3 +1,50 @@
+2007-10-27  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (present_main_window): Separately use
+	gtk_widget_show_all with main_vbox and the main toolbar.
+
+	* src/main.h, src/main.cc (get_main_toolbar): New public function,
+	useful to get the main toolbar from util.cc.
+	(struct toolbar_struct): New struct to store a toolbar and all its
+	items: buttons and operation label. Used to allow having different
+	toolbars in the application manager and, at the same time,
+	managing all of them in the same way.
+	(main_tb_struct, updates_tb_struct, current_tb_struct): New global
+	variables to permanently store references to the structs for each
+	toolbar, plus a pointer to the current one.
+	(show_view): Change the toolbar if needed, since 'Check for
+	updates' view has a different toolbar than the rest of views.
+	(details_button): Removed this global variable. Now it's used
+	current_tb_struct->details_button.
+	(set_details_callback): Updated to use current_tb_struct.
+	(set_operation_callback): Set sensitiveness for the 'update all'
+	button if needed (in the 'Check for updates' view).
+	(toolbar_operation_label): Removed this global variable. Now it's
+	used current_tb_struct->operation_label.
+	(toolbar_operation_item): Removed this global variable. Now it's
+	used current_tb_struct->operation_button.
+	(set_operation_toolbar_label). Updated to use current_tb_struct.
+	(main_toolbar): Removed this global variable. Now it's used
+	main_tb_struct->toolbar.
+	(set_current_toolbar): New. Changes the current toolbar by hiding
+	the current toolbar and showing the new one, previously hidden.
+	(set_current_toolbar_visibility): Updated to use current_tb_struct.
+	(search_button): Removed this global variable. Now it's used
+	current_tb_struct->search_button.
+	(create_toolbar): New generic function to create a toolbar, by
+	specifying if the 'Update all' button and/or the 'Search button'
+	should be added to it. It returns a (toolbar_struct *).
+	(create_main_toolbar): New function than wraps the use of
+	create_toolbar to create the main toolbar, which hasn't an 'Update
+	all button'. It returns a (toolbar_struct *).
+	(create_updates_toolbar): New function than wraps the use of
+	create_toolbar to create the updates toolbar, which hasn't a
+	'Search' button'. It returns a (toolbar_struct *).
+	(main): Changed to delegate the construction of the two toolbars
+	in create_main_toolbar and create_updates_toolbar. It adds now the
+	two toolbars to the Hildon Window, but only shows the main one at
+	the start up of the application manager.
+
 2007-10-25  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker.cc (domains_number): New global variable. Useful

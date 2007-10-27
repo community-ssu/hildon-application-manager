@@ -175,8 +175,12 @@ end_interaction_flow ()
 void
 present_main_window ()
 {
+  GtkWidget *main_vbox =
+    gtk_bin_get_child (GTK_BIN(get_main_window ()));
+
   main_window_shown = true;
-  gtk_widget_show_all (GTK_WIDGET (get_main_window ()));
+  gtk_widget_show_all (main_vbox);
+  gtk_widget_show_all (get_main_toolbar ());
   gtk_window_present (get_main_window ());
 }
 

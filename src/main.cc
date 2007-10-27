@@ -100,56 +100,22 @@ get_view_label (GList *node)
   return gettext (((view *)node->data)->label);
 }
 
-void
-show_view (view *v)
+struct toolbar_struct
 {
-  GList *p;
+  GtkWidget *toolbar;
+  GtkWidget *operation_button;
+  GtkWidget *operation_label;
+  GtkWidget *update_all_button;
+  GtkWidget *details_button;
+  GtkWidget *search_button;
+  GtkWidget *refresh_button;
+};
 
-  if (cur_view)
-    {
-      gtk_container_remove(GTK_CONTAINER(main_vbox), cur_view);
-      cur_view = NULL;
-    }
+static toolbar_struct *main_tb_struct = NULL;
+static toolbar_struct *updates_tb_struct = NULL;
+static toolbar_struct *current_tb_struct = NULL;
 
-  set_details_callback (NULL, NULL);
-  set_operation_label (NULL, NULL);
-  set_operation_callback (NULL, NULL);
-
-  allow_updating ();
-
-  cur_view = v->maker (v);
-  cur_view_struct = v;
-
-  g_list_free (cur_path);
-  cur_path = make_view_path (v);
-
-  hildon_bread_crumb_trail_clear (HILDON_BREAD_CRUMB_TRAIL (main_trail));
-
-  for (p = cur_path; p != NULL; p = p->next)
-    hildon_bread_crumb_trail_push_text (HILDON_BREAD_CRUMB_TRAIL (main_trail),
-                                        get_view_label (p),
-                                        p, NULL);
-
-  gtk_box_pack_start (GTK_BOX (main_vbox), cur_view, TRUE, TRUE, 10);
-  gtk_widget_show(main_vbox);
-}
-
-static void
-show_view_callback (GtkWidget *btn, gpointer data)
-{
-  view *v = (view *)data;
-  
-  show_view (v);
-}
-
-static gboolean
-view_clicked (HildonBreadCrumbTrail *bct, gpointer node, gpointer user_data)
-{
-  reset_global_target_path ();
-  show_view ((view *)((GList*)node)->data);
-
-  return TRUE;
-}
+static void set_current_toolbar (toolbar_struct *tb_struct);
 
 GtkWidget *make_main_view (view *v);
 GtkWidget *make_install_applications_view (view *v);
@@ -193,6 +159,62 @@ view search_results_view = {
   "ai_ti_search_results",
   make_search_results_view
 };
+
+void
+show_view (view *v)
+{
+  GList *p;
+
+  if (cur_view)
+    {
+      gtk_container_remove(GTK_CONTAINER(main_vbox), cur_view);
+      cur_view = NULL;
+    }
+
+   if (v == &upgrade_applications_view)
+     set_current_toolbar (updates_tb_struct);
+   else
+     set_current_toolbar (main_tb_struct);
+
+  set_details_callback (NULL, NULL);
+  set_operation_label (NULL, NULL);
+  set_operation_callback (NULL, NULL);
+
+  allow_updating ();
+
+  cur_view = v->maker (v);
+  cur_view_struct = v;
+
+  g_list_free (cur_path);
+  cur_path = make_view_path (v);
+
+  hildon_bread_crumb_trail_clear (HILDON_BREAD_CRUMB_TRAIL (main_trail));
+
+  for (p = cur_path; p != NULL; p = p->next)
+    hildon_bread_crumb_trail_push_text (HILDON_BREAD_CRUMB_TRAIL (main_trail),
+                                        get_view_label (p),
+                                        p, NULL);
+
+  gtk_box_pack_start (GTK_BOX (main_vbox), cur_view, TRUE, TRUE, 10);
+  gtk_widget_show(main_vbox);
+}
+
+static void
+show_view_callback (GtkWidget *btn, gpointer data)
+{
+  view *v = (view *)data;
+  
+  show_view (v);
+}
+
+static gboolean
+view_clicked (HildonBreadCrumbTrail *bct, gpointer node, gpointer user_data)
+{
+  reset_global_target_path ();
+  show_view ((view *)((GList*)node)->data);
+
+  return TRUE;
+}
 
 void
 show_main_view ()
@@ -2316,7 +2338,6 @@ install_named_packages (int state, const char **packages,
 		    cont, data);
 }
 
-static GtkWidget *details_button;
 static void (*details_func) (gpointer);
 static gpointer details_data;
 
@@ -2332,7 +2353,8 @@ set_details_callback (void (*func) (gpointer), gpointer data)
 {
   details_data = data;
   details_func = func;
-  gtk_widget_set_sensitive (details_button, func != NULL);
+  gtk_widget_set_sensitive (current_tb_struct->details_button,
+			    func != NULL);
   set_details_menu_sensitive (func != NULL);
 }
 
@@ -2375,6 +2397,13 @@ set_operation_callback (void (*func) (gpointer), gpointer data)
   operation_func = func;
   set_operation_label (operation_label,
 		       insensitive_operation_press_label);
+
+  /* Set sensitiveness for 'Update all' button if needed */
+  if (current_tb_struct->update_all_button)
+    {
+      gtk_widget_set_sensitive (current_tb_struct->update_all_button,
+				operation_func != NULL);
+    }
 }
 
 /* Reinstalling the packages form the recently restored backup.
@@ -2618,19 +2647,14 @@ apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
 
 static GtkWindow *main_window = NULL;
 
-static GtkWidget *toolbar_operation_label = NULL;
-static GtkWidget *toolbar_operation_item = NULL;
-
 static void
 set_operation_toolbar_label (const char *label, bool sensitive)
 {
-  if (toolbar_operation_label)
-    gtk_label_set_text (GTK_LABEL (toolbar_operation_label), label);
-  if (toolbar_operation_item)
-    gtk_widget_set_sensitive (toolbar_operation_item, sensitive);
+  if (current_tb_struct->operation_label)
+    gtk_label_set_text (GTK_LABEL (current_tb_struct->operation_label), label);
+  if (current_tb_struct->operation_button)
+    gtk_widget_set_sensitive (current_tb_struct->operation_button, sensitive);
 }
-
-static GtkWidget *main_toolbar;
 
 static bool is_fullscreen = false;
 
@@ -2638,6 +2662,12 @@ GtkWindow *
 get_main_window ()
 {
   return main_window;
+}
+
+GtkWidget *
+get_main_toolbar ()
+{
+  return main_tb_struct->toolbar;
 }
 
 GtkWidget *
@@ -2653,14 +2683,28 @@ get_device_label ()
 }
 
 static void
+set_current_toolbar (toolbar_struct *tb_struct)
+{
+  if (tb_struct == NULL)
+    return;
+
+  if (current_tb_struct != tb_struct)
+    {
+      gtk_widget_hide_all (current_tb_struct->toolbar);
+      gtk_widget_show_all (tb_struct->toolbar);
+      current_tb_struct = tb_struct;
+    }
+}
+
+static void
 set_current_toolbar_visibility (bool f)
 {
-  if (main_toolbar)
+  if (current_tb_struct->toolbar)
     {
       if (f)
-	gtk_widget_show (main_toolbar);
+	gtk_widget_show (current_tb_struct->toolbar);
       else
-	gtk_widget_hide (main_toolbar);
+	gtk_widget_hide (current_tb_struct->toolbar);
     }
 }
 
@@ -2761,13 +2805,11 @@ key_event (GtkWidget *widget,
   return FALSE;
 }
 
-static GtkWidget *search_button;
-
 static void
 enable_search (bool f)
 {
-  if (search_button)
-    gtk_widget_set_sensitive (search_button, f);
+  if (current_tb_struct->search_button)
+    gtk_widget_set_sensitive (current_tb_struct->search_button, f);
   set_search_menu_sensitive (f);
 }
 
@@ -2876,11 +2918,152 @@ get_osso_context ()
   return osso_ctxt;
 }
 
+static toolbar_struct *
+create_toolbar (bool show_update_all_button, bool show_search_button)
+{
+  toolbar_struct *tb_struct = NULL;
+  GtkWidget *toolbar = NULL;
+  GtkWidget *image = NULL;
+  GtkWidget *operation_button = NULL;
+  GtkWidget *operation_label = NULL;
+  GtkWidget *update_all_button = NULL;
+  GtkWidget *details_button = NULL;
+  GtkWidget *search_button = NULL;
+
+  /* Create the toolba */
+  toolbar = gtk_toolbar_new ();
+
+  /* Init the global struct */
+  tb_struct = new toolbar_struct;
+  tb_struct->toolbar = toolbar;
+  tb_struct->operation_button = NULL;
+  tb_struct->operation_label = NULL;
+  tb_struct->update_all_button = NULL;
+  tb_struct->details_button = NULL;
+  tb_struct->search_button = NULL;
+  tb_struct->refresh_button = NULL;
+
+  /* Main operation button */
+  operation_label = gtk_label_new ("");
+  operation_button =
+    GTK_WIDGET (gtk_tool_button_new (operation_label, NULL));
+  gtk_tool_item_set_expand (GTK_TOOL_ITEM (operation_button), TRUE);
+  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (operation_button), TRUE);
+  g_signal_connect (operation_button, "clicked",
+		    G_CALLBACK (do_current_operation),
+		    NULL);
+  g_signal_connect (G_OBJECT (operation_button), "insensitive_press",
+		    G_CALLBACK (insensitive_operation_press), NULL);
+
+  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+		      GTK_TOOL_ITEM (operation_button),
+		      -1);
+  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+		      GTK_TOOL_ITEM (gtk_separator_tool_item_new ()),
+		      -1);
+  tb_struct->operation_label = operation_label;
+  tb_struct->operation_button = operation_button;
+
+  if (show_update_all_button)
+    {
+      /* 'Update all' button - XXX needs i18n */
+      update_all_button =
+	GTK_WIDGET (gtk_tool_button_new (gtk_label_new ("Update all"), NULL));
+      gtk_tool_item_set_expand (GTK_TOOL_ITEM (update_all_button), TRUE);
+      gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (update_all_button), TRUE);
+
+      /* TODO - write a right callback for 'Update all' */
+
+      g_signal_connect (G_OBJECT (update_all_button), "insensitive_press",
+			G_CALLBACK (insensitive_operation_press), NULL);
+      gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+			  GTK_TOOL_ITEM (update_all_button),
+			  -1);
+      gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+			  GTK_TOOL_ITEM (GTK_WIDGET (gtk_separator_tool_item_new ())),
+			  -1);
+      tb_struct->update_all_button = update_all_button;
+    }
+
+  /* Details button */
+  image = gtk_image_new_from_icon_name ("qgn_toolb_gene_detailsbutton",
+					HILDON_ICON_SIZE_TOOLBAR);
+  details_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
+  gtk_tool_item_set_expand (GTK_TOOL_ITEM (details_button), TRUE);
+  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (details_button), TRUE);
+  g_signal_connect (details_button, "clicked",
+		    G_CALLBACK (show_current_details),
+		    NULL);
+  g_signal_connect (G_OBJECT (details_button), "insensitive_press",
+		    G_CALLBACK (insensitive_press),
+		    _("ai_ib_nothing_to_view"));
+
+  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+		      GTK_TOOL_ITEM (details_button),
+		      -1);
+  tb_struct->details_button = details_button;
+
+  if (show_search_button)
+    {
+      /* Search button */
+      image = gtk_image_new_from_icon_name ("qgn_toolb_gene_findbutton",
+					    HILDON_ICON_SIZE_TOOLBAR);
+      search_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
+      gtk_tool_item_set_expand (GTK_TOOL_ITEM (search_button), TRUE);
+      gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (search_button), TRUE);
+      g_signal_connect (search_button, "clicked",
+			G_CALLBACK (show_search_dialog_flow),
+			NULL);
+      g_signal_connect (G_OBJECT (search_button), "insensitive_press",
+			G_CALLBACK (insensitive_press),
+			_("ai_ib_unable_search"));
+      gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+			  GTK_TOOL_ITEM (search_button),
+			  -1);
+      tb_struct->search_button = search_button;
+    }
+
+  /* Refresh all packages button */
+  if (red_pill_mode)
+    {
+      image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
+					    HILDON_ICON_SIZE_TOOLBAR);
+      GtkWidget *refresh_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
+      gtk_tool_item_set_expand (GTK_TOOL_ITEM (refresh_button), TRUE);
+      gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (refresh_button), TRUE);
+      g_signal_connect (refresh_button, "clicked",
+			G_CALLBACK (call_refresh_package_cache),
+			NULL);
+
+      gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+			  GTK_TOOL_ITEM (refresh_button),
+			  -1);
+      tb_struct->refresh_button = refresh_button;
+    }
+
+  return tb_struct;
+}
+
+static toolbar_struct *
+create_main_toolbar ()
+{
+  toolbar_struct *tb_struct = create_toolbar (false, true);
+  return tb_struct;
+}
+
+static toolbar_struct *
+create_updates_toolbar ()
+{
+  toolbar_struct *tb_struct = create_toolbar (true, false);
+  return tb_struct;
+}
+
 int
 main (int argc, char **argv)
 {
-  GtkWidget *window;
-  GtkWidget *toolbar, *image;
+  GtkWidget *window = NULL;
+  toolbar_struct *m_tb_struct = NULL;
+  toolbar_struct *u_tb_struct = NULL;
   char *apt_worker_prog = "/usr/libexec/apt-worker";
   bool show = true;
 
@@ -2931,75 +3114,20 @@ main (int argc, char **argv)
   g_signal_connect (window, "key_release_event",
 		    G_CALLBACK (key_event), NULL);
 
-  toolbar = gtk_toolbar_new ();
+  /* Create the two toolbars */
+  m_tb_struct = create_main_toolbar ();
+  u_tb_struct = create_updates_toolbar ();
 
-  main_toolbar = toolbar;
+  /* Set global variables and current toolbar */
+  main_tb_struct = m_tb_struct;
+  updates_tb_struct = u_tb_struct;
+  current_tb_struct = main_tb_struct;
 
-  toolbar_operation_label = gtk_label_new ("");
-  toolbar_operation_item =
-    GTK_WIDGET (gtk_tool_button_new (toolbar_operation_label, NULL));
-  gtk_tool_item_set_expand (GTK_TOOL_ITEM (toolbar_operation_item), TRUE);
-  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (toolbar_operation_item), TRUE);
-  g_signal_connect (toolbar_operation_item, "clicked",
-		    G_CALLBACK (do_current_operation),
-		    NULL);
-  g_signal_connect (G_OBJECT (toolbar_operation_item), "insensitive_press",
-		    G_CALLBACK (insensitive_operation_press), NULL);
-  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
-		      GTK_TOOL_ITEM (toolbar_operation_item),
-		      -1);
-
-  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
-		      GTK_TOOL_ITEM (gtk_separator_tool_item_new ()),
-		      -1);
-
-  image = gtk_image_new_from_icon_name ("qgn_toolb_gene_detailsbutton",
-					HILDON_ICON_SIZE_TOOLBAR);
-  details_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
-  gtk_tool_item_set_expand (GTK_TOOL_ITEM (details_button), TRUE);
-  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (details_button), TRUE);
-  g_signal_connect (details_button, "clicked",
-		    G_CALLBACK (show_current_details),
-		    NULL);
-  g_signal_connect (G_OBJECT (details_button), "insensitive_press",
-		    G_CALLBACK (insensitive_press),
-		    _("ai_ib_nothing_to_view"));
-  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
-		      GTK_TOOL_ITEM (details_button),
-		      -1);
-
-  image = gtk_image_new_from_icon_name ("qgn_toolb_gene_findbutton",
-					HILDON_ICON_SIZE_TOOLBAR);
-  search_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
-  gtk_tool_item_set_expand (GTK_TOOL_ITEM (search_button), TRUE);
-  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (search_button), TRUE);
-  g_signal_connect (search_button, "clicked",
-		    G_CALLBACK (show_search_dialog_flow),
-		    NULL);
-  g_signal_connect (G_OBJECT (search_button), "insensitive_press",
-		    G_CALLBACK (insensitive_press),
-		    _("ai_ib_unable_search"));
-  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
-		      GTK_TOOL_ITEM (search_button),
-		      -1);
-
-  if (red_pill_mode)
-    {
-      image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
-					    HILDON_ICON_SIZE_TOOLBAR);
-      GtkWidget *button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
-      gtk_tool_item_set_expand (GTK_TOOL_ITEM (button), TRUE);
-      gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (button), TRUE);
-      g_signal_connect (button, "clicked",
-			G_CALLBACK (call_refresh_package_cache),
-			NULL);
-      gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
-			  GTK_TOOL_ITEM (button),
-			  -1);
-    }
-
+  /* Add toolbars */
   hildon_window_add_toolbar (HILDON_WINDOW (window),
-			     GTK_TOOLBAR (toolbar));
+			     GTK_TOOLBAR (m_tb_struct->toolbar));
+  hildon_window_add_toolbar (HILDON_WINDOW (window),
+			     GTK_TOOLBAR (u_tb_struct->toolbar));
 
   main_vbox = gtk_vbox_new (FALSE, 0);
   gtk_container_add (GTK_CONTAINER (window), main_vbox);
@@ -3036,6 +3164,9 @@ main (int argc, char **argv)
 
   if (show)
     present_main_window ();
+
+  /* Show main toolbar */
+  gtk_widget_show_all (m_tb_struct->toolbar);
 
   gtk_main ();
 }
