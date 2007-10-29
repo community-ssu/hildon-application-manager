@@ -1,3 +1,26 @@
+2007-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (write_available_updates_file): New.  We list
+	the packages explicitly now, not just their count.  Together with
+	the list of updates seen by the user in the "Check for Updates",
+	this allows for bullet proof determination whether the update
+	notifier should be blinking or not.
+	(cmd_check_updates): Call it.
+	(update_available_updates_file): Removed together with supporting
+	routines.
+	(cmd_get_package_list): Do not write the available-updates file.
+
+	* src/update-notifier.h (SEEN_UPDATES_FILE): New.
+	* src/update-notifier.c (check_for_updates): Don't try to prevent
+	multiple parallel invocations of the apt-worker here, it does its
+	own locking now.
+	(update_menu, update_state): Renamed former to latter.  Read both
+	available updates and seen updates and recompute state from this.
+	Set blinking state as appropriate.
+	(button_pressed): Don't recreate menu here.
+	(dbus_filter): Handle new "check-state" method by calling
+	update_state.
+
 2007-10-29  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker.cc (load_failed_catalogues): Added an extra check
@@ -36,6 +59,22 @@
 
 2007-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.cc, src/util.h (check_update_notifier_state): New.
+	(set_update_notifier_visibility): Removed.
+
+	* src/main.cc (show_check_for_updates_view): Don't call
+	set_update_notifier_visibility, it will figure it all out by
+	itself now.
+	(record_seen_updates): New.
+	(make_upgrade_applications_view): Write the updateable packages to
+	disk where the update notifier can find it.  Call
+	check_update_notifier_state.
+	(rpc_update_cache_reply): Call check_update_notifier_state, since
+	now the available updates might have changed.
+
+	* src/hildon-update-notifier-util: Added check-state sub-command
+	for the update notifier.
+	
 	* src/apt-worker-client.cc (start_apt_worker): Use new "backend"
 	sub-command to start apt-worker in backend mode.
 
