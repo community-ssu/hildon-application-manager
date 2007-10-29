@@ -214,6 +214,7 @@ documented in the header files.
 BUGS
 ----
 
+- Use $HOME/.hildon-application-manager/ directory for per-user state.
 - Add "New Folder" functionality to maemo-select-menu-location.
 - Explain non-removable system updates in Details dialog.
 - check autoremoval
