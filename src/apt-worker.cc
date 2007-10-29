@@ -60,6 +60,7 @@
 #include <sys/fcntl.h>
 #include <errno.h>
 #include <dirent.h>
+#include <signal.h>
 
 #include <fstream>
 
@@ -126,6 +127,10 @@ using namespace std;
  */
 #define FIXED_REQUEST_BUF_SIZE 4096
 
+/* The location where we keep our lock.
+ */
+#define APT_WORKER_LOCK "/var/lib/hildon-application-manager/apt-worker-lock"
+
 /* Temporary repositories APT cache and status directories */
 #define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
 #define TEMP_APT_STATE "/var/lib/hildon-application-manager/temp-state"
@@ -145,12 +150,6 @@ using namespace std;
 /* Domain names associated with "OS" and "Nokia" updates */
 #define OS_UPDATES_DOMAIN_NAME "nokia-system"
 #define NOKIA_UPDATES_DOMAIN_NAME "nokia-certified"
-
-/* Available operations for command line mode */
-enum cmdline_commands {
-  CMDLINE_NOOP = 0,
-  CMDLINE_CHECK_UPDATES,
-};
 
 /* You know what this means.
  */
@@ -198,9 +197,6 @@ xexp *domain_conf = NULL;
 domain_info *domains = NULL;
 int default_domain = -1;
 int domains_number = 0;
-
-/* Set to true if apt-worker was invoked from command-line */
-bool cmdline_mode = false;
 
 #define DOMAIN_INVALID  -1
 #define DOMAIN_UNSIGNED  0
@@ -717,7 +713,7 @@ apt_proto_encoder response;
 void cmd_get_package_list ();
 void cmd_get_package_info ();
 void cmd_get_package_details ();
-int cmd_check_updates ();
+int cmd_check_updates (bool with_status = true);
 void cmd_get_catalogues ();
 void cmd_set_catalogues ();
 void cmd_install_check ();
@@ -730,6 +726,7 @@ void cmd_install_file ();
 void cmd_save_backup_data ();
 void cmd_get_system_update_packages ();
 
+int cmdline_check_updates (char **argv);
 
 /** MANAGEMENT FOR FAILED CATALOGUES LOG FILE
  */
@@ -938,70 +935,180 @@ handle_request ()
     }
 }
 
-int
-handle_cmdline_request (int cmdline_op)
-{
-  AptWorkerState * state = 0;
-  int result_code = -1;
-
-  ensure_state (APTSTATE_DEFAULT);
-  state = AptWorkerState::GetCurrent ();
-
-  response.reset ();
-
-  switch (cmdline_op)
-    {
-    case CMDLINE_NOOP:
-      // Nothing to do.
-      break;
-
-    case CMDLINE_CHECK_UPDATES:
-      /* XXX - fail early here until locking works
-       */
-      if (state->cache == NULL)
-	return rescode_failure;
-
-      request.reset (NULL, 0);
-      result_code = cmd_check_updates ();
-      break;
-
-    default:
-      log_stderr ("unrecognized command: %d", cmdline_op);
-      break;
-    }
-
-  _error->DumpErrors ();
-
-  return result_code;
-}
-
 static int index_trust_level_for_package (pkgIndexFile *index,
 					  const pkgCache::VerIterator &ver);
 
 static const char *lc_messages;
 
-int
-main (int argc, char **argv)
+static void
+usage ()
 {
-  int cmdline_op = CMDLINE_NOOP;
+  fprintf (stderr, "Usage: apt-worker check-for-updates [http_proxy]\n");
+  exit (1);
+}
 
-  if (argc > 1 && !strcmp (argv[1], "--check-updates"))
+/* Try to get the lock specified by FILE.  If this fails because
+   someone else has the lock, a string is returned with the content of
+   the file.  Otherwise MY_CONTENT is written to the file and NULL is
+   returned.
+
+   Other kinds of failures (out of space, insufficient permissions,
+   etc) will terminate this process.
+
+   The lock will be released when this process exits.
+*/
+
+static char *
+try_lock (const char *file, const char *my_content)
+{
+  int lock_fd = open (file, O_RDWR | O_CREAT, 0640);
+  if (lock_fd < 0)
     {
-      cmdline_op = CMDLINE_CHECK_UPDATES;
-    }
-  else if (argc != 6)
-    {
-      log_stderr ("wrong invocation");
+      log_stderr ("Can't open %s: %m", file);
       exit (1);
     }
 
-  /* Check if using the command line mode */
-  cmdline_mode = (cmdline_op != CMDLINE_NOOP);
+  SetCloseExec (lock_fd, true);
 
-  /* If not in command line mode, work as usual with the frontend */
-  if (!cmdline_mode)
+  struct flock fl;
+  fl.l_type = F_WRLCK;
+  fl.l_whence = SEEK_SET;
+  fl.l_start = 0;
+  fl.l_len = 0;
+
+  if (fcntl (lock_fd, F_SETLK, &fl) == -1)
+    {
+      char buf[256];
+      int n;
+      
+      if (errno == ENOLCK)
+	{
+	  log_stderr ("locking not supported on %s: %m", file);
+	  exit (1);
+	}
+     
+      /* We didn't get the lock.
+       */
+
+      n = read (lock_fd, buf, 255);
+      if (n < 0)
+	{
+	  log_stderr ("can't read lock %s: %m", file);
+	  exit (1);
+	}
+
+      buf[n] = '\0';
+      return g_strdup (buf);
+    }
+
+  /* We have the lock.
+   */
+
+  if (ftruncate (lock_fd, 0) < 0)
+    {
+      log_stderr ("can't truncate lock %s: %m", file);
+      exit (1);
+    }
+    
+  int n = strlen (my_content);
+  if (write (lock_fd, my_content, n) != n)
+    {
+      log_stderr ("can't write lock %s: %m", file);
+      exit (1);
+    }
+     
+  return NULL;
+}
+
+static void
+get_apt_worker_lock (bool weak)
+{
+  char *mine = g_strdup_printf ("%c %d\n", weak? 'w' : 's', getpid ());
+  char *his = NULL;
+  int termination_attempts = 0;
+
+  while (true)
+    {
+      g_free (his);
+      his = try_lock (APT_WORKER_LOCK, mine);
+      
+      if (his)
+	{
+	  char his_type;
+	  int his_pid;
+	  
+	  if (sscanf (his, "%c %d", &his_type, &his_pid) != 2)
+	    {
+	      log_stderr ("can't parse lock.");
+	      exit (1);
+	    }
+
+	  if (weak || his_type != 'w')
+	    {
+	      log_stderr ("too weak to get lock from %d.", his_pid);
+	      exit (1);
+	    }
+	  else if (termination_attempts < 5)
+	    {
+	      termination_attempts += 1;
+	      log_stderr ("terminating %d to get lock.", his_pid);
+	      kill (his_pid, SIGTERM);
+	      sleep (1);
+	      continue;
+	    }
+	  else
+	    {
+	      /* The big hammer.
+	       */
+	      log_stderr ("killing %d to get lock.", his_pid);
+	      kill (his_pid, SIGKILL);
+	      unlink (APT_WORKER_LOCK);
+	      sleep (1);
+	      continue;
+	    }
+	}
+      else
+	{
+	  /* It's ours.
+	   */
+	  g_free (mine);
+	  return;
+	}
+    }
+}
+
+static void
+misc_init ()
+{
+  read_domain_conf ();
+
+  AptWorkerState::Initialize ();
+
+  cache_init (false);
+
+#ifdef HAVE_APT_TRUST_HOOK
+  apt_set_index_trust_level_for_package_hook (index_trust_level_for_package);
+#endif
+}
+
+int
+main (int argc, char **argv)
+{
+  if (argc == 1)
+    usage ();
+
+  argv += 1;
+  argc -= 1;
+
+  if (!strcmp (argv[0], "backend"))
     {
       const char *options;
+
+      if (argc != 6)
+	{
+	  log_stderr ("wrong invocation");
+	  exit (1);
+	}
 
       DBG ("starting up");
 
@@ -1041,37 +1148,32 @@ main (int argc, char **argv)
       errno = 0;
       if (nice (20) == -1 && errno != 0)
 	log_stderr ("nice: %m");
-    }
 
-  read_domain_conf ();
+      get_apt_worker_lock (false);
+      misc_init ();
 
-  /* Initialize apt-worker and set cmdline_mode value */
-  AptWorkerState::Initialize ();
-
-  cache_init (false);
-
-#ifdef HAVE_APT_TRUST_HOOK
-  apt_set_index_trust_level_for_package_hook (index_trust_level_for_package);
-#endif
-
-  /* If not using command line mode, get ready to handle frontend requests */
-  if (!cmdline_mode)
-    {
       while (true)
 	handle_request ();
+
+      return 0;
+    }
+  else if (!strcmp (argv[0], "check-for-updates"))
+    {
+      get_apt_worker_lock (true);
+      misc_init ();
+      return cmdline_check_updates (argv);
+    }
+  else if (!strcmp (argv[0], "sleep"))
+    {
+      get_apt_worker_lock (argv[1] == NULL);
+      while (true)
+	{
+	  fprintf (stderr, "sleeping...\n");
+	  sleep (5);
+	}
     }
   else
-    {
-      int result_code;
-
-      /* Handle a single cmdline mode request and return the result
-	 code for the requested operation */
-      result_code = handle_cmdline_request (cmdline_op);
-      if (result_code != rescode_success)
-	exit (1);
-    }
-
-  return 0;
+    usage ();
 }
 
 /** CACHE HANDLING
@@ -2932,7 +3034,8 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
 }
 
 int
-update_package_cache (xexp *catalogues_for_report)
+update_package_cache (xexp *catalogues_for_report,
+		      bool with_status)
 {
   // Get the source list
   pkgSourceList List;
@@ -2953,7 +3056,7 @@ update_package_cache (xexp *catalogues_for_report)
    
   // Create the download object
   DownloadStatus Stat;
-  pkgAcquire Fetcher (cmdline_mode ? NULL : &Stat);
+  pkgAcquire Fetcher (with_status ? &Stat : NULL);
 
   // Populate it with the source selection
   if (List.GetIndexes(&Fetcher) == false)
@@ -3014,7 +3117,7 @@ update_package_cache (xexp *catalogues_for_report)
     }
   else
     {
-      cache_init (!cmdline_mode);
+      cache_init (with_status);
       return rescode_success;
     }
 }
@@ -3033,7 +3136,7 @@ reset_catalogue_errors (xexp *catalogues)
 }
 
 int
-cmd_check_updates ()
+cmd_check_updates (bool with_status)
 {
   const char *http_proxy = request.decode_string_in_place ();
   const char *https_proxy = request.decode_string_in_place ();
@@ -3058,7 +3161,7 @@ cmd_check_updates ()
 
   reset_catalogue_errors (catalogues);
 
-  int result_code = update_package_cache (catalogues);
+  int result_code = update_package_cache (catalogues, with_status);
 
   /* Write file with information about available updates */
   if (result_code != rescode_failure)
@@ -3080,14 +3183,38 @@ cmd_check_updates ()
   response.encode_xexp (catalogues);
   response.encode_int (result_code);
 
-  /* Return code for the cmdline mode.  We only return success or
-     failure.
-  */
+  return result_code;
+}
+
+int
+cmdline_check_updates (char **argv)
+{
+  AptWorkerState * state = 0;
+  int result_code = -1;
+
+  ensure_state (APTSTATE_DEFAULT);
+  state = AptWorkerState::GetCurrent ();
+
+  if (state->cache == NULL)
+    return 2;
+
+  if (argv[1])
+    {
+      DBG ("http_proxy: %s", argv[1]);
+      setenv ("http_proxy", argv[1], 1);
+    }
+
+  response.reset ();
+  request.reset (NULL, 0);
+  result_code = cmd_check_updates (false);
+
+  _error->DumpErrors ();
+
   if (result_code == rescode_success
       || result_code == rescode_partial_success)
-    return rescode_success;
+    return 0;
   else
-    return rescode_failure;
+    return 1;
 }
 
 /* APTCMD_GET_CATALOGUES
