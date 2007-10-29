@@ -3014,9 +3014,25 @@ send_reboot_message (void)
 }
 
 void
-set_update_notifier_visibility (int state)
+check_update_notifier_state ()
 {
-  GConfClient *conf = gconf_client_get_default ();
+  DBusConnection  *conn;
+  DBusMessage     *msg;
+  gchar           *service = "com.nokia.hildon_update_notifier";
+  gchar           *object_path = "/com/nokia/hildon_update_notifier";
+  gchar           *interface = "com.nokia.hildon_update_notifier";
   
-  gconf_client_set_int (conf, UPNO_GCONF_STATE, state, NULL);
+  conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+
+  if (conn)
+    {
+      msg = dbus_message_new_method_call (service, object_path,
+					  interface,
+					  "check_state");
+      if (msg)
+	{
+	  dbus_connection_send (conn, msg, NULL);
+	  dbus_message_unref (msg);
+	}
+    }
 }

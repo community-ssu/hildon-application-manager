@@ -376,6 +376,8 @@ static gboolean package_list_ready = false;
 
 static char *cur_section_name;
 
+static bool record_seen_updates = true;
+
 package_info::package_info ()
 {
   ref_count = 1;
@@ -857,6 +859,8 @@ get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
       else
 	all_si->unref ();
     }
+
+  record_seen_updates = true;
 
   sort_all_packages ();
 
@@ -1414,6 +1418,7 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
   */
 
   stop_entertaining_user ();
+  check_update_notifier_state ();
 
   if (dec == NULL)
     {
@@ -1914,7 +1919,6 @@ make_install_applications_view (view *v)
 void
 show_check_for_updates_view ()
 {
-  set_update_notifier_visibility (UPNO_ICON_INVISIBLE);
   show_view (&upgrade_applications_view);
 }
 
@@ -1943,6 +1947,26 @@ make_upgrade_applications_view (view *v)
 
   enable_search (true);
   set_current_help_topic (AI_TOPIC ("updateview"));
+
+  if (record_seen_updates)
+    {
+      xexp *seen_updates = xexp_list_new ("updates");
+      for (GList *pkg = upgradeable_packages; pkg; pkg = pkg->next)
+	xexp_cons (seen_updates,
+		   xexp_text_new ("pkg", 
+				  ((package_info *)pkg->data)->name));
+      xexp_write (stderr, seen_updates);
+
+      gchar *name = g_strdup_printf ("%s/%s", getenv ("HOME"),
+				     SEEN_UPDATES_FILE);
+      xexp_write_file (name, seen_updates);
+      xexp_free (seen_updates);
+      g_free (name);
+
+      record_seen_updates = false;
+
+      check_update_notifier_state ();
+    }
 
   return view;
 }
