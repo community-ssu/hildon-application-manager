@@ -251,6 +251,14 @@ static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
 
+static void ip_upgrade_all_confirm (GList *package_list,
+				   void (*cont) (bool res, void *data),
+				   void *data);
+static void ip_upgrade_all_confirm_response (bool res, void *data);
+static void ip_check_required_reboot (void (*cont) (bool res, void *data),
+				      void *data);
+static void ip_check_required_reboot_response (bool res, void *data);
+
 static gboolean ip_suggest_backup (ip_clos *c);
 static void ip_close_apps (bool res, void *data);
 
@@ -350,10 +358,16 @@ install_packages (GList *packages,
 			   title, desc,
 			   ip_select_package_response, c);
     }
+  else if (c->install_type == INSTALL_TYPE_UPGRADE_ALL_PACKAGES)
+    {
+      ip_upgrade_all_confirm (c->packages,
+			      ip_upgrade_all_confirm_response,
+			      c);
+    }
   else if (c->install_type != INSTALL_TYPE_UPDATE_SYSTEM)
     {
       package_info *pi;
-      
+
       c->cur = c->packages;
       pi = (package_info *)(c->cur->data);
 
@@ -985,6 +999,95 @@ ip_install_next (void *data)
   ip_install_loop (c);
 }
 
+static void
+ip_upgrade_all_confirm (GList *package_list,
+		       void (*cont) (bool res, void *data),
+		       void *data)
+{
+  int64_t acc_size = 0;
+  GList * iter = NULL;
+  char packages_size_str[20] = "";
+  gchar *title = NULL;
+  gchar *desc = NULL;
+  gchar *tmp = NULL;
+
+  /* Count total required size */
+  for (iter = package_list; iter != NULL; iter = g_list_next (iter))
+    {
+      package_info *pi = (package_info *) iter->data;
+      acc_size += pi->info.download_size;
+    }
+  size_string_general (packages_size_str, 20, acc_size);
+
+  /* Title */
+  title = g_strdup(_("ai_ti_confirm_update"));
+
+  /* Description */
+  tmp = g_strdup_printf (_("ai_ia_storage"), packages_size_str);
+  desc = g_strdup_printf ("%s\n%s",
+			  _("ai_nc_update_all"),
+			  tmp);
+
+  /* Show dialog */
+  ask_yes_no_with_title (title, desc, cont, data);
+
+  g_free (title);
+  g_free (desc);
+  g_free (tmp);
+}
+
+static void
+ip_upgrade_all_confirm_response (bool res, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (res)
+    ip_check_required_reboot (ip_check_required_reboot_response, c);
+  else
+    ip_end (c);
+}
+
+static void
+ip_check_required_reboot (void (*cont) (bool res, void *data),
+			  void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  bool reboot_required = false;
+  GList *iter = NULL;
+
+  /* Check if reboot will be needed */
+  for (iter = c->packages; iter; iter = g_list_next (iter))
+    {
+      package_info *pi = (package_info *) iter->data;
+      if (pi->info.install_flags & pkgflag_reboot)
+	{
+	  reboot_required = true;
+	  break;
+	}
+    }
+
+  /* Shows dialog if needed */
+  if (reboot_required)
+    {
+      ask_yes_no_with_title (_("ai_ti_rebooting_required"),
+			     _("ai_nc_rebooting_required"),
+			     cont, data);
+    }
+  else
+    ip_ensure_network (c);
+}
+
+static void
+ip_check_required_reboot_response (bool res, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (res)
+    ip_ensure_network (c);
+  else
+    ip_end (c);
+}
+
 static gboolean
 ip_suggest_backup (ip_clos *c)
 {
@@ -1181,6 +1284,9 @@ static void
 ip_end_after_reboot (void *data)
 {
   ip_clos *c = (ip_clos *)data;
+
+  if (c->packages != NULL)
+    g_list_free (c->packages);
 
   c->cont (c->n_successful, c->data);
   delete c;

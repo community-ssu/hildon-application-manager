@@ -261,6 +261,37 @@ ask_yes_no (const gchar *question,
 }
 
 void
+ask_yes_no_with_title (const gchar *title,
+		       const gchar *question,
+		       void (*cont) (bool res, void *data),
+		       void *data)
+{
+  GtkWidget *dialog;
+  ayn_closure *c = new ayn_closure;
+  c->pi = NULL;
+  c->cont = cont;
+  c->details = NULL;
+  c->data = data;
+
+  dialog = gtk_dialog_new_with_buttons
+    (title,
+     NULL,
+     GTK_DIALOG_MODAL,
+     _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
+     _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
+     NULL);
+  push_dialog (dialog);
+
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
+		     gtk_label_new (question));
+
+  g_signal_connect (dialog, "response",
+		    G_CALLBACK (yes_no_response), c);
+  gtk_widget_show_all (dialog);
+}
+
+void
 ask_custom (const gchar *question,
 	    const gchar *ok_label, const gchar *cancel_label,
 	    void (*cont) (bool res, void *data),
@@ -1444,14 +1475,20 @@ make_global_package_list (GList *packages,
   if (global_target_path)
     {
       GtkTreeIter iter;
+      GtkTreePath *target_path = gtk_tree_path_copy (global_target_path);
 
       if (!gtk_tree_model_get_iter (GTK_TREE_MODEL (global_list_store),
 				    &iter, global_target_path))
 	gtk_tree_path_prev (global_target_path);
 
       gtk_tree_view_set_cursor (GTK_TREE_VIEW (tree),
-				global_target_path,
+				target_path,
 				NULL, FALSE);
+      gtk_tree_view_get_cursor (GTK_TREE_VIEW (tree),
+				&global_target_path,
+				NULL);
+      gtk_tree_path_free (target_path);
+
       gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (tree),
 				    global_target_path,
 				    NULL, FALSE, 0, 0);

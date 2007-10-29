@@ -110,6 +110,9 @@ void maybe_exit ();
   passed to the continuation CONT is true when the user clicks "Ok",
   of course, and false otherwise.
 
+  ASK_YES_NO_WITH_TITLE is like ask_yes_no but it constructs a real
+  dialog with title TITLE.
+
   ASK_CUSTOM is like ask_yes_no but allows the texts in the buttons to
   be specified.
 
@@ -152,6 +155,11 @@ void maybe_exit ();
 
 void ask_yes_no (const gchar *question,
 		 void (*cont) (bool res, void *data), void *data);
+
+void ask_yes_no_with_title (const gchar *title,
+			    const gchar *question,
+			    void (*cont) (bool res, void *data),
+			    void *data);
 
 void ask_custom (const gchar *question,
 		 const gchar *ok_label, const gchar *cancel_label,

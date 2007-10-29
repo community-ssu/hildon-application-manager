@@ -1639,6 +1639,28 @@ install_package_flow (package_info *pi)
 }
 
 static void
+update_all_packages_flow_end (int n_successful, void *data)
+{
+  GList *packages_list = (GList *)data;
+  g_list_free (packages_list);
+  end_interaction_flow ();
+}
+
+static void
+update_all_packages_flow ()
+{
+  if (start_interaction_flow ())
+    {
+      GList *packages_list = g_list_copy (upgradeable_packages);
+      install_packages (packages_list,
+			APTSTATE_DEFAULT,
+			INSTALL_TYPE_UPGRADE_ALL_PACKAGES,
+			false,  NULL, NULL,
+			update_all_packages_flow_end, packages_list);
+    }
+}
+
+static void
 install_operation_callback (gpointer data)
 {
   install_package_flow ((package_info *)data);
@@ -1665,6 +1687,12 @@ static void
 available_package_activated (package_info *pi)
 {
   install_package_flow (pi);
+}
+
+static void
+update_all_packages_callback ()
+{
+  update_all_packages_flow ();
 }
 
 static void
@@ -2972,7 +3000,9 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
       gtk_tool_item_set_expand (GTK_TOOL_ITEM (update_all_button), TRUE);
       gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (update_all_button), TRUE);
 
-      /* TODO - write a right callback for 'Update all' */
+      g_signal_connect (update_all_button, "clicked",
+			G_CALLBACK (update_all_packages_callback),
+			NULL);
 
       g_signal_connect (G_OBJECT (update_all_button), "insensitive_press",
 			G_CALLBACK (insensitive_operation_press), NULL);

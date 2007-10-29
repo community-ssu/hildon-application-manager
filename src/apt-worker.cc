@@ -4735,9 +4735,17 @@ save_failed_catalogues (xexp *failed_catalogues)
 static xexp *
 load_failed_catalogues ()
 {
+  struct stat buf;
+  int stat_result;
   xexp *failed_catalogues = NULL;
 
-  failed_catalogues = xexp_read_file (FAILED_CATALOGUES_FILE);
+  /* Check if there are problems reading the file */
+  stat_result = stat (FAILED_CATALOGUES_FILE, &buf);
+  if (!stat_result)
+    failed_catalogues = xexp_read_file (FAILED_CATALOGUES_FILE);
+  else if (errno != ENOENT)
+    log_stderr ("error reading file %s: %m", FAILED_CATALOGUES_FILE);
+
   return failed_catalogues;
 }
 

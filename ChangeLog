@@ -1,3 +1,39 @@
+2007-10-29  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker.cc (load_failed_catalogues): Added an extra check
+	to neither read the failed catalogues file nor log an error when
+	the file is not present at disk (no errors during last refresh).
+
+	* src/util.h, src/util.cc (ask_yes_no_with_title): New function
+	like ask_yes_no, but it constructs a real dialog with a title.
+	(make_global_package_list): Fixed a mem leak found with valgrind.
+
+	* src/operations.h (INSTALL_TYPE_UPGRADE_ALL_PACKAGES): New
+	install type added for the new 'Update all' feature.
+
+	* src/operations.cc (install_packages): Take into account the new
+	INSTALL_TYPE_UPGRADE_ALL_PACKAGES install type added.
+	(ip_upgrade_all_confirm): New. Shows the 'Update all' confirmation
+	dialog. Invoked from ip_upgrade_all_confirm.
+	(ip_upgrade_all_confirm_response): New. Manages the response for
+	the confirmation dialog.
+	(ip_check_required_reboot): New. Checks whether some of the
+	packages to be upgraded requires to reboot, to show an information
+	dialog if so.
+	(ip_check_required_reboot_response): New. Manages the response of
+	the dialog which tells that rebooting is required.
+	(ip_end_after_reboot): If needed, free the GList structure (not
+	the data) locally created for c->packages in install_packages().
+
+	* src/main.cc (create_toolbar): Connect "clicked" signal for the
+	'Update all' button to update_all_packages_callback().
+	(update_all_packages_callback): New. Starts the flow to update all
+	the packages in the 'Check for updates' view.
+	(update_all_packages_flow): New. Start an interaction flow and
+	call install_packages() with a list containing all the updates.
+	(update_all_packages_flow_end): New. End the interaction flow for
+	the 'Update all' process.
+
 2007-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker-client.cc (start_apt_worker): Use new "backend"
