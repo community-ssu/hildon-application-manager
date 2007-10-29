@@ -1,3 +1,34 @@
+2007-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker-client.cc (start_apt_worker): Use new "backend"
+	sub-command to start apt-worker in backend mode.
+
+	* src/apt-worker.cc (APT_WORKER_LOCK, try_lock,
+	get_apt_worker_lock): New.
+	(misc_init): New, to factor out common initialization tasks.
+	(main): Restructured for clarity.  Acquire locks as appropriate.
+	Added explicit sub-command for backend mode.  Added usage message.
+	(cmdline_check_updates): New.
+	(cmd_check_updates): Added 'with_status' parameter so that
+	cmdline_check_updates can run it silently.
+	
+	* src/repo.cc (cat_icon_func): Removed unused local variable
+	"icon_name".
+
+	* src/update-notifier.c (AVAILABLE_UPDATES_FILE): New, use it
+	instead of hard-coded value.
+	(update_menu): Check mtime of file and only reconstruct menu when
+	it has actually changed.  Return TRUE when that has happened.
+	Only show menu lines with a non-zero count.
+	(check_for_updates_done): Call update_menu and only start blining
+	when it returns TRUE.
+	(check_for_updates): Use sudo or fakeroot as appropriate.  Pass
+	http_proxy via command line arguments.
+	(setup_http_proxy, get_https_proxy): Renamed former to latter,
+	don't set environment, just return the value.
+	
+	* src/xexp.c, src/xexp.h (xexp_aset_int): New.
+
 2007-10-27  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (present_main_window): Separately use
