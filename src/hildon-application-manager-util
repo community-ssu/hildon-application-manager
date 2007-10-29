@@ -34,10 +34,17 @@ elif [ "$1" = "check-for-updates" ]; then
             --dest='com.nokia.hildon_update_notifier' \
             /com/nokia/hildon_update_notifier \
             com.nokia.hildon_update_notifier.check_for_updates
+elif [ "$1" = "check-state" ]; then
+  dbus-send --type=method_call \
+            --print-reply \
+            --dest='com.nokia.hildon_update_notifier' \
+            /com/nokia/hildon_update_notifier \
+            com.nokia.hildon_update_notifier.check_state
 else
   echo >&2 "usage: hildon-application-manager-util restore-catalogues" 
   echo >&2 "       hildon-application-manager-util run-after-restore"
   echo >&2 "       hildon-application-manager-util update-system"
   echo >&2 "       hildon-application-manager-util check-for-updates"
+  echo >&2 "       hildon-application-manager-util check-state"
   exit 1 
 fi
