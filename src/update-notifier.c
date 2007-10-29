@@ -338,8 +338,6 @@ update_state (UpdateNotifier *upno)
   xexp_free (available_updates);
   xexp_free (seen_updates);
 
-  fprintf (stderr, "STATE: %d %d %d %d\n", n_new, n_os, n_certified, n_other);
-
   if (n_new > 0)
     set_icon_visibility (upno, UPNO_ICON_BLINKING);
   else

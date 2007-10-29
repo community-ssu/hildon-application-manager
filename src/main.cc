@@ -1955,8 +1955,6 @@ make_upgrade_applications_view (view *v)
 	xexp_cons (seen_updates,
 		   xexp_text_new ("pkg", 
 				  ((package_info *)pkg->data)->name));
-      xexp_write (stderr, seen_updates);
-
       gchar *name = g_strdup_printf ("%s/%s", getenv ("HOME"),
 				     SEEN_UPDATES_FILE);
       xexp_write_file (name, seen_updates);
