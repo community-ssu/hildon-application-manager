@@ -433,7 +433,6 @@ cat_icon_func (GtkTreeViewColumn *column,
   static GdkPixbuf *fail_browser_pixbuf = NULL;
   GdkPixbuf *browser_pixbuf = NULL;
 
-  gchar *icon_name = NULL;
   cat_dialog_closure *cd = (cat_dialog_closure *)data;
   catcache *c = NULL;
 
