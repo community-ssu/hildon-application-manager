@@ -243,7 +243,7 @@ start_apt_worker (gchar *prog)
 
   gchar *args[] = {
     sudo,
-    prog,
+    prog, "backend",
     "/tmp/apt-worker.to", "/tmp/apt-worker.from",
     "/tmp/apt-worker.status", "/tmp/apt-worker.cancel",
     options,
