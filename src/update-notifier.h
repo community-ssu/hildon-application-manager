@@ -27,6 +27,8 @@
 #define UPNO_GCONF_DIR     "/apps/hildon/update-notifier"
 #define UPNO_GCONF_STATE   UPNO_GCONF_DIR "/state"
 
+#define SEEN_UPDATES_FILE  ".hildon-application-manager-seen-updates"
+
 enum {
   UPNO_ICON_INVISIBLE,
   UPNO_ICON_STATIC,

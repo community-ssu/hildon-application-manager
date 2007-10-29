@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <string.h>
 
 #include <libhildondesktop/libhildondesktop.h>
 #include <libhildondesktop/statusbar-item.h>
@@ -73,10 +74,6 @@ struct _UpdateNotifier
 
   GConfClient *gconf;
   DBusConnection *dbus;
-  
-  gboolean checking_active;
-
-  time_t available_updates_mtime;
 };
 
 struct _UpdateNotifierClass
@@ -94,7 +91,7 @@ static void setup_dbus (UpdateNotifier *upno);
 static char *get_http_proxy ();
 
 static void update_icon_visibility (UpdateNotifier *upno, GConfValue *value);
-static gboolean update_menu (UpdateNotifier *upno);
+static void update_state (UpdateNotifier *upno);
 
 static void show_check_for_updates_view (UpdateNotifier *upno);
 static void check_for_updates (UpdateNotifier *upno);
@@ -137,8 +134,6 @@ button_pressed (GtkWidget *button, gpointer data)
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
 
   set_icon_visibility (upno, UPNO_ICON_STATIC);
-
-  update_menu (upno);
 
   gtk_menu_popup (GTK_MENU (upno->menu),
 		  NULL, NULL,
@@ -212,10 +207,10 @@ update_notifier_init (UpdateNotifier *upno)
 
   setup_dbus (upno);
 
-  update_menu (upno);
   update_icon_visibility (upno, gconf_client_get (upno->gconf,
 						  UPNO_GCONF_STATE,
 						  NULL));
+  update_state (upno);
 }
 
 static void
@@ -297,51 +292,70 @@ add_readonly_item (GtkWidget *menu, const char *fmt, ...)
   g_free (label);
 }
 
-static gboolean
-update_menu (UpdateNotifier *upno)
+static void
+update_state (UpdateNotifier *upno)
 {
-  xexp *updates;
-  int n_os = 0, n_nokia = 0, n_other = 0;
+  xexp *available_updates, *seen_updates;
+  int n_os = 0, n_certified = 0, n_other = 0;
+  int n_new = 0;
+
   GtkWidget *item;
-  struct stat info;
   
-  if (stat (AVAILABLE_UPDATES_FILE, &info))
-    return FALSE;
+  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
+  
+  gchar *name = g_strdup_printf ("%s/%s", getenv ("HOME"),
+				 SEEN_UPDATES_FILE);
+  seen_updates = xexp_read_file (name);
+  g_free (name);
 
-  if (info.st_mtime == upno->available_updates_mtime)
-    return FALSE;
+  if (seen_updates == NULL)
+    seen_updates = xexp_list_new ("updates");
 
-  upno->available_updates_mtime = info.st_mtime;
-
-  updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
-
-  if (updates)
+  if (available_updates)
     {
-      xexp *x;
+      xexp *x, *y;
 
-      if ((x = xexp_aref (updates, "os-updates")))
-	n_os = xexp_aref_int (x, "count", 0);
-      
-      if ((x = xexp_aref (updates, "nokia-updates")))
-	n_nokia = xexp_aref_int (x, "count", 0);
+      for (x = xexp_first (available_updates); x; x = xexp_rest (x))
+	{
+	  const char *pkg = xexp_text (x);
+	  
+	  for (y = xexp_first (seen_updates); y; y = xexp_rest (y))
+	    if (strcmp (pkg, xexp_text (y)) == 0)
+	      break;
 
-      if ((x = xexp_aref (updates, "other-updates")))
-	n_other = xexp_aref_int (x, "count", 0);
+	  if (y == NULL)
+	    n_new++;
 
-      xexp_free (updates);
+	  if (xexp_is (x, "os"))
+	    n_os++;
+	  else if (xexp_is (x, "certified"))
+	    n_certified++;
+	  else
+	    n_other++;
+	}
     }
 
+  xexp_free (available_updates);
+  xexp_free (seen_updates);
+
+  fprintf (stderr, "STATE: %d %d %d %d\n", n_new, n_os, n_certified, n_other);
+
+  if (n_new > 0)
+    set_icon_visibility (upno, UPNO_ICON_BLINKING);
+  else
+    set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
+    
   if (upno->menu)
     gtk_widget_destroy (upno->menu);
 
   upno->menu = gtk_menu_new ();
 
-  if (n_nokia + n_other + n_os > 0)
+  if (n_certified + n_other + n_os > 0)
     {
       add_readonly_item (upno->menu, "Available software updates:");
 
-      if (n_nokia > 0)
-	add_readonly_item (upno->menu, "   Nokia (%d)", n_nokia);
+      if (n_certified > 0)
+	add_readonly_item (upno->menu, "   Nokia (%d)", n_certified);
       if (n_other > 0)
 	add_readonly_item (upno->menu, "   Other (%d)", n_other);
       if (n_os > 0)
@@ -357,8 +371,6 @@ update_menu (UpdateNotifier *upno)
   gtk_widget_show (item);
   g_signal_connect (item, "activate",
 		    G_CALLBACK (menu_activated), upno);
-
-  return TRUE;
 }
 
 static void
@@ -382,6 +394,21 @@ dbus_filter (DBusConnection *conn, DBusMessage *message, void *data)
       DBusMessage *reply;
 
       check_for_updates (upno);
+
+      reply = dbus_message_new_method_return (message);
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
+
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_update_notifier",
+				   "check_state"))
+    {
+      DBusMessage *reply;
+
+      update_state (upno);
 
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
@@ -434,17 +461,14 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
 
-  upno->checking_active = FALSE;
-
   if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
     {
-      if (update_menu (upno))
-	set_icon_visibility (upno, UPNO_ICON_BLINKING);
+      update_state (upno);
     }
   else
     {
-      /* Ask the Application Manager to do perform the update, but
-	 don't start it if it isn't running already.
+      /* Ask the Application Manager to perform the update, but don't
+	 start it if it isn't running already.
        */
 
       DBusMessage     *msg;
@@ -472,49 +496,42 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 static void
 check_for_updates (UpdateNotifier *upno)
 {
-  if (upno->checking_active)
-    return;
-  else
+  GError *error = NULL;
+  GPid child_pid;
+  char *proxy = get_http_proxy ();
+  
+  char *argv[] = 
+    { "/usr/bin/sudo",
+      "/usr/libexec/apt-worker", "check-for-updates", proxy, NULL
+    };
+  
+  {
+    /* Scratchbox is my bitch.
+     */
+    struct stat info;
+    if (!stat ("/targets/links/scratchbox.config", &info))
+      argv[0] = "/usr/bin/fakeroot";
+  }
+  
+  if (!g_spawn_async_with_pipes (NULL,
+				 argv,
+				 NULL,
+				 G_SPAWN_DO_NOT_REAP_CHILD,
+				 NULL,
+				 NULL,
+				 &child_pid,
+				 NULL,
+				 NULL,
+				 NULL,
+				 &error))
     {
-      GError *error = NULL;
-      GPid child_pid;
-      char *proxy = get_http_proxy ();
-      
-      char *argv[] = 
-	{ "/usr/bin/sudo",
-	  "/usr/libexec/apt-worker", "check-for-updates", proxy, NULL
-	};
-      
-      {
-	/* Scratchbox is my bitch.
-	 */
-	struct stat info;
-	if (!stat ("/targets/links/scratchbox.config", &info))
-	  argv[0] = "/usr/bin/fakeroot";
-      }
-      
-      upno->checking_active = TRUE;
-
-      if (!g_spawn_async_with_pipes (NULL,
-				     argv,
-				     NULL,
-				     G_SPAWN_DO_NOT_REAP_CHILD,
-				     NULL,
-				     NULL,
-				     &child_pid,
-				     NULL,
-				     NULL,
-				     NULL,
-				     &error))
-	{
-	  fprintf (stderr, "can't run %s: %s\n", argv[0], error->message);
-	  g_error_free (error);
-	}
-      else
-	g_child_watch_add (child_pid, check_for_updates_done, upno);
-
-      g_free (proxy);
+      fprintf (stderr, "can't run %s: %s\n", argv[0], error->message);
+      g_error_free (error);
     }
+  else
+    g_child_watch_add (child_pid, check_for_updates_done, upno);
+  
+  g_free (proxy);
 }
 
 static char *
