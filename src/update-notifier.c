@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 #include <libhildondesktop/libhildondesktop.h>
 #include <libhildondesktop/statusbar-item.h>
@@ -46,6 +47,8 @@
 #include "xexp.h"
 
 #define USE_BLINKIFIER 1
+
+#define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
 
 typedef struct _UpdateNotifier      UpdateNotifier;
 typedef struct _UpdateNotifierClass UpdateNotifierClass;
@@ -72,6 +75,8 @@ struct _UpdateNotifier
   DBusConnection *dbus;
   
   gboolean checking_active;
+
+  time_t available_updates_mtime;
 };
 
 struct _UpdateNotifierClass
@@ -86,10 +91,10 @@ HD_DEFINE_PLUGIN (UpdateNotifier, update_notifier, STATUSBAR_TYPE_ITEM);
 static void set_icon_visibility (UpdateNotifier *upno, int state);
 
 static void setup_dbus (UpdateNotifier *upno);
-static void setup_http_proxy ();
+static char *get_http_proxy ();
 
 static void update_icon_visibility (UpdateNotifier *upno, GConfValue *value);
-static void update_menu (UpdateNotifier *upno);
+static gboolean update_menu (UpdateNotifier *upno);
 
 static void show_check_for_updates_view (UpdateNotifier *upno);
 static void check_for_updates (UpdateNotifier *upno);
@@ -102,7 +107,6 @@ update_notifier_class_init (UpdateNotifierClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   object_class->finalize = update_notifier_finalize;
 }
-
 
 static void
 menu_position_func (GtkMenu   *menu, 
@@ -293,17 +297,23 @@ add_readonly_item (GtkWidget *menu, const char *fmt, ...)
   g_free (label);
 }
 
-static void
+static gboolean
 update_menu (UpdateNotifier *upno)
 {
   xexp *updates;
   int n_os = 0, n_nokia = 0, n_other = 0;
   GtkWidget *item;
+  struct stat info;
+  
+  if (stat (AVAILABLE_UPDATES_FILE, &info))
+    return FALSE;
 
-  /* XXX - only do this when file has actually changed.
-   */
+  if (info.st_mtime == upno->available_updates_mtime)
+    return FALSE;
 
-  updates = xexp_read_file ("/var/lib/hildon-application-manager/available-updates");
+  upno->available_updates_mtime = info.st_mtime;
+
+  updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
 
   if (updates)
     {
@@ -326,20 +336,29 @@ update_menu (UpdateNotifier *upno)
 
   upno->menu = gtk_menu_new ();
 
-  add_readonly_item (upno->menu, "Available software updates:");
-  add_readonly_item (upno->menu, "   Nokia (%d)", n_nokia);
-  add_readonly_item (upno->menu, "   Other (%d)", n_other);
-  add_readonly_item (upno->menu, "   OS (%d)", n_os);
+  if (n_nokia + n_other + n_os > 0)
+    {
+      add_readonly_item (upno->menu, "Available software updates:");
 
-  item = gtk_separator_menu_item_new ();
-  gtk_menu_append (upno->menu, item);
-  gtk_widget_show (item);
-  
+      if (n_nokia > 0)
+	add_readonly_item (upno->menu, "   Nokia (%d)", n_nokia);
+      if (n_other > 0)
+	add_readonly_item (upno->menu, "   Other (%d)", n_other);
+      if (n_os > 0)
+	add_readonly_item (upno->menu, "   OS");
+
+      item = gtk_separator_menu_item_new ();
+      gtk_menu_append (upno->menu, item);
+      gtk_widget_show (item);
+    }
+
   item = gtk_menu_item_new_with_label ("Invoke Application Manager");
   gtk_menu_append (upno->menu, item);
   gtk_widget_show (item);
   g_signal_connect (item, "activate",
 		    G_CALLBACK (menu_activated), upno);
+
+  return TRUE;
 }
 
 static void
@@ -419,9 +438,8 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 
   if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
     {
-      /* XXX - only blink if there is something new, of course...
-       */
-      set_icon_visibility (upno, UPNO_ICON_BLINKING);
+      if (update_menu (upno))
+	set_icon_visibility (upno, UPNO_ICON_BLINKING);
     }
   else
     {
@@ -454,45 +472,61 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 static void
 check_for_updates (UpdateNotifier *upno)
 {
-  GError *error = NULL;
-  GPid child_pid;
-  char *argv[] = { "/usr/libexec/apt-worker", "--check-updates", NULL };
-
   if (upno->checking_active)
     return;
-
-  upno->checking_active = TRUE;
-
-  setup_http_proxy ();
-
-  if (!g_spawn_async_with_pipes (NULL,
-				 argv,
-				 NULL,
-				 G_SPAWN_DO_NOT_REAP_CHILD,
-				 NULL,
-				 NULL,
-				 &child_pid,
-				 NULL,
-				 NULL,
-				 NULL,
-				 &error))
+  else
     {
-      fprintf (stderr, "can't run %s: %s\n", argv[0], error->message);
-      g_error_free (error);
-      return;
-    }
+      GError *error = NULL;
+      GPid child_pid;
+      char *proxy = get_http_proxy ();
+      
+      char *argv[] = 
+	{ "/usr/bin/sudo",
+	  "/usr/libexec/apt-worker", "check-for-updates", proxy, NULL
+	};
+      
+      {
+	/* Scratchbox is my bitch.
+	 */
+	struct stat info;
+	if (!stat ("/targets/links/scratchbox.config", &info))
+	  argv[0] = "/usr/bin/fakeroot";
+      }
+      
+      upno->checking_active = TRUE;
 
-  g_child_watch_add (child_pid, check_for_updates_done, upno);
+      if (!g_spawn_async_with_pipes (NULL,
+				     argv,
+				     NULL,
+				     G_SPAWN_DO_NOT_REAP_CHILD,
+				     NULL,
+				     NULL,
+				     &child_pid,
+				     NULL,
+				     NULL,
+				     NULL,
+				     &error))
+	{
+	  fprintf (stderr, "can't run %s: %s\n", argv[0], error->message);
+	  g_error_free (error);
+	}
+      else
+	g_child_watch_add (child_pid, check_for_updates_done, upno);
+
+      g_free (proxy);
+    }
 }
 
-static void
-setup_http_proxy ()
+static char *
+get_http_proxy ()
 {
   GConfClient *conf;
   char *proxy;
 
   if ((proxy = getenv ("http_proxy")) != NULL)
-    return;
+    return g_strdup (proxy);
+
+  proxy = NULL;
 
   conf = gconf_client_get_default ();
 
@@ -537,10 +571,9 @@ setup_http_proxy ()
 	       since transcribing it to no_proxy is hard... mandatory,
 	       non-transparent proxies are evil anyway.
       */
-
-      setenv ("http_proxy", proxy, 1);
-      g_free (proxy);
     }
 
   g_object_unref (conf);
+
+  return proxy;
 }
