@@ -742,17 +742,7 @@ static void clean_failed_catalogues ();
 
 /** MANAGEMENT OF FILE WITH INFO ABOUT AVAILABLE UPDATES */
 
-typedef struct update_counters
-{
-  int os_count;
-  int nokia_count;
-  int other_count;
-};
-
-static void update_available_update_counter (const pkgCache::PkgIterator &pkg,
-					     update_counters *counters);
-static update_counters *get_available_updates_counts ();
-static void update_available_updates_file (update_counters *counters);
+static void write_available_updates_file ();
 
 /** MAPPING FUNCTION TO FILTER ERROR DETAILS
     IN CATALOGUES CONFIGURATION FILE
@@ -2279,12 +2269,6 @@ cmd_get_package_list ()
   const char *pattern = request.decode_string_in_place ();
   bool show_magic_sys = request.decode_int ();
 
-  /* Counters to check available updates after getting a new list */
-  update_counters *counters = new update_counters;
-  counters->os_count = 0;
-  counters->nokia_count = 0;
-  counters->other_count = 0;
-
   if (!ensure_cache (true))
     {
       response.encode_int (0);
@@ -2296,9 +2280,6 @@ cmd_get_package_list ()
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
-      /* Update update counters, if needed */
-      update_available_update_counter (pkg, counters);
-
       /* Get installed and candidate iterators for current package */
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
@@ -2412,10 +2393,6 @@ cmd_get_package_list ()
       response.encode_string ("Updates to all system packages");
       response.encode_string (NULL);
     }
-
-  /* Update file with information about available updates */
-  update_available_updates_file (counters);
-  delete counters;
 }
 
 void
@@ -3163,16 +3140,8 @@ cmd_check_updates (bool with_status)
 
   int result_code = update_package_cache (catalogues, with_status);
 
-  /* Write file with information about available updates */
   if (result_code != rescode_failure)
-    {
-      update_counters *counters = get_available_updates_counts ();
-      if (counters)
-	{
-	  update_available_updates_file (counters);
-	  delete counters;
-	}
-    }
+    write_available_updates_file ();
 
   if (result_code != rescode_success)
     {
@@ -4757,119 +4726,62 @@ clean_failed_catalogues ()
 }
 
 static void
-update_available_update_counter (const pkgCache::PkgIterator &pkg,
-				 update_counters *counters)
+write_available_updates_file ()
 {
-  if (counters == NULL)
-    return;
-
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
-
-  pkgCache::VerIterator installed = pkg.CurrentVer ();
-  pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
-
-  // Check if it's an update for an installed package
-  if (!candidate.end () && !installed.end() &&
-      installed.CompareVer (candidate) < 0)
-    {
-      int domain_index = state->extra_info[pkg->ID].cur_domain;
-
-      /* Update counter */
-      if (domain_index >= 0 && domain_index < domains_number)
-	{
-	  const char *domain_name = domains[domain_index].name;
-	  package_record rec (candidate);
-	  int flags = get_flags (rec);
-
-	  /* Packages with 'system-update' flag and non-user
-	     packages are considered as "OS" as well */
-	  if ((flags & pkgflag_system_update) ||
-	      !is_user_package (candidate) ||
-	      !strcmp(OS_UPDATES_DOMAIN_NAME, domain_name))
-	    counters->os_count++;
-	  else if (!strcmp(NOKIA_UPDATES_DOMAIN_NAME, domain_name))
-	    counters->nokia_count++;
-	  else
-	    counters->other_count++;
-	}
-      else
-	counters->other_count++;
-    }
-}
-
-static update_counters *
-get_available_updates_counts ()
-{
-  /* Check cache first. If not valid, do nothing */
   if (!ensure_cache (false))
-    return NULL;
-
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
-
-  /* Init counters */
-  update_counters *counters = new update_counters;
-  counters->os_count = 0;
-  counters->nokia_count = 0;
-  counters->other_count = 0;
-
-  /* Update counters considering all the packages */
-  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
-    update_available_update_counter (pkg, counters);
-
-  return counters;
-}
-
-static void
-update_available_updates_file (update_counters *counters)
-{
-  if (counters == NULL)
     return;
 
   xexp *x_updates = xexp_list_new ("updates");
-  gchar *str_count = NULL;
 
-  /* Save updates counters ( > 0 ) into the xexp structure */
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  pkgDepCache &cache = *(state->cache);
 
-  /* Others updates */
-  if (counters->other_count > 0)
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
-      xexp *x_other = xexp_list_new ("other-updates");
-      xexp_cons (x_updates, x_other);
+      /* This duplicates the logic that determines which packages
+	 would be shown in the "Check for Updates" view in blue-pill
+	 mode.
 
-      str_count = g_strdup_printf ("%d", counters->other_count);
-      xexp_cons (x_other, xexp_text_new ("count", str_count));
-      g_free (str_count);
+	 Namely, a package is shown when it has both a installed and
+	 available version, the available version is newer than the
+	 installed version, and the available version is user-visible.
+
+	 Packages are classified as "OS", "Certified", and "Other".  A
+	 package belongs to the "OS" class when it has the
+	 system-update flag set.  Otherwise, it belongs to the
+	 "Certified" class when it is in a certified domain.
+	 Otherwise it belongs to the "Other" class.  (The update
+	 notifier presents the "Certified" class as "Nokia".)
+
+	 XXX - it would be good to not duplicate so much logic, of
+	       course.
+      */
+
+      pkgCache::VerIterator installed = pkg.CurrentVer ();
+      pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+
+      if (!candidate.end ()
+	  && !installed.end()
+	  && installed.CompareVer (candidate) < 0
+	  && is_user_package (candidate))
+	{
+	  xexp *x_pkg = NULL;
+	  package_record rec (candidate);
+	  int flags = get_flags (rec);
+	  int domain_index = state->extra_info[pkg->ID].cur_domain;
+	  
+	  if (flags & pkgflag_system_update)
+	    x_pkg = xexp_text_new ("os", pkg.Name());
+	  else if (domains[domain_index].is_certified)
+	    x_pkg = xexp_text_new ("certified", pkg.Name());
+	  else
+	    x_pkg = xexp_text_new ("other", pkg.Name());
+
+	  xexp_cons (x_updates, x_pkg);
+	}
     }
 
-  /* Nokia updates */
-  if (counters->nokia_count > 0)
-    {
-      xexp *x_nokia = xexp_list_new ("nokia-updates");
-      xexp_cons (x_updates, x_nokia);
-
-      str_count = g_strdup_printf ("%d", counters->nokia_count);
-      xexp_cons (x_nokia, xexp_text_new ("count", str_count));
-      g_free (str_count);
-    }
-
-  /* OS updates */
-  if (counters->os_count > 0)
-    {
-      xexp *x_os = xexp_list_new ("os-updates");
-      xexp_cons (x_updates, x_os);
-
-      str_count = g_strdup_printf ("%d", counters->os_count);
-      xexp_cons (x_os, xexp_text_new ("count", str_count));
-      g_free (str_count);
-    }
-
-  /* Write to disk */
   xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
-
-  /* Free xexp structure */
-  xexp_free (x_updates);
 }
 
 static xexp *
