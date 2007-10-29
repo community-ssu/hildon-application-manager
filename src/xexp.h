@@ -267,11 +267,16 @@
    Otherwise, call xexp_aset on X with the result of xexp_text_new
    (TAG, VAL).
 
+   - void xexp_aset_int (xexp *x, const char *tag, int val)
+
+   Call xexp_aset_text on X with a string repesenting VAL.
+
    - void xexp_aset_bool (xexp *x, const char *tag, int val)
 
    If VAL is false, remove all childrem of X that have tag TAG.
    Otherwise, call xexp_aset on X with the result of xexp_list_new
    (TAG).
+
 
    - void xexp_adel (xexp *x, const char *tag);
 
@@ -353,6 +358,7 @@ int xexp_aref_bool (xexp *x, const char *tag);
 int xexp_aref_int (xexp *x, const char *tag, int def);
 void xexp_aset (xexp *x, xexp *val);
 void xexp_aset_text (xexp *x, const char *tag, const char *val);
+void xexp_aset_int (xexp *x, const char *tag, int val);
 void xexp_aset_bool (xexp *x, const char *tag, int val);
 void xexp_adel (xexp *x, const char *tag);
 

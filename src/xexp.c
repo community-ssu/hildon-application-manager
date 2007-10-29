@@ -489,6 +489,14 @@ xexp_aset_text (xexp *x, const char *tag, const char *val)
 }
 
 void
+xexp_aset_int (xexp *x, const char *tag, int val)
+{
+  char *t = g_strdup_printf ("%d", val);
+  xexp_aset_text (x, tag, t);
+  g_free (t);
+}
+
+void
 xexp_adel (xexp *x, const char *tag)
 {
   xexp **yptr;
