@@ -3,6 +3,7 @@ hildon-application-manager (1:2.1.0~unreleased) unstable; urgency=low
   * Remove .la files from installation directory.
   * Configure with --disable-static.
   * Conflict with and replace hildon-update-notifier.
+  * Added libalarm-dev to Build-Depends.
   * Fixes: NB#72881.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 08 Oct 2007 12:17:12 +0300
