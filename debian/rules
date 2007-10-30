@@ -33,7 +33,7 @@ config.status:
 	if [ ! -x configure ]; then ./autogen.sh; fi
 	dh_testdir
 	# Add here commands to configure the package.
-	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --sysconfdir=/etc --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
+	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --sysconfdir=/etc --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --disable-static
 
 
 build: build-stamp
@@ -71,6 +71,7 @@ install: build
 
         # Add here commands to install the package into debian/hildon-application-manager.
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/hildon-application-manager
+	rm `find $(CURDIR)/debian/hildon-application-manager -name '*.la'`
 
 
 # Build architecture-independent files here.
