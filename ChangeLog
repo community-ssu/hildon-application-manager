@@ -1,3 +1,25 @@
+2007-10-30  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/update-notifier.c (update_state): Be robust against non-text
+	elements in the xexps.  Use logical ids.  Only start blinking when
+	the icon was invisible previously.
+	(add_readonly_item): Force the label to have GTK_STATE_NORMAL so
+	that it is not greyed out.
+	(setup_inotify, handle_inotify, is_file_modified_event): New, to
+	call update_state when one of the relevant files has changed.
+	
+	* src/apt-worker.cc (cache_init): Call
+	write_available_updates_file after recreating the cache.  I think
+	we finally found the right place for this...
+	(cmd_check_for_updates): Don't call it here, the cache might not
+	have been recreated yet when there was a partial success.
+	
+	* src/util.cc, src/util.h (check_update_notifier_state): Removed,
+	the update notifier now monitors all relevant files.  Removed all
+	callers.
+	* src/main.cc (make_upgrade_applications_view): Only record seen
+	upgrades when we are the top most window.
+
 2007-10-30  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operations.cc (ip_install_loop): Use new logical id
