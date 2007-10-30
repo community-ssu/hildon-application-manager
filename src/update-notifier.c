@@ -23,7 +23,6 @@
 
 /* XXX
 
-   - Localize
    - Make sure icon doesn't blink when screen is off
    - Plug all the leaks
 */
@@ -35,17 +34,23 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/inotify.h>
 #include <string.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include <libhildondesktop/libhildondesktop.h>
 #include <libhildondesktop/statusbar-item.h>
 
 #include <gconf/gconf-client.h>
 #include <dbus/dbus.h>
+#include <glib.h>
 
 #include "update-notifier.h"
 #include "hn-app-pixbuf-anim-blinker.h"
 #include "xexp.h"
+
+#define _(x) dgettext ("hildon-application-manager", (x))
 
 #define USE_BLINKIFIER 1
 
@@ -74,6 +79,11 @@ struct _UpdateNotifier
 
   GConfClient *gconf;
   DBusConnection *dbus;
+  GIOChannel *inotify_channel;
+  int home_watch;
+  int varlibham_watch;
+
+  int icon_state;
 };
 
 struct _UpdateNotifierClass
@@ -89,6 +99,7 @@ static void set_icon_visibility (UpdateNotifier *upno, int state);
 
 static void setup_dbus (UpdateNotifier *upno);
 static char *get_http_proxy ();
+static void setup_inotify (UpdateNotifier *upno);
 
 static void update_icon_visibility (UpdateNotifier *upno, GConfValue *value);
 static void update_state (UpdateNotifier *upno);
@@ -162,7 +173,6 @@ gconf_state_changed (GConfClient *client, guint cnxn_id,
 static void
 update_notifier_init (UpdateNotifier *upno)
 {
-  GtkWidget *item;
   GdkPixbuf *icon_pixbuf;
   GtkIconTheme *icon_theme;
 
@@ -197,15 +207,11 @@ update_notifier_init (UpdateNotifier *upno)
   gtk_widget_show (upno->blinkifier);
   gtk_widget_show (upno->button);
 
-  upno->menu = gtk_menu_new ();
-  item = gtk_menu_item_new_with_label ("Foo");
-  gtk_menu_append (upno->menu, item);
-  gtk_widget_show (item);
-
   g_signal_connect (upno->button, "pressed",
 		    G_CALLBACK (button_pressed), upno);
 
   setup_dbus (upno);
+  setup_inotify (upno);
 
   update_icon_visibility (upno, gconf_client_get (upno->gconf,
 						  UPNO_GCONF_STATE,
@@ -245,6 +251,8 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
   if (value && value->type == GCONF_VALUE_INT)
     state = gconf_value_get_int (value);
 
+  upno->icon_state = state;
+
   g_object_set (upno,
 		"condition", (state == UPNO_ICON_STATIC
 			      || state == UPNO_ICON_BLINKING),
@@ -276,20 +284,25 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 static void
 add_readonly_item (GtkWidget *menu, const char *fmt, ...)
 {
-  GtkWidget *item;
+  GtkWidget *label, *item;
   va_list ap;
-  char *label;
+  char *text;
 
   va_start (ap, fmt);
-  label = g_strdup_vprintf (fmt, ap);
+  text = g_strdup_vprintf (fmt, ap);
   va_end (ap);
 
-  item = gtk_menu_item_new_with_label (label);
+  item = gtk_menu_item_new ();
+  label = gtk_label_new (text);
+  gtk_misc_set_alignment (GTK_MISC(label), 0.0, 0.5);
+  gtk_container_add (GTK_CONTAINER (item), label);
   gtk_menu_append (GTK_MENU (menu), item);
   gtk_widget_show (item);
+  gtk_widget_show (label);
   gtk_widget_set_sensitive (item, FALSE);
+  label->state = GTK_STATE_NORMAL;  /* Hurray for weak encapsulation. */
 
-  g_free (label);
+  g_free (text);
 }
 
 static void
@@ -317,21 +330,25 @@ update_state (UpdateNotifier *upno)
 
       for (x = xexp_first (available_updates); x; x = xexp_rest (x))
 	{
-	  const char *pkg = xexp_text (x);
-	  
-	  for (y = xexp_first (seen_updates); y; y = xexp_rest (y))
-	    if (strcmp (pkg, xexp_text (y)) == 0)
-	      break;
-
-	  if (y == NULL)
-	    n_new++;
-
-	  if (xexp_is (x, "os"))
-	    n_os++;
-	  else if (xexp_is (x, "certified"))
-	    n_certified++;
-	  else
-	    n_other++;
+	  if (xexp_is_text (x))
+	    {
+	      const char *pkg = xexp_text (x);
+	      
+	      for (y = xexp_first (seen_updates); y; y = xexp_rest (y))
+		if (xexp_is_text (y)
+		    && strcmp (pkg, xexp_text (y)) == 0)
+		  break;
+	      
+	      if (y == NULL)
+		n_new++;
+	      
+	      if (xexp_is (x, "os"))
+		n_os++;
+	      else if (xexp_is (x, "certified"))
+		n_certified++;
+	      else
+		n_other++;
+	    }
 	}
     }
 
@@ -339,7 +356,10 @@ update_state (UpdateNotifier *upno)
   xexp_free (seen_updates);
 
   if (n_new > 0)
-    set_icon_visibility (upno, UPNO_ICON_BLINKING);
+    {
+      if (upno->icon_state == UPNO_ICON_INVISIBLE)
+	set_icon_visibility (upno, UPNO_ICON_BLINKING);
+    }
   else
     set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
     
@@ -350,21 +370,23 @@ update_state (UpdateNotifier *upno)
 
   if (n_certified + n_other + n_os > 0)
     {
-      add_readonly_item (upno->menu, "Available software updates:");
+      add_readonly_item (upno->menu, _("ai_sb_update_description"));
 
       if (n_certified > 0)
-	add_readonly_item (upno->menu, "   Nokia (%d)", n_certified);
+	add_readonly_item (upno->menu, _("ai_sb_update_nokia_%d"),
+			   n_certified);
       if (n_other > 0)
-	add_readonly_item (upno->menu, "   Other (%d)", n_other);
+	add_readonly_item (upno->menu, _("ai_sb_update_thirdparty_%d"),
+			   n_other);
       if (n_os > 0)
-	add_readonly_item (upno->menu, "   OS");
+	add_readonly_item (upno->menu, _("ai_sb_update_os"));
 
       item = gtk_separator_menu_item_new ();
       gtk_menu_append (upno->menu, item);
       gtk_widget_show (item);
     }
 
-  item = gtk_menu_item_new_with_label ("Invoke Application Manager");
+  item = gtk_menu_item_new_with_label (_("ai_sb_update_am"));
   gtk_menu_append (upno->menu, item);
   gtk_widget_show (item);
   g_signal_connect (item, "activate",
@@ -474,8 +496,6 @@ check_for_updates_done (GPid pid, int status, gpointer data)
       gchar           *object_path = "/com/nokia/hildon_application_manager";
       gchar           *interface = "com.nokia.hildon_application_manager";
       
-      fprintf (stderr, "FAILED: %d\n", status);
-
       if (upno->dbus)
 	{
 	  msg = dbus_message_new_method_call (service, object_path,
@@ -591,4 +611,83 @@ get_http_proxy ()
   g_object_unref (conf);
 
   return proxy;
+}
+
+#define BUF_LEN 4096
+
+static gboolean
+is_file_modified_event (struct inotify_event *event,
+			int watch, const char *name)
+{
+  return (event->wd == watch
+	  && (event->mask & (IN_CLOSE_WRITE | IN_MOVED_TO))
+	  && event->len > 0
+	  && !strcmp (event->name, name));
+}
+
+static gboolean
+handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  
+  char buf[BUF_LEN];
+  int ifd = g_io_channel_unix_get_fd (channel);
+  int len, i;
+
+  while (1)
+    {
+      len = read (ifd, buf, BUF_LEN);
+      if (len < 0) 
+	{
+	  if (errno == EINTR)
+	    continue;
+	  else
+	    return FALSE;
+	}
+      
+      i = 0;
+      while (i < len)
+	{
+	  struct inotify_event *event;
+
+	  event = (struct inotify_event *) &buf[i];
+
+	  if (is_file_modified_event (event,
+				      upno->home_watch,
+				      ".hildon-application-manager-seen-updates")
+	      || is_file_modified_event (event,
+					 upno->varlibham_watch,
+					 "available-updates"))
+	    update_state (upno);
+	    
+	  i += sizeof (struct inotify_event) + event->len;
+	}
+
+      return TRUE;
+    }
+}
+
+static void
+setup_inotify (UpdateNotifier *upno)
+{
+  int ifd;
+
+  ifd = inotify_init ();
+  if (ifd >= 0)
+    {
+      upno->inotify_channel = g_io_channel_unix_new (ifd);
+      g_io_add_watch (upno->inotify_channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
+		      handle_inotify, upno);
+
+      
+      upno->home_watch =
+	inotify_add_watch (ifd,
+			   getenv ("HOME"),
+			   IN_CLOSE_WRITE | IN_MOVED_TO);
+
+      upno->varlibham_watch =
+	inotify_add_watch (ifd,
+			   "/var/lib/hildon-application-manager",
+			   IN_CLOSE_WRITE | IN_MOVED_TO);
+    }
 }
