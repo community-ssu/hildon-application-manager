@@ -24,8 +24,10 @@
 #ifndef UPDATE_NOTIFIER_H
 #define UPDATE_NOTIFIER_H
 
-#define UPNO_GCONF_DIR     "/apps/hildon/update-notifier"
-#define UPNO_GCONF_STATE   UPNO_GCONF_DIR "/state"
+#define UPNO_GCONF_DIR            "/apps/hildon/update-notifier"
+#define UPNO_GCONF_STATE          UPNO_GCONF_DIR "/state"
+#define UPNO_GCONF_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
+#define UPNO_GCONF_CZECH_INTERVAL UPNO_GCONF_DIR "/check_interval"
 
 #define SEEN_UPDATES_FILE  ".hildon-application-manager-seen-updates"
 

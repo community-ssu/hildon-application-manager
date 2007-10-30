@@ -46,6 +46,8 @@
 #include <dbus/dbus.h>
 #include <glib.h>
 
+#include <alarm_event.h>
+
 #include "update-notifier.h"
 #include "hn-app-pixbuf-anim-blinker.h"
 #include "xexp.h"
@@ -100,6 +102,7 @@ static void set_icon_visibility (UpdateNotifier *upno, int state);
 static void setup_dbus (UpdateNotifier *upno);
 static char *get_http_proxy ();
 static void setup_inotify (UpdateNotifier *upno);
+static void setup_alarm (UpdateNotifier *upno);
 
 static void update_icon_visibility (UpdateNotifier *upno, GConfValue *value);
 static void update_state (UpdateNotifier *upno);
@@ -171,6 +174,15 @@ gconf_state_changed (GConfClient *client, guint cnxn_id,
 }
 
 static void
+gconf_interval_changed (GConfClient *client, guint cnxn_id,
+			GConfEntry *entry, gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+
+  setup_alarm (upno);
+}
+
+static void
 update_notifier_init (UpdateNotifier *upno)
 {
   GdkPixbuf *icon_pixbuf;
@@ -184,6 +196,10 @@ update_notifier_init (UpdateNotifier *upno)
   gconf_client_notify_add (upno->gconf,
 			   UPNO_GCONF_STATE,
 			   gconf_state_changed, upno,
+			   NULL, NULL);
+  gconf_client_notify_add (upno->gconf,
+			   UPNO_GCONF_CZECH_INTERVAL,
+			   gconf_interval_changed, upno,
 			   NULL, NULL);
 
   upno->button = gtk_button_new ();
@@ -212,6 +228,7 @@ update_notifier_init (UpdateNotifier *upno)
 
   setup_dbus (upno);
   setup_inotify (upno);
+  setup_alarm (upno);
 
   update_icon_visibility (upno, gconf_client_get (upno->gconf,
 						  UPNO_GCONF_STATE,
@@ -690,4 +707,57 @@ setup_inotify (UpdateNotifier *upno)
 			   "/var/lib/hildon-application-manager",
 			   IN_CLOSE_WRITE | IN_MOVED_TO);
     }
+}
+
+static void
+setup_alarm (UpdateNotifier *upno)
+{
+  alarm_event_t alarm;
+  cookie_t alarm_cookie;
+  int interval;
+
+  interval = gconf_client_get_int (upno->gconf,
+				       UPNO_GCONF_CZECH_INTERVAL,
+				       NULL);
+  if (interval <= 0)
+    interval = 24 * 60;
+
+  /* Delete old alarm
+   */
+
+  alarm_cookie = gconf_client_get_int (upno->gconf,
+				       UPNO_GCONF_ALARM_COOKIE,
+				       NULL);
+  if (alarm_cookie > 0)
+    alarm_event_del (alarm_cookie);
+
+  /* Setup new alarm
+   */
+
+  time_t now = time (NULL);
+
+  memset (&alarm, 0, sizeof(alarm_event_t));
+
+  alarm.alarm_time = now + 60 * interval;
+  alarm.recurrence = interval;
+
+  /* repeat alarm forever */
+  alarm.recurrence_count = -1;
+  alarm.snooze = 0;
+
+  alarm.dbus_service = "com.nokia.hildon_update_notifier";
+  alarm.dbus_path = "/com/nokia/hildon_update_notifier";
+  alarm.dbus_interface = "com.nokia.hildon_update_notifier";
+  alarm.dbus_name = "check_for_updates";
+
+  alarm.flags = (ALARM_EVENT_NO_DIALOG
+		 | ALARM_EVENT_CONNECTED
+		 | ALARM_EVENT_RUN_DELAYED);
+
+  alarm_cookie = alarm_event_add (&alarm);
+
+  gconf_client_set_int (upno->gconf,
+			UPNO_GCONF_ALARM_COOKIE,
+			alarm_cookie,
+			NULL);
 }
