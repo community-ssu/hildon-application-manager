@@ -1,3 +1,11 @@
+2007-10-30  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/operations.cc (ip_install_loop): Use new logical id
+	ai_ni_software_update_installed to report that the 'update all'
+	process succeeded.
+	(ip_end): Use new logical id ai_ni_updates_restart to report that
+	device will be restarted after updating all the packages.
+
 2007-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (write_available_updates_file): New.  We list

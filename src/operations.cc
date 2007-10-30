@@ -658,11 +658,15 @@ ip_install_loop (ip_clos *c)
 	    }
 	  else
 	    {
-	      char *str =
-		g_strdup_printf (ngettext ("ai_ni_multiple_install",
-					   "ai_ni_multiple_installs", 
-					   c->n_successful),
-				 c->n_successful);
+	      char *str = NULL;
+	      if (c->install_type == INSTALL_TYPE_UPGRADE_ALL_PACKAGES)
+		str = g_strdup (_("ai_ni_software_update_installed"));
+	      else
+		str = g_strdup_printf (ngettext ("ai_ni_multiple_install",
+						 "ai_ni_multiple_installs",
+						 c->n_successful),
+				       c->n_successful);
+
 	      annoy_user (str, ip_end, c);
 	      g_free (str);
 	    }
@@ -1272,8 +1276,12 @@ ip_end (void *data)
   get_package_list (APTSTATE_DEFAULT);
   save_backup_data ();
 
-  if (c->reboot)
-    annoy_user (_("ai_ni_device_restart"), 
+  if (c->reboot && c->install_type == INSTALL_TYPE_UPGRADE_ALL_PACKAGES)
+    annoy_user (_("ai_ni_updates_restart"),
+		ip_end_rebooting,
+		c);
+  else if (c->reboot)
+    annoy_user (_("ai_ni_device_restart"),
 		ip_end_rebooting,
 		c);
   else
