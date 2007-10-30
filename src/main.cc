@@ -1418,7 +1418,6 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
   */
 
   stop_entertaining_user ();
-  check_update_notifier_state ();
 
   if (dec == NULL)
     {
@@ -1948,7 +1947,8 @@ make_upgrade_applications_view (view *v)
   enable_search (true);
   set_current_help_topic (AI_TOPIC ("updateview"));
 
-  if (record_seen_updates)
+  if (record_seen_updates
+      && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
       xexp *seen_updates = xexp_list_new ("updates");
       for (GList *pkg = upgradeable_packages; pkg; pkg = pkg->next)
@@ -1962,8 +1962,6 @@ make_upgrade_applications_view (view *v)
       g_free (name);
 
       record_seen_updates = false;
-
-      check_update_notifier_state ();
     }
 
   return view;

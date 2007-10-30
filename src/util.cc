@@ -3012,27 +3012,3 @@ send_reboot_message (void)
 
   add_log ("Reboot message sent, quit the application.\n");
 }
-
-void
-check_update_notifier_state ()
-{
-  DBusConnection  *conn;
-  DBusMessage     *msg;
-  gchar           *service = "com.nokia.hildon_update_notifier";
-  gchar           *object_path = "/com/nokia/hildon_update_notifier";
-  gchar           *interface = "com.nokia.hildon_update_notifier";
-  
-  conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
-
-  if (conn)
-    {
-      msg = dbus_message_new_method_call (service, object_path,
-					  interface,
-					  "check_state");
-      if (msg)
-	{
-	  dbus_connection_send (conn, msg, NULL);
-	  dbus_message_unref (msg);
-	}
-    }
-}
