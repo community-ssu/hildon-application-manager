@@ -3334,7 +3334,10 @@ cmd_set_catalogues ()
       /* Write the new sources list to disk */
       success =
 	(xexp_write_file (CATALOGUE_CONF, mapped_catalogues)
-	 && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
+	 && write_sources_list (CATALOGUE_APT_SOURCE, mapped_catalogues));
+
+      /* Update failed catalogues file */
+      save_failed_catalogues (catalogues);
 
       /* Free memory */
       xexp_free (mapped_catalogues);

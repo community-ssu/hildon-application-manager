@@ -28,6 +28,10 @@
 	(ip_end): Use new logical id ai_ni_updates_restart to report that
 	device will be restarted after updating all the packages.
 
+	* src/apt-worker.cc (cmd_set_catalogues): Write also the failed
+	catalogues file to keep it always up to date, even when not
+	refreshing the catalogues list. (Fixes bug in README file).
+
 2007-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (write_available_updates_file): New.  We list
