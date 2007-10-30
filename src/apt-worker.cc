@@ -1625,6 +1625,9 @@ cache_init (bool with_status)
 
   load_extra_info ();
   cache_reset ();
+
+  if (!AptWorkerState::IsTemp ())
+    write_available_updates_file ();
 }
 
 bool
@@ -3139,9 +3142,6 @@ cmd_check_updates (bool with_status)
   reset_catalogue_errors (catalogues);
 
   int result_code = update_package_cache (catalogues, with_status);
-
-  if (result_code != rescode_failure)
-    write_available_updates_file ();
 
   if (result_code != rescode_success)
     {
