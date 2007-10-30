@@ -214,6 +214,8 @@ documented in the header files.
 BUGS
 ----
 
+- Deleting catalogues with failures doesn't work when the "Refresh" is
+  cancelled.
 - Use $HOME/.hildon-application-manager/ directory for per-user state.
 - Add "New Folder" functionality to maemo-select-menu-location.
 - Explain non-removable system updates in Details dialog.
