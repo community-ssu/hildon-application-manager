@@ -1,5 +1,8 @@
 2007-10-30  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* configure.ac (NOTIFIER_DEPS): Added libalarm.
+	* src/update-notifier.c (setup_alarm, gconf_interval_changed): New.
+	
 	* src/update-notifier.c (update_state): Be robust against non-text
 	elements in the xexps.  Use logical ids.  Only start blinking when
 	the icon was invisible previously.
@@ -7,7 +10,8 @@
 	that it is not greyed out.
 	(setup_inotify, handle_inotify, is_file_modified_event): New, to
 	call update_state when one of the relevant files has changed.
-	
+	(setup_alarm): New.
+
 	* src/apt-worker.cc (cache_init): Call
 	write_available_updates_file after recreating the cache.  I think
 	we finally found the right place for this...
