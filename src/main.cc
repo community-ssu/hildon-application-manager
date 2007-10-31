@@ -376,7 +376,7 @@ static gboolean package_list_ready = false;
 
 static char *cur_section_name;
 
-static bool record_seen_updates = true;
+static bool record_seen_updates = false;
 
 package_info::package_info ()
 {
@@ -1435,7 +1435,7 @@ rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
       */
       c->result_code = rescode_cancelled;
       c->keep_going = false;
-      annoy_user (_("ai_ni_update_list_cancelled"), rpc_done, c);
+      rpc_done (c);
     }
   else
     {
