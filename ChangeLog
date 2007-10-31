@@ -1,3 +1,10 @@
+2007-10-31  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (rpc_update_cache_reply): Do not show the "Refresh
+	was cancelled" information note.  It's message is wrong.
+	(record_seen_updates): Initialize to false so that we only record
+	the seen updates after getting the list of packages.
+	
 2007-10-30  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* configure.ac (NOTIFIER_DEPS): Added libalarm.
