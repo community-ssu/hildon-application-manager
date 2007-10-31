@@ -712,9 +712,20 @@ setup_inotify (UpdateNotifier *upno)
 static void
 setup_alarm (UpdateNotifier *upno)
 {
-  alarm_event_t alarm;
+  alarm_event_t new_alarm;
+  alarm_event_t *old_alarm = NULL;
   cookie_t alarm_cookie;
   int interval;
+
+  /* We reset the alarm when we don't have a cookie for the old alarm
+     (which probably means there is no old alarm), when we can't find
+     the old alarm although we have a cookie (which shouldn't happen
+     unless someone manually mucks with the alarm queue), or if the
+     interval has changed.
+
+     Otherwise we leave the old alarm in place, but we update its
+     parameters without touching the timing.
+  */
 
   interval = gconf_client_get_int (upno->gconf,
 				       UPNO_GCONF_CZECH_INTERVAL,
@@ -722,42 +733,61 @@ setup_alarm (UpdateNotifier *upno)
   if (interval <= 0)
     interval = 24 * 60;
 
-  /* Delete old alarm
-   */
-
   alarm_cookie = gconf_client_get_int (upno->gconf,
 				       UPNO_GCONF_ALARM_COOKIE,
 				       NULL);
   if (alarm_cookie > 0)
-    alarm_event_del (alarm_cookie);
+    old_alarm = alarm_event_get (alarm_cookie);
 
-  /* Setup new alarm
+  /* Setup new alarm based on old alarm.
    */
 
-  time_t now = time (NULL);
+  memset (&new_alarm, 0, sizeof(alarm_event_t));
 
-  memset (&alarm, 0, sizeof(alarm_event_t));
+  if (old_alarm == NULL || old_alarm->recurrence != interval)
+    {
+      /* Reset timing parameters.
+       */
 
-  alarm.alarm_time = now + 60 * interval;
-  alarm.recurrence = interval;
+      time_t now = time (NULL);
 
-  /* repeat alarm forever */
-  alarm.recurrence_count = -1;
-  alarm.snooze = 0;
+      new_alarm.alarm_time = now + 60 * interval;
+      new_alarm.recurrence = interval;
+    }
+  else
+    {
+      /* Copy timing parameters.
+       */
 
-  alarm.dbus_service = "com.nokia.hildon_update_notifier";
-  alarm.dbus_path = "/com/nokia/hildon_update_notifier";
-  alarm.dbus_interface = "com.nokia.hildon_update_notifier";
-  alarm.dbus_name = "check_for_updates";
+      new_alarm.alarm_time = old_alarm->alarm_time;
+      new_alarm.recurrence = old_alarm->recurrence;
+    }
 
-  alarm.flags = (ALARM_EVENT_NO_DIALOG
-		 | ALARM_EVENT_CONNECTED
-		 | ALARM_EVENT_RUN_DELAYED);
+  /* Setup the rest.
+   */
 
-  alarm_cookie = alarm_event_add (&alarm);
+  new_alarm.recurrence_count = -1;
+  new_alarm.snooze = 0;
 
-  gconf_client_set_int (upno->gconf,
-			UPNO_GCONF_ALARM_COOKIE,
-			alarm_cookie,
-			NULL);
+  new_alarm.dbus_service = "com.nokia.hildon_update_notifier";
+  new_alarm.dbus_path = "/com/nokia/hildon_update_notifier";
+  new_alarm.dbus_interface = "com.nokia.hildon_update_notifier";
+  new_alarm.dbus_name = "check_for_updates";
+
+  new_alarm.flags = (ALARM_EVENT_NO_DIALOG
+		     | ALARM_EVENT_CONNECTED
+		     | ALARM_EVENT_RUN_DELAYED);
+
+  /* Replace old event with new one.
+   */
+
+  if (alarm_event_del (alarm_cookie) >= 0)
+    {
+      alarm_cookie = alarm_event_add (&new_alarm);
+
+      gconf_client_set_int (upno->gconf,
+			    UPNO_GCONF_ALARM_COOKIE,
+			    alarm_cookie,
+			    NULL);
+    }
 }

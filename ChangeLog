@@ -1,5 +1,10 @@
 2007-10-31  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/update-notifier.c (setup_alarm): Copy the timing related
+	parameters from the old alarm when setting a new alarm, unless the
+	interval has changed.  Otherwise, every restart of the plugin
+	would move the alarm time further ahead.
+
 	* src/main.cc (rpc_update_cache_reply): Do not show the "Refresh
 	was cancelled" information note.  It's message is wrong.
 	(record_seen_updates): Initialize to false so that we only record
