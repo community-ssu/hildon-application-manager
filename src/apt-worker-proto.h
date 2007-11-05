@@ -36,7 +36,7 @@ enum apt_command {
   APTCMD_NOOP,
 
   APTCMD_STATUS,
-
+  
   APTCMD_GET_PACKAGE_LIST,
   APTCMD_GET_PACKAGE_INFO,
   APTCMD_GET_PACKAGE_DETAILS,
@@ -46,7 +46,7 @@ enum apt_command {
   APTCMD_SET_CATALOGUES,
 
   APTCMD_INSTALL_CHECK,
-  APTCMD_INSTALL_PACKAGE,             // needs network
+  APTCMD_INSTALL_PACKAGE,      // needs network
 
   APTCMD_REMOVE_CHECK,
   APTCMD_REMOVE_PACKAGE,
@@ -294,10 +294,11 @@ enum apt_proto_able_status {
 };
 
 enum apt_proto_install_flags {
-  pkgflag_close_apps     = 1,
-  pkgflag_suggest_backup = 2,
-  pkgflag_reboot         = 4,
-  pkgflag_system_update  = 8
+  pkgflag_close_apps       =  1,
+  pkgflag_suggest_backup   =  2,
+  pkgflag_reboot           =  4,
+  pkgflag_system_update    =  8,
+  pkgflag_flash_and_reboot = 16
 };
 
 struct apt_proto_package_info {

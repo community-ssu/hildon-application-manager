@@ -1070,6 +1070,9 @@ get_apt_worker_lock (bool weak)
 static void
 misc_init ()
 {
+  lc_messages = getenv ("LC_MESSAGES");
+  DBG ("LC_MESSAGES %s", lc_messages);
+
   read_domain_conf ();
 
   AptWorkerState::Initialize ();
@@ -1123,12 +1126,10 @@ main (int argc, char **argv)
       must_set_flags (input_fd, O_RDONLY);
 
       options = argv[5];
-      lc_messages = getenv ("LC_MESSAGES");
 
       DBG ("starting with pid %d, in %d, out %d, stat %d, cancel %d, options %s",
 	   getpid (), input_fd, output_fd, status_fd, cancel_fd,
 	   options);
-      DBG ("LC_MESSAGES %s", lc_messages);
 
       if (strchr (options, 'B'))
 	flag_break_locks = true;
@@ -2190,10 +2191,11 @@ struct {
   const char *name;
   int flag;
 } flag_names[] = {
-  { "close-apps",     pkgflag_close_apps },
-  { "suggest-backup", pkgflag_suggest_backup },
-  { "reboot",         pkgflag_reboot },
-  { "system-update",  pkgflag_system_update },
+  { "close-apps",       pkgflag_close_apps },
+  { "suggest-backup",   pkgflag_suggest_backup },
+  { "reboot",           pkgflag_reboot },
+  { "system-update",    pkgflag_system_update },
+  { "flash-and-reboot", pkgflag_flash_and_reboot },
   NULL
 };
 
