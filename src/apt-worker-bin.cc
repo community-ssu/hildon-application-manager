@@ -1073,6 +1073,8 @@ misc_init ()
   lc_messages = getenv ("LC_MESSAGES");
   DBG ("LC_MESSAGES %s", lc_messages);
 
+  DBG ("OSSO_PRODUCT_HARDWARE %s", getenv ("OSSO_PRODUCT_HARDWARE"));
+
   read_domain_conf ();
 
   AptWorkerState::Initialize ();
