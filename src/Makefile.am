@@ -2,7 +2,8 @@ bin_PROGRAMS = hildon-application-manager.launch \
                hildon-application-manager-config
 dist_bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server test-app-killer
-libexec_PROGRAMS = apt-worker
+libexec_PROGRAMS = apt-worker.bin
+dist_libexec_SCRIPTS = apt-worker
 hildonstatusbarplugin_LTLIBRARIES = libhildon-update-notifier.la
 
 
@@ -59,17 +60,17 @@ hildon_application_manager_config_CFLAGS = $(AW_DEPS_CFLAGS)
 hildon_application_manager_config_CXXFLAGS = $(AW_DEPS_CFLAGS)
 hildon_application_manager_config_LDADD = $(AW_DEPS_LIBS)
 
-apt_worker_SOURCES = apt-worker.cc		\
-		     xexp.h			\
-                     xexp.c			\
-                     apt-worker-proto.h		\
-                     apt-worker-proto.cc	\
-                     confutils.h		\
-                     confutils.cc
+apt_worker_bin_SOURCES = apt-worker-bin.cc		\
+		         xexp.h			\
+                         xexp.c			\
+                         apt-worker-proto.h     \
+                         apt-worker-proto.cc	\
+                         confutils.h		\
+                         confutils.cc
 
-apt_worker_CFLAGS = $(AW_DEPS_CFLAGS)
-apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)
-apt_worker_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
+apt_worker_bin_CFLAGS = $(AW_DEPS_CFLAGS)
+apt_worker_bin_CXXFLAGS = $(AW_DEPS_CFLAGS)
+apt_worker_bin_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
 
 libhildon_update_notifier_la_SOURCES = update-notifier.h		\
 	                               update-notifier.c		\
