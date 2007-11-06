@@ -217,6 +217,11 @@ one or more of the following words:
   The AM will also allow the removal of this package and will not
   offer the installation of this package, only updated to it.
 
+- flash-and-reboot
+
+  This flag tells the AM that it should run /usr/bin/flash-and-reboot
+  after everything else has been done.
+
 A operation usually involves more than one package and the flags of
 all packages are merged.
 
