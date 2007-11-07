@@ -250,9 +250,12 @@ create_menu (HildonWindow *window)
   add_item (tools,
 	    _("ai_me_tools_refresh"), NULL,
 	    refresh_package_cache_flow);
-  add_item (tools,
-	    _("ai_me_tools_settings"), NULL,
-	    show_settings_dialog_flow);
+  if (red_pill_mode)
+    {
+      add_item (tools,
+		_("Settings"), NULL,
+		show_settings_dialog_flow);
+    }
   add_item (tools,
 	    _("ai_me_tools_repository"), NULL,
 	    show_catalogue_dialog_flow);
