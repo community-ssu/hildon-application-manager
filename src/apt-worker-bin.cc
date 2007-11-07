@@ -2302,7 +2302,7 @@ cmd_get_package_list ()
 
       // skip system update meta-packages that are not installed
       //
-      if (installed.end () && !candidate.end ())
+      if (only_user && installed.end () && !candidate.end ())
 	{
 	  package_record rec (candidate);
 	  int flags = get_flags (rec);
