@@ -168,21 +168,16 @@ installable_status_to_message (package_info *pi,
    4. Check if the package is actually installable, and abort it when
       not.
 
-   xxx (download location)
    5. Check if enough storage is available and decide where to
       download the packages to.
 
-   XXX
    6. Download the packages.
 
-   XXX
    7. If the package has the 'suggest-backup' flag, suggest a backup
       to be taken.
 
-   XXX
    8. Check the free storage again.
 
-   xxx (actually closing all apps)
    9. If the package doesn't have the 'close-apps' flag, run the
       'checkrm' scripts of the upgraded packages and abort this package
       if the scripts asks for it.  Otherwise close all applications.
@@ -194,8 +189,9 @@ installable_status_to_message (package_info *pi,
 
    At the end:
 
-   xxx (actually rebooting)
-  12. If any of the packages had the 'reboot' flag, reboot here and now.
+  12. If any of the packages had the 'flash-and-reboot' flag, call
+      /usr/bin/flash-and-reboot.  Otherwise, if any of the packages
+      has the 'reboot' flag, reboot.
 
   13. Refresh the lists of packages.
 */
@@ -219,6 +215,7 @@ struct ip_clos {
   // at the end
   bool entertaining;        // is the progress bar up?
   int n_successful;         // how many have been installed successfully
+  bool flash_and_reboot;    // whether to call /usr/bin/flash-and-reboot
   bool reboot;              // whether to reboot
   
   void (*cont) (int n_successful, void *);
@@ -255,8 +252,7 @@ static void ip_upgrade_all_confirm (GList *package_list,
 				   void (*cont) (bool res, void *data),
 				   void *data);
 static void ip_upgrade_all_confirm_response (bool res, void *data);
-static void ip_check_required_reboot (void (*cont) (bool res, void *data),
-				      void *data);
+static void ip_check_required_reboot (void *data);
 static void ip_check_required_reboot_response (bool res, void *data);
 
 static gboolean ip_suggest_backup (ip_clos *c);
@@ -274,6 +270,7 @@ static void ip_abort_response (GtkDialog *dialog, gint response,
 static void ip_end (void *data);
 static void ip_end_after_reboot (void *data);
 static void ip_end_rebooting (void *data);
+static void ip_flash_and_reboot_done (int status, void *data);
 
 void
 install_package (package_info *pi,
@@ -304,6 +301,7 @@ install_packages (GList *packages,
   c->upgrade_names = NULL;
   c->upgrade_versions = NULL;
   c->n_successful = 0;
+  c->flash_and_reboot = false;
   c->reboot = false;
   c->entertaining = false;
 
@@ -452,7 +450,7 @@ ip_select_package_response (gboolean res, GList *selected_packages,
     {
       g_list_free (c->packages);
       c->packages = selected_packages;
-      ip_ensure_network (c);
+      ip_check_required_reboot (c);
     }
 }
 
@@ -462,7 +460,7 @@ ip_confirm_install_response (bool res, void *data)
   ip_clos *c = (ip_clos *)data;
 
   if (res)
-    ip_ensure_network (c);
+    ip_check_required_reboot (c);
   else
     ip_end (c);
 }
@@ -474,9 +472,9 @@ ip_ensure_network (ip_clos *c)
      last.
    */
 
-  set_entertainment_fun (NULL, -1, 0);
   set_entertainment_cancel (NULL, NULL);
   set_entertainment_title ("");
+  set_entertainment_fun (NULL, -1, -1, 0);
   start_entertaining_user ();
   
   c->entertaining = true;
@@ -640,7 +638,7 @@ ip_install_loop (ip_clos *c)
 
       if (c->n_successful > 0)
 	{
-	  if (c->reboot)
+	  if (c->reboot || c->flash_and_reboot)
 	    {
 	      /* ip_end will show the 'success' dialog for us.
 	       */
@@ -871,7 +869,7 @@ ip_check_upgrade_loop (ip_clos *c)
 			 name);
       
       char *argv[] = { cmd, "upgrade", version, NULL };
-      run_cmd (argv, ip_check_upgrade_cmd_done, c);
+      run_cmd (argv, true, ip_check_upgrade_cmd_done, c);
 
       g_free (cmd);
     }
@@ -924,7 +922,7 @@ ip_install_cur (void *data)
 				 : _("ai_nw_installing"),
 				 pi->get_display_name (false));
   set_entertainment_title (title);
-  set_entertainment_fun (NULL, -1, 0);
+  set_entertainment_fun (NULL, -1, -1, 0);
   g_free (title);
 
   printf ("INSTALL %s %s\n", pi->name, c->alt_download_root);
@@ -959,6 +957,8 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
     {
       c->n_successful += 1;
 
+      if (pi->info.install_flags & pkgflag_flash_and_reboot)
+	c->flash_and_reboot = true;
       if (pi->info.install_flags & pkgflag_reboot)
 	c->reboot = true;
 
@@ -1046,14 +1046,13 @@ ip_upgrade_all_confirm_response (bool res, void *data)
   ip_clos *c = (ip_clos *)data;
 
   if (res)
-    ip_check_required_reboot (ip_check_required_reboot_response, c);
+    ip_check_required_reboot (c);
   else
     ip_end (c);
 }
 
 static void
-ip_check_required_reboot (void (*cont) (bool res, void *data),
-			  void *data)
+ip_check_required_reboot (void *data)
 {
   ip_clos *c = (ip_clos *)data;
   bool reboot_required = false;
@@ -1063,7 +1062,8 @@ ip_check_required_reboot (void (*cont) (bool res, void *data),
   for (iter = c->packages; iter; iter = g_list_next (iter))
     {
       package_info *pi = (package_info *) iter->data;
-      if (pi->info.install_flags & pkgflag_reboot)
+      if ((pi->info.install_flags & pkgflag_reboot)
+	  || (pi->info.install_flags & pkgflag_flash_and_reboot))
 	{
 	  reboot_required = true;
 	  break;
@@ -1075,7 +1075,7 @@ ip_check_required_reboot (void (*cont) (bool res, void *data),
     {
       ask_yes_no_with_title (_("ai_ti_rebooting_required"),
 			     _("ai_nc_rebooting_required"),
-			     cont, data);
+			     ip_check_required_reboot_response, data);
     }
   else
     ip_ensure_network (c);
@@ -1276,11 +1276,12 @@ ip_end (void *data)
   get_package_list (APTSTATE_DEFAULT);
   save_backup_data ();
 
-  if (c->reboot && c->install_type == INSTALL_TYPE_UPGRADE_ALL_PACKAGES)
+  if ((c->reboot || c->flash_and_reboot)
+      && c->install_type == INSTALL_TYPE_UPGRADE_ALL_PACKAGES)
     annoy_user (_("ai_ni_updates_restart"),
 		ip_end_rebooting,
 		c);
-  else if (c->reboot)
+  else if (c->reboot || c->flash_and_reboot)
     annoy_user (_("ai_ni_device_restart"),
 		ip_end_rebooting,
 		c);
@@ -1303,13 +1304,43 @@ ip_end_after_reboot (void *data)
 static void
 ip_end_rebooting (void *data)
 {
-  /* Do normal end */
-  ip_end_after_reboot (data);
+  ip_clos *c = (ip_clos *)data;
 
-  /* Reboot the device */
-  send_reboot_message ();
+  /* If we should flash and reboot, we call /usr/bin/flash-and-reboot
+     to do it for us.  If that fails, we inform the user and then
+     reboot normally if requested.
+  */
+
+  if (c->flash_and_reboot)
+    {
+      char *argv[] = { "/usr/bin/flash-and-reboot", "--yes", NULL };
+      run_cmd (argv, false, ip_flash_and_reboot_done, c);
+    }
+  else 
+    {
+      /* Reboot the device */
+      send_reboot_message ();
+    }
 }
 
+static void
+ip_flash_and_reboot_done (int status, void *data)
+{ 
+  ip_clos *c = (ip_clos *)data;
+
+  /* The /usr/bin/flash-and-reboot program did not actually reboot.
+   */
+
+  if (c->reboot)
+    send_reboot_message ();
+  else
+    {
+      if (red_pill_mode)
+	annoy_user (_("Flashing failed"), ip_end_after_reboot, c);
+      else
+	ip_end_after_reboot (c);
+    }
+}
 
 
 /* UNINSTALL_PACKAGE - Overview
@@ -1423,7 +1454,7 @@ up_checkrm_loop (up_clos *c)
 			 name);
 
       char *argv[] = { cmd, "remove", NULL };
-      run_cmd (argv, up_checkrm_cmd_done, c);
+      run_cmd (argv, true, up_checkrm_cmd_done, c);
       g_free (cmd);
     }
   else
@@ -1459,7 +1490,7 @@ up_remove (up_clos *c)
       
       char *title = g_strdup_printf (_("ai_nw_uninstalling"),
 				     c->pi->get_display_name (true));
-      set_entertainment_fun (NULL, -1, 0);
+      set_entertainment_fun (NULL, -1, -1, 0);
       set_entertainment_cancel (NULL, NULL);
       set_entertainment_title (title);
       g_free (title);
@@ -1736,7 +1767,7 @@ if_install (bool res, void *data)
 				      ? _("ai_nw_updating")
 				      : _("ai_nw_installing")),
 				     c->pi->get_display_name (false));
-      set_entertainment_fun (NULL, -1, 0);
+      set_entertainment_fun (NULL, -1, -1, 0);
       set_entertainment_cancel (NULL, NULL);
       set_entertainment_title (title);
       g_free (title);
