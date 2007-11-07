@@ -29,7 +29,6 @@ void save_settings ();
 
 // User serviceable settings
 //
-extern int    update_interval_index;
 extern int    package_sort_key;
 extern int    package_sort_sign;
 
@@ -44,11 +43,6 @@ extern bool red_pill_show_deps;
 extern bool red_pill_show_all;
 extern bool red_pill_show_magic_sys;
 extern bool red_pill_include_details_in_log;
-
-#define UPDATE_INTERVAL_SESSION 0
-#define UPDATE_INTERVAL_WEEK    1
-#define UPDATE_INTERVAL_MONTH   2
-#define UPDATE_INTERVAL_NEVER   3
 
 #define SORT_BY_NAME    0
 #define SORT_BY_VERSION 1

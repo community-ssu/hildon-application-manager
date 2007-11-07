@@ -36,7 +36,6 @@
 
 #define _(x) gettext (x)
 
-int  update_interval_index = UPDATE_INTERVAL_WEEK;
 int  package_sort_key = SORT_BY_NAME;
 int  package_sort_sign = 1;
 
@@ -84,8 +83,6 @@ load_settings ()
 
 	  if (sscanf (line, "clean-after-install %d", &val) == 1)
 	    clean_after_install = val;
-	  else if (sscanf (line, "update-interval-index %d", &val) == 1)
-	    update_interval_index = val;
 	  else if (sscanf (line, "package-sort-key %d", &val) == 1)
 	    package_sort_key = val;
 	  else if (sscanf (line, "package-sort-sign %d", &val) == 1)
@@ -125,7 +122,6 @@ save_settings ()
   if (f)
     {
       fprintf (f, "clean-after-install %d\n", clean_after_install);
-      fprintf (f, "update-interval-index %d\n", update_interval_index);
       fprintf (f, "package-sort-key %d\n", package_sort_key);
       fprintf (f, "package-sort-sign %d\n", package_sort_sign);
       fprintf (f, "break-locks %d\n", break_locks);
@@ -177,58 +173,35 @@ make_boolean_option (settings_closure *c,
 static GtkWidget *
 make_settings_tab (settings_closure *c)
 {
-  GtkWidget *tab, *combo;
+  GtkWidget *vbox;
   GtkSizeGroup *group;
 
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
 
-  combo = gtk_combo_box_new_text ();
-  gtk_combo_box_append_text (GTK_COMBO_BOX (combo),
-			     _("ai_va_settings_once_session"));
-  gtk_combo_box_append_text (GTK_COMBO_BOX (combo),
-			     _("ai_va_settings_once_week"));
-  gtk_combo_box_append_text (GTK_COMBO_BOX (combo),
-			     _("ai_va_settings_once_month"));
-  gtk_combo_box_append_text (GTK_COMBO_BOX (combo),
-			     _("ai_va_settings_only_manually"));
-  gtk_combo_box_set_active (GTK_COMBO_BOX (combo), update_interval_index);
+  vbox = gtk_vbox_new (FALSE, 0);
 
-  c->update_combo = combo;
-
-  tab = hildon_caption_new (group, _("ai_fi_settings_update_list"),
-			    combo,
-			    NULL, HILDON_CAPTION_OPTIONAL);
-  if (red_pill_mode)
-    {
-      GtkWidget *caption = tab;
-
-      tab = gtk_vbox_new (FALSE, 0);
-      gtk_box_pack_start (GTK_BOX (tab), caption, FALSE, FALSE, 0);
-
-      make_boolean_option (c, tab, group,
-			   "Clean apt cache", &clean_after_install);
-      make_boolean_option (c, tab, group,
-			   "Assume net connection", &assume_connection);
-      make_boolean_option (c, tab, group,
-			   "Break locks", &break_locks);
-      make_boolean_option (c, tab, group,
-			   "Show dependencies", &red_pill_show_deps);
-      make_boolean_option (c, tab, group,
-			   "Show all packages", &red_pill_show_all);
-      make_boolean_option (c, tab, group,
-			   "Show magic system package",
-			   &red_pill_show_magic_sys);
-      make_boolean_option (c, tab, group,
-			   "Include package details in log",
-			   &red_pill_include_details_in_log);
-      make_boolean_option (c, tab, group,
-			   "Use MMC to download packages",
-			   &download_packages_to_mmc);
-    }
-
+  make_boolean_option (c, vbox, group,
+		       "Clean apt cache", &clean_after_install);
+  make_boolean_option (c, vbox, group,
+		       "Assume net connection", &assume_connection);
+  make_boolean_option (c, vbox, group,
+		       "Break locks", &break_locks);
+  make_boolean_option (c, vbox, group,
+		       "Show dependencies", &red_pill_show_deps);
+  make_boolean_option (c, vbox, group,
+		       "Show all packages", &red_pill_show_all);
+  make_boolean_option (c, vbox, group,
+		       "Show magic system package",
+		       &red_pill_show_magic_sys);
+  make_boolean_option (c, vbox, group,
+		       "Include package details in log",
+		       &red_pill_include_details_in_log);
+  make_boolean_option (c, vbox, group,
+		       "Use MMC to download packages",
+		       &download_packages_to_mmc);
   g_object_unref (group);
 
-  return tab;
+  return vbox;
 }
 
 static void
@@ -238,9 +211,6 @@ settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
 
   if (response == GTK_RESPONSE_OK)
     {
-      update_interval_index =
-	gtk_combo_box_get_active (GTK_COMBO_BOX (c->update_combo));
-
       for (int i = 0; i < c->n_booleans; i++)
 	*(c->boolean_var[i]) =
 	  gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (c->boolean_btn[i]));
