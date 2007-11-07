@@ -282,6 +282,20 @@ dif_install_done (bool success, void *data)
   dif_end (success? 1 : 0, c);
 }
 
+static void icfu_end (void *data);
+
+static void
+idle_check_for_updates (void *unused)
+{
+  refresh_package_cache_without_user (icfu_end, NULL);
+}
+
+static void
+icfu_end (void *data)
+{
+  end_interaction_flow ();
+}
+
 static void
 dif_end (int result, void *data)
 {
@@ -377,7 +391,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 	       one minute.  Use the new "Checking for updates, please
 	       wait" dialog, etc.
       */
-      refresh_package_cache_flow ();
+      start_interaction_flow_when_idle (idle_check_for_updates, NULL);
       
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
