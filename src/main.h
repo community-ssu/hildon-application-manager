@@ -151,6 +151,14 @@ void refresh_package_cache (int state,
 
 void refresh_package_cache_flow ();
 
+/* REFRESH_PACKAGE_CACHE_WITHOUT_USER refreshes the package cache in a
+   non-intrusive way.  It just shows a progress note with cancel
+   button.  No error messages are shown and no interaction from the
+   user is required to complete the operation.
+*/
+void refresh_package_cache_without_user (void (*cont) (void *data),
+					 void *data);
+
 void install_from_file_flow (const char *filename);
 void restore_packages_flow ();
 void update_system_flow ();

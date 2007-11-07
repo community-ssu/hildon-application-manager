@@ -197,6 +197,8 @@ show_view (view *v)
 
   gtk_box_pack_start (GTK_BOX (main_vbox), cur_view, TRUE, TRUE, 10);
   gtk_widget_show(main_vbox);
+
+  reset_idle_timer ();
 }
 
 static void
@@ -1360,9 +1362,9 @@ rpc_do_it (bool res, void *data)
 
   if (res)
     {
-      set_entertainment_fun (NULL, -1, 0);
       set_entertainment_cancel (cancel_updating_list, NULL);
       set_entertainment_title (_("ai_nw_updating_list"));
+      set_entertainment_fun (NULL, -1, -1, 0);
 
       start_entertaining_user ();
 
@@ -1583,38 +1585,42 @@ refresh_package_cache_flow ()
 			   rpcf_end, NULL);
 }
 
-static int
-days_elapsed_since (time_t past)
-{
-  time_t now = time (NULL);
-  if (now == (time_t)-1)
-    return 0;
+/* REFRESH_PACKAGE_CACHE_WITHOUT_USER, the new way of doing things...
+ */
 
-  /* Truncating is the right rounding mode here.
-   */
-  return (now - past) / (24*60*60);
+struct rcpwu_clos {
+  void (*cont) (void *data);
+  void *data;
+};
+
+static void rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  rcpwu_clos *c = (rcpwu_clos *)data;
+
+  stop_entertaining_user ();
+
+  c->cont (c->data);
+  delete c;
 }
 
+static entertainment_game rpcwu_games[] = {
+  { op_downloading, 0.5 },
+  { op_general, 0.5 }
+};
+
 void
-maybe_refresh_package_cache ()
+refresh_package_cache_without_user (void (*cont) (void *data), void *data)
 {
-  /* Never ask more than once per session.
-   */
-  if (refreshed_this_session)
-    return;
+  rcpwu_clos *c = new rcpwu_clos;
+  c->cont = cont;
+  c->data = data;
+  
+  set_entertainment_strong_title (_("ai_nw_checking_updates"));
+  set_entertainment_games (2, rpcwu_games);
+  set_entertainment_fun (NULL, -1, -1, 0);
+  start_entertaining_user ();
 
-  if (update_interval_index == UPDATE_INTERVAL_NEVER)
-    return;
-
-  if (update_interval_index == UPDATE_INTERVAL_WEEK
-      && days_elapsed_since (last_update) < 7)
-    return;
-
-  if (update_interval_index == UPDATE_INTERVAL_MONTH
-      && days_elapsed_since (last_update) < 30)
-    return;
-
-  refresh_package_cache_flow ();
+  apt_worker_update_cache (APTSTATE_DEFAULT, rpcwu_reply, c);
 }
 
 static void
@@ -1844,10 +1850,6 @@ check_catalogues_reply (xexp *catalogues, void *data)
     if (xexp_is (c, "source")
 	|| (xexp_is (c, "catalogue") && !xexp_aref_bool (c, "disabled")))
       {
-	/* Found something in sources.list or an active catalogue.
-	   Maybe we need to refresh the cache.
-	*/
-	maybe_refresh_package_cache ();
 	xexp_free (catalogues);
 	return;
       }
@@ -2683,12 +2685,12 @@ apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
     {
       if (op == op_downloading)
 	{
-	  set_entertainment_download_fun (already, total);
+	  set_entertainment_download_fun (op, already, total);
 	  set_entertainment_cancel (cancel_download, NULL);
 	}
       else
 	{
-	  set_entertainment_fun (NULL, already, total);
+	  set_entertainment_fun (NULL, op, already, total);
 	}
     }
 }
