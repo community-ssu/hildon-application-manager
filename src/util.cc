@@ -65,6 +65,11 @@ static Window parent_xid = None;
 static GSList *dialog_stack = NULL;
 static bool main_window_shown = false;
 
+static time_t idle_since = 0;
+static guint idle_timeout_id = 0;
+static void (*idle_cont) (void *) = NULL;
+static void *idle_data = NULL;
+
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
 {
@@ -118,6 +123,9 @@ static bool interaction_flow_active = false;
 bool
 is_idle ()
 {
+  fprintf (stderr, "IS IDLE: %p %d\n",
+	   dialog_stack, interaction_flow_active);
+
   return dialog_stack == NULL && !interaction_flow_active;
 }
 
@@ -143,6 +151,13 @@ start_interaction_flow ()
   interaction_flow_active = true;
   parent_xid = None;
   dialog_stack = g_slist_prepend (dialog_stack, get_main_window ());
+
+  if (idle_timeout_id)
+    {
+      g_source_remove (idle_timeout_id);
+      idle_timeout_id = 0;
+    }
+
   return true;
 }
 
@@ -160,6 +175,73 @@ start_foreign_interaction_flow (Window parent)
   return true;
 }
 
+bool
+start_interaction_flow_when_idle (void (*cont) (void *), void *data)
+{
+  fprintf (stderr, "IDLE REQUEST %d %d %d\n",
+	   is_idle (), time (NULL), idle_since + 5);
+
+  if (is_idle () && time (NULL) > idle_since + 5)
+    {
+      fprintf (stderr, "OK NOW\n");
+
+      if (start_interaction_flow ())
+	cont (data);
+      return true;
+    }
+  else if (idle_cont != NULL)
+    {
+      fprintf (stderr, "ALREADY PENDING\n");
+      return false;
+    }
+  else
+    {
+      fprintf (stderr, "QUEING\n");
+      idle_cont = cont;
+      idle_data = data;
+      return true;
+    }
+}
+
+static gboolean
+idle_callback (gpointer unused)
+{
+  fprintf (stderr, "IDLE NOW\n");
+
+  if (idle_cont)
+    {
+      if (start_interaction_flow ())
+	{
+	  void (*cont) (void *) = idle_cont;
+	  void *data = idle_data;
+	  
+	  idle_cont = NULL;
+	  idle_data = NULL;
+
+	  cont (data);
+	}
+    }
+
+  return FALSE;
+}
+
+void
+reset_idle_timer ()
+{
+  fprintf (stderr, "IDLE IN 5 SECONDS\n");
+  
+  if (idle_timeout_id)
+    g_source_remove (idle_timeout_id);
+
+  if (is_idle ())
+    {
+      idle_since = time (NULL);
+      idle_timeout_id = g_timeout_add (5 * 1000,
+				       idle_callback,
+				       NULL);
+    }
+}
+
 void
 end_interaction_flow ()
 {
@@ -170,6 +252,8 @@ end_interaction_flow ()
 
   interaction_flow_active = false;
   parent_xid = None;
+
+  reset_idle_timer ();
 }
 
 void
@@ -177,6 +261,8 @@ present_main_window ()
 {
   GtkWidget *main_vbox =
     gtk_bin_get_child (GTK_BIN(get_main_window ()));
+
+  reset_idle_timer ();
 
   main_window_shown = true;
   gtk_widget_show_all (main_vbox);
@@ -686,6 +772,13 @@ struct entertainment_data {
   gint pulse_id;
 
   char *main_title, *sub_title;
+  gboolean strong_main_title;
+
+  int n_games;
+  entertainment_game *games;
+  int current_game;
+  double completed_fraction;
+
   int64_t already, total;
 
   void (*cancel_callback) (void *);
@@ -732,8 +825,12 @@ entertainment_update_progress ()
 	entertainment_start_pulsing ();
       else
 	{
-	  double fraction = (((double)entertainment.already)
-			     / entertainment.total);
+	  entertainment_game *game = 
+	    &entertainment.games[entertainment.current_game];
+	  double fraction =
+	    (entertainment.completed_fraction 
+	     + game->fraction * (((double)entertainment.already)
+				 / entertainment.total));
 
 	  entertainment_stop_pulsing ();
 	  gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (entertainment.bar),
@@ -756,7 +853,7 @@ entertainment_update_title ()
   if (entertainment.dialog)
     {
       char *title;
-      if (entertainment.sub_title)
+      if (entertainment.sub_title && !entertainment.strong_main_title)
 	title = entertainment.sub_title;
       else
 	title = entertainment.main_title;
@@ -784,10 +881,17 @@ start_entertaining_user_silently ()
   entertainment.depth++;
 }
 
+static entertainment_game default_entertainment_game = {
+  -1, 1.0
+};
+  
 void
 start_entertaining_user ()
 {
   entertainment.depth++;
+
+  if (entertainment.games == NULL)
+    set_entertainment_games (1, &default_entertainment_game);
 
   if (entertainment.dialog == NULL)
     {
@@ -850,6 +954,8 @@ stop_entertaining_user ()
 
       entertainment.cancel_callback = NULL;
       entertainment.cancel_data = NULL;
+
+      set_entertainment_games (1, &default_entertainment_game);
     }
 }
 
@@ -866,15 +972,61 @@ set_entertainment_title (const char *main_title)
 {
   g_free (entertainment.main_title);
   entertainment.main_title = g_strdup (main_title);
+  entertainment.strong_main_title = false;
   entertainment_update_title ();
 }
 
 void
-set_entertainment_fun (const char *sub_title,
-		       int64_t already, int64_t total)
+set_entertainment_strong_title (const char *main_title)
 {
-  // fprintf (stderr, "FUN: %s %Ld %Ld\n", sub_title, already, total);
+  g_free (entertainment.main_title);
+  entertainment.main_title = g_strdup (main_title);
+  entertainment.strong_main_title = true;
+  entertainment_update_title ();
+}
 
+void
+set_entertainment_games (int n_games, entertainment_game *games)
+{
+  entertainment.n_games = n_games;
+  entertainment.games = games;
+  entertainment.current_game = 0;
+  entertainment.completed_fraction = 0.0;
+}
+
+void
+set_entertainment_fun (const char *sub_title,
+		       int game, int64_t already, int64_t total)
+{
+  fprintf (stderr, "FUN: %d %s %Ld %Ld\n", game, sub_title, already, total);
+
+  if (game != -1
+      && entertainment.games
+      && entertainment.games[entertainment.current_game].id != -1 
+      && entertainment.games[entertainment.current_game].id != game)
+    {
+      int next_game;
+
+      for (next_game = entertainment.current_game + 1;
+	   next_game < entertainment.n_games; next_game++)
+	{
+	  if (entertainment.games[next_game].id == -1 
+	      || entertainment.games[next_game].id == game)
+	    break;
+	}
+
+      if (next_game < entertainment.n_games)
+	{
+	  entertainment.completed_fraction +=
+	    entertainment.games[entertainment.current_game].fraction;
+	  entertainment.current_game = next_game;
+	}
+
+      fprintf (stderr, "NEW GAME: %d %g\n",
+	       entertainment.current_game,
+	       entertainment.completed_fraction);
+    }
+  
   if ((sub_title
        && (entertainment.sub_title == NULL
 	   || strcmp (entertainment.sub_title, sub_title)))
@@ -892,7 +1044,7 @@ set_entertainment_fun (const char *sub_title,
 }
 
 void
-set_entertainment_download_fun (int64_t already, int64_t total)
+set_entertainment_download_fun (int game, int64_t already, int64_t total)
 {
   static char *sub_title = NULL;
   static int64_t last_total = 0;
@@ -905,7 +1057,7 @@ set_entertainment_download_fun (int64_t already, int64_t total)
       sub_title = g_strdup_printf (_("ai_nw_downloading"), size_buf);
     }
 
-  set_entertainment_fun (sub_title, already, total);
+  set_entertainment_fun (sub_title, game, already, total);
 }
 
 void
@@ -2348,7 +2500,8 @@ copy_progress (GnomeVFSAsyncHandle *handle,
 #endif
 
   if (info->file_size > 0)
-    set_entertainment_download_fun (info->bytes_copied, info->file_size);
+    set_entertainment_download_fun (op_downloading,
+				    info->bytes_copied, info->file_size);
 
   if (info->phase == GNOME_VFS_XFER_PHASE_COMPLETED)
     {
@@ -2417,7 +2570,7 @@ do_copy (const char *source, GnomeVFSURI *source_uri,
 
   copy_cancel_requested = false;
 
-  set_entertainment_fun (NULL, -1, 0);
+  set_entertainment_fun (NULL, -1, -1, 0);
   set_entertainment_cancel (cancel_copy, NULL);
   set_entertainment_title (dgettext ("hildon-fm",
 				     "docm_nw_opening_file"));
@@ -2583,6 +2736,7 @@ reap_process (GPid pid, int status, gpointer raw_data)
 
 void
 run_cmd (char **argv,
+	 bool ignore_nonexisting,
 	 void (*cont) (int status, void *data),
 	 void *data)
 {
@@ -2602,7 +2756,8 @@ run_cmd (char **argv,
 				 &stderr_fd,
 				 &error))
     {
-      if (error->domain != G_SPAWN_ERROR
+      if (!ignore_nonexisting
+	  || error->domain != G_SPAWN_ERROR
 	  || error->code != G_SPAWN_ERROR_NOENT)
 	add_log ("Can't run %s: %s\n", argv[0], error->message);
       g_error_free (error);
@@ -2755,7 +2910,7 @@ ensure_network (void (*callback) (bool success, void *data), void *data)
 
   if (con_ic_connection_connect (connection_object, CON_IC_CONNECT_FLAG_NONE))
     {
-      set_entertainment_fun (_("ai_nw_connecting"), -1, 0);
+      set_entertainment_fun (_("ai_nw_connecting"), -1, -1, 0);
       return;
     }
   else

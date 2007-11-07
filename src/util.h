@@ -59,11 +59,28 @@
 
   See "Exiting" for how interaction flows influence the life
   time of the application.
+
+  
+  The function START_INTERACTION_FLOW_WHEN_IDLE will start an
+  interaction flow when the program has been idle for at least one
+  minute.  When that condition is true or when it becomes true in the
+  future, CONT will be called with DATA.  There can only be one
+  pending idle interaction flow.  START_INTERACTION_FLOW_WHEN_IDLE
+  returns false when one is already pending.
+
+  Calling RESET_IDLE_TIMER will inform the idle interaction flow
+  machinery that the user performed some action that should delay the
+  start of a pending interaction flow.  You don't need to do this for
+  interaction flows themselved, but for example when the user switches
+  the views.
 */
 
 bool start_interaction_flow ();
 bool start_foreign_interaction_flow (Window parent);
 void end_interaction_flow ();
+
+void reset_idle_timer ();
+bool start_interaction_flow_when_idle (void (*cont) (void *), void *data);
 
 void push_dialog (GtkWidget *dialog);
 void pop_dialog (GtkWidget *dialog);
@@ -212,13 +229,6 @@ void scare_user_with_legalese (bool sure,
    start_entertaining_user/stop_entertaining_user will just maintain a
    counter of the nesting depth.
 
-   START_ENTERTAINING_USER_SILENTLY is like start_entertaining_user,
-   but does not actually show the progress dialog.  The effect of
-   using start_entertaining_user_silently is to keep a progress dialog
-   open until the corresponding stop_entertaining_user has been
-   called, but to wait for a nested call to start_entertaining_user
-   for actually showing the progress.
-
    SET_ENTERTAINMENT_FUN sets the state of the progress bar dialog.
    You can and should call this function before calling
    start_entertaining_user to setup the initial state of the dialog.
@@ -241,16 +251,35 @@ void scare_user_with_legalese (bool sure,
    has been called since the last call to start_entertaining_user.
    Clicking on the "Cancel" button will also call
    cancel_entertainment.
+
+   The entertainment can be divided into a sequence of 'games'.  Each
+   game is allocated its own segment of the progress bar.  For
+   example, you can specify that the first half of the progress bar
+   should be used for the first game, and the second half for the
+   second game.  Then, when setting the amount of fun with
+   set_entertainment_fun, the 100% percent mark for the first game is
+   in the middle of the progress bar.
+   
+   Games are played in sequence.  The next game starts when its ID is
+   first passed to set_entertainment_fun.  Games might be skipped.
  */
 
 void start_entertaining_user ();
-void start_entertaining_user_silently ();
 void stop_entertaining_user ();
 
 void set_entertainment_title (const char *main_title);
+void set_entertainment_strong_title (const char *main_title);
+
+struct entertainment_game {
+  int id;
+  double fraction;
+};
+
+void set_entertainment_games (int n, entertainment_game *games);
+
 void set_entertainment_fun (const char *sub_title,
-			    int64_t alreday, int64_t total);
-void set_entertainment_download_fun (int64_t already, int64_t total);
+			    int game, int64_t alreday, int64_t total);
+void set_entertainment_download_fun (int game, int64_t already, int64_t total);
 
 void set_entertainment_cancel (void (*callback)(void *), void *data);
 void cancel_entertainment ();
@@ -455,6 +484,7 @@ void cleanup_temp_file ();
    stdout and stderr of the subprocess are redirected into the log.
 */
 void run_cmd (char **argv,
+	      bool ignore_nonexisting,
 	      void (*cont) (int status, void *data),
 	      void *data);
 
