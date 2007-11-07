@@ -1,3 +1,51 @@
+2007-11-07  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/operations.cc (ip_check_required_reboot): Removed cont
+	parameter, use ip_check_required_reboot_response always.
+	(struct ip_clos): Added flash_and_reboot flag.
+	(ip_end_rebooting): Run /usr/bin/flash-and-reboot if requested.
+	(ip_flash_and_reboot_done): New.
+
+	* src/apt-worker-bin.cc (cmd_get_package_list): Do not skip
+	non-installed system-update packages in red-pill mode.
+
+	* src/apt-worker-client.cc (interpret_pmstatus): Use op_general as
+	the game id.
+
+	* src/dbus.cc (idle_check_for_updates): New.
+	(dbus_handler): Use it with start_interaction_flow_when_idle for
+	the "check_for_updates" method.
+
+	* src/settings.h, src/settings.cc (update_interval_index): Removed
+	all traces of it.
+
+	* src/main.h, src/main.cc (maybe_refresh_package_cache): Removed.
+	(refresh_package_cache_without_user): New.
+	(show_view): Call reset_idle_timer.
+	
+	* src/menu.cc (create_menu): Add "Settings" menu item only in
+	red-pill mode.
+
+	* src/util.cc (reset_idle_timer,
+	start_interaction_flow_when_idle): New.
+	(start_entertaining_user_silently): Removed, it was unused.
+	(set_entertainment_games): New.
+	(set_entertainment_fun, set_entertainment_download_fun): Added
+	(set_entertainment_strong_title): New.
+	game id parameter.  Changed all callers.
+	(run_cmd): Added ignore_existing parameter.  Changed all callers.
+	
+2007-11-05  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/Makefile.am: Renamed apt-worker to apt-worker.bin.  Added
+	new apt-worker script.
+	* src/apt-worker-proto.h (apt_proto_install_flags): Include
+	pkgflag_flash_and_reboot.
+	* src/apt-worker.cc (misc_init): Log OSSO_PRODUCT_HARDWARE in
+	debugging output.  Initialize lc_messages here.
+	(main): Not here.
+	(flag_names): Include pkgflag_flash_and_reboot.
+					 
 2007-10-31  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/update-notifier.c (setup_alarm): Copy the timing related
