@@ -79,7 +79,7 @@ interpret_pmstatus (char *str)
 	  title = str;
 	}
 	
-      set_entertainment_fun (NULL, (int)percentage, 100);
+      set_entertainment_fun (NULL, op_general, (int)percentage, 100);
       set_entertainment_cancel (NULL, NULL);
     }
 }
