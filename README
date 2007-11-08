@@ -214,6 +214,9 @@ documented in the header files.
 BUGS
 ----
 
+- Call reset_idle_timer more often
+- Reget package list of "Check for updates"
+- Figure out busy loop in update-notifier when apt-worker runs.
 - Use $HOME/.hildon-application-manager/ directory for per-user state.
 - Add "New Folder" functionality to maemo-select-menu-location.
 - Explain non-removable system updates in Details dialog.
