@@ -1593,15 +1593,8 @@ struct rcpwu_clos {
   void *data;
 };
 
-static void rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
-{
-  rcpwu_clos *c = (rcpwu_clos *)data;
-
-  stop_entertaining_user ();
-
-  c->cont (c->data);
-  delete c;
-}
+static void rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data);
+static void rpcwu_end (void *data);
 
 static entertainment_game rpcwu_games[] = {
   { op_downloading, 0.5 },
@@ -1621,6 +1614,25 @@ refresh_package_cache_without_user (void (*cont) (void *data), void *data)
   start_entertaining_user ();
 
   apt_worker_update_cache (APTSTATE_DEFAULT, rpcwu_reply, c);
+}
+
+static void
+rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  rcpwu_clos *c = (rcpwu_clos *)data;
+
+  stop_entertaining_user ();
+
+  get_package_list_with_cont (APTSTATE_DEFAULT, rpcwu_end, c);
+}
+
+static void
+rpcwu_end (void *data)
+{
+  rcpwu_clos *c = (rcpwu_clos *)data;
+  
+  c->cont (c->data);
+  delete c;
 }
 
 static void
