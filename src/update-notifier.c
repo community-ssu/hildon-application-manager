@@ -782,7 +782,7 @@ setup_alarm (UpdateNotifier *upno)
      alarm, we still add the new one, just to be safe.
    */
 
-  if (old_alarm)
+  if (alarm_cookie > 0)
     alarm_event_del (alarm_cookie);
 
   alarm_cookie = alarm_event_add (&new_alarm);
