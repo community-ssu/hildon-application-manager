@@ -1,5 +1,8 @@
 2007-11-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/main.cc (rpcwu_reply): Call get_package_list_with_cont to
+	synchronize us with the new cache, stupid.
+
 	* src/update-notifier.c (setup_alarm): Always add new alarm, even
 	if deleting old alarm fails.
 
