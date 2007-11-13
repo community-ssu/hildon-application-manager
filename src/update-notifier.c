@@ -728,8 +728,8 @@ setup_alarm (UpdateNotifier *upno)
   */
 
   interval = gconf_client_get_int (upno->gconf,
-				       UPNO_GCONF_CZECH_INTERVAL,
-				       NULL);
+				   UPNO_GCONF_CZECH_INTERVAL,
+				   NULL);
   if (interval <= 0)
     interval = 24 * 60;
 
@@ -778,16 +778,17 @@ setup_alarm (UpdateNotifier *upno)
 		     | ALARM_EVENT_CONNECTED
 		     | ALARM_EVENT_RUN_DELAYED);
 
-  /* Replace old event with new one.
+  /* Replace old event with new one.  If we fail to delete the old
+     alarm, we still add the new one, just to be safe.
    */
 
-  if (alarm_event_del (alarm_cookie) >= 0)
-    {
-      alarm_cookie = alarm_event_add (&new_alarm);
+  if (old_alarm)
+    alarm_event_del (alarm_cookie);
 
-      gconf_client_set_int (upno->gconf,
-			    UPNO_GCONF_ALARM_COOKIE,
-			    alarm_cookie,
-			    NULL);
-    }
+  alarm_cookie = alarm_event_add (&new_alarm);
+
+  gconf_client_set_int (upno->gconf,
+			UPNO_GCONF_ALARM_COOKIE,
+			alarm_cookie,
+			NULL);
 }
