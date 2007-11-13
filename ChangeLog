@@ -1,3 +1,8 @@
+2007-11-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/update-notifier.c (setup_alarm): Always add new alarm, even
+	if deleting old alarm fails.
+
 2007-11-07  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.1
