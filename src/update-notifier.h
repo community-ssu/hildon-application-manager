@@ -24,17 +24,50 @@
 #ifndef UPDATE_NOTIFIER_H
 #define UPDATE_NOTIFIER_H
 
-#define UPNO_GCONF_DIR            "/apps/hildon/update-notifier"
-#define UPNO_GCONF_STATE          UPNO_GCONF_DIR "/state"
-#define UPNO_GCONF_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
-#define UPNO_GCONF_CZECH_INTERVAL UPNO_GCONF_DIR "/check_interval"
+#include <glib.h>
+#include <gtk/gtk.h>
+#include <dbus/dbus.h>
+#include <gconf/gconf-client.h>
+#include <libhildondesktop/statusbar-item.h>
+
+#define UPDATE_NOTIFIER_TYPE            (update_notifier_get_type ())
+#define UPDATE_NOTIFIER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), UPDATE_NOTIFIER_TYPE, UpdateNotifier))
+#define UPDATE_NOTIFIER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  UPDATE_NOTIFIER_TYPE, UpdateNotifierClass))
+#define IS_UPDATE_NOTIFIER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), UPDATE_NOTIFIER_TYPE))
+#define IS_UPDATE_NOTIFIER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  UPDATE_NOTIFIER_TYPE))
+#define UPDATE_NOTIFIER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  UPDATE_NOTIFIER_TYPE, UpdateNotifierClass))
+
+typedef struct _UpdateNotifier      UpdateNotifier;
+typedef struct _UpdateNotifierClass UpdateNotifierClass;
+
+struct _UpdateNotifier
+{
+  StatusbarItem parent;
+
+  GtkWidget *button;
+  GtkWidget *blinkifier;
+  GtkWidget *menu;
+  GdkPixbuf *static_pic;
+
+  guint timeout_id;
+
+  GConfClient *gconf;
+  guint *gconf_notifications;
+  DBusConnection *dbus;
+  GIOChannel *inotify_channel;
+  int home_watch;
+  int varlibham_watch;
+
+  int icon_state;
+};
+
+struct _UpdateNotifierClass
+{
+  StatusbarItemClass parent_class;
+};
+
+GType update_notifier_get_type(void);
 
 #define SEEN_UPDATES_FILE  ".hildon-application-manager-seen-updates"
-
-enum {
-  UPNO_ICON_INVISIBLE,
-  UPNO_ICON_STATIC,
-  UPNO_ICON_BLINKING
-};
 
 #endif /* !UPDATE_NOTIFIER_H */

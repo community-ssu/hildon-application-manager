@@ -1,4 +1,4 @@
-/*
+s/*
  * This file is part of the hildon-application-manager.
  *
  * Copyright (C) 2007 Nokia Corporation.  All Rights reserved.
@@ -27,8 +27,6 @@
    - Plug all the leaks
 */
 
-#include <glib.h>
-#include <gtk/gtk.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -40,11 +38,6 @@
 #include <unistd.h>
 
 #include <libhildondesktop/libhildondesktop.h>
-#include <libhildondesktop/statusbar-item.h>
-
-#include <gconf/gconf-client.h>
-#include <dbus/dbus.h>
-#include <glib.h>
 
 #include <alarm_event.h>
 
@@ -56,50 +49,42 @@
 
 #define USE_BLINKIFIER 1
 
+#define UPNO_GCONF_DIR            "/apps/hildon/update-notifier"
+#define UPNO_GCONF_STATE          UPNO_GCONF_DIR "/state"
+#define UPNO_GCONF_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
+#define UPNO_GCONF_CZECH_INTERVAL UPNO_GCONF_DIR "/check_interval"
+
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
 
-typedef struct _UpdateNotifier      UpdateNotifier;
-typedef struct _UpdateNotifierClass UpdateNotifierClass;
-
-#define UPDATE_NOTIFIER_TYPE            (update_notifier_get_type ())
-#define UPDATE_NOTIFIER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), UPDATE_NOTIFIER_TYPE, UpdateNotifier))
-#define UPDATE_NOTIFIER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  UPDATE_NOTIFIER_TYPE, UpdateNotifierClass))
-#define IS_UPDATE_NOTIFIER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), UPDATE_NOTIFIER_TYPE))
-#define IS_UPDATE_NOTIFIER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  UPDATE_NOTIFIER_TYPE))
-#define UPDATE_NOTIFIER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  UPDATE_NOTIFIER_TYPE, UpdateNotifierClass))
-
-struct _UpdateNotifier
-{
-  StatusbarItem parent;
-
-  GtkWidget *button;
-  GtkWidget *blinkifier;
-  GtkWidget *menu;
-  GdkPixbuf *static_pic;
-
-  guint timeout_id;
-
-  GConfClient *gconf;
-  DBusConnection *dbus;
-  GIOChannel *inotify_channel;
-  int home_watch;
-  int varlibham_watch;
-
-  int icon_state;
+enum {
+  UPNO_ICON_INVISIBLE,
+  UPNO_ICON_STATIC,
+  UPNO_ICON_BLINKING
 };
-
-struct _UpdateNotifierClass
-{
-  StatusbarItemClass parent_class;
-};
-
-GType update_notifier_get_type(void);
 
 HD_DEFINE_PLUGIN (UpdateNotifier, update_notifier, STATUSBAR_TYPE_ITEM);
 
-static void set_icon_visibility (UpdateNotifier *upno, int state);
+/* Initialization/destruction functions */
+static void update_notifier_class_init (UpdateNotifierClass *klass);
+static void update_notifier_init (UpdateNotifier *upno);
+static void update_notifier_finalize (GObject *object);
 
+/* Private functions */
+static void button_pressed (GtkWidget *button, gpointer data);
+static void menu_activated (GtkWidget *menu, gpointer data);
+
+static void gconf_state_changed (GConfClient *client,
+				 guint cnxn_id,
+				 GConfEntry *entry,
+				 gpointer data);
+static void gconf_interval_changed (GConfClient *client,
+				    guint cnxn_id,
+				    GConfEntry *entry,
+				    gpointer data);
+
+static void set_icon_visibility (UpdateNotifier *upno, int state);
 static void setup_dbus (UpdateNotifier *upno);
+
 static char *get_http_proxy ();
 static void setup_inotify (UpdateNotifier *upno);
 static void setup_alarm (UpdateNotifier *upno);
@@ -110,7 +95,11 @@ static void update_state (UpdateNotifier *upno);
 static void show_check_for_updates_view (UpdateNotifier *upno);
 static void check_for_updates (UpdateNotifier *upno);
 
-static void update_notifier_finalize (GObject *object);
+static void cleanup_dbus (UpdateNotifier *upno);
+static void cleanup_inotify (UpdateNotifier *upno);
+static void cleanup_alarm (UpdateNotifier *upno);
+
+/* Initialization/destruction functions */
 
 static void
 update_notifier_class_init (UpdateNotifierClass *klass)
@@ -118,6 +107,94 @@ update_notifier_class_init (UpdateNotifierClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   object_class->finalize = update_notifier_finalize;
 }
+
+static void
+update_notifier_init (UpdateNotifier *upno)
+{
+  GdkPixbuf *icon_pixbuf;
+  GtkIconTheme *icon_theme;
+
+  upno->gconf = gconf_client_get_default();
+  gconf_client_add_dir (upno->gconf,
+			UPNO_GCONF_DIR,
+			GCONF_CLIENT_PRELOAD_ONELEVEL,
+			NULL);
+
+  /* Add gconf notifications and store connection IDs */
+  upno->gconf_notifications = g_new0 (guint, 3);
+  upno->gconf_notifications[0] =
+    gconf_client_notify_add (upno->gconf,
+			     UPNO_GCONF_STATE,
+			     gconf_state_changed, upno,
+			     NULL, NULL);
+  upno->gconf_notifications[1] =
+    gconf_client_notify_add (upno->gconf,
+			     UPNO_GCONF_CZECH_INTERVAL,
+			     gconf_interval_changed, upno,
+			     NULL, NULL);
+
+  /* Finish the list of connection IDs */
+  upno->gconf_notifications[2] = -1;
+
+  upno->button = gtk_button_new ();
+
+  icon_theme = gtk_icon_theme_get_default ();
+  icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
+					  "qgn_stat_new_updates",
+					  40,
+					  GTK_ICON_LOOKUP_NO_SVG,
+					  NULL);
+#if USE_BLINKIFIER
+  upno->static_pic = icon_pixbuf;
+  upno->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
+#else
+  upno->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
+#endif
+  
+  gtk_container_add (GTK_CONTAINER (upno->button), upno->blinkifier);
+  gtk_container_add (GTK_CONTAINER (upno), upno->button);
+
+  gtk_widget_show (upno->blinkifier);
+  gtk_widget_show (upno->button);
+
+  g_signal_connect (upno->button, "pressed",
+		    G_CALLBACK (button_pressed), upno);
+
+  setup_dbus (upno);
+  setup_inotify (upno);
+  setup_alarm (upno);
+
+  update_icon_visibility (upno, gconf_client_get (upno->gconf,
+						  UPNO_GCONF_STATE,
+						  NULL));
+  update_state (upno);
+}
+
+static void
+update_notifier_finalize (GObject *object)
+{
+  int i = 0;
+  UpdateNotifier *upno = UPDATE_NOTIFIER (object);
+
+  /* Gconf issues */
+  gconf_client_remove_dir (upno->gconf,
+			   UPNO_GCONF_DIR,
+			   NULL);
+
+  for (i = 0; upno->gconf_notifications[i] != G_MAXUINT32; i++)
+    gconf_client_notify_remove (upno->gconf,
+				upno->gconf_notifications[i]);
+  g_free (upno->gconf_notifications);
+
+  cleanup_dbus (upno);
+  cleanup_inotify (upno);
+  cleanup_alarm (upno);
+
+  G_OBJECT_CLASS (g_type_class_peek_parent
+		  (G_OBJECT_GET_CLASS(object)))->finalize(object);
+}
+
+/* Private functions */
 
 static void
 menu_position_func (GtkMenu   *menu, 
@@ -180,69 +257,6 @@ gconf_interval_changed (GConfClient *client, guint cnxn_id,
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
 
   setup_alarm (upno);
-}
-
-static void
-update_notifier_init (UpdateNotifier *upno)
-{
-  GdkPixbuf *icon_pixbuf;
-  GtkIconTheme *icon_theme;
-
-  upno->gconf = gconf_client_get_default();
-  gconf_client_add_dir (upno->gconf,
-			UPNO_GCONF_DIR,
-			GCONF_CLIENT_PRELOAD_ONELEVEL,
-			NULL);
-  gconf_client_notify_add (upno->gconf,
-			   UPNO_GCONF_STATE,
-			   gconf_state_changed, upno,
-			   NULL, NULL);
-  gconf_client_notify_add (upno->gconf,
-			   UPNO_GCONF_CZECH_INTERVAL,
-			   gconf_interval_changed, upno,
-			   NULL, NULL);
-
-  upno->button = gtk_button_new ();
-
-  icon_theme = gtk_icon_theme_get_default ();
-  icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
-					  "qgn_stat_new_updates",
-					  40,
-					  GTK_ICON_LOOKUP_NO_SVG,
-					  NULL);
-#if USE_BLINKIFIER
-  upno->static_pic = icon_pixbuf;
-  upno->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
-#else
-  upno->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
-#endif
-  
-  gtk_container_add (GTK_CONTAINER (upno->button), upno->blinkifier);
-  gtk_container_add (GTK_CONTAINER (upno), upno->button);
-
-  gtk_widget_show (upno->blinkifier);
-  gtk_widget_show (upno->button);
-
-  g_signal_connect (upno->button, "pressed",
-		    G_CALLBACK (button_pressed), upno);
-
-  setup_dbus (upno);
-  setup_inotify (upno);
-  setup_alarm (upno);
-
-  update_icon_visibility (upno, gconf_client_get (upno->gconf,
-						  UPNO_GCONF_STATE,
-						  NULL));
-  update_state (upno);
-}
-
-static void
-update_notifier_finalize (GObject *object)
-{
-  UpdateNotifier *upno = UPDATE_NOTIFIER (object);
-    
-  G_OBJECT_CLASS (g_type_class_peek_parent
-		  (G_OBJECT_GET_CLASS(object)))->finalize(object);
 }
 
 #if !USE_BLINKIFIER
@@ -791,4 +805,25 @@ setup_alarm (UpdateNotifier *upno)
 			UPNO_GCONF_ALARM_COOKIE,
 			alarm_cookie,
 			NULL);
+}
+
+static void
+cleanup_dbus (UpdateNotifier *upno)
+{
+  upno->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+
+  if (upno->dbus)
+    dbus_connection_remove_filter (upno->dbus, dbus_filter, NULL);
+}
+
+static void
+cleanup_inotify (UpdateNotifier *upno)
+{
+  /* TODO */
+}
+
+static void
+cleanup_alarm (UpdateNotifier *upno)
+{
+  /* TODO */
 }

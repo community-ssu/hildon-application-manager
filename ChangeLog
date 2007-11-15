@@ -1,3 +1,32 @@
+2007-11-15  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.h, src/update-notifier.c:
+	Moved typical defines related with GObject issues from
+	update-notifier.c to the update-notifier.h.
+	Moved enumeration with icon states from update-notifier.h to the
+	update-notifier.c.
+	(UPNO_GCONF_DIR): Moved from update-notifier.h to
+	update-notifier.c.
+	(UPNO_GCONF_STATE): Likewise.
+	(UPNO_GCONF_ALARM_COOKIE): Likewise.
+	(UPNO_GCONF_CZECH_INTERVAL UPNO_GCONF_DIR): Likewise.
+	(struct _UpdateNotifier): Moved from update-notifier.c to
+	update-notifier.h.
+	(struct _UpdateNotifierClass): Likewise.
+	(update_notifier_get_type): Likewise.
+	(struct _UpdateNotifier): Added a new field (gconf_notifications)
+	to store the connection IDs associated to the gconf notifications
+	created in update_notifier_init.
+	(update_notifier_init): Store the connection IDs for each
+	notification, to allow removing them in the finalize function.
+	(update_notifier_finalize): Remove gconf notifications and cleanup
+	dbus and inotify stuff, as well as alarms, if needed.
+	(cleanup_dbus): New. Clean up the Dbus stuff.
+	(cleanup_inotify): New. Empty function (at the moment) to be
+	filled with needed logic to cleanup the inotify stuff.
+	(cleanup_alarm): New. Empty function (at the moment) to be
+	filled with needed logic to cleanup regarding to alarms.
+
 2007-11-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.cc (rpcwu_reply): Call get_package_list_with_cont to
