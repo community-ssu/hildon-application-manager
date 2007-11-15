@@ -1,5 +1,18 @@
 2007-11-15  Mario Sanchez Prada  <msanchez@maemo.org>
 
+	* src/update-notifier.c (setup_gconf): New. Function to summarize
+	logic to initialize gconf issues under update_notifier_init.
+	(cleanup_gconf): New. Function Function to summarize logic to
+	finalize gconf issues under update_notifier_finalize.
+	(update_notifier_init): Now use the setup_gconf function.
+	(update_notifier_finalize): Now use the cleanup_gconf function.
+	(setup_alarm): Use alarm_event_free to free memory allocated for
+	the old alarm;
+	(cleanup_dbus): Close and unref the DBus connection.
+	(cleanup_inotify): Remove inotify watches, shutdown the GIOChannel
+	and unref it.
+	(cleanup_alarm): Delete the alarm.
+
 	* src/update-notifier.h, src/update-notifier.c:
 	Moved typical defines related with GObject issues from
 	update-notifier.c to the update-notifier.h.

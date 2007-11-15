@@ -1,4 +1,4 @@
-s/*
+/*
  * This file is part of the hildon-application-manager.
  *
  * Copyright (C) 2007 Nokia Corporation.  All Rights reserved.
@@ -73,14 +73,7 @@ static void update_notifier_finalize (GObject *object);
 static void button_pressed (GtkWidget *button, gpointer data);
 static void menu_activated (GtkWidget *menu, gpointer data);
 
-static void gconf_state_changed (GConfClient *client,
-				 guint cnxn_id,
-				 GConfEntry *entry,
-				 gpointer data);
-static void gconf_interval_changed (GConfClient *client,
-				    guint cnxn_id,
-				    GConfEntry *entry,
-				    gpointer data);
+static void setup_gconf (UpdateNotifier *upno);
 
 static void set_icon_visibility (UpdateNotifier *upno, int state);
 static void setup_dbus (UpdateNotifier *upno);
@@ -95,6 +88,7 @@ static void update_state (UpdateNotifier *upno);
 static void show_check_for_updates_view (UpdateNotifier *upno);
 static void check_for_updates (UpdateNotifier *upno);
 
+static void cleanup_gconf (UpdateNotifier *upno);
 static void cleanup_dbus (UpdateNotifier *upno);
 static void cleanup_inotify (UpdateNotifier *upno);
 static void cleanup_alarm (UpdateNotifier *upno);
@@ -114,27 +108,7 @@ update_notifier_init (UpdateNotifier *upno)
   GdkPixbuf *icon_pixbuf;
   GtkIconTheme *icon_theme;
 
-  upno->gconf = gconf_client_get_default();
-  gconf_client_add_dir (upno->gconf,
-			UPNO_GCONF_DIR,
-			GCONF_CLIENT_PRELOAD_ONELEVEL,
-			NULL);
-
-  /* Add gconf notifications and store connection IDs */
-  upno->gconf_notifications = g_new0 (guint, 3);
-  upno->gconf_notifications[0] =
-    gconf_client_notify_add (upno->gconf,
-			     UPNO_GCONF_STATE,
-			     gconf_state_changed, upno,
-			     NULL, NULL);
-  upno->gconf_notifications[1] =
-    gconf_client_notify_add (upno->gconf,
-			     UPNO_GCONF_CZECH_INTERVAL,
-			     gconf_interval_changed, upno,
-			     NULL, NULL);
-
-  /* Finish the list of connection IDs */
-  upno->gconf_notifications[2] = -1;
+  setup_gconf (upno);
 
   upno->button = gtk_button_new ();
 
@@ -173,22 +147,12 @@ update_notifier_init (UpdateNotifier *upno)
 static void
 update_notifier_finalize (GObject *object)
 {
-  int i = 0;
   UpdateNotifier *upno = UPDATE_NOTIFIER (object);
 
-  /* Gconf issues */
-  gconf_client_remove_dir (upno->gconf,
-			   UPNO_GCONF_DIR,
-			   NULL);
-
-  for (i = 0; upno->gconf_notifications[i] != G_MAXUINT32; i++)
-    gconf_client_notify_remove (upno->gconf,
-				upno->gconf_notifications[i]);
-  g_free (upno->gconf_notifications);
-
-  cleanup_dbus (upno);
-  cleanup_inotify (upno);
   cleanup_alarm (upno);
+  cleanup_inotify (upno);
+  cleanup_dbus (upno);
+  cleanup_gconf (upno);
 
   G_OBJECT_CLASS (g_type_class_peek_parent
 		  (G_OBJECT_GET_CLASS(object)))->finalize(object);
@@ -257,6 +221,32 @@ gconf_interval_changed (GConfClient *client, guint cnxn_id,
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
 
   setup_alarm (upno);
+}
+
+static void
+setup_gconf (UpdateNotifier *upno)
+{
+  upno->gconf = gconf_client_get_default();
+  gconf_client_add_dir (upno->gconf,
+			UPNO_GCONF_DIR,
+			GCONF_CLIENT_PRELOAD_ONELEVEL,
+			NULL);
+
+  /* Add gconf notifications and store connection IDs */
+  upno->gconf_notifications = g_new0 (guint, 3);
+  upno->gconf_notifications[0] =
+    gconf_client_notify_add (upno->gconf,
+			     UPNO_GCONF_STATE,
+			     gconf_state_changed, upno,
+			     NULL, NULL);
+  upno->gconf_notifications[1] =
+    gconf_client_notify_add (upno->gconf,
+			     UPNO_GCONF_CZECH_INTERVAL,
+			     gconf_interval_changed, upno,
+			     NULL, NULL);
+
+  /* Finish the list of connection IDs */
+  upno->gconf_notifications[2] = -1;
 }
 
 #if !USE_BLINKIFIER
@@ -750,6 +740,7 @@ setup_alarm (UpdateNotifier *upno)
   alarm_cookie = gconf_client_get_int (upno->gconf,
 				       UPNO_GCONF_ALARM_COOKIE,
 				       NULL);
+
   if (alarm_cookie > 0)
     old_alarm = alarm_event_get (alarm_cookie);
 
@@ -776,6 +767,7 @@ setup_alarm (UpdateNotifier *upno)
       new_alarm.alarm_time = old_alarm->alarm_time;
       new_alarm.recurrence = old_alarm->recurrence;
     }
+  alarm_event_free (old_alarm);
 
   /* Setup the rest.
    */
@@ -808,22 +800,54 @@ setup_alarm (UpdateNotifier *upno)
 }
 
 static void
+cleanup_gconf (UpdateNotifier *upno)
+{
+  int i = 0;
+  gconf_client_remove_dir (upno->gconf,
+			   UPNO_GCONF_DIR,
+			   NULL);
+
+  for (i = 0; upno->gconf_notifications[i] != G_MAXUINT32; i++)
+    gconf_client_notify_remove (upno->gconf,
+				upno->gconf_notifications[i]);
+  g_free (upno->gconf_notifications);
+  g_object_unref(upno->gconf);
+}
+
+static void
 cleanup_dbus (UpdateNotifier *upno)
 {
   upno->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
 
-  if (upno->dbus)
-    dbus_connection_remove_filter (upno->dbus, dbus_filter, NULL);
+  if (upno->dbus != NULL)
+    {
+      dbus_connection_remove_filter (upno->dbus, dbus_filter, NULL);
+      dbus_connection_close (upno->dbus);
+      dbus_connection_unref (upno->dbus);
+    }
 }
 
 static void
 cleanup_inotify (UpdateNotifier *upno)
 {
-  /* TODO */
+  if (upno->inotify_channel != NULL)
+    {
+      int ifd = g_io_channel_unix_get_fd (upno->inotify_channel);
+
+      inotify_rm_watch (ifd, upno->home_watch);
+      inotify_rm_watch (ifd, upno->varlibham_watch);
+
+      g_io_channel_shutdown (upno->inotify_channel, TRUE, NULL);
+      g_io_channel_unref (upno->inotify_channel);
+    }
 }
 
 static void
 cleanup_alarm (UpdateNotifier *upno)
 {
-  /* TODO */
+  cookie_t alarm_cookie;
+  alarm_cookie = gconf_client_get_int (upno->gconf,
+				       UPNO_GCONF_ALARM_COOKIE,
+				       NULL);
+  alarm_event_del (alarm_cookie);
 }
