@@ -216,6 +216,8 @@ BUGS
 
 - Figure out busy loop in update-notifier when apt-worker runs.
 - Use $HOME/.hildon-application-manager/ directory for per-user state.
+- Clean out all alarm events when setting a new one, to reliably
+  combat somehow getting more than one.
 
 - Take update-notifier menu contents into account for the blinking state.
 - Call reset_idle_timer more often
