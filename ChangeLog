@@ -1,3 +1,32 @@
+2007-11-16  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.c (HTTP_PROXY_GCONF_DIR): New define to
+	obtain info about the http proxy via GConf.
+	(UPDATE_NOTIFIER_SERVICE): New define (For DBus issues).
+	(UPDATE_NOTIFIER_OBJECT_PATH): New define (For DBus issues).
+	(UPDATE_NOTIFIER_INTERFACE): New define (For DBus issues).
+	(HILDON_APP_MGR_SERVICE): New define (For DBus issues).
+	(HILDON_APP_MGR_OBJECT_PATH): New define (For DBus issues).
+	(HILDON_APP_MGR_INTERFACE): New define (For DBus issues).
+	(update_notifier_finalize): Dispose the GtkMenu and the static
+	picture used with the blinkifier.
+	(add_readonly_item): Use a gchar * for 'text' variable.
+	(dbus_filter): Code factorization.
+	(setup_dbus): Use the new definition of UPDATE_NOTIFIER_SERVICE.
+	(show_check_for_updates_view): Use the new definitions of
+	HILDON_APP_MGR_SERVICE, HILDON_APP_MGR_OBJECT_PATH and
+	HILDON_APP_MGR_INTERFACE.
+	(check_for_updates_done): Likewise.
+	(check_for_updates): Use a const char[] for 'argv' and previously
+	choose the gainroot command, according to the current underlying
+	platform: the IT device or the scratchbox.
+	(get_http_proxy): Changed return type to (gchar *). Use the new
+	define HTTP_PROXY_GCONF_DIR. Initialized all the local variables.
+	(handle_inotify): Use the definition of SEEN_UPDATES_FILE instead
+	of a hardcoded string.
+	(setup_alarm): Use the new definitions of UPDATE_NOTIFIER_SERVICE,
+	UPDATE_NOTIFIER_OBJECT_PATH and UPDATE_NOTIFIER_INTERFACE.
+
 2007-11-15  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.c (setup_gconf): New. Function to summarize

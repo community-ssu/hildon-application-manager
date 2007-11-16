@@ -54,7 +54,17 @@
 #define UPNO_GCONF_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
 #define UPNO_GCONF_CZECH_INTERVAL UPNO_GCONF_DIR "/check_interval"
 
+#define HTTP_PROXY_GCONF_DIR      "/system/http_proxy"
+
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
+
+#define UPDATE_NOTIFIER_SERVICE "com.nokia.hildon_update_notifier"
+#define UPDATE_NOTIFIER_OBJECT_PATH "/com/nokia/hildon_update_notifier"
+#define UPDATE_NOTIFIER_INTERFACE "com.nokia.hildon_update_notifier"
+
+#define HILDON_APP_MGR_SERVICE "com.nokia.hildon_application_manager"
+#define HILDON_APP_MGR_OBJECT_PATH "/com/nokia/hildon_application_manager"
+#define HILDON_APP_MGR_INTERFACE "com.nokia.hildon_application_manager"
 
 enum {
   UPNO_ICON_INVISIBLE,
@@ -78,7 +88,7 @@ static void setup_gconf (UpdateNotifier *upno);
 static void set_icon_visibility (UpdateNotifier *upno, int state);
 static void setup_dbus (UpdateNotifier *upno);
 
-static char *get_http_proxy ();
+static gchar *get_http_proxy ();
 static void setup_inotify (UpdateNotifier *upno);
 static void setup_alarm (UpdateNotifier *upno);
 
@@ -148,6 +158,12 @@ static void
 update_notifier_finalize (GObject *object)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (object);
+
+  if (upno->menu)
+    gtk_widget_destroy (upno->menu);
+
+  if (upno->static_pic)
+    g_object_unref (upno->static_pic);
 
   cleanup_alarm (upno);
   cleanup_inotify (upno);
@@ -307,7 +323,7 @@ add_readonly_item (GtkWidget *menu, const char *fmt, ...)
 {
   GtkWidget *label, *item;
   va_list ap;
-  char *text;
+  gchar *text;
 
   va_start (ap, fmt);
   text = g_strdup_vprintf (fmt, ap);
@@ -427,30 +443,32 @@ static DBusHandlerResult
 dbus_filter (DBusConnection *conn, DBusMessage *message, void *data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  DBusMessage *reply = NULL;
+  gboolean message_handled = TRUE;
 
   if (dbus_message_is_method_call (message,
-				   "com.nokia.hildon_update_notifier",
+ 				   UPDATE_NOTIFIER_SERVICE,
 				   "check_for_updates"))
     {
-      DBusMessage *reply;
-
+      /* Search for new available updates */
       check_for_updates (upno);
-
-      reply = dbus_message_new_method_return (message);
-      dbus_connection_send (conn, reply, NULL);
-      dbus_message_unref (reply);
-
-      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+  else if (dbus_message_is_method_call (message,
+					UPDATE_NOTIFIER_SERVICE,
+					"check_state"))
+    {
+      /* Update states of the statusbar item */
+      update_state (upno);
+    }
+  else
+    {
+      /* Not handled */
+      message_handled = FALSE;
     }
 
-  if (dbus_message_is_method_call (message,
-				   "com.nokia.hildon_update_notifier",
-				   "check_state"))
+  /* Send proper DBus reply message if handled */
+  if (message_handled)
     {
-      DBusMessage *reply;
-
-      update_state (upno);
-
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
       dbus_message_unref (reply);
@@ -470,7 +488,7 @@ setup_dbus (UpdateNotifier *upno)
     {
       dbus_connection_add_filter (upno->dbus, dbus_filter, upno, NULL);
       dbus_bus_request_name (upno->dbus,
-			     "com.nokia.hildon_update_notifier",
+			     UPDATE_NOTIFIER_SERVICE,
 			     DBUS_NAME_FLAG_DO_NOT_QUEUE,
 			     NULL);
     }
@@ -480,14 +498,12 @@ static void
 show_check_for_updates_view (UpdateNotifier *upno)
 {
   DBusMessage     *msg;
-  gchar           *service = "com.nokia.hildon_application_manager";
-  gchar           *object_path = "/com/nokia/hildon_application_manager";
-  gchar           *interface = "com.nokia.hildon_application_manager";
 
   if (upno->dbus)
     {
-      msg = dbus_message_new_method_call (service, object_path,
-					  interface,
+      msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
+					  HILDON_APP_MGR_OBJECT_PATH,
+					  HILDON_APP_MGR_INTERFACE,
 					  "show_check_for_updates_view");
       if (msg)
 	{
@@ -513,14 +529,12 @@ check_for_updates_done (GPid pid, int status, gpointer data)
        */
 
       DBusMessage     *msg;
-      gchar           *service = "com.nokia.hildon_application_manager";
-      gchar           *object_path = "/com/nokia/hildon_application_manager";
-      gchar           *interface = "com.nokia.hildon_application_manager";
-      
+
       if (upno->dbus)
 	{
-	  msg = dbus_message_new_method_call (service, object_path,
-					      interface,
+	  msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
+					      HILDON_APP_MGR_OBJECT_PATH,
+					      HILDON_APP_MGR_INTERFACE,
 					      "check_for_updates");
 	  if (msg)
 	    {
@@ -537,21 +551,25 @@ check_for_updates (UpdateNotifier *upno)
 {
   GError *error = NULL;
   GPid child_pid;
-  char *proxy = get_http_proxy ();
-  
-  char *argv[] = 
-    { "/usr/bin/sudo",
-      "/usr/libexec/apt-worker", "check-for-updates", proxy, NULL
+  gchar *gainroot_cmd = NULL;
+  gchar *proxy = get_http_proxy ();
+  struct stat info;
+
+  /* Choose the right gainroot command */
+  if (!stat ("/targets/links/scratchbox.config", &info))
+    gainroot_cmd = g_strdup ("/usr/bin/fakeroot");
+  else
+    gainroot_cmd = g_strdup ("/usr/bin/sudo");
+
+  /* Build command to be spawned */
+  const char *argv[] =
+    { gainroot_cmd,
+      "/usr/libexec/apt-worker",
+      "check-for-updates",
+      proxy,
+      NULL
     };
-  
-  {
-    /* Scratchbox is my bitch.
-     */
-    struct stat info;
-    if (!stat ("/targets/links/scratchbox.config", &info))
-      argv[0] = "/usr/bin/fakeroot";
-  }
-  
+
   if (!g_spawn_async_with_pipes (NULL,
 				 argv,
 				 NULL,
@@ -569,42 +587,41 @@ check_for_updates (UpdateNotifier *upno)
     }
   else
     g_child_watch_add (child_pid, check_for_updates_done, upno);
-  
+
+  g_free (gainroot_cmd);
   g_free (proxy);
 }
 
-static char *
+static gchar *
 get_http_proxy ()
 {
-  GConfClient *conf;
-  char *proxy;
+  GConfClient *conf = NULL;
+  gchar *proxy = NULL;
 
   if ((proxy = getenv ("http_proxy")) != NULL)
     return g_strdup (proxy);
 
-  proxy = NULL;
-
   conf = gconf_client_get_default ();
 
-  if (gconf_client_get_bool (conf, "/system/http_proxy/use_http_proxy",
+  if (gconf_client_get_bool (conf, HTTP_PROXY_GCONF_DIR "/use_http_proxy",
 			     NULL))
     {
-      char *user = NULL;
-      char *password = NULL;
-      char *host = NULL;
+      gchar *user = NULL;
+      gchar *password = NULL;
+      gchar *host = NULL;
       gint port;
 
-      if (gconf_client_get_bool (conf, "/system/http_proxy/use_authentication",
+      if (gconf_client_get_bool (conf, HTTP_PROXY_GCONF_DIR "/use_authentication",
 				 NULL))
 	{
 	  user = gconf_client_get_string
-	    (conf, "/system/http_proxy/authentication_user", NULL);
+	    (conf, HTTP_PROXY_GCONF_DIR "/authentication_user", NULL);
 	  password = gconf_client_get_string
-	    (conf, "/system/http_proxy/authentication_password", NULL);
+	    (conf, HTTP_PROXY_GCONF_DIR "/authentication_password", NULL);
 	}
 
-      host = gconf_client_get_string (conf, "/system/http_proxy/host", NULL);
-      port = gconf_client_get_int (conf, "/system/http_proxy/port", NULL);
+      host = gconf_client_get_string (conf, HTTP_PROXY_GCONF_DIR "/host", NULL);
+      port = gconf_client_get_int (conf, HTTP_PROXY_GCONF_DIR "/port", NULL);
 
       if (user)
 	{
@@ -675,7 +692,7 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
 
 	  if (is_file_modified_event (event,
 				      upno->home_watch,
-				      ".hildon-application-manager-seen-updates")
+				      SEEN_UPDATES_FILE)
 	      || is_file_modified_event (event,
 					 upno->varlibham_watch,
 					 "available-updates"))
@@ -775,9 +792,9 @@ setup_alarm (UpdateNotifier *upno)
   new_alarm.recurrence_count = -1;
   new_alarm.snooze = 0;
 
-  new_alarm.dbus_service = "com.nokia.hildon_update_notifier";
-  new_alarm.dbus_path = "/com/nokia/hildon_update_notifier";
-  new_alarm.dbus_interface = "com.nokia.hildon_update_notifier";
+  new_alarm.dbus_service = UPDATE_NOTIFIER_SERVICE;
+  new_alarm.dbus_path = UPDATE_NOTIFIER_OBJECT_PATH;
+  new_alarm.dbus_interface = UPDATE_NOTIFIER_INTERFACE;
   new_alarm.dbus_name = "check_for_updates";
 
   new_alarm.flags = (ALARM_EVENT_NO_DIALOG
