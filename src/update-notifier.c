@@ -62,6 +62,9 @@
 #define UPDATE_NOTIFIER_OBJECT_PATH "/com/nokia/hildon_update_notifier"
 #define UPDATE_NOTIFIER_INTERFACE "com.nokia.hildon_update_notifier"
 
+#define UPDATE_NOTIFIER_OP_CHECK_UPDATES "check_for_updates"
+#define UPDATE_NOTIFIER_OP_CHECK_STATE "check_state"
+
 #define HILDON_APP_MGR_SERVICE "com.nokia.hildon_application_manager"
 #define HILDON_APP_MGR_OBJECT_PATH "/com/nokia/hildon_application_manager"
 #define HILDON_APP_MGR_INTERFACE "com.nokia.hildon_application_manager"
@@ -448,14 +451,14 @@ dbus_filter (DBusConnection *conn, DBusMessage *message, void *data)
 
   if (dbus_message_is_method_call (message,
  				   UPDATE_NOTIFIER_SERVICE,
-				   "check_for_updates"))
+				   UPDATE_NOTIFIER_OP_CHECK_UPDATES))
     {
       /* Search for new available updates */
       check_for_updates (upno);
     }
   else if (dbus_message_is_method_call (message,
 					UPDATE_NOTIFIER_SERVICE,
-					"check_state"))
+					UPDATE_NOTIFIER_OP_CHECK_STATE))
     {
       /* Update states of the statusbar item */
       update_state (upno);
@@ -535,7 +538,7 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 	  msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
 					      HILDON_APP_MGR_OBJECT_PATH,
 					      HILDON_APP_MGR_INTERFACE,
-					      "check_for_updates");
+					      UPDATE_NOTIFIER_OP_CHECK_UPDATES);
 	  if (msg)
 	    {
 	      dbus_message_set_auto_start (msg, FALSE);
@@ -795,7 +798,7 @@ setup_alarm (UpdateNotifier *upno)
   new_alarm.dbus_service = UPDATE_NOTIFIER_SERVICE;
   new_alarm.dbus_path = UPDATE_NOTIFIER_OBJECT_PATH;
   new_alarm.dbus_interface = UPDATE_NOTIFIER_INTERFACE;
-  new_alarm.dbus_name = "check_for_updates";
+  new_alarm.dbus_name = UPDATE_NOTIFIER_OP_CHECK_UPDATES;
 
   new_alarm.flags = (ALARM_EVENT_NO_DIALOG
 		     | ALARM_EVENT_CONNECTED
@@ -804,9 +807,28 @@ setup_alarm (UpdateNotifier *upno)
   /* Replace old event with new one.  If we fail to delete the old
      alarm, we still add the new one, just to be safe.
    */
-
   if (alarm_cookie > 0)
-    alarm_event_del (alarm_cookie);
+    {
+      int i = 0;
+      time_t first = time (NULL);
+      time_t last = (time_t)G_MAXINT32;
+
+      /* Delete old alarm */
+      alarm_event_del (alarm_cookie);
+
+      /* Search for more alarms to delete (if available) */
+      cookie_t *cookies = alarm_event_query (first, last, 0, 0);
+      for (i = 0; cookies[i] != 0; i++)
+	{
+	  alarm_event_t *alarm = alarm_event_get (cookies[i]);
+ 	  if (alarm->dbus_interface != NULL &&
+	      !strcmp (alarm->dbus_interface, UPDATE_NOTIFIER_INTERFACE))
+	    {
+	      alarm_event_del (cookies[i]);
+	    }
+ 	  alarm_event_free (alarm);
+	}
+    }
 
   alarm_cookie = alarm_event_add (&new_alarm);
 

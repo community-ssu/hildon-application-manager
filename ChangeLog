@@ -1,3 +1,15 @@
+2007-11-19  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.c (UPDATE_NOTIFIER_OP_CHECK_STATE): New
+	define for a currently supported dbus method. Updated all callers.
+	(UPDATE_NOTIFIER_OP_CHECK_UPDATES): Likewise.
+	(setup_alarm): Added extra logic to search and delete all the
+	available alarms associated with the update-notifier before
+	setting a new one (Fixes bug in README file).
+
+	* README: Removed "Clean out all alarm events when setting a new
+	one..." bug from the bugs list.
+
 2007-11-16  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.c (HTTP_PROXY_GCONF_DIR): New define to
