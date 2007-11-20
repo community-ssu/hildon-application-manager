@@ -43,22 +43,6 @@ typedef struct _UpdateNotifierClass UpdateNotifierClass;
 struct _UpdateNotifier
 {
   StatusbarItem parent;
-
-  GtkWidget *button;
-  GtkWidget *blinkifier;
-  GtkWidget *menu;
-  GdkPixbuf *static_pic;
-
-  guint timeout_id;
-
-  GConfClient *gconf;
-  guint *gconf_notifications;
-  DBusConnection *dbus;
-  GIOChannel *inotify_channel;
-  int home_watch;
-  int varlibham_watch;
-
-  int icon_state;
 };
 
 struct _UpdateNotifierClass

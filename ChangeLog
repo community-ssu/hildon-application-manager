@@ -1,3 +1,28 @@
+2007-11-20  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.h (struct _UpdateNotifier): Removed all the
+	private attributes, which were moved back to update-notifier.c,
+	inside of a private struct.
+
+	* src/update-notifier.c (UPDATE_NOTIFIER_GET_PRIVATE): New define
+	to get the struct containing the private attributes. Used from all
+	the private functions that use private attributes.
+	(struct _UpdateNotifierPrivate): New struct to store the private
+	attributes. Added two new fields to store the handle IDs for the
+	two signals connected regarding to this object, and another field
+	more to store a reference to the only menu item available.
+	(menu_activated): Renamed to open_ham_menu_item_activated.
+	(update_notifier_class_init): Set the private struct used by this
+	class by calling g_type_class_add_private.
+	(update_notifier_init): Store the handler ID for the connection of
+	the 'pressed' signal about the main button.
+	(update_notifier_finalize): Disconnect handlers from signals.
+	(update_state): Disconnect handler from the 'activated' signal
+	before destroying a previously created menu. Also, store the
+	handler ID for the connection of the 'activated0 signal about the
+	menu item that opens HAM.
+	
+
 2007-11-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc (ip_check_required_reboot): Use

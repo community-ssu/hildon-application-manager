@@ -69,13 +69,39 @@
 #define HILDON_APP_MGR_OBJECT_PATH "/com/nokia/hildon_application_manager"
 #define HILDON_APP_MGR_INTERFACE "com.nokia.hildon_application_manager"
 
+#define UPDATE_NOTIFIER_GET_PRIVATE(object)(G_TYPE_INSTANCE_GET_PRIVATE ((object), UPDATE_NOTIFIER_TYPE, UpdateNotifierPrivate))
+
+typedef struct _UpdateNotifierPrivate UpdateNotifierPrivate;
+struct _UpdateNotifierPrivate
+{
+  GtkWidget *button;
+  GtkWidget *blinkifier;
+  GtkWidget *menu;
+  GtkWidget *open_ham_item;
+  GdkPixbuf *static_pic;
+
+  gint button_pressed_handler_id;
+  gint open_ham_item_activated_handler_id;
+
+  guint timeout_id;
+
+  GConfClient *gconf;
+  guint *gconf_notifications;
+  DBusConnection *dbus;
+  GIOChannel *inotify_channel;
+  int home_watch;
+  int varlibham_watch;
+
+  int icon_state;
+};
+
+HD_DEFINE_PLUGIN (UpdateNotifier, update_notifier, STATUSBAR_TYPE_ITEM);
+
 enum {
   UPNO_ICON_INVISIBLE,
   UPNO_ICON_STATIC,
   UPNO_ICON_BLINKING
 };
-
-HD_DEFINE_PLUGIN (UpdateNotifier, update_notifier, STATUSBAR_TYPE_ITEM);
 
 /* Initialization/destruction functions */
 static void update_notifier_class_init (UpdateNotifierClass *klass);
@@ -84,7 +110,7 @@ static void update_notifier_finalize (GObject *object);
 
 /* Private functions */
 static void button_pressed (GtkWidget *button, gpointer data);
-static void menu_activated (GtkWidget *menu, gpointer data);
+static void open_ham_menu_item_activated (GtkWidget *menu, gpointer data);
 
 static void setup_gconf (UpdateNotifier *upno);
 
@@ -113,6 +139,8 @@ update_notifier_class_init (UpdateNotifierClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   object_class->finalize = update_notifier_finalize;
+
+  g_type_class_add_private (object_class, sizeof (UpdateNotifierPrivate));
 }
 
 static void
@@ -120,10 +148,11 @@ update_notifier_init (UpdateNotifier *upno)
 {
   GdkPixbuf *icon_pixbuf;
   GtkIconTheme *icon_theme;
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
   setup_gconf (upno);
 
-  upno->button = gtk_button_new ();
+  priv->button = gtk_button_new ();
 
   icon_theme = gtk_icon_theme_get_default ();
   icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
@@ -132,26 +161,27 @@ update_notifier_init (UpdateNotifier *upno)
 					  GTK_ICON_LOOKUP_NO_SVG,
 					  NULL);
 #if USE_BLINKIFIER
-  upno->static_pic = icon_pixbuf;
-  upno->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
+  priv->static_pic = icon_pixbuf;
+  priv->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
 #else
-  upno->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
+  priv->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
 #endif
   
-  gtk_container_add (GTK_CONTAINER (upno->button), upno->blinkifier);
-  gtk_container_add (GTK_CONTAINER (upno), upno->button);
+  gtk_container_add (GTK_CONTAINER (priv->button), priv->blinkifier);
+  gtk_container_add (GTK_CONTAINER (upno), priv->button);
 
-  gtk_widget_show (upno->blinkifier);
-  gtk_widget_show (upno->button);
+  gtk_widget_show (priv->blinkifier);
+  gtk_widget_show (priv->button);
 
-  g_signal_connect (upno->button, "pressed",
+  priv->button_pressed_handler_id =
+    g_signal_connect (priv->button, "pressed",
 		    G_CALLBACK (button_pressed), upno);
 
   setup_dbus (upno);
   setup_inotify (upno);
   setup_alarm (upno);
 
-  update_icon_visibility (upno, gconf_client_get (upno->gconf,
+  update_icon_visibility (upno, gconf_client_get (priv->gconf,
 						  UPNO_GCONF_STATE,
 						  NULL));
   update_state (upno);
@@ -161,17 +191,27 @@ static void
 update_notifier_finalize (GObject *object)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (object);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
-  if (upno->menu)
-    gtk_widget_destroy (upno->menu);
+  /* Destroy local widgets */
+  if (priv->menu)
+    gtk_widget_destroy (priv->menu);
 
-  if (upno->static_pic)
-    g_object_unref (upno->static_pic);
+  if (priv->static_pic)
+    g_object_unref (priv->static_pic);
 
+  /* Clean up stuff */
   cleanup_alarm (upno);
   cleanup_inotify (upno);
   cleanup_dbus (upno);
   cleanup_gconf (upno);
+
+  /* Unregister signal handlers */
+  g_signal_handler_disconnect (priv->button,
+			       priv->button_pressed_handler_id);
+
+  g_signal_handler_disconnect (priv->open_ham_item,
+			       priv->open_ham_item_activated_handler_id);
 
   G_OBJECT_CLASS (g_type_class_peek_parent
 		  (G_OBJECT_GET_CLASS(object)))->finalize(object);
@@ -187,17 +227,18 @@ menu_position_func (GtkMenu   *menu,
 		    gpointer   data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   
   GtkRequisition req;
   
   gtk_widget_size_request (GTK_WIDGET (menu->toplevel), &req);
 
-  gdk_window_get_origin (upno->button->window, x, y);
-  *x += (upno->button->allocation.x
-	 + upno->button->allocation.width
+  gdk_window_get_origin (priv->button->window, x, y);
+  *x += (priv->button->allocation.x
+	 + priv->button->allocation.width
 	 - req.width);
-  *y += (upno->button->allocation.y
-	 + upno->button->allocation.height);
+  *y += (priv->button->allocation.y
+	 + priv->button->allocation.height);
 
   *push_in = FALSE;
 }
@@ -206,10 +247,11 @@ static void
 button_pressed (GtkWidget *button, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
   set_icon_visibility (upno, UPNO_ICON_STATIC);
 
-  gtk_menu_popup (GTK_MENU (upno->menu),
+  gtk_menu_popup (GTK_MENU (priv->menu),
 		  NULL, NULL,
 		  menu_position_func, upno,
 		  1,
@@ -217,7 +259,7 @@ button_pressed (GtkWidget *button, gpointer data)
 }
 
 static void
-menu_activated (GtkWidget *menu, gpointer data)
+open_ham_menu_item_activated (GtkWidget *menu, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
 
@@ -245,27 +287,29 @@ gconf_interval_changed (GConfClient *client, guint cnxn_id,
 static void
 setup_gconf (UpdateNotifier *upno)
 {
-  upno->gconf = gconf_client_get_default();
-  gconf_client_add_dir (upno->gconf,
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  priv->gconf = gconf_client_get_default();
+  gconf_client_add_dir (priv->gconf,
 			UPNO_GCONF_DIR,
 			GCONF_CLIENT_PRELOAD_ONELEVEL,
 			NULL);
 
   /* Add gconf notifications and store connection IDs */
-  upno->gconf_notifications = g_new0 (guint, 3);
-  upno->gconf_notifications[0] =
-    gconf_client_notify_add (upno->gconf,
+  priv->gconf_notifications = g_new0 (guint, 3);
+  priv->gconf_notifications[0] =
+    gconf_client_notify_add (priv->gconf,
 			     UPNO_GCONF_STATE,
 			     gconf_state_changed, upno,
 			     NULL, NULL);
-  upno->gconf_notifications[1] =
-    gconf_client_notify_add (upno->gconf,
+  priv->gconf_notifications[1] =
+    gconf_client_notify_add (priv->gconf,
 			     UPNO_GCONF_CZECH_INTERVAL,
 			     gconf_interval_changed, upno,
 			     NULL, NULL);
 
   /* Finish the list of connection IDs */
-  upno->gconf_notifications[2] = -1;
+  priv->gconf_notifications[2] = -1;
 }
 
 #if !USE_BLINKIFIER
@@ -273,11 +317,12 @@ static gboolean
 blink_icon (gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
-  
-  if (GTK_WIDGET_VISIBLE (upno->blinkifier))
-    gtk_widget_hide (upno->blinkifier);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  if (GTK_WIDGET_VISIBLE (priv->blinkifier))
+    gtk_widget_hide (priv->blinkifier);
   else
-    gtk_widget_show (upno->blinkifier);
+    gtk_widget_show (priv->blinkifier);
 
   return TRUE;
 }
@@ -286,12 +331,13 @@ blink_icon (gpointer data)
 static void
 update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   int state = UPNO_ICON_INVISIBLE;
 
   if (value && value->type == GCONF_VALUE_INT)
     state = gconf_value_get_int (value);
 
-  upno->icon_state = state;
+  priv->icon_state = state;
 
   g_object_set (upno,
 		"condition", (state == UPNO_ICON_STATIC
@@ -300,22 +346,22 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 
 #if USE_BLINKIFIER
   if (state == UPNO_ICON_BLINKING)
-    g_object_set(upno->blinkifier, "pixbuf-animation", hn_app_pixbuf_anim_blinker_new(upno->static_pic, 1000, -1, 100), NULL);
+    g_object_set(priv->blinkifier, "pixbuf-animation", hn_app_pixbuf_anim_blinker_new(priv->static_pic, 1000, -1, 100), NULL);
   else
-    g_object_set(upno->blinkifier, "pixbuf", upno->static_pic, NULL);
+    g_object_set(priv->blinkifier, "pixbuf", priv->static_pic, NULL);
 #else
   if (state == UPNO_ICON_BLINKING)
     {
-      if (upno->timeout_id == 0)
-	upno->timeout_id = g_timeout_add (500, blink_icon, upno);
+      if (priv->timeout_id == 0)
+	priv->timeout_id = g_timeout_add (500, blink_icon, upno);
     }
   else
     {
-      gtk_widget_show (upno->blinkifier);
-      if (upno->timeout_id > 0)
+      gtk_widget_show (priv->blinkifier);
+      if (priv->timeout_id > 0)
 	{
-	  g_source_remove (upno->timeout_id);
-	  upno->timeout_id = 0;
+	  g_source_remove (priv->timeout_id);
+	  priv->timeout_id = 0;
 	}
     }
 #endif
@@ -348,6 +394,7 @@ add_readonly_item (GtkWidget *menu, const char *fmt, ...)
 static void
 update_state (UpdateNotifier *upno)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   xexp *available_updates, *seen_updates;
   int n_os = 0, n_certified = 0, n_other = 0;
   int n_new = 0;
@@ -397,46 +444,54 @@ update_state (UpdateNotifier *upno)
 
   if (n_new > 0)
     {
-      if (upno->icon_state == UPNO_ICON_INVISIBLE)
+      if (priv->icon_state == UPNO_ICON_INVISIBLE)
 	set_icon_visibility (upno, UPNO_ICON_BLINKING);
     }
   else
     set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
-    
-  if (upno->menu)
-    gtk_widget_destroy (upno->menu);
 
-  upno->menu = gtk_menu_new ();
+  if (priv->menu)
+    {
+      g_signal_handler_disconnect (priv->open_ham_item,
+				   priv->open_ham_item_activated_handler_id);
+      gtk_widget_destroy (priv->menu);
+    }
+
+  priv->menu = gtk_menu_new ();
 
   if (n_certified + n_other + n_os > 0)
     {
-      add_readonly_item (upno->menu, _("ai_sb_update_description"));
+      add_readonly_item (priv->menu, _("ai_sb_update_description"));
 
       if (n_certified > 0)
-	add_readonly_item (upno->menu, _("ai_sb_update_nokia_%d"),
+	add_readonly_item (priv->menu, _("ai_sb_update_nokia_%d"),
 			   n_certified);
       if (n_other > 0)
-	add_readonly_item (upno->menu, _("ai_sb_update_thirdparty_%d"),
+	add_readonly_item (priv->menu, _("ai_sb_update_thirdparty_%d"),
 			   n_other);
       if (n_os > 0)
-	add_readonly_item (upno->menu, _("ai_sb_update_os"));
+	add_readonly_item (priv->menu, _("ai_sb_update_os"));
 
       item = gtk_separator_menu_item_new ();
-      gtk_menu_append (upno->menu, item);
+      gtk_menu_append (priv->menu, item);
       gtk_widget_show (item);
     }
 
   item = gtk_menu_item_new_with_label (_("ai_sb_update_am"));
-  gtk_menu_append (upno->menu, item);
+  gtk_menu_append (priv->menu, item);
   gtk_widget_show (item);
-  g_signal_connect (item, "activate",
-		    G_CALLBACK (menu_activated), upno);
+
+  priv->open_ham_item = item;
+  priv->open_ham_item_activated_handler_id =
+    g_signal_connect (item, "activate",
+		      G_CALLBACK (open_ham_menu_item_activated), upno);
 }
 
 static void
 set_icon_visibility (UpdateNotifier *upno, int state)
 {
-  gconf_client_set_int (upno->gconf, 
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+  gconf_client_set_int (priv->gconf, 
 			UPNO_GCONF_STATE,
 			state,
 			NULL);
@@ -485,12 +540,13 @@ dbus_filter (DBusConnection *conn, DBusMessage *message, void *data)
 static void
 setup_dbus (UpdateNotifier *upno)
 {
-  upno->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+  priv->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
 
-  if (upno->dbus)
+  if (priv->dbus)
     {
-      dbus_connection_add_filter (upno->dbus, dbus_filter, upno, NULL);
-      dbus_bus_request_name (upno->dbus,
+      dbus_connection_add_filter (priv->dbus, dbus_filter, upno, NULL);
+      dbus_bus_request_name (priv->dbus,
 			     UPDATE_NOTIFIER_SERVICE,
 			     DBUS_NAME_FLAG_DO_NOT_QUEUE,
 			     NULL);
@@ -500,9 +556,10 @@ setup_dbus (UpdateNotifier *upno)
 static void
 show_check_for_updates_view (UpdateNotifier *upno)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   DBusMessage     *msg;
 
-  if (upno->dbus)
+  if (priv->dbus)
     {
       msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
 					  HILDON_APP_MGR_OBJECT_PATH,
@@ -510,7 +567,7 @@ show_check_for_updates_view (UpdateNotifier *upno)
 					  "show_check_for_updates_view");
       if (msg)
 	{
-	  dbus_connection_send (upno->dbus, msg, NULL);
+	  dbus_connection_send (priv->dbus, msg, NULL);
 	  dbus_message_unref (msg);
 	}
     }
@@ -520,6 +577,7 @@ static void
 check_for_updates_done (GPid pid, int status, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
   if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
     {
@@ -533,7 +591,7 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 
       DBusMessage     *msg;
 
-      if (upno->dbus)
+      if (priv->dbus)
 	{
 	  msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
 					      HILDON_APP_MGR_OBJECT_PATH,
@@ -542,7 +600,7 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 	  if (msg)
 	    {
 	      dbus_message_set_auto_start (msg, FALSE);
-	      dbus_connection_send (upno->dbus, msg, NULL);
+	      dbus_connection_send (priv->dbus, msg, NULL);
 	      dbus_message_unref (msg);
 	    }
 	}
@@ -552,6 +610,7 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 static void
 check_for_updates (UpdateNotifier *upno)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   GError *error = NULL;
   GPid child_pid;
   gchar *gainroot_cmd = NULL;
@@ -670,7 +729,8 @@ static gboolean
 handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
-  
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
   char buf[BUF_LEN];
   int ifd = g_io_channel_unix_get_fd (channel);
   int len, i;
@@ -694,10 +754,10 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
 	  event = (struct inotify_event *) &buf[i];
 
 	  if (is_file_modified_event (event,
-				      upno->home_watch,
+				      priv->home_watch,
 				      SEEN_UPDATES_FILE)
 	      || is_file_modified_event (event,
-					 upno->varlibham_watch,
+					 priv->varlibham_watch,
 					 "available-updates"))
 	    update_state (upno);
 	    
@@ -711,22 +771,23 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
 static void
 setup_inotify (UpdateNotifier *upno)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   int ifd;
 
   ifd = inotify_init ();
   if (ifd >= 0)
     {
-      upno->inotify_channel = g_io_channel_unix_new (ifd);
-      g_io_add_watch (upno->inotify_channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
+      priv->inotify_channel = g_io_channel_unix_new (ifd);
+      g_io_add_watch (priv->inotify_channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
 		      handle_inotify, upno);
 
       
-      upno->home_watch =
+      priv->home_watch =
 	inotify_add_watch (ifd,
 			   getenv ("HOME"),
 			   IN_CLOSE_WRITE | IN_MOVED_TO);
 
-      upno->varlibham_watch =
+      priv->varlibham_watch =
 	inotify_add_watch (ifd,
 			   "/var/lib/hildon-application-manager",
 			   IN_CLOSE_WRITE | IN_MOVED_TO);
@@ -736,6 +797,7 @@ setup_inotify (UpdateNotifier *upno)
 static void
 setup_alarm (UpdateNotifier *upno)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   alarm_event_t new_alarm;
   alarm_event_t *old_alarm = NULL;
   cookie_t alarm_cookie;
@@ -751,13 +813,13 @@ setup_alarm (UpdateNotifier *upno)
      parameters without touching the timing.
   */
 
-  interval = gconf_client_get_int (upno->gconf,
+  interval = gconf_client_get_int (priv->gconf,
 				   UPNO_GCONF_CZECH_INTERVAL,
 				   NULL);
   if (interval <= 0)
     interval = 24 * 60;
 
-  alarm_cookie = gconf_client_get_int (upno->gconf,
+  alarm_cookie = gconf_client_get_int (priv->gconf,
 				       UPNO_GCONF_ALARM_COOKIE,
 				       NULL);
 
@@ -833,7 +895,7 @@ setup_alarm (UpdateNotifier *upno)
 
   alarm_cookie = alarm_event_add (&new_alarm);
 
-  gconf_client_set_int (upno->gconf,
+  gconf_client_set_int (priv->gconf,
 			UPNO_GCONF_ALARM_COOKIE,
 			alarm_cookie,
 			NULL);
@@ -842,51 +904,59 @@ setup_alarm (UpdateNotifier *upno)
 static void
 cleanup_gconf (UpdateNotifier *upno)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   int i = 0;
-  gconf_client_remove_dir (upno->gconf,
+
+  gconf_client_remove_dir (priv->gconf,
 			   UPNO_GCONF_DIR,
 			   NULL);
 
-  for (i = 0; upno->gconf_notifications[i] != G_MAXUINT32; i++)
-    gconf_client_notify_remove (upno->gconf,
-				upno->gconf_notifications[i]);
-  g_free (upno->gconf_notifications);
-  g_object_unref(upno->gconf);
+  for (i = 0; priv->gconf_notifications[i] != G_MAXUINT32; i++)
+    gconf_client_notify_remove (priv->gconf,
+				priv->gconf_notifications[i]);
+  g_free (priv->gconf_notifications);
+  g_object_unref(priv->gconf);
 }
 
 static void
 cleanup_dbus (UpdateNotifier *upno)
 {
-  upno->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
-  if (upno->dbus != NULL)
+  priv->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+
+  if (priv->dbus != NULL)
     {
-      dbus_connection_remove_filter (upno->dbus, dbus_filter, NULL);
-      dbus_connection_close (upno->dbus);
-      dbus_connection_unref (upno->dbus);
+      dbus_connection_remove_filter (priv->dbus, dbus_filter, NULL);
+      dbus_connection_close (priv->dbus);
+      dbus_connection_unref (priv->dbus);
     }
 }
 
 static void
 cleanup_inotify (UpdateNotifier *upno)
 {
-  if (upno->inotify_channel != NULL)
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  if (priv->inotify_channel != NULL)
     {
-      int ifd = g_io_channel_unix_get_fd (upno->inotify_channel);
+      int ifd = g_io_channel_unix_get_fd (priv->inotify_channel);
 
-      inotify_rm_watch (ifd, upno->home_watch);
-      inotify_rm_watch (ifd, upno->varlibham_watch);
+      inotify_rm_watch (ifd, priv->home_watch);
+      inotify_rm_watch (ifd, priv->varlibham_watch);
 
-      g_io_channel_shutdown (upno->inotify_channel, TRUE, NULL);
-      g_io_channel_unref (upno->inotify_channel);
+      g_io_channel_shutdown (priv->inotify_channel, TRUE, NULL);
+      g_io_channel_unref (priv->inotify_channel);
     }
 }
 
 static void
 cleanup_alarm (UpdateNotifier *upno)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   cookie_t alarm_cookie;
-  alarm_cookie = gconf_client_get_int (upno->gconf,
+
+  alarm_cookie = gconf_client_get_int (priv->gconf,
 				       UPNO_GCONF_ALARM_COOKIE,
 				       NULL);
   alarm_event_del (alarm_cookie);
