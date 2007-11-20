@@ -21,7 +21,10 @@
 	before destroying a previously created menu. Also, store the
 	handler ID for the connection of the 'activated0 signal about the
 	menu item that opens HAM.
-	
+	(search_and_delete_all_alarms): New function to do the work of
+	searching for all the alarms in the device related to the update
+	notifier.
+	(setup_alarm): Use the new search_and_delete_all_alarms function.
 
 2007-11-20  Marius Vollmer  <marius.vollmer@nokia.com>
 

@@ -795,6 +795,28 @@ setup_inotify (UpdateNotifier *upno)
 }
 
 static void
+search_and_delete_all_alarms (void)
+{
+  int i = 0;
+  time_t first = time (NULL);
+  time_t last = (time_t)G_MAXINT32;
+  cookie_t *cookies = NULL;
+ 
+  cookies = alarm_event_query (first, last, 0, 0);
+  for (i = 0; cookies[i] != 0; i++)
+    {
+      alarm_event_t *alarm = alarm_event_get (cookies[i]);
+      if (alarm->dbus_interface != NULL &&
+	  !strcmp (alarm->dbus_interface, UPDATE_NOTIFIER_INTERFACE))
+	{
+	  alarm_event_del (cookies[i]);
+	}
+      alarm_event_free (alarm);
+    }
+  g_free (cookies);
+}
+
+static void
 setup_alarm (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
@@ -873,25 +895,7 @@ setup_alarm (UpdateNotifier *upno)
     alarm_event_del (alarm_cookie);
 
   /* Search for more alarms to delete (if available) */
-  {
-    int i = 0;
-    time_t first = time (NULL);
-    time_t last = (time_t)G_MAXINT32;
-    cookie_t *cookies = NULL;
-
-    cookies = alarm_event_query (first, last, 0, 0);
-    for (i = 0; cookies[i] != 0; i++)
-      {
-	alarm_event_t *alarm = alarm_event_get (cookies[i]);
-	if (alarm->dbus_interface != NULL &&
-	    !strcmp (alarm->dbus_interface, UPDATE_NOTIFIER_INTERFACE))
-	  {
-	    alarm_event_del (cookies[i]);
-	  }
-	alarm_event_free (alarm);
-      }
-    g_free (cookies);
-  }
+  search_and_delete_all_alarms ();
 
   alarm_cookie = alarm_event_add (&new_alarm);
 
