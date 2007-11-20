@@ -1074,7 +1074,7 @@ ip_check_required_reboot (void *data)
   if (reboot_required)
     {
       ask_yes_no_with_title (_("ai_ti_rebooting_required"),
-			     _("ai_nc_rebooting_required"),
+			     _("ai_ia_rebooting_required"),
 			     ip_check_required_reboot_response, data);
     }
   else

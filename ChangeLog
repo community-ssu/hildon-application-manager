@@ -1,3 +1,8 @@
+2007-11-20  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/operations.cc (ip_check_required_reboot): Use
+	ai_ia_rebooting_required.
+
 2007-11-19  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.c (UPDATE_NOTIFIER_OP_CHECK_STATE): New
