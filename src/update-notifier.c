@@ -42,6 +42,8 @@
 #include <alarm_event.h>
 
 #include "update-notifier.h"
+#include "update-notifier-conf.h"
+
 #include "hn-app-pixbuf-anim-blinker.h"
 #include "xexp.h"
 
@@ -49,25 +51,7 @@
 
 #define USE_BLINKIFIER 0
 
-#define UPNO_GCONF_DIR            "/apps/hildon/update-notifier"
-#define UPNO_GCONF_STATE          UPNO_GCONF_DIR "/state"
-#define UPNO_GCONF_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
-#define UPNO_GCONF_CZECH_INTERVAL UPNO_GCONF_DIR "/check_interval"
-
 #define HTTP_PROXY_GCONF_DIR      "/system/http_proxy"
-
-#define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
-
-#define UPDATE_NOTIFIER_SERVICE "com.nokia.hildon_update_notifier"
-#define UPDATE_NOTIFIER_OBJECT_PATH "/com/nokia/hildon_update_notifier"
-#define UPDATE_NOTIFIER_INTERFACE "com.nokia.hildon_update_notifier"
-
-#define UPDATE_NOTIFIER_OP_CHECK_UPDATES "check_for_updates"
-#define UPDATE_NOTIFIER_OP_CHECK_STATE "check_state"
-
-#define HILDON_APP_MGR_SERVICE "com.nokia.hildon_application_manager"
-#define HILDON_APP_MGR_OBJECT_PATH "/com/nokia/hildon_application_manager"
-#define HILDON_APP_MGR_INTERFACE "com.nokia.hildon_application_manager"
 
 #define UPDATE_NOTIFIER_GET_PRIVATE(object)(G_TYPE_INSTANCE_GET_PRIVATE ((object), UPDATE_NOTIFIER_TYPE, UpdateNotifierPrivate))
 
@@ -304,7 +288,7 @@ setup_gconf (UpdateNotifier *upno)
 			     NULL, NULL);
   priv->gconf_notifications[1] =
     gconf_client_notify_add (priv->gconf,
-			     UPNO_GCONF_CZECH_INTERVAL,
+			     UPNO_GCONF_CHECK_INTERVAL,
 			     gconf_interval_changed, upno,
 			     NULL, NULL);
 
@@ -594,6 +578,9 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 
   if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
     {
+      gconf_client_set_int (priv->gconf,
+			    UPNO_GCONF_LAST_UPDATE, time (NULL),
+			    NULL);
       update_state (upno);
     }
   else
@@ -849,10 +836,10 @@ setup_alarm (UpdateNotifier *upno)
   */
 
   interval = gconf_client_get_int (priv->gconf,
-				   UPNO_GCONF_CZECH_INTERVAL,
+				   UPNO_GCONF_CHECK_INTERVAL,
 				   NULL);
   if (interval <= 0)
-    interval = 24 * 60;
+    interval = UPNO_DEFAULT_CHECK_INTERVAL;
 
   alarm_cookie = gconf_client_get_int (priv->gconf,
 				       UPNO_GCONF_ALARM_COOKIE,

@@ -32,6 +32,17 @@
 
 #define UPNO_DEFAULT_CHECK_INTERVAL (24*60)
 
+#define UPDATE_NOTIFIER_SERVICE "com.nokia.hildon_update_notifier"
+#define UPDATE_NOTIFIER_OBJECT_PATH "/com/nokia/hildon_update_notifier"
+#define UPDATE_NOTIFIER_INTERFACE "com.nokia.hildon_update_notifier"
+
+#define UPDATE_NOTIFIER_OP_CHECK_UPDATES "check_for_updates"
+#define UPDATE_NOTIFIER_OP_CHECK_STATE "check_state"
+
+#define HILDON_APP_MGR_SERVICE "com.nokia.hildon_application_manager"
+#define HILDON_APP_MGR_OBJECT_PATH "/com/nokia/hildon_application_manager"
+#define HILDON_APP_MGR_INTERFACE "com.nokia.hildon_application_manager"
+
 #define SEEN_UPDATES_FILE  ".hildon-application-manager-seen-updates"
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
 

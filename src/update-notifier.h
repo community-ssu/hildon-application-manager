@@ -52,6 +52,4 @@ struct _UpdateNotifierClass
 
 GType update_notifier_get_type(void);
 
-#define SEEN_UPDATES_FILE  ".hildon-application-manager-seen-updates"
-
 #endif /* !UPDATE_NOTIFIER_H */
