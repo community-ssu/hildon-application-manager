@@ -47,7 +47,7 @@
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
-#define USE_BLINKIFIER 1
+#define USE_BLINKIFIER 0
 
 #define UPNO_GCONF_DIR            "/apps/hildon/update-notifier"
 #define UPNO_GCONF_STATE          UPNO_GCONF_DIR "/state"
@@ -329,6 +329,21 @@ blink_icon (gpointer data)
 #endif
 
 static void
+set_condition_carefully (UpdateNotifier *upno, gboolean condition)
+{
+  /* Setting the 'condition' of the plugin will cause the overflow row
+     of the status bar to be closed, regardless of whether the
+     condition has actually changed or not.  Thus, we are careful here
+     not to call g_object_set when the condition has not changed.
+  */
+
+  gboolean old_condition;
+  g_object_get (upno, "condition", &old_condition, NULL);
+  if (old_condition != condition)
+    g_object_set (upno, "condition", condition, NULL);
+}
+
+static void
 update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
@@ -339,10 +354,8 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 
   priv->icon_state = state;
 
-  g_object_set (upno,
-		"condition", (state == UPNO_ICON_STATIC
-			      || state == UPNO_ICON_BLINKING),
-		NULL);
+  set_condition_carefully (upno, (state == UPNO_ICON_STATIC
+				  || state == UPNO_ICON_BLINKING));
 
 #if USE_BLINKIFIER
   if (state == UPNO_ICON_BLINKING)

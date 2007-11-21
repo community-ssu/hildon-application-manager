@@ -1,3 +1,9 @@
+2007-11-21  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/update-notifier.c (set_condition_carefully): New, to avoid
+	setting the condition when it wouldn't change.
+	(update_icon_visibility): Use it (N76462).
+
 2007-11-20  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.h (struct _UpdateNotifier): Removed all the
