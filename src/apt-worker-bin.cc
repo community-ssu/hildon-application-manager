@@ -96,6 +96,8 @@
 #include "apt-worker-proto.h"
 #include "confutils.h"
 
+#include "update-notifier-conf.h"
+
 using namespace std;
 
 /* Table of contents.
@@ -145,7 +147,6 @@ using namespace std;
 
 /* Files related to the 'check for updates' process */
 #define FAILED_CATALOGUES_FILE "/var/lib/hildon-application-manager/failed-catalogues"
-#define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
 
 /* Domain names associated with "OS" and "Nokia" updates */
 #define OS_UPDATES_DOMAIN_NAME "nokia-system"
@@ -154,7 +155,7 @@ using namespace std;
 /* You know what this means.
  */
 #define DEBUG
-
+/*#define DEBUG_COMMANDS*/
 
 /** RUN-TIME CONFIGURATION
  */
@@ -791,7 +792,7 @@ ensure_state (int state)
   AptWorkerState::GetCurrent ()->init_cache_after_request = false;
 }
 
-#ifdef DEBUG
+#ifdef DEBUG_COMMANDS
 static char *cmd_names[] = {
   "NOOP",
   "STATUS",
@@ -822,8 +823,11 @@ handle_request ()
   AptWorkerState * state = 0;
 
   must_read (&req, sizeof (req));
+
+#ifdef DEBUG_COMMANDS
   DBG ("got req %s/%d/%d state %d",
        cmd_names[req.cmd], req.seq, req.len, req.state);
+#endif
 
   reqbuf = alloc_buf (req.len, stack_reqbuf, FIXED_REQUEST_BUF_SIZE);
   must_read (reqbuf, req.len);
@@ -913,8 +917,10 @@ handle_request ()
   send_response_raw (req.cmd, req.seq,
 		     response.get_buf (), response.get_len ());
 
+#ifdef DEBUG_COMMANDS
   DBG ("sent resp %s/%d/%d",
        cmd_names[req.cmd], req.seq, response.get_len ());
+#endif
 
   free_buf (reqbuf, stack_reqbuf);
 
