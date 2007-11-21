@@ -247,9 +247,6 @@ create_menu (HildonWindow *window)
 			   _("ai_me_tools_restore"), 
 			   _("ai_ib_nothing_restore"),
 			   restore_packages_flow);
-  add_item (tools,
-	    _("ai_me_tools_refresh"), NULL,
-	    refresh_package_cache_flow);
   if (red_pill_mode)
     {
       add_item (tools,
