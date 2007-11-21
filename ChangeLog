@@ -1,3 +1,12 @@
+2007-11-21  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (present_main_window): Don't take care of
+	specifically showing the main vbox and the main toolbar. There's
+	no need to do that and doing it so gets a bug (N76467).
+
+	* src/main.h, src/main.cc (get_main_toolbar): Removed. It's not
+	used anymore since changes commented above in util.cc.
+
 2007-11-21  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc (IDLE_TIMEOUT_SECS): New, use instead of literal

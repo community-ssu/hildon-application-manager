@@ -2728,12 +2728,6 @@ get_main_window ()
 }
 
 GtkWidget *
-get_main_toolbar ()
-{
-  return main_tb_struct->toolbar;
-}
-
-GtkWidget *
 get_main_trail ()
 {
   return main_trail;
@@ -3230,7 +3224,7 @@ main (int argc, char **argv)
   if (show)
     present_main_window ();
 
-  /* Show main toolbar */
+  /* Set the main toolbar visible */
   gtk_widget_show_all (m_tb_struct->toolbar);
 
   gtk_main ();
