@@ -55,7 +55,6 @@ void show_sort_settings_dialog_flow ();
 
 // Persistent state
 //
-extern int  last_update;    // not a time_t until 2036
 extern bool fullscreen_toolbar;
 extern bool normal_toolbar;
 

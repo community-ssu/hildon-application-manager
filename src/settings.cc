@@ -315,7 +315,6 @@ show_sort_settings_dialog_flow ()
 /* Persistent state
  */
 
-int  last_update = 0;
 bool fullscreen_toolbar = true;
 bool normal_toolbar = true;
 
@@ -337,9 +336,7 @@ load_state ()
 	  if (n > 0 && line[n-1] == '\n')
 	    line[n-1] = '\0';
 
-	  if (sscanf (line, "last-update %d", &val) == 1)
-	    last_update = val;
-	  else if (sscanf (line, "fullscreen-toolbar %d", &val) == 1)
+	  if (sscanf (line, "fullscreen-toolbar %d", &val) == 1)
 	    fullscreen_toolbar = val;
 	  else if (sscanf (line, "normal-toolbar %d", &val) == 1)
 	    normal_toolbar = val;
@@ -357,7 +354,6 @@ save_state ()
   FILE *f = open_user_file (STATE_FILE, "w");
   if (f)
     {
-      fprintf (f, "last-update %d\n", last_update);
       fprintf (f, "fullscreen-toolbar %d\n", fullscreen_toolbar);
       fprintf (f, "normal-toolbar %d\n", normal_toolbar);
       fclose (f);

@@ -31,6 +31,7 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
+#include <gconf/gconf-client.h>
 
 #include "apt-worker-client.h"
 #include "apt-worker-proto.h"
@@ -47,7 +48,7 @@
 #include "repo.h"
 #include "dbus.h"
 
-#include "update-notifier.h"
+#include "update-notifier-conf.h"
 
 #define MAX_PACKAGES_NO_CATEGORIES 7
 
@@ -1547,11 +1548,7 @@ rpc_done (void *data)
 
   if (c->result_code == rescode_success
       || c->result_code == rescode_partial_success)
-    {
-      last_update = time (NULL);
-      save_state ();
-      get_package_list_with_cont (c->state, rpc_end, c);
-    }
+    get_package_list_with_cont (c->state, rpc_end, c);
   else
     rpc_end (c);
 }
@@ -1620,8 +1617,15 @@ static void
 rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   rcpwu_clos *c = (rcpwu_clos *)data;
+  GConfClient *conf;
 
   stop_entertaining_user ();
+
+  conf = gconf_client_get_default ();
+
+  gconf_client_set_int (conf,
+			UPNO_GCONF_LAST_UPDATE, time (NULL),
+			NULL);
 
   get_package_list_with_cont (APTSTATE_DEFAULT, rpcwu_end, c);
 }
@@ -1633,6 +1637,51 @@ rpcwu_end (void *data)
   
   c->cont (c->data);
   delete c;
+}
+
+/* refresh_package_cache_without_user inside an interaction flow
+ */
+
+static void rpcwuf_end (void *unused);
+
+void
+refresh_package_cache_without_user_flow ()
+{
+  if (start_interaction_flow ())
+    refresh_package_cache_without_user (rpcwuf_end, NULL);
+}
+
+static void
+rpcwuf_end (void *unused)
+{
+  end_interaction_flow ();
+}
+
+/* Call refresh_package_cache_without_user_flow when the last update
+   was more than one 'check-interval' ago.
+*/
+
+void
+maybe_refresh_package_cache_without_user ()
+{
+  GConfClient *conf;
+  int last_update, interval;
+
+  conf = gconf_client_get_default ();
+
+  last_update = gconf_client_get_int (conf,
+				      UPNO_GCONF_LAST_UPDATE,
+				      NULL);
+
+  interval = gconf_client_get_int (conf,
+				   UPNO_GCONF_CHECK_INTERVAL,
+				   NULL);
+
+  if (interval <= 0)
+    interval = UPNO_DEFAULT_CHECK_INTERVAL;
+
+  if (last_update + interval*60 < time (NULL))
+    refresh_package_cache_without_user_flow ();
 }
 
 static void
@@ -1769,47 +1818,6 @@ installed_package_activated (package_info *pi)
   uninstall_package_flow (pi);
 }
 
-static GtkWidget *
-make_last_update_label ()
-{
-  char time_string[1024];
-
-  if (last_update == 0)
-    strncpy (time_string, _("ai_li_never"), 1024);
-  else
-    {
-      time_t t = last_update;
-      struct tm *broken = localtime (&t);
-      strftime (time_string, 1024, "%x", broken);
-    }
-
-  char *text = g_strdup_printf (_("ai_li_updated_%s"), time_string);
-  GtkWidget *label = gtk_label_new (text);
-  g_free (text);
-
-  return label;
-}
-
-static GtkWidget *
-make_package_list_view (GtkWidget *list_widget,
-			bool with_updated_label)
-{
-  GtkWidget *view;
-
-  if (with_updated_label)
-    {
-      GtkWidget *label = make_last_update_label ();
-      view = gtk_vbox_new (FALSE, 5);
-      gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-      gtk_box_pack_start (GTK_BOX (view), label, FALSE, FALSE, 0);
-      gtk_box_pack_start (GTK_BOX (view), list_widget, TRUE, TRUE, 0);
-    }
-  else
-    view = list_widget;
-  
-  return view;
-}
-
 GtkWidget *
 make_install_section_view (view *v)
 {
@@ -1821,7 +1829,7 @@ make_install_section_view (view *v)
   section_info *si = find_section_info (&install_sections,
 					cur_section_name, false, true);
 
-  GtkWidget *list =
+  view =
     make_global_package_list (si? si->packages : NULL,
 			      false,
 			      _("ai_li_no_applications_available"),
@@ -1829,7 +1837,6 @@ make_install_section_view (view *v)
 			      available_package_selected, 
 			      available_package_activated);
 
-  view = make_package_list_view (list, true);
   gtk_widget_show_all (view);
 
   if (si)
@@ -1887,7 +1894,7 @@ check_catalogues ()
 GtkWidget *
 make_install_applications_view (view *v)
 {
-  GtkWidget *list, *view, *label;
+  GtkWidget *view;
 
   check_catalogues ();
 
@@ -1897,7 +1904,7 @@ make_install_applications_view (view *v)
   if (install_sections && install_sections->next == NULL)
     {
       section_info *si = (section_info *)install_sections->data;
-      GtkWidget *list =
+      view = 
 	make_global_package_list (si->packages,
 				  false,
 				  _("ai_li_no_applications_available"),
@@ -1906,25 +1913,18 @@ make_install_applications_view (view *v)
 				  available_package_activated);
       get_package_list_info (si->packages);
       set_current_help_topic (AI_TOPIC ("packagesview"));
-
-      view = make_package_list_view (list, true);
     }
   else
     {
-      list = make_global_section_list (install_sections, view_section);
-      label = make_last_update_label ();
-      view = gtk_vbox_new (FALSE, 10);
-      
-      gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-      gtk_box_pack_start (GTK_BOX (view), label, FALSE, FALSE, 0);
-      gtk_box_pack_start (GTK_BOX (view), list, TRUE, TRUE, 0);
-
+      view = make_global_section_list (install_sections, view_section);
       set_current_help_topic (AI_TOPIC ("sectionsview"));
     }
 
   gtk_widget_show_all (view);
 
   enable_search (true);
+
+  maybe_refresh_package_cache_without_user ();
   
   return view;
 }
@@ -1945,7 +1945,7 @@ make_upgrade_applications_view (view *v)
   set_operation_label (_("ai_me_package_update"),
 		       _("ai_ib_nothing_to_update"));
 
-  GtkWidget *list =
+  view =
     make_global_package_list (upgradeable_packages,
 			      false,
 			      _("ai_li_no_updates_available"),
@@ -1953,7 +1953,6 @@ make_upgrade_applications_view (view *v)
 			      available_package_selected,
 			      available_package_activated);
 
-  view = make_package_list_view (list, true);
   gtk_widget_show_all (view);
 
   get_package_list_info (upgradeable_packages);
@@ -1977,6 +1976,8 @@ make_upgrade_applications_view (view *v)
 
       record_seen_updates = false;
     }
+
+  maybe_refresh_package_cache_without_user ();
 
   return view;
 }
@@ -2915,7 +2916,7 @@ set_current_help_topic (const char *topic)
 static void
 call_refresh_package_cache (GtkWidget *button, gpointer data)
 {
-  refresh_package_cache_flow ();
+  refresh_package_cache_without_user_flow ();
 }
 
 /* Take a snapshot of the data we want to keep in a backup.
