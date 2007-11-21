@@ -1,5 +1,35 @@
 2007-11-21  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.cc (IDLE_TIMEOUT_SECS): New, use instead of literal
+	number.
+
+	* src/main.cc (refresh_package_cache_without_user_flow): New.
+	(call_refresh_package_cache): Use it.
+	(maybe_refresh_package_cache_without_user): New.
+	(make_install_applications_view, make_upgrade_applications_view):
+	Call it.
+	(rpcwu_reply): Record time in UPNO_GCONF_LAST_UPDATE.
+	(make_last_update_label, make_package_list_view): Removed.
+	Updated callers.
+	
+	* src/update-notifier.c: Moved most defines to
+	update-notifier-conf.h, include it.
+	(check_for_updates_done): Record time in UPNO_GCONF_LAST_UPDATE.
+	* src/update-notifier.h: Moved SEEN_UPDATES_FILE to
+	update-notifier-conf.h
+	* src/update-notifier-conf.h: New, to collect bits that are of
+	interest to all parties.
+	* src/Makefile.am: Added update-notifier-conf.h in all the right
+	places.
+	* src/apt-worker-bin.cc: Include update-notifier-conf.h to get the
+	AVAILABLE_UPDATES_FILE define.
+
+	* src/settings.h, src/setting.cc (last_update): Removed.  Removed
+	all uses.
+
+	* src/menu.cc (create_menu): Removed "Refresh list of
+	applications" item.
+	
 	* src/update-notifier.c (set_condition_carefully): New, to avoid
 	setting the condition when it wouldn't change.
 	(update_icon_visibility): Use it (N76462).
