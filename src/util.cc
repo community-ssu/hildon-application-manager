@@ -249,6 +249,7 @@ present_main_window ()
 {
   reset_idle_timer ();
   main_window_shown = true;
+  gtk_widget_show_all (get_main_trail ());
   gtk_window_present (get_main_window ());
 }
 
