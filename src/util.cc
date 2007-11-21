@@ -70,6 +70,8 @@ static guint idle_timeout_id = 0;
 static void (*idle_cont) (void *) = NULL;
 static void *idle_data = NULL;
 
+#define IDLE_TIMEOUT_SECS 60
+
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
 {
@@ -123,9 +125,6 @@ static bool interaction_flow_active = false;
 bool
 is_idle ()
 {
-  fprintf (stderr, "IS IDLE: %p %d\n",
-	   dialog_stack, interaction_flow_active);
-
   return dialog_stack == NULL && !interaction_flow_active;
 }
 
@@ -178,25 +177,18 @@ start_foreign_interaction_flow (Window parent)
 bool
 start_interaction_flow_when_idle (void (*cont) (void *), void *data)
 {
-  fprintf (stderr, "IDLE REQUEST %d %d %d\n",
-	   is_idle (), time (NULL), idle_since + 5);
-
-  if (is_idle () && time (NULL) > idle_since + 5)
+  if (is_idle () && time (NULL) > idle_since + IDLE_TIMEOUT_SECS)
     {
-      fprintf (stderr, "OK NOW\n");
-
       if (start_interaction_flow ())
 	cont (data);
       return true;
     }
   else if (idle_cont != NULL)
     {
-      fprintf (stderr, "ALREADY PENDING\n");
       return false;
     }
   else
     {
-      fprintf (stderr, "QUEING\n");
       idle_cont = cont;
       idle_data = data;
       return true;
@@ -206,8 +198,6 @@ start_interaction_flow_when_idle (void (*cont) (void *), void *data)
 static gboolean
 idle_callback (gpointer unused)
 {
-  fprintf (stderr, "IDLE NOW\n");
-
   if (idle_cont)
     {
       if (start_interaction_flow ())
@@ -228,15 +218,13 @@ idle_callback (gpointer unused)
 void
 reset_idle_timer ()
 {
-  fprintf (stderr, "IDLE IN 5 SECONDS\n");
-  
   if (idle_timeout_id)
     g_source_remove (idle_timeout_id);
 
   if (is_idle ())
     {
       idle_since = time (NULL);
-      idle_timeout_id = g_timeout_add (5 * 1000,
+      idle_timeout_id = g_timeout_add (IDLE_TIMEOUT_SECS * 1000,
 				       idle_callback,
 				       NULL);
     }
@@ -998,8 +986,6 @@ void
 set_entertainment_fun (const char *sub_title,
 		       int game, int64_t already, int64_t total)
 {
-  fprintf (stderr, "FUN: %d %s %Ld %Ld\n", game, sub_title, already, total);
-
   if (game != -1
       && entertainment.games
       && entertainment.games[entertainment.current_game].id != -1 
@@ -1021,10 +1007,6 @@ set_entertainment_fun (const char *sub_title,
 	    entertainment.games[entertainment.current_game].fraction;
 	  entertainment.current_game = next_game;
 	}
-
-      fprintf (stderr, "NEW GAME: %d %g\n",
-	       entertainment.current_game,
-	       entertainment.completed_fraction);
     }
   
   if ((sub_title
