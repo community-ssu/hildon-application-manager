@@ -4,8 +4,8 @@
 	execute the checkrm scripts, also checking the old directory
 	/var/lib/osso-application-installer, if needed (N76475).
 	(ip_check_upgrade_loop): Changed to use the new defined function
-	instead of directly running run_cmd ().
-	(up_checkrm_loop): Likewise.
+	instead of directly running run_cmd (N76475).
+	(up_checkrm_loop): Likewise (N76475).
 
 2007-11-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
