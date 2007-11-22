@@ -124,44 +124,26 @@ void install_named_packages (int state, const char **packages,
 			     void (*cont) (int n_successful, void *data),
 			     void *data);
 
-/* REFRESH_PACKAGE_CACHE will download and digest the indices for all
-   enabled catalogues.  It will show error messages to the user and
-   allow the catalogue configuration to be edited and the operation to
-   be retried in case of errors.
-
-   When CATALOGUES is non-NULL, it will replace the existing catalogue
-   configuration before the operation begins.
-
-   When ASK is true, the user will be asked whether to actually
-   perform the operation.
-
-   When CONTINUED is true, error messages will include "Continue" and
-   "Stop" buttons instead of "Ok".
-
-   CONT is called when the operation has finished.  KEEP_GOING
-   indicates whether the user wants to continue or not in case an
-   error occurred.  When CONTINUED is false, KEEP_GOING will be true
-   when there was no fatal error and continuing might make sense.
-*/
-void refresh_package_cache (int state,
-			    xexp *new_catalogues,
-			    bool ask, bool continued,
-			    void (*cont) (bool keep_going, void *data), 
-			    void *data);
-
-void refresh_package_cache_flow ();
-
 /* REFRESH_PACKAGE_CACHE_WITHOUT_USER refreshes the package cache in a
    non-intrusive way.  It just shows a progress note with cancel
    button.  No error messages are shown and no interaction from the
    user is required to complete the operation.
 */
-void refresh_package_cache_without_user (void (*cont) (void *data),
+void refresh_package_cache_without_user (const char *title,
+					 int state,
+					 void (*cont) (bool keep_going,
+						       void *data),
 					 void *data);
+
+void set_catalogues_and_refresh (xexp *catalogues,
+				 const char *title,
+				 int state,
+				 void (*cont) (bool keep_going,
+					       void *data),
+				 void *data);
 
 void install_from_file_flow (const char *filename);
 void restore_packages_flow ();
-void update_system_flow ();
 
 void save_backup_data ();
 

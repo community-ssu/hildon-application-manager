@@ -916,8 +916,6 @@ show_catalogue_dialog (xexp *catalogues,
   c->cont = cont;
   c->data = data;
 
-  xexp_write (stdout, catalogues);
-
   GtkWidget *dialog = gtk_dialog_new ();
 
   if (show_only_errors)
@@ -976,7 +974,7 @@ struct scdf_clos {
 
 static void scdf_with_catalogues (xexp *catalogues, void *data);
 static void scdf_dialog_done (bool changed, void *date);
-static void scdf_end (bool res, void *data);
+static void scdf_end (bool keep_going, void *data);
 
 void
 show_catalogue_dialog_flow ()
@@ -1004,21 +1002,21 @@ scdf_dialog_done (bool changed, void *data)
   scdf_clos *c = (scdf_clos *)data;
 
   if (changed)
-    refresh_package_cache (APTSTATE_DEFAULT,
-			   c->catalogues, true, false,
-			   scdf_end, c);
+    set_catalogues_and_refresh (c->catalogues,
+				NULL, APTSTATE_DEFAULT,
+				scdf_end, c);
   else
-    {
-      xexp_free (c->catalogues);
-      scdf_end (true, c);
-    }
-      
-  c->catalogues = NULL;
+    scdf_end (true, c);
 }
 
 static void
-scdf_end (bool res, void *data)
+scdf_end (bool keep_going, void *data)
 {
+  scdf_clos *c = (scdf_clos *)data;
+
+  xexp_free (c->catalogues);
+  delete c;
+
   end_interaction_flow ();
 }
 
@@ -1043,7 +1041,7 @@ static void add_catalogues_cont_2 (add_catalogues_closure *c);
 static void add_catalogues_cont_3_add (bool res, void *data);
 static void add_catalogues_cont_3_enable (bool res, void *data);
 static void add_catalogues_cont_3 (bool res, bool enable, void *data);
-static void add_catalogues_cont_4 (bool res, void *data);
+static void add_catalogues_cont_4 (bool keep_going, void *data);
 
 static void
 add_catalogues_cont_3_add (bool res, void *data)
@@ -1114,10 +1112,11 @@ add_catalogues_details (void *data)
 }
 
 static void
-add_catalogues_cont_4 (bool res, void *data)
+add_catalogues_cont_4 (bool keep_going, void *data)
 {
   add_catalogues_closure *c = (add_catalogues_closure *)data;
-  c->cont (res, c->data);
+  xexp_free (c->catalogues);
+  c->cont (keep_going, c->data);
   delete c;
 }
 
@@ -1127,26 +1126,18 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
   if (c->rest == NULL)
     {
       /* We want to refresh the cache every time for an 'update'
-	 operation since we really want it to be uptodate now even
-	 if we didn't make any changes to the catalogue
-	 configuration.  We even do it without asking since it
-	 doesn't make sense not to do it and the user can cancel
-	 the installation script later.
+	 operation since we really want it to be uptodate now even if
+	 we didn't make any changes to the catalogue configuration.
       */
       if (c->catalogues_changed || c->update)
-	{
-	  refresh_package_cache (APTSTATE_DEFAULT,
-				 c->catalogues,
-				 !c->update, c->update,
-				 add_catalogues_cont_4, c);
-	  c->catalogues = NULL;
-	}
+	set_catalogues_and_refresh (c->catalogues,
+				    (c->update
+				     ? _("ai_nw_preparing_installation")
+				     : NULL),
+				    APTSTATE_DEFAULT,
+				    add_catalogues_cont_4, c);
       else
-	{
-	  c->cont (true, c->data);
-	  xexp_free (c->catalogues);
-	  delete c;
-	}
+	add_catalogues_cont_4 (true, c);
     }
   else
     {
@@ -1232,8 +1223,6 @@ add_catalogues (xexp *catalogues,
 		void (*cont) (bool res, void *data),
 		void *data)
 {
-  xexp_write (stderr, catalogues);
-
   add_catalogues_closure *c = new add_catalogues_closure;
   c->cur = NULL;
   c->rest = xexp_first (catalogues);

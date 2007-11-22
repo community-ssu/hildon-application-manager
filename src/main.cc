@@ -1233,361 +1233,14 @@ gipl_next (package_info *unused_1, void *data, bool unused_2)
   gipl_loop (c);
 }
 
-/** Refreshing the package cache
-
-    0. Optionally set new catalogues
-
-    1. Optionally ask confirmation
-
-    2. Optionally establish network
-
-    3. Perform update_cache operation
-
-    4. Show report with the ability to adjust repositories.  Ask for
-       confirmation and go back to 3 if user changed any repositories.
-
-    5. Reget package list.
- */
-
-static void rpc_set_catalogues (void *data);
-static void rpc_set_catalogues_reply (int cmd, apt_proto_decoder *dec, 
-				      void *data);
-static void rpc_ask (void *data);
-static void rpc_do_it (bool res, void *data);
-static void rpc_with_network (bool success, void *data);
-static void rpc_update_cache_reply (int cmd, apt_proto_decoder *dec,
-				    void *data);
-static void rpc_show_error_report (void *data);
-static void rpc_error_response (GtkWidget *dialog, gint response,
-				gpointer data);
-static void rpc_detailed_report_done (bool changed, void *data);
-static void rpc_done (void *data);
-
-static void rpc_end (void *data);
-
-static bool refreshed_this_session = false;
-
-struct rpc_clos {
-  int state;
-  bool ask, continued;
-
-  xexp *catalogues;
-  xexp *catalogue_report;
-  apt_proto_result_code result_code;
-  bool keep_going;
-
-  void (*cont) (bool res, void *data);
-  void *data;
-};
-
-void
-refresh_package_cache (int state,
-		       xexp *new_catalogues,
-		       bool ask, bool continued,
-		       void (*cont) (bool res, void *data), 
-		       void *data)
-{
-  refreshed_this_session = true;
-
-  rpc_clos *c = new rpc_clos;
-
-  c->ask = ask;
-  c->continued = continued;
-  c->catalogues = new_catalogues;
-  c->cont = cont;
-  c->data = data;
-  c->state = state;
-
-  c->result_code = rescode_failure;
-  c->keep_going = false;
-
-  rpc_set_catalogues (c);
-}
-
-static void
-rpc_set_catalogues (void *data)
-{
-  rpc_clos *c = (rpc_clos *)data;
-
-  if (c->catalogues)
-    apt_worker_set_catalogues (c->state, c->catalogues,
-			       rpc_set_catalogues_reply, c);
-  else
-    rpc_ask (c);
-}
-
-static void
-rpc_set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
-{
-  rpc_clos *c = (rpc_clos *)data;
-  int success = 0;
-
-  if (dec)
-    success = dec->decode_int ();
-
-  if (!success)
-    {
-      if (dec)
-	what_the_fock_p ();
-      c->result_code = rescode_failure;
-      c->keep_going = false;
-      rpc_done (c);
-    }
-
-  save_backup_data ();
-
-  rpc_ask (c);
-}
-
-static void
-rpc_ask (void *data)
-{
-  rpc_clos *c = (rpc_clos *)data;
-  
-  if (c->ask)
-    ask_yes_no (_("ai_nc_confirm_update"), rpc_do_it, c);
-  else
-    rpc_do_it (true, c);
-}
-
-static void
-cancel_updating_list (void *unused)
-{
-  cancel_apt_worker ();
-}
-
-static void
-rpc_do_it (bool res, void *data)
-{
-  rpc_clos *c = (rpc_clos *)data;
-
-  if (res)
-    {
-      set_entertainment_cancel (cancel_updating_list, NULL);
-      set_entertainment_title (_("ai_nw_updating_list"));
-      set_entertainment_fun (NULL, -1, -1, 0);
-
-      start_entertaining_user ();
-
-      /* XXX - Only ask for the network when this is for the default
-	       state of the apt-worker.  The temporary state is used
-	       for memory card installs that don't need and don't want
-	       any network.
-
-	       Deciding this here is probably a bit too smart.
-      */
-
-      if (c->state == APTSTATE_DEFAULT)
-	ensure_network (rpc_with_network, c);
-      else
-	rpc_with_network (true, c);
-    }
-  else
-    rpc_done (c);
-}
-
-static void
-rpc_with_network (bool success, void *data)
-{
-  rpc_clos *c = (rpc_clos *)data;
-
-  if (success)
-    apt_worker_update_cache (c->state, rpc_update_cache_reply, c);
-  else
-    {
-      stop_entertaining_user ();
-      
-      c->result_code = rescode_failure;
-      c->keep_going = false;
-      rpc_done (c);
-    }
-}
-
-static void
-rpc_update_cache_reply (int cmd, apt_proto_decoder *dec, void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  /* The updating might have been 'cancelled' or it might have failed,
-     and we want to distinguish between those two situations in the
-     message shown to the user.
-
-     It would be good to consider all explicit user actions as
-     cancelling, but we don't get enough information for that.  Thus,
-     the updating is considered cancelled only when the user hits our
-     own cancel button, and not for example the cancel button in the
-     "Select connection" dialog, or when the user explicitely
-     disconnects the network.
-  */
-
-  stop_entertaining_user ();
-
-  if (dec == NULL)
-    {
-      /* Network connection failed or apt-worker crashed.  An error
-	 message has already been displayed.
-      */
-      c->result_code = rescode_failure;
-      c->keep_going = false;
-      rpc_done (c);
-    }
-  else if (entertainment_was_cancelled ())
-    {
-      /* The user hit cancel.  We don't care whether the operation was
-	 successful or not.
-      */
-      c->result_code = rescode_cancelled;
-      c->keep_going = false;
-      rpc_done (c);
-    }
-  else
-    {
-      xexp_free (c->catalogues);
-      c->catalogues = dec->decode_xexp ();
-      c->result_code = apt_proto_result_code (dec->decode_int ());
-
-      if (c->result_code != rescode_success)
-	rpc_show_error_report (c);
-      else
-	{
-	  c->keep_going = true;
-	  rpc_done (c);
-	}
-    }
-}
-
-static void
-rpc_show_error_report (void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  GtkWidget *dialog;
-  
-  if (c->result_code == rescode_partial_success)
-    {
-      if (c->continued)
-	{
-	  gchar *msg =
-	    g_strdup_printf ("%s\n%s",
-			     _("ai_ni_update_partly_successful"),
-			     _("ai_ni_continue_install"));
-
-	  dialog = hildon_note_new_confirmation_add_buttons 
-	    (NULL,
-	     msg,
-	     _("ai_bd_ok"), GTK_RESPONSE_OK,
-	     _("ai_ni_bd_details"), 1,
-	     _("ai_bd_cancel"), GTK_RESPONSE_CANCEL,
-	     NULL);
-
-	  g_free (msg);
-	}
-      else
-	dialog = hildon_note_new_confirmation_add_buttons 
-	  (NULL,
-	   _("ai_ni_update_partly_successful"),
-	   _("ai_ni_bd_details"), 1,
-	   _("ai_bd_ok"), GTK_RESPONSE_CANCEL,
-	   NULL);
-    }
-  else
-    {
-      dialog = hildon_note_new_confirmation_add_buttons 
-	(NULL,
-	 _("ai_ni_update_list_not_successful"),
-	 _("ai_bd_ok"), 2,
-	 _("ai_bd_cancel"), GTK_RESPONSE_CANCEL,
-	 NULL);
-    }
-  
-  push_dialog (dialog);
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (rpc_error_response), c);
-  gtk_widget_show_all (dialog);
-}
-
-static void
-rpc_error_response (GtkWidget *dialog, gint response, gpointer data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  pop_dialog (dialog);
-  gtk_widget_destroy (dialog);
-
-  if (response == 1)
-    show_catalogue_dialog (c->catalogues, true,
-			   rpc_detailed_report_done, c);
-  else if (response == 2)
-    rpc_do_it (true, c);
-  else 
-    {
-      c->keep_going = (response == GTK_RESPONSE_OK
-		       && c->result_code != rescode_failure);
-      rpc_done (c);
-    }
-}
-
-static void
-rpc_detailed_report_done (bool changed, void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  if (changed)
-    {
-      c->ask = true;
-      rpc_set_catalogues (c);
-    }
-  else
-    rpc_show_error_report (c);
-}
-
-static void
-rpc_done (void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  if (c->result_code == rescode_success
-      || c->result_code == rescode_partial_success)
-    get_package_list_with_cont (c->state, rpc_end, c);
-  else
-    rpc_end (c);
-}
-
-static void
-rpc_end (void *data)
-{
-  rpc_clos *c = (rpc_clos *) data;
-
-  xexp_free (c->catalogues);
-      
-  c->cont (c->keep_going, c->data);
-  delete c;
-}
-
-/* Refreshing the package cache, wrapped in an interaction flow
- */
-
-static void
-rpcf_end (bool success, void *unused)
-{
-  end_interaction_flow ();
-}
-
-void
-refresh_package_cache_flow ()
-{
-  if (start_interaction_flow ())
-    refresh_package_cache (APTSTATE_DEFAULT,
-			   NULL, true, false,
-			   rpcf_end, NULL);
-}
-
-/* REFRESH_PACKAGE_CACHE_WITHOUT_USER, the new way of doing things...
+/* REFRESH_PACKAGE_CACHE_WITHOUT_USER
  */
 
 struct rcpwu_clos {
-  void (*cont) (void *data);
+  int state;
+  void (*cont) (bool keep_going, void *data);
   void *data;
+  bool keep_going;
 };
 
 static void rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data);
@@ -1599,18 +1252,25 @@ static entertainment_game rpcwu_games[] = {
 };
 
 void
-refresh_package_cache_without_user (void (*cont) (void *data), void *data)
+refresh_package_cache_without_user (const char *title, 
+				    int state,
+				    void (*cont) (bool keep_going, void *data),
+				    void *data)
 {
   rcpwu_clos *c = new rcpwu_clos;
+  c->state = state;
   c->cont = cont;
   c->data = data;
   
-  set_entertainment_strong_title (_("ai_nw_checking_updates"));
+  if (title)
+    set_entertainment_strong_title (title);
+  else
+    set_entertainment_strong_title (_("ai_nw_checking_updates"));
   set_entertainment_games (2, rpcwu_games);
   set_entertainment_fun (NULL, -1, -1, 0);
   start_entertaining_user ();
 
-  apt_worker_update_cache (APTSTATE_DEFAULT, rpcwu_reply, c);
+  apt_worker_update_cache (state, rpcwu_reply, c);
 }
 
 static void
@@ -1619,6 +1279,7 @@ rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
   rcpwu_clos *c = (rcpwu_clos *)data;
   GConfClient *conf;
 
+  c->keep_going = !entertainment_was_cancelled ();
   stop_entertaining_user ();
 
   conf = gconf_client_get_default ();
@@ -1627,7 +1288,7 @@ rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
 			UPNO_GCONF_LAST_UPDATE, time (NULL),
 			NULL);
 
-  get_package_list_with_cont (APTSTATE_DEFAULT, rpcwu_end, c);
+  get_package_list_with_cont (c->state, rpcwu_end, c);
 }
 
 static void
@@ -1635,24 +1296,25 @@ rpcwu_end (void *data)
 {
   rcpwu_clos *c = (rcpwu_clos *)data;
   
-  c->cont (c->data);
+  c->cont (c->keep_going, c->data);
   delete c;
 }
 
 /* refresh_package_cache_without_user inside an interaction flow
  */
 
-static void rpcwuf_end (void *unused);
+static void rpcwuf_end (bool ignored, void *unused);
 
 void
 refresh_package_cache_without_user_flow ()
 {
   if (start_interaction_flow ())
-    refresh_package_cache_without_user (rpcwuf_end, NULL);
+    refresh_package_cache_without_user (NULL, APTSTATE_DEFAULT,
+					rpcwuf_end, NULL);
 }
 
 static void
-rpcwuf_end (void *unused)
+rpcwuf_end (bool ignore, void *unused)
 {
   end_interaction_flow ();
 }
@@ -1682,6 +1344,47 @@ maybe_refresh_package_cache_without_user ()
 
   if (last_update + interval*60 < time (NULL))
     refresh_package_cache_without_user_flow ();
+}
+
+/* Set the catalogues and refresh.
+ */
+
+struct scar_clos {
+  void (*cont) (bool keep_going, void *data);
+  void *data;
+  char *title;
+  int state;
+};
+
+static void scar_set_catalogues_reply (int cmd, apt_proto_decoder *dec,
+				       void *data);
+
+void
+set_catalogues_and_refresh (xexp *catalogues,
+			    const char *title,
+			    int state,
+			    void (*cont) (bool keep_going, void *data),
+			    void *data)
+{
+  scar_clos *c = new scar_clos;
+  c->cont = cont;
+  c->data = data;
+  c->title = g_strdup (title);
+  c->state = state;
+
+  apt_worker_set_catalogues (state, catalogues,
+			     scar_set_catalogues_reply, c);
+}
+
+static void
+scar_set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  scar_clos *c = (scar_clos *)data;
+
+  refresh_package_cache_without_user (c->title, c->state, c->cont, c->data);
+
+  g_free (c->title);
+  delete c;
 }
 
 static void
@@ -2472,7 +2175,7 @@ set_operation_callback (void (*func) (gpointer), gpointer data)
 /* Reinstalling the packages form the recently restored backup.
  */
 
-static void rp_restore (bool res, void *data);
+static void rp_restore (bool keep_going, void *data);
 static void rp_unsuccessful (void *data);
 static void rp_end (int n_successful, void *data);
 
@@ -2488,20 +2191,20 @@ restore_packages_flow ()
       g_free (filename);
       
       if (backup)
-	refresh_package_cache (APTSTATE_DEFAULT,
-			       NULL, false, true,
-			       rp_restore, backup);
+	refresh_package_cache_without_user (_("ai_nw_preparing_installation"),
+					    APTSTATE_DEFAULT,
+					    rp_restore, backup);
       else
 	annoy_user (_("ai_ni_operation_failed"), rp_unsuccessful, backup);
     }
 }
 
 static void
-rp_restore (bool res, void *data)
+rp_restore (bool keep_going, void *data)
 {
   xexp *backup = (xexp *)data;
 
-  if (res)
+  if (keep_going)
     {
       int len = xexp_length (backup);
       const char **names = (const char **)new char* [len+1];
@@ -2539,68 +2242,6 @@ rp_end (int n_successful, void *data)
   if (backup)
     xexp_free (backup);
 
-  end_interaction_flow ();
-}
-
-/* Updating all installed system-update packages
- */
-
-static void us_get_system_packages (bool res, void *data);
-static void us_get_system_packages_reply (int cmd, apt_proto_decoder *dec,
-					  void *data);
-static void us_end (int n_successful, void *data);
-
-void
-update_system_flow ()
-{
-  if (start_interaction_flow ())
-    refresh_package_cache (APTSTATE_DEFAULT,
-			   NULL, false, true,
-			   us_get_system_packages, NULL);
-}
-
-static void
-us_get_system_packages (bool res, void *data)
-{
-  if (res)
-    apt_worker_get_system_update_packages (APTSTATE_DEFAULT,
-					   us_get_system_packages_reply,
-					   data);
-  else
-    us_end (0, data);
-}
-
-static void
-us_get_system_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
-{
-  char **packages = new char*[10];  // *cough*
-
-  if (dec == NULL)
-    {
-      us_end (0, data);
-      return;
-    }
-
-  int i = 0;
-  while (i < 10 && !dec->corrupted ())
-    {
-      char *name = dec->decode_string_dup ();
-      if (name == NULL)
-	break;
-
-      packages[i++] = name;
-    }
-  packages[i] = NULL;
-
-  install_named_packages (APTSTATE_DEFAULT, (const char**)packages,
-			  INSTALL_TYPE_UPDATE_SYSTEM, false,
-			  NULL, NULL,
-			  us_end, data);
-}
-
-static void
-us_end (int n_succesful, void *data)
-{
   end_interaction_flow ();
 }
 

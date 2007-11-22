@@ -532,10 +532,10 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
   c->cont = cont;
   c->data = data;
 
-  refresh_package_cache (APTSTATE_TEMP,
-			 card_catalogues, false, true,
-			 eci_with_temp_catalogues, c);
-  c->card_catalogues = NULL;
+  set_catalogues_and_refresh (card_catalogues,
+			      _("ai_nw_preparing_installation"),
+			      APTSTATE_TEMP,
+			      eci_with_temp_catalogues, c);
 }
 
 static void

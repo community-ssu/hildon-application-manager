@@ -61,8 +61,6 @@ dbus_mime_open (DBusConnection *conn, DBusMessage *message)
       present_main_window ();
       if (strcmp (filename, "magic:restore-packages") == 0)
 	restore_packages_flow ();
-      else if (strcmp (filename, "magic:update-system") == 0)
-	update_system_flow ();
       else
 	install_from_file_flow (filename);
 
@@ -308,16 +306,16 @@ dif_end (int result, void *data)
   maybe_exit ();
 }
 
-static void icfu_end (void *data);
+static void icfu_end (bool ignored, void *data);
 
 static void
 idle_check_for_updates (void *unused)
 {
-  refresh_package_cache_without_user (icfu_end, NULL);
+  refresh_package_cache_without_user (NULL, APTSTATE_DEFAULT, icfu_end, NULL);
 }
 
 static void
-icfu_end (void *data)
+icfu_end (bool ignored, void *data)
 {
   end_interaction_flow ();
 }

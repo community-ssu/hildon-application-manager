@@ -1,3 +1,20 @@
+2007-11-22  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.h (refresh_package_cache, refresh_package_cache_flow,
+	updated_system_flow): Removed, they are unused now.
+	(refresh_package_cache_without_user): Added state and title
+	parameters.  Added keep_going parameter to continuation.  Updated
+	all callers.
+	(set_catalogues_and_refresh): New, for use instead of
+	refresh_package_cache when new catalogues should be set.
+
+	* src/dbus.cc (dbus_mime_open): Don't regocnize
+	"magic:update-system", don't call updated_system_flow.
+
+	* src/instr.cc (execute_card_install): Use
+	set_catalogues_and_refresh instead of refresh_package_cache.
+	* src/repo.cc (scdf_dialog_done, add_catalogues_cont_2): Likewise.
+
 2007-11-21  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (present_main_window): Don't take care of
