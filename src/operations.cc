@@ -238,6 +238,12 @@ static void ip_install_start (ip_clos *c);
 static void ip_install_loop (ip_clos *c);
 static void ip_install_with_info (package_info *pi, void *data, bool changed);
 static void ip_maybe_continue (bool res, void *data);
+
+static void ip_execute_checkrm_script (const char *name,
+				       const char **params,
+				       void (*cont) (int status, void *data),
+				       void *data);
+
 static void ip_check_upgrade (void *data);
 static void ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec,
 				    void *data);
@@ -801,6 +807,51 @@ ip_close_apps (bool res, void *data)
 }
 
 static void
+ip_execute_checkrm_script (const char *name,
+			   const char **params,
+			   void (*cont) (int status, void *data),
+			   void *data)
+{
+  int i;
+  int argc;
+  char **argv = NULL;
+  char *cmd = NULL;
+  struct stat buf;
+  int stat_result;
+
+  /* Count the number of params */
+  argc = 0;
+  for (i = 0; params[i] != NULL; i++)
+    argc++;
+
+  /* Choose the right checkrm command */
+  cmd = g_strdup_printf ("/var/lib/hildon-application-manager/info/%s.checkrm",
+			 name);
+
+  /* If not present in the usual place, use the old one */
+  stat_result = stat (cmd, &buf);
+  if (stat_result == -1)
+    {
+      g_free (cmd);
+      cmd = g_strdup_printf ("/var/lib/osso-application-installer/info/%s.checkrm",
+			     name);
+    }
+
+  /* Build the argv array */
+  argv = g_new(char *, argc+2);
+  argv[0] = cmd;
+  for (i = 0; params[i] != NULL; i++)
+    argv[i+1] = g_strdup(params[i]);
+  argv[i+1] = NULL;
+
+  /* Execute command and continue the process */
+  run_cmd (argv, true, cont, data);
+
+  g_free (argv);
+  g_free (cmd);
+}
+
+static void
 ip_check_upgrade (void *data)
 {
   ip_clos *c = (ip_clos *)data;
@@ -863,15 +914,9 @@ ip_check_upgrade_loop (ip_clos *c)
     {
       char *name = (char *)(c->upgrade_names->data);
       char *version = (char *)(c->upgrade_versions->data);
+      const char *params[] = { "upgrade", version, NULL };
 
-      char *cmd =
-	g_strdup_printf ("/var/lib/hildon-application-manager/info/%s.checkrm",
-			 name);
-      
-      char *argv[] = { cmd, "upgrade", version, NULL };
-      run_cmd (argv, true, ip_check_upgrade_cmd_done, c);
-
-      g_free (cmd);
+      ip_execute_checkrm_script (name, params, ip_check_upgrade_cmd_done, c);
     }
   else
     ip_install_cur (c);
@@ -1448,14 +1493,9 @@ up_checkrm_loop (up_clos *c)
   if (c->remove_names)
     {
       char *name = (char *)pop (c->remove_names);
+      const char *params[] = { "remove", NULL };
 
-      char *cmd =
-	g_strdup_printf ("/var/lib/hildon-application-manager/info/%s.checkrm",
-			 name);
-
-      char *argv[] = { cmd, "remove", NULL };
-      run_cmd (argv, true, up_checkrm_cmd_done, c);
-      g_free (cmd);
+      ip_execute_checkrm_script (name, params, up_checkrm_cmd_done, c);
     }
   else
     up_remove (c);

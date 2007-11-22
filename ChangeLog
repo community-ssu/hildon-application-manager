@@ -1,3 +1,12 @@
+2007-11-22  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/operations.cc (ip_execute_checkrm_script): New. Function to
+	execute the checkrm scripts, also checking the old directory
+	/var/lib/osso-application-installer, if needed (N76475).
+	(ip_check_upgrade_loop): Changed to use the new defined function
+	instead of directly running run_cmd ().
+	(up_checkrm_loop): Likewise.
+
 2007-11-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.h (refresh_package_cache, refresh_package_cache_flow,
