@@ -105,7 +105,7 @@ make_small_text_view (const char *file)
   GtkWidget *scroll;
   GtkWidget *view;
   GtkTextBuffer *buffer;
-  
+
   scroll = gtk_scrolled_window_new (NULL, NULL);
   view = gtk_text_view_new ();
   buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
@@ -178,6 +178,25 @@ find_application_manager_window ()
   return find_window ("hildon-application-manager", 2);
 }
 
+static void
+dialog_exposed (GtkWidget *widget, GdkEventExpose *event, gpointer data)
+{
+  GdkWindow *win  = widget->window;
+  GtkWidget *child = NULL;
+
+  /* Raise this window to the top of the X stack */
+  gdk_window_set_keep_above (win, TRUE);
+
+  /* Progate expose event to children */
+  child = gtk_bin_get_child (GTK_BIN (widget));
+  if (child)
+    {
+      gtk_container_propagate_expose (GTK_CONTAINER (widget),
+				      child,
+				      event);
+    }
+}
+
 void
 dialog_realized (GtkWidget *widget, gpointer data)
 {
@@ -222,6 +241,9 @@ main (int argc, char **argv)
 
   g_signal_connect (dialog, "realize",
 		    G_CALLBACK (dialog_realized), NULL);
+
+  g_signal_connect (dialog, "expose-event",
+		    G_CALLBACK (dialog_exposed), NULL);
 
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
 		     make_small_text_view (file));

@@ -218,7 +218,7 @@ dialog_exposed (GtkWidget *widget, GdkEventExpose *event, gpointer data)
   GtkWidget *child = NULL;
 
   /* Raise this window to the top of the X stack */
-  gdk_window_raise (win);
+  gdk_window_set_keep_above (win, TRUE);
 
   /* Progate expose event to children */
   child = gtk_bin_get_child (GTK_BIN (widget));

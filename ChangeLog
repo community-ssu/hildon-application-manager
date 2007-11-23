@@ -1,3 +1,15 @@
+2007-11-23  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* utils/maemo-confirm-text-user.c (dialog_exposed): New. Callback
+	to ensure that the dialog which shows the license text is always
+	drawn on top of HAM windows (N76342).
+	(run_select_location_dialog): Connected the 'expose-event' signal
+	to new callback commented above (N76342).
+
+	* utils/maemo-select-menu-location-main.c (dialog_exposed): Use
+	gdk_window_set_keep_above instead of gdk_raise_win to avoid an
+	ugly 'flickering' effect.
+
 2007-11-22  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operations.cc (ip_execute_checkrm_script): New. Function to
