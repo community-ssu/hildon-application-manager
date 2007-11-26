@@ -1,3 +1,8 @@
+2007-11-26  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/repo.cc (set_cat_list): Make the treeview to grab the focus
+	after setting the focus in the right row (N76935).
+
 2007-11-23  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* utils/maemo-confirm-text-user.c (dialog_exposed): New. Callback

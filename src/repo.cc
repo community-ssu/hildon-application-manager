@@ -746,6 +746,8 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
     gtk_tree_view_get_selection (GTK_TREE_VIEW (c->tree));
   gtk_tree_selection_select_iter (tree_selection, &c->selected_iter);
 
+  gtk_widget_grab_focus (GTK_WIDGET (c->tree));
+
   *catptr = NULL;
 
   gtk_tree_path_free (path_to_select);
