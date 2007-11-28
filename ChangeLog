@@ -1,3 +1,41 @@
+2007-11-28  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.h, src/util.cc (set_entertainment_title): Renamed into
+	set_entertainment_sub_title (N76341).
+	(set_entertainment_strong title): Renamed into
+	set_entertainment_main_title (N76341).
+
+	* src/util.cc (get_small_font): Moved to be before of the
+	entertainment functions, since from now on it'll be used by some
+	of them (N76341).
+	(struct entertainment_data): Added new fields (GtkWidget):
+	main_label and sub_label, to easily keep references (N76341).
+	(entertainment_update_title): Take into account the red pill mode
+	to show or not the main title and the subtitle, at the same time,
+	in the entertainment dialogs (N76341).
+	(start_entertaining_user): Build a custom dialog (based on
+	GtkDialog) which emulates a hildon note with a cancel button and a
+	progress bar, but also allowing a subtitle to be shown, in a
+	smaller font size, under the progress bar (N76341).
+	(set_entertainment_main_title): New (see comment above). It sets
+	the main title and then calls to update the dialog (N76341).
+	(set_entertainment_sub_title): New (see comment above). It sets
+	the subtitle and then calls to update the dialog (N76341).
+	(set_entertainment_fun): Just call to set_entertainment_sub_title
+	to change the subtitle (N76341).
+	(do_copy): Call to set_entertainment_main_title instead of calling
+	to the old set_entertainment_strong title function (N76341).
+
+	* src/operations.cc (ip_ensure_network): set_entertainment_title
+	replaced with set_entertainment_main_title and
+	set_entertainment_sub_title (N76341).
+	(ip_install_cur): Use set_entertainment_main_title (N76341).
+	(up_remove): Use set_entertainment_main_title (N76341).
+	(ip_install): Use set_entertainment_main_title (N76341).
+
+	* src/main.cc (refresh_package_cache_without_user): Use
+	set_entertainment_main_title (N76341).
+
 2007-11-26  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/repo.cc (set_cat_list): Make the treeview to grab the focus

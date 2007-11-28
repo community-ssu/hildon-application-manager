@@ -267,8 +267,8 @@ void scare_user_with_legalese (bool sure,
 void start_entertaining_user ();
 void stop_entertaining_user ();
 
-void set_entertainment_title (const char *main_title);
-void set_entertainment_strong_title (const char *main_title);
+void set_entertainment_main_title (const char *main_title);
+void set_entertainment_sub_title (const char *sub_title);
 
 struct entertainment_game {
   int id;

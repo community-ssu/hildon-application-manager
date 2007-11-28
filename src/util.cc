@@ -748,10 +748,45 @@ scare_user_with_legalese (bool sure,
 /* Entertaining the user.
  */
 
+static PangoFontDescription *
+get_small_font (GtkWidget *widget)
+{
+  static PangoFontDescription *small_font = NULL;
+  gint size = 0;
+
+  if (small_font == NULL)
+    {
+      GtkStyle *fontstyle = NULL;
+
+      fontstyle = gtk_rc_get_style_by_paths (gtk_widget_get_settings (GTK_WIDGET(widget)),
+                                             "osso-SystemFont", NULL,
+                                             G_TYPE_NONE);
+
+      if (fontstyle) {
+        small_font = pango_font_description_copy (fontstyle->font_desc);
+      } else {
+        small_font = pango_font_description_from_string ("Nokia Sans 16.75");
+      }
+      size = pango_font_description_get_size(small_font);
+      size = gint (size * PANGO_SCALE_SMALL);
+      pango_font_description_set_size(small_font, size);
+
+    }
+
+  return small_font;
+}
+
+static void
+progressbar_dialog_realized (GtkWidget *widget, gpointer data)
+{
+  GdkWindow *win = widget->window;
+  gdk_window_set_decorations (win, GDK_DECOR_BORDER);
+}
+
 struct entertainment_data {
   gint depth;
 
-  GtkWidget *bar, *dialog, *cancel_button;
+  GtkWidget *dialog, *bar, *main_label, *sub_label, *cancel_button;
   gint pulse_id;
 
   char *main_title, *sub_title;
@@ -835,13 +870,46 @@ entertainment_update_title ()
 {
   if (entertainment.dialog)
     {
-      char *title;
-      if (entertainment.sub_title && !entertainment.strong_main_title)
-	title = entertainment.sub_title;
+      if (!red_pill_mode)
+	{
+	  /* Show the progress bar dialog in the old (not diablo) style */
+	  if (entertainment.sub_title && !entertainment.strong_main_title)
+	    gtk_label_set_text (GTK_LABEL (entertainment.main_label),
+				entertainment.sub_title);
+	  else
+	    gtk_label_set_text (GTK_LABEL (entertainment.main_label),
+				entertainment.main_title);
+	}
       else
-	title = entertainment.main_title;
+	{
+	  /* In red-pill mode, show the main title and the subtitle
+	     at the same time, over and below the progress bar */
 
-      g_object_set (entertainment.dialog, "description", title, NULL);
+	  /* Set the main title */
+	  if (entertainment.main_title)
+	    {
+	      gtk_label_set_text (GTK_LABEL (entertainment.main_label),
+				  entertainment.main_title);
+
+	    }
+	  else
+	    {
+	      /* Reset the main title to an empty string */
+	      gtk_label_set_text (GTK_LABEL (entertainment.main_label), "");
+	    }
+
+	  /* Set the subtitle */
+	  if (entertainment.sub_title)
+	    {
+	      gtk_label_set_text (GTK_LABEL (entertainment.sub_label),
+				  entertainment.sub_title);
+	    }
+	  else
+	    {
+	      /* Reset the main title to an empty string */
+	      gtk_label_set_text (GTK_LABEL (entertainment.sub_label), "");
+	    }
+	}
     }
 }
 
@@ -867,7 +935,7 @@ start_entertaining_user_silently ()
 static entertainment_game default_entertainment_game = {
   -1, 1.0
 };
-  
+
 void
 start_entertaining_user ()
 {
@@ -878,43 +946,85 @@ start_entertaining_user ()
 
   if (entertainment.dialog == NULL)
     {
+      GtkWidget *box;
+
+      /* Build a custom dialog with two labels for main title and
+	 subtitle (only in red-pill mode), a progress bar and a
+	 'Cancel' button, and save references to all the needed
+	 widgets in the entertainment_data struct */
+
+      /* Create the dialog */
       entertainment.was_cancelled = false;
+      entertainment.dialog = gtk_dialog_new ();
+      gtk_window_set_modal (GTK_WINDOW (entertainment.dialog), TRUE);
+      gtk_window_set_decorated (GTK_WINDOW (entertainment.dialog), FALSE);
+      gtk_dialog_set_has_separator (GTK_DIALOG (entertainment.dialog), FALSE);
 
+      /* Add the internal box */
+      box = gtk_vbox_new (FALSE, HILDON_MARGIN_DOUBLE);
+      gtk_container_add (GTK_CONTAINER (GTK_DIALOG(entertainment.dialog)->vbox), box);
+
+      /* Add the main title label (ellipsized) */
+      entertainment.main_label = gtk_label_new (entertainment.main_title);
+      gtk_label_set_text (GTK_LABEL (entertainment.main_label), entertainment.main_title);
+      gtk_label_set_ellipsize (GTK_LABEL (entertainment.main_label),
+			       PANGO_ELLIPSIZE_END);
+      gtk_box_pack_start (GTK_BOX (box), entertainment.main_label, TRUE, TRUE, 0);
+
+      /* Add the progress bar */
       entertainment.bar = gtk_progress_bar_new ();
-      entertainment.dialog =
-	hildon_note_new_cancel_with_progress_bar
-	(NULL,
-	 entertainment.main_title,
-	 GTK_PROGRESS_BAR (entertainment.bar));
+      gtk_box_pack_start (GTK_BOX (box), entertainment.bar, FALSE, FALSE, 0);
 
-      gtk_widget_set_usize (entertainment.dialog, 450, -1);
+      /* Add the subtitle label (only in red-pill mode) */
+      if (red_pill_mode)
+	{
+	  entertainment.sub_label = gtk_label_new (entertainment.sub_title);
+	  gtk_label_set_text (GTK_LABEL (entertainment.sub_label), entertainment.sub_title);
+	  gtk_widget_modify_font (entertainment.sub_label,
+				  get_small_font (entertainment.sub_label));
 
-      {
-	GtkWidget *box = GTK_DIALOG (entertainment.dialog)->action_area;
-	GList *kids = gtk_container_get_children (GTK_CONTAINER (box));
-	if (kids)
-	  {
-	    entertainment.cancel_button = GTK_WIDGET (kids->data);
-	    g_signal_connect (entertainment.cancel_button,
-			      "insensitive-press",
-			      G_CALLBACK (entertainment_insensitive_press),
-			      &entertainment);
-	  }
-	else
-	  entertainment.cancel_button = NULL;
-	g_list_free (kids);
-      }
+	  gtk_box_pack_start (GTK_BOX (box), entertainment.sub_label, TRUE, TRUE, 0);
+	}
 
-      respond_on_escape (GTK_DIALOG (entertainment.dialog),
-			 GTK_RESPONSE_CANCEL);
+      /* Cancel button: add to active area and set default response */
+      entertainment.cancel_button =
+	gtk_dialog_add_button (GTK_DIALOG (entertainment.dialog),
+			       dgettext("hildon-libs",
+					"ecdg_bd_confirmation_note_cancel"),
+			       GTK_RESPONSE_CANCEL);
+
+      gtk_dialog_add_action_widget (GTK_DIALOG (entertainment.dialog),
+				    entertainment.cancel_button,
+				    GTK_RESPONSE_CANCEL);
+
+      gtk_dialog_set_default_response (GTK_DIALOG (entertainment.dialog),
+				       GTK_RESPONSE_CANCEL);
+
+      /* Set size */
+      gtk_widget_set_usize (entertainment.dialog, 400, -1);
+
+      /* Connect signals */
+      g_signal_connect (entertainment.cancel_button,
+			"insensitive-press",
+			G_CALLBACK (entertainment_insensitive_press),
+			&entertainment);
+
+      g_signal_connect (entertainment.dialog, "realize",
+		    G_CALLBACK (progressbar_dialog_realized), NULL);
+
       g_signal_connect (entertainment.dialog, "response",
 			G_CALLBACK (entertainment_response), &entertainment);
 
+      respond_on_escape (GTK_DIALOG (entertainment.dialog),
+			 GTK_RESPONSE_CANCEL);
+
+      /* Update info */
       entertainment_update_progress ();
       entertainment_update_cancel ();
 
+      /* Show the dialog */
       push_dialog (entertainment.dialog);
-      gtk_widget_show (entertainment.dialog);
+      gtk_widget_show_all (entertainment.dialog);
     }
 }
 
@@ -951,23 +1061,34 @@ cancel_entertainment ()
 }
 
 void
-set_entertainment_title (const char *main_title)
+set_entertainment_main_title (const char *main_title)
 {
-  g_free (entertainment.main_title);
+  /* Free memory if needed */
+  if (entertainment.main_title)
+    {
+      g_free (entertainment.main_title);
+      entertainment.main_title = NULL;
+    }
+
+  entertainment.strong_main_title = true;
   entertainment.main_title = g_strdup (main_title);
-  entertainment.strong_main_title = false;
   entertainment_update_title ();
 }
 
 void
-set_entertainment_strong_title (const char *main_title)
+set_entertainment_sub_title (const char *sub_title)
 {
-  g_free (entertainment.main_title);
-  entertainment.main_title = g_strdup (main_title);
-  entertainment.strong_main_title = true;
+  /* Free memory if needed */
+  if (entertainment.sub_title)
+    {
+      g_free (entertainment.sub_title);
+      entertainment.sub_title = NULL;
+    }
+
+  entertainment.strong_main_title = false;
+  entertainment.sub_title = g_strdup (sub_title);
   entertainment_update_title ();
 }
-
 void
 set_entertainment_games (int n_games, entertainment_game *games)
 {
@@ -1003,16 +1124,14 @@ set_entertainment_fun (const char *sub_title,
 	  entertainment.current_game = next_game;
 	}
     }
-  
-  if ((sub_title
-       && (entertainment.sub_title == NULL
-	   || strcmp (entertainment.sub_title, sub_title)))
-      || (sub_title == NULL
-	  && entertainment.sub_title != NULL))
+
+  if ((sub_title &&
+       (entertainment.sub_title == NULL ||
+	strcmp (entertainment.sub_title, sub_title))) ||
+      (sub_title == NULL && entertainment.sub_title != NULL))
     {
-      g_free (entertainment.sub_title);
-      entertainment.sub_title = g_strdup (sub_title);
-      entertainment_update_title ();
+      /* Set the subtitle */
+      set_entertainment_sub_title (sub_title);
     }
 
   entertainment.already = already;
@@ -1124,34 +1243,6 @@ prevent_updating ()
 {
   allow_updating_banner = false;
   refresh_updating_banner ();
-}
-
-static PangoFontDescription *
-get_small_font (GtkWidget *widget)
-{
-  static PangoFontDescription *small_font = NULL;
-  gint size = 0;
-
-  if (small_font == NULL)
-    {
-      GtkStyle *fontstyle = NULL;
-
-      fontstyle = gtk_rc_get_style_by_paths (gtk_widget_get_settings (GTK_WIDGET(widget)),
-                                             "osso-SystemFont", NULL,
-                                             G_TYPE_NONE);
-
-      if (fontstyle) {
-        small_font = pango_font_description_copy (fontstyle->font_desc);
-      } else {
-        small_font = pango_font_description_from_string ("Nokia Sans 16.75");
-      }
-      size = pango_font_description_get_size(small_font);
-      size = gint (size * PANGO_SCALE_SMALL);
-      pango_font_description_set_size(small_font, size);
-
-    }
-
-  return small_font;
 }
 
 static gboolean
@@ -2549,8 +2640,8 @@ do_copy (const char *source, GnomeVFSURI *source_uri,
 
   set_entertainment_fun (NULL, -1, -1, 0);
   set_entertainment_cancel (cancel_copy, NULL);
-  set_entertainment_title (dgettext ("hildon-fm",
-				     "docm_nw_opening_file"));
+  set_entertainment_main_title (dgettext ("hildon-fm",
+					  "docm_nw_opening_file"));
 
   start_entertaining_user ();
 

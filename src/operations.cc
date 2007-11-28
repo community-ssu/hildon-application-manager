@@ -479,7 +479,8 @@ ip_ensure_network (ip_clos *c)
    */
 
   set_entertainment_cancel (NULL, NULL);
-  set_entertainment_title ("");
+  set_entertainment_main_title ("");
+  set_entertainment_sub_title ("");
   set_entertainment_fun (NULL, -1, -1, 0);
   start_entertaining_user ();
   
@@ -966,8 +967,8 @@ ip_install_cur (void *data)
 				 ? _("ai_nw_updating")
 				 : _("ai_nw_installing"),
 				 pi->get_display_name (false));
-  set_entertainment_title (title);
   set_entertainment_fun (NULL, -1, -1, 0);
+  set_entertainment_main_title (title);
   g_free (title);
 
   printf ("INSTALL %s %s\n", pi->name, c->alt_download_root);
@@ -1532,7 +1533,7 @@ up_remove (up_clos *c)
 				     c->pi->get_display_name (true));
       set_entertainment_fun (NULL, -1, -1, 0);
       set_entertainment_cancel (NULL, NULL);
-      set_entertainment_title (title);
+      set_entertainment_main_title (title);
       g_free (title);
 
       start_entertaining_user ();
@@ -1809,7 +1810,7 @@ if_install (bool res, void *data)
 				     c->pi->get_display_name (false));
       set_entertainment_fun (NULL, -1, -1, 0);
       set_entertainment_cancel (NULL, NULL);
-      set_entertainment_title (title);
+      set_entertainment_main_title (title);
       g_free (title);
 
       start_entertaining_user ();

@@ -1263,9 +1263,9 @@ refresh_package_cache_without_user (const char *title,
   c->data = data;
   
   if (title)
-    set_entertainment_strong_title (title);
+    set_entertainment_main_title (title);
   else
-    set_entertainment_strong_title (_("ai_nw_checking_updates"));
+    set_entertainment_main_title (_("ai_nw_checking_updates"));
   set_entertainment_games (2, rpcwu_games);
   set_entertainment_fun (NULL, -1, -1, 0);
   start_entertaining_user ();
