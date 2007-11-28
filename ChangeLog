@@ -1,5 +1,13 @@
 2007-11-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker-bin.cc (default_domain, DOMAIN_DEFAULT): Removed
+	former, hard coded default domain with latter.
+	(read_domain_conf): Don't set default_domain.
+	(load_extra_info): Use DOMAIN_DEFAULT instead of default_domain.
+
+	* src/main.cc (maybe_refresh_package_cache_without_user): Return
+	silently when we are not idle.
+
 	* src/operations.cc (install_packages): Reorganized interaction
 	flow.  Installations that require a reboot are done last, and only
 	one of them is done.  The close-apps flag is treated as a reboot
