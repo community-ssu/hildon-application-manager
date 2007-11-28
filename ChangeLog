@@ -1,3 +1,14 @@
+2007-11-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/operations.cc (install_packages): Reorganized interaction
+	flow.  Installations that require a reboot are done last, and only
+	one of them is done.  The close-apps flag is treated as a reboot
+	request, suggest-backup is ignored.  Use a single dialog to inform
+	user about closing apps, taking a backup and rebooting.  Check
+	domain violations for each installation and not only once upfront
+	for all.  Reget installable_status etc immediately before
+	installation.
+	
 2007-11-28  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.h, src/util.cc (set_entertainment_title): Renamed into

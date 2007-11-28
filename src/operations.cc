@@ -139,10 +139,6 @@ installable_status_to_message (package_info *pi,
 
 /* INSTALL_PACKAGES - Overview
 
-   XXX - system updates should be handled specially: they should be
-   installed first with their own special confirmation dialog, and
-   then the rest of the packages should be processed.
-
    0. Filter out already installed packages.  When the list is empty
       after this, an appropriate note is shown and the process aborts.
 
@@ -151,52 +147,58 @@ installable_status_to_message (package_info *pi,
       except the first are ignored and a single package confirmation
       dialog is used.
 
-   2. Make sure that the network is up when this is not a card install.
+   2. Make sure that the network is up when this is not a card
+      install.
 
-   3. Check for the trust status of all installed packages.  For each
-      of the selected packages, a 'check_install' operation is
+   3. Check for the 'certified' status of all selected packages.  For
+      each of the selected packages, a 'check_install' operation is
       performed and when one of them would install packages from a
-      non-trusted source, the Notice dialog is shown.  Also, when a
-      package would be upgraded from a different 'trust domain' than
-      it was originally installed from, the operation is aborted.
+      non-certified domain, the Notice dialog is shown.
 
    The following is repeated for each selected package, as indicated.
    "Aborting this package" means that an error message is shown and
    when there is another package to install, the user is asked whether
    to continue or not.
 
-   4. Check if the package is actually installable, and abort it when
+   The list of packages is sorted so that packages that require a
+   reboot (i.e. that have the reboot or flash-and-reboot flag) are
+   handled last.  When multiple packages require a reboot, only one of
+   them is kept in the list; the rest are ignored.
+
+   1. Check if the package is actually installable, and abort it when
       not.
 
-   5. Check if enough storage is available and decide where to
+   2. Check for domain violations, and abort when some are found.
+
+   3. Check if enough storage is available and decide where to
       download the packages to.
 
-   6. Download the packages.
+   4. If the package requires a reboot, put up the big information
+      note explaining this, with the "Create Backup" button.  When the
+      user closes this, close all applications.
 
-   7. If the package has the 'suggest-backup' flag, suggest a backup
-      to be taken.
+   5. Download the packages.
 
-   8. Check the free storage again.
+   6. Check the free storage again.
 
-   9. If the package doesn't have the 'close-apps' flag, run the
-      'checkrm' scripts of the upgraded packages and abort this package
-      if the scripts asks for it.  Otherwise close all applications.
+   7. Run the 'checkrm' scripts of the upgraded packages and abort
+      this package if the scripts asks for it.
 
-  10. Do the actual install, aborting this package if it fails.  The
+   8. Do the actual install, aborting this package if it fails.  The
       downloaded archive files are removed in any case.
 
-  11. If there are more packages to install, go back to 3.
+   9. If the packages has the 'flash-and-reboot' flag, call
+      /usr/bin/flash-and-reboot.  Otherwise, if the package has the
+      'reboot' flag, reboot.
 
    At the end:
 
-  12. If any of the packages had the 'flash-and-reboot' flag, call
-      /usr/bin/flash-and-reboot.  Otherwise, if any of the packages
-      has the 'reboot' flag, reboot.
-
-  13. Refresh the lists of packages.
+   1. Refresh the lists of packages.
 */
 
 struct ip_clos {
+  char *title;
+  char *desc;
   int install_type;
   int state;
   bool automatic;
@@ -215,14 +217,12 @@ struct ip_clos {
   // at the end
   bool entertaining;        // is the progress bar up?
   int n_successful;         // how many have been installed successfully
-  bool flash_and_reboot;    // whether to call /usr/bin/flash-and-reboot
-  bool reboot;              // whether to reboot
   
   void (*cont) (int n_successful, void *);
   void *data;
 };
 
-static void ip_confirm_with_info (package_info *pi, void *data, bool changed);
+static void ip_install_with_info (void *data);
 static void ip_confirm_install_response (bool res, void *data);
 static void ip_select_package_response (gboolean res, GList *selected_packages,
 					void *data);
@@ -236,7 +236,14 @@ static void ip_legalese_response (bool res, void *data);
 
 static void ip_install_start (ip_clos *c);
 static void ip_install_loop (ip_clos *c);
-static void ip_install_with_info (package_info *pi, void *data, bool changed);
+static void ip_check_domain_reply (int cmd, apt_proto_decoder *dec, void *data);
+static void ip_install_anyway (bool res, void *data);
+static void ip_get_info_for_install (void *data);
+static void ip_with_new_info (package_info *pi, void *data, bool changed);
+static void ip_warn_about_reboot (ip_clos *c);
+static void ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
+					   gpointer data);
+static void ip_install_one (void *data);
 static void ip_maybe_continue (bool res, void *data);
 
 static void ip_execute_checkrm_script (const char *name,
@@ -258,11 +265,6 @@ static void ip_upgrade_all_confirm (GList *package_list,
 				   void (*cont) (bool res, void *data),
 				   void *data);
 static void ip_upgrade_all_confirm_response (bool res, void *data);
-static void ip_check_required_reboot (void *data);
-static void ip_check_required_reboot_response (bool res, void *data);
-
-static gboolean ip_suggest_backup (ip_clos *c);
-static void ip_close_apps (bool res, void *data);
 
 static void ip_show_cur_details (void *data);
 static void ip_show_cur_problem_details (void *data);
@@ -274,8 +276,9 @@ static void ip_abort_response (GtkDialog *dialog, gint response,
 			       gpointer data);
 
 static void ip_end (void *data);
-static void ip_end_after_reboot (void *data);
-static void ip_end_rebooting (void *data);
+
+static void ip_reboot (void *data);
+static gboolean ip_reboot_now (void *data);
 static void ip_flash_and_reboot_done (int status, void *data);
 
 void
@@ -298,6 +301,8 @@ install_packages (GList *packages,
   ip_clos *c = new ip_clos;
 
   c->install_type = install_type;
+  c->title = g_strdup (title);
+  c->desc = g_strdup (desc);
   c->state = state;
   c->automatic = automatic;
   c->all_packages = packages;
@@ -307,24 +312,61 @@ install_packages (GList *packages,
   c->upgrade_names = NULL;
   c->upgrade_versions = NULL;
   c->n_successful = 0;
-  c->flash_and_reboot = false;
-  c->reboot = false;
   c->entertaining = false;
 
-  // Filter packages, stopping after the first when this is a standard
-  // install.
+  get_intermediate_package_list_info (packages,
+				      true,
+				      ip_install_with_info,
+				      c,
+				      state);
+
+}
+
+static bool
+package_needs_reboot (package_info *pi)
+{
+  return (pi->info.install_flags
+	  & (pkgflag_reboot
+	     | pkgflag_flash_and_reboot
+	     | pkgflag_close_apps));
+}
+
+static void
+ip_install_with_info (void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  // Filter and sort packages, stopping after the first when this is a
+  // standard install.
 
   c->packages = NULL;
+  GList *normal_packages = NULL, *rebooting_packages = NULL;
+
   for (GList *p = c->all_packages; p; p = p->next)
     {
       package_info *pi = (package_info *)p->data;
       if (pi->available_version != NULL)
 	{
-	  c->packages = g_list_append (c->packages, pi);
+	  if (package_needs_reboot (pi))
+	    rebooting_packages = g_list_append (rebooting_packages, pi);
+	  else
+	    normal_packages = g_list_append (normal_packages, pi);
+	  
 	  if (c->install_type == INSTALL_TYPE_STANDARD)
 	    break;
 	}
     }
+
+  if (rebooting_packages)
+    {
+      /* Pick the first rebooting package and ignore the rest.
+       */
+      c->packages = g_list_append (normal_packages,
+				   rebooting_packages->data);
+      g_list_free (rebooting_packages->next);
+    }
+  else
+    c->packages = normal_packages;
 
   if (c->packages == NULL)
     {
@@ -338,6 +380,9 @@ install_packages (GList *packages,
       || c->install_type == INSTALL_TYPE_MEMORY_CARD
       || c->install_type == INSTALL_TYPE_MULTI)
     {
+      const char *title = c->title;
+      const char *desc = c->desc;
+
       if (title == NULL)
 	title = _("ai_ti_install_apps");
 
@@ -375,37 +420,28 @@ install_packages (GList *packages,
       c->cur = c->packages;
       pi = (package_info *)(c->cur->data);
 
-      get_intermediate_package_info (pi, true,
-				     ip_confirm_with_info, c, c->state);
+      GString *text = g_string_new ("");
+      char download_buf[20];
+  
+      size_string_general (download_buf, 20, pi->info.download_size);
+      
+      g_string_printf (text,
+		       (pi->installed_version
+			? _("ai_nc_update")
+			: _("ai_nc_install")),
+		       pi->get_display_name (false),
+		       pi->available_version, download_buf);
+      
+      ask_yes_no_with_arbitrary_details ((pi->installed_version
+					  ? _("ai_ti_confirm_update")
+					  : _("ai_ti_confirm_install")),
+					 text->str,
+					 ip_confirm_install_response,
+					 ip_show_cur_details, c);
+      g_string_free (text, 1);
     }
   else
     ip_confirm_install_response (true, c);
-}
-
-static void
-ip_confirm_with_info (package_info *pi, void *data, bool changed)
-{
-  ip_clos *c = (ip_clos *)data;
-
-  GString *text = g_string_new ("");
-  char download_buf[20];
-  
-  size_string_general (download_buf, 20, pi->info.download_size);
-
-  g_string_printf (text,
-		   (pi->installed_version
-		    ? _("ai_nc_update")
-		    : _("ai_nc_install")),
-		   pi->get_display_name (false),
-		   pi->available_version, download_buf);
-  
-  ask_yes_no_with_arbitrary_details ((pi->installed_version
-				      ? _("ai_ti_confirm_update")
-				      : _("ai_ti_confirm_install")),
-				     text->str,
-				     ip_confirm_install_response,
-				     ip_show_cur_details, c);
-  g_string_free (text, 1);
 }
 
 static void
@@ -456,7 +492,7 @@ ip_select_package_response (gboolean res, GList *selected_packages,
     {
       g_list_free (c->packages);
       c->packages = selected_packages;
-      ip_check_required_reboot (c);
+      ip_ensure_network (c);
     }
 }
 
@@ -466,7 +502,7 @@ ip_confirm_install_response (bool res, void *data)
   ip_clos *c = (ip_clos *)data;
 
   if (res)
-    ip_check_required_reboot (c);
+    ip_ensure_network (c);
   else
     ip_end (c);
 }
@@ -548,13 +584,7 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
       return;
     }
 
-  /* XXX - any exceptional package causes us to show the 'not-so-sure'
-           version of the dialog.  This needs to be rethought once
-           apt-worker provides more details about the trust.
-  */
-
-  bool some_domains_violated = false;
-  bool some_not_certfied = false;
+  bool some_not_certified = false;
 
   while (!dec->corrupted ())
     {
@@ -562,38 +592,15 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
       if (trust == pkgtrust_end)
 	break;
 
-      if (trust == pkgtrust_not_certified)
-	some_not_certfied = true;
-      if (trust == pkgtrust_domains_violated)
-	some_domains_violated = true;
+      if (trust == pkgtrust_not_certified
+	  || trust == pkgtrust_domains_violated)
+	some_not_certified = true;
 
       dec->decode_string_in_place ();  // name
     }
 
-  // XXX - L10N
-
-  if (some_domains_violated)
-    {
-      if (red_pill_mode)
-	{
-	  gchar *msg =
-	    g_strdup_printf ("%s\n%s",
-			     _("ai_ni_error_broken_path"),
-			     _("ai_ni_continue_install"));
-
-	  ask_custom (msg,
-		      _("ai_bd_ok"),
-		      _("ai_bd_cancel"),
-		      ip_legalese_response, c);
-
-	  g_free (msg);
-	}
-      else
-	annoy_user (_("ai_ni_error_broken_path"),
-		    ip_end, c);
-    }
-  else if (some_not_certfied)
-    scare_user_with_legalese (false, ip_legalese_response, c);
+  if (some_not_certified)
+    scare_user_with_legalese (true, ip_legalese_response, c);
   else
     {
       c->cur = c->cur->next;
@@ -645,13 +652,7 @@ ip_install_loop (ip_clos *c)
 
       if (c->n_successful > 0)
 	{
-	  if (c->reboot || c->flash_and_reboot)
-	    {
-	      /* ip_end will show the 'success' dialog for us.
-	       */
-	      ip_end (c);
-	    }
-	  else if (c->all_packages->next == NULL)
+	  if (c->all_packages->next == NULL)
 	    {
 	      package_info *pi = (package_info *)c->all_packages->data;
 	      char *str = g_strdup_printf ((pi->installed_version != NULL
@@ -681,100 +682,238 @@ ip_install_loop (ip_clos *c)
     }
   else
     {
+      /* Check for domain violations
+       */
+
       package_info *pi = (package_info *)(c->cur->data);
-      get_intermediate_package_info (pi, true,
-				     ip_install_with_info, c, c->state);
+      
+      apt_worker_install_check (c->state, pi->name,
+				ip_check_domain_reply, c);
     }
 }
 
 static void
-ip_install_with_info (package_info *pi, void *data, bool changed)
+ip_check_domain_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   ip_clos *c = (ip_clos *)data;
-  
+
+  if (dec == NULL)
+    {
+      ip_end (c);
+      return;
+    }
+
+  bool some_domains_changed = false;
+
+  while (!dec->corrupted ())
+    {
+      apt_proto_pkgtrust trust = apt_proto_pkgtrust (dec->decode_int ());
+      if (trust == pkgtrust_end)
+	break;
+
+      if (trust == pkgtrust_domains_violated)
+	some_domains_changed = true;
+
+      dec->decode_string_in_place ();  // name
+    }
+
+  if (some_domains_changed)
+    {
+      if (red_pill_mode)
+	{
+	  gchar *msg =
+	    g_strdup_printf ("%s\nInstall anyway?",
+			     _("ai_ni_error_broken_path"));
+	    
+	  ask_custom (msg, "Yes", "No",
+		      ip_install_anyway, c);
+
+	  g_free (msg);
+	}
+      else
+	ip_abort_cur (c, _("ai_ni_error_broken_path"), false);
+    }
+  else
+    ip_get_info_for_install (c);
+}
+
+static void
+ip_install_anyway (bool res, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (res)
+    ip_get_info_for_install (c);
+  else
+    ip_install_next (c);
+}
+
+static void
+ip_get_info_for_install (void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
+
+  /* Reget info.  It might have been changed by previous
+     installations.
+  */
+  pi->have_info = false;
+  get_intermediate_package_info (pi, false, ip_with_new_info, c, c->state);
+}
+
+static void
+ip_with_new_info (package_info *pi, void *data, bool changed)
+{
+  ip_clos *c = (ip_clos *)data;
+
   if (pi->info.installable_status == status_able)
     {
-      if ((pi->info.install_flags & pkgflag_suggest_backup) &&
-	  !ip_suggest_backup (c))
-	{
-	  /* if suggest_flag is present and user chooses 'Cancel'
-	     option, installation for this package is aborted */
-	  ip_end (c);
-	  return;
-	}
-
-      add_log ("-----\n");
-      if (pi->installed_version)
-	add_log ("Upgrading %s %s to %s\n", pi->name,
-		 pi->installed_version, pi->available_version);
+      if (package_needs_reboot (pi))
+	ip_warn_about_reboot (c);
       else
-	add_log ("Installing %s %s\n", pi->name, pi->available_version);
+	ip_install_one (c);
+    }
+  else
+    ip_abort_cur_with_status_details (c);
+}
 
-      int64_t free_space = get_free_space ();
-      if (free_space < 0)
-	annoy_user_with_errno (errno, "get_free_space",
-			       ip_end, c);
+static void
+ip_warn_about_reboot (ip_clos *c)
+{
+  GtkWidget *dialog = NULL;
 
-      bool keep_installing = false;
-      if (pi->info.required_free_space < free_space)
+  dialog = gtk_dialog_new_with_buttons
+    (_("ai_ti_create_backup"),
+     NULL,
+     GTK_DIALOG_MODAL,
+     _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
+     _("ai_bd_backup"), HAM_BACKUP_RESPONSE,
+     _("ai_bd_confirm_cancel"), GTK_RESPONSE_CANCEL,
+     NULL);
+  push_dialog (dialog);
+
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+  GtkWidget *label = gtk_label_new (_("ai_ia_osupdate_restart"));
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
+		     label);
+  gtk_widget_show_all (dialog);
+
+  g_signal_connect (dialog, "response",
+		    G_CALLBACK (ip_warn_about_reboot_response), c);
+}
+
+static void
+ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
+			       gpointer data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (response == HAM_BACKUP_RESPONSE)
+    {
+      /* Launch osso-backup as a single instance */
+      osso_context_t *osso_context = NULL;
+      if (osso_context = get_osso_context ())
 	{
-	  /* Check MMCs first if download to mmc option is enabled */
-	  if (download_packages_to_mmc)
+	  if (osso_application_top (osso_context,
+				    "com.nokia.backup",
+				    NULL) != OSSO_OK)
 	    {
-	      if (volume_path_is_mounted (INTERNAL_MMC_MOUNTPOINT) &&
-		  pi->info.download_size < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT))
-		{
-		  c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
-		  keep_installing = true;
-		}
-	      else if (volume_path_is_mounted (REMOVABLE_MMC_MOUNTPOINT) &&
-		       pi->info.download_size < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT))
-		{
-		  c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
-		  keep_installing = true;
-		}
+	      what_the_fock_p ();
+	      add_log ("Could not launch backup application.\n");
 	    }
+	}
+    }
+  else
+    {
+      pop_dialog (GTK_WIDGET (dialog));
+      gtk_widget_destroy (GTK_WIDGET (dialog));
+      
+      if (response == GTK_RESPONSE_OK)
+	{
+	  close_apps ();
 
-	  /* Check internal flash if it's still needed */
-	  if (!keep_installing &&
-	      (free_space > (pi->info.required_free_space + pi->info.download_size)))
+	  /* Make sure we are done before continuing */
+	  while (gtk_events_pending ())
+	    gtk_main_iteration ();
+
+	  ip_install_one (c);
+	}
+      else
+	ip_end (c);
+    }
+}
+
+static void
+ip_install_one (void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
+
+  add_log ("-----\n");
+  if (pi->installed_version)
+    add_log ("Upgrading %s %s to %s\n", pi->name,
+	     pi->installed_version, pi->available_version);
+  else
+    add_log ("Installing %s %s\n", pi->name, pi->available_version);
+
+  int64_t free_space = get_free_space ();
+  if (free_space < 0)
+    annoy_user_with_errno (errno, "get_free_space",
+			   ip_end, c);
+
+  bool keep_installing = false;
+  if (pi->info.required_free_space < free_space)
+    {
+      /* Check MMCs first if download to mmc option is enabled */
+      if (download_packages_to_mmc)
+	{
+	  if (volume_path_is_mounted (INTERNAL_MMC_MOUNTPOINT) &&
+	      pi->info.download_size < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT))
 	    {
+	      c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
+	      keep_installing = true;
+	    }
+	  else if (volume_path_is_mounted (REMOVABLE_MMC_MOUNTPOINT) &&
+		   pi->info.download_size < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT))
+	    {
+	      c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
 	      keep_installing = true;
 	    }
 	}
 
-      /* If there's enough space somewhere, proceed with installation */
-      if (keep_installing)
+      /* Check internal flash if it's still needed */
+      if (!keep_installing &&
+	  (free_space > (pi->info.required_free_space + pi->info.download_size)))
 	{
-	  if (pi->info.install_flags & pkgflag_close_apps)
-	    ask_yes_no (_("ai_nc_close_apps"), ip_close_apps, c);
-	  else
-	    ip_check_upgrade (c);
-	}
-      else
-	{
-	  /* Not enough free space */
-
-	  if (red_pill_mode)
-	    {
-	      /* Allow continuation
-	       */
-	      char *msg =
-		g_strdup_printf ("%s\n%s",
-				 dgettext ("hildon-common-strings",
-					   "sfil_ni_not_enough_memory"),
-				 _("ai_ni_continue_install"));
-	      ask_yes_no (msg, ip_maybe_continue, c);
-	      g_free (msg);
-	    }
-	  else
-	    ip_abort_cur (c, dgettext ("hildon-common-strings",
-				       "sfil_ni_not_enough_memory"),
-			  false);
+	  keep_installing = true;
 	}
     }
+
+  /* If there's enough space somewhere, proceed with installation */
+  if (keep_installing)
+    ip_check_upgrade (c);
   else
-    ip_abort_cur_with_status_details (c);
+    {
+      /* Not enough free space */
+      
+      if (red_pill_mode)
+	{
+	  /* Allow continuation
+	   */
+	  char *msg =
+	    g_strdup_printf ("%s\n%s",
+			     dgettext ("hildon-common-strings",
+				       "sfil_ni_not_enough_memory"),
+			     _("ai_ni_continue_install"));
+	  ask_yes_no (msg, ip_maybe_continue, c);
+	  g_free (msg);
+	}
+      else
+	ip_abort_cur (c, dgettext ("hildon-common-strings",
+				   "sfil_ni_not_enough_memory"),
+		      false);
+    }
 }
 
 static void
@@ -786,25 +925,6 @@ ip_maybe_continue (bool res, void *data)
     ip_check_upgrade (c);
   else
     ip_install_next (c);
-}
-
-static void
-ip_close_apps (bool res, void *data)
-{
-  ip_clos *c = (ip_clos *)data;
-
-  if (res)
-    {
-      close_apps ();
-
-      /* Make sure we are done before continuing */
-      while (gtk_events_pending ())
-	gtk_main_iteration ();
-
-      ip_check_upgrade (c);
-    }
-  else
-    ip_end (c);
 }
 
 static void
@@ -971,8 +1091,6 @@ ip_install_cur (void *data)
   set_entertainment_main_title (title);
   g_free (title);
 
-  printf ("INSTALL %s %s\n", pi->name, c->alt_download_root);
-  
   set_log_start ();
   apt_worker_install_package (c->state, pi->name,
 			      c->alt_download_root,
@@ -1003,12 +1121,10 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
     {
       c->n_successful += 1;
 
-      if (pi->info.install_flags & pkgflag_flash_and_reboot)
-	c->flash_and_reboot = true;
-      if (pi->info.install_flags & pkgflag_reboot)
-	c->reboot = true;
-
-      ip_install_next (c);
+      if (package_needs_reboot (pi))
+	ip_reboot (c);
+      else
+	ip_install_next (c);
     }
   else
     {
@@ -1092,106 +1208,9 @@ ip_upgrade_all_confirm_response (bool res, void *data)
   ip_clos *c = (ip_clos *)data;
 
   if (res)
-    ip_check_required_reboot (c);
-  else
-    ip_end (c);
-}
-
-static void
-ip_check_required_reboot (void *data)
-{
-  ip_clos *c = (ip_clos *)data;
-  bool reboot_required = false;
-  GList *iter = NULL;
-
-  /* Check if reboot will be needed */
-  for (iter = c->packages; iter; iter = g_list_next (iter))
-    {
-      package_info *pi = (package_info *) iter->data;
-      if ((pi->info.install_flags & pkgflag_reboot)
-	  || (pi->info.install_flags & pkgflag_flash_and_reboot))
-	{
-	  reboot_required = true;
-	  break;
-	}
-    }
-
-  /* Shows dialog if needed */
-  if (reboot_required)
-    {
-      ask_yes_no_with_title (_("ai_ti_rebooting_required"),
-			     _("ai_ia_rebooting_required"),
-			     ip_check_required_reboot_response, data);
-    }
-  else
-    ip_ensure_network (c);
-}
-
-static void
-ip_check_required_reboot_response (bool res, void *data)
-{
-  ip_clos *c = (ip_clos *)data;
-
-  if (res)
     ip_ensure_network (c);
   else
     ip_end (c);
-}
-
-static gboolean
-ip_suggest_backup (ip_clos *c)
-{
-  GtkWidget *dialog = NULL;
-  gint result = G_MAXINT;
-  gboolean keep_asking = FALSE;
-
-  /* Show custom dialog if suggest_backup flag is present */
-  dialog = gtk_dialog_new_with_buttons
-    (_("ai_ti_create_backup"),
-     NULL,
-     GTK_DIALOG_MODAL,
-     _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
-     _("ai_bd_backup"), HAM_BACKUP_RESPONSE,
-     _("ai_bd_confirm_cancel"), GTK_RESPONSE_CANCEL,
-     NULL);
-  push_dialog (dialog);
-
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  GtkWidget *label = gtk_label_new (_("ai_ia_backup"));
-  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
-		     label);
-  gtk_widget_show_all (dialog);
-
-  /* Use gtk_dialog_run to block execution while the dialog is
-     not closed */
-  do
-    {
-      result = gtk_dialog_run (GTK_DIALOG (dialog));
-
-      keep_asking = FALSE;
-      if (result == HAM_BACKUP_RESPONSE)
-	{
-	  /* Launch osso-backup as a single instance */
-	  osso_context_t *osso_context = NULL;
-	  if (osso_context = get_osso_context ())
-	    {
-	      if (osso_application_top (osso_context,
-					"com.nokia.backup",
-					NULL) != OSSO_OK)
-		{
-		  what_the_fock_p ();
-		  add_log ("Could not launch backup application.\n");
-		}
-	    }
-	  keep_asking = TRUE;
-	}
-    } while (keep_asking);
-
-  pop_dialog (GTK_WIDGET (dialog));
-  gtk_widget_destroy (GTK_WIDGET (dialog));
-
-  return (result == GTK_RESPONSE_OK);
 }
 
 static void
@@ -1322,33 +1341,28 @@ ip_end (void *data)
   get_package_list (APTSTATE_DEFAULT);
   save_backup_data ();
 
-  if ((c->reboot || c->flash_and_reboot)
-      && c->install_type == INSTALL_TYPE_UPGRADE_ALL_PACKAGES)
-    annoy_user (_("ai_ni_updates_restart"),
-		ip_end_rebooting,
-		c);
-  else if (c->reboot || c->flash_and_reboot)
-    annoy_user (_("ai_ni_device_restart"),
-		ip_end_rebooting,
-		c);
-  else
-    ip_end_after_reboot (c);
-}
-
-static void
-ip_end_after_reboot (void *data)
-{
-  ip_clos *c = (ip_clos *)data;
-
   if (c->packages != NULL)
     g_list_free (c->packages);
 
   c->cont (c->n_successful, c->data);
+
+  g_free (c->title);
+  g_free (c->desc);
   delete c;
 }
 
 static void
-ip_end_rebooting (void *data)
+ip_reboot (void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  annoy_user (_("ai_cb_restarting_device"), NULL, NULL);
+    
+  g_timeout_add (2000, ip_reboot_now, c);
+}
+
+static gboolean
+ip_reboot_now (void *data)
 {
   ip_clos *c = (ip_clos *)data;
 
@@ -1357,7 +1371,9 @@ ip_end_rebooting (void *data)
      reboot normally if requested.
   */
 
-  if (c->flash_and_reboot)
+  package_info *pi = (package_info *)(c->cur->data);
+
+  if (pi->info.install_flags & pkgflag_flash_and_reboot)
     {
       char *argv[] = { "/usr/bin/flash-and-reboot", "--yes", NULL };
       run_cmd (argv, false, ip_flash_and_reboot_done, c);
@@ -1367,25 +1383,18 @@ ip_end_rebooting (void *data)
       /* Reboot the device */
       send_reboot_message ();
     }
+
+  return FALSE;
 }
 
 static void
 ip_flash_and_reboot_done (int status, void *data)
 { 
-  ip_clos *c = (ip_clos *)data;
-
-  /* The /usr/bin/flash-and-reboot program did not actually reboot.
+  /* The /usr/bin/flash-and-reboot program did not actually reboot,
+     let's do it ourselves.
    */
 
-  if (c->reboot)
-    send_reboot_message ();
-  else
-    {
-      if (red_pill_mode)
-	annoy_user (_("Flashing failed"), ip_end_after_reboot, c);
-      else
-	ip_end_after_reboot (c);
-    }
+  send_reboot_message ();
 }
 
 
