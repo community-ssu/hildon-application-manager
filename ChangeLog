@@ -94,7 +94,7 @@
 	(set_catalogues_and_refresh): New, for use instead of
 	refresh_package_cache when new catalogues should be set.
 
-	* src/dbus.cc (dbus_mime_open): Don't regocnize
+	* src/dbus.cc (dbus_mime_open): Don't recognize
 	"magic:update-system", don't call updated_system_flow.
 
 	* src/instr.cc (execute_card_install): Use
@@ -267,7 +267,7 @@
 2007-11-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.cc (rpcwu_reply): Call get_package_list_with_cont to
-	synchronize us with the new cache, stupid.
+	synchronize us with the new cache, stupid (N76683).
 
 	* src/update-notifier.c (setup_alarm): Always add new alarm, even
 	if deleting old alarm fails.
