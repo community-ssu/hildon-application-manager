@@ -1,7 +1,7 @@
 2007-11-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/settings.cc (show_settings_dialog_flow): Use English instead
-	of logical ids.  They are gone.
+	of logical ids.  They are gone.  (N76583)
 
 	* src/apt-worker-bin.cc (default_domain, DOMAIN_DEFAULT): Removed
 	former, hard coded default domain with latter.
