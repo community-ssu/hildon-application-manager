@@ -196,12 +196,13 @@ struct domain_info {
 
 xexp *domain_conf = NULL;
 domain_info *domains = NULL;
-int default_domain = -1;
 int domains_number = 0;
 
 #define DOMAIN_INVALID  -1
 #define DOMAIN_UNSIGNED  0
 #define DOMAIN_SIGNED    1 
+
+#define DOMAIN_DEFAULT DOMAIN_UNSIGNED
 
 static void
 read_domain_conf ()
@@ -229,8 +230,6 @@ read_domain_conf ()
   domains[1].trust_level = 1;
   domains[1].is_certified = false;
 
-  default_domain = 1;
-
   int i = 2;
   if (domain_conf)
     {
@@ -246,8 +245,6 @@ read_domain_conf ()
 	  domains[i].trust_level = xexp_aref_int (d, "trust-level", 2);
 	  domains[i].is_certified = xexp_aref_bool (d, "certified");
 	  domains[i].conf = d;
-	  if (xexp_aref_bool (d, "default"))
-	    default_domain = i;
 
 	  i += 1;
 	}
@@ -1382,7 +1379,7 @@ load_extra_info ()
   for (unsigned int i = 0; i < state->package_count; i++)
     {
       state->extra_info[i].autoinst = false;
-      state->extra_info[i].cur_domain = default_domain;
+      state->extra_info[i].cur_domain = DOMAIN_DEFAULT;
     }
 
   FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "r");
