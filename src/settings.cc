@@ -236,17 +236,16 @@ show_settings_dialog_flow ()
       GtkWidget *dialog;
       settings_closure *c = new settings_closure;
       
-      dialog = gtk_dialog_new_with_buttons (_("ai_ti_settings"),
+      dialog = gtk_dialog_new_with_buttons (_("Settings"),
 					    NULL,
 					    GTK_DIALOG_MODAL,
-					    _("ai_bd_settings_ok"),
+					    _("OK"),
 					    GTK_RESPONSE_OK,
-					    _("ai_bd_settings_cancel"),
+					    _("Cancel"),
 					    GTK_RESPONSE_CANCEL,
 					    NULL);
       push_dialog (dialog);
       gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-      set_dialog_help (dialog, AI_TOPIC ("settings"));
       
       gtk_box_pack_start (GTK_BOX (GTK_DIALOG(dialog)->vbox),
 			  make_settings_tab (c),
