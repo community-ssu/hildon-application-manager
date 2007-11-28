@@ -1329,6 +1329,9 @@ maybe_refresh_package_cache_without_user ()
   GConfClient *conf;
   int last_update, interval;
 
+  if (!is_idle ())
+    return;
+
   conf = gconf_client_get_default ();
 
   last_update = gconf_client_get_int (conf,
