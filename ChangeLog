@@ -1,5 +1,8 @@
 2007-11-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/repo.cc (cat_text_func): Use "ai_ia_failed_catalogue"
+	instead of "ai_ti_failed_catalogue".
+
 	* src/update-notifier.c (timout_id, blinking_timeout_id): Renamed
 	former to latter for extra clarity.
 	(setup_alarm): Return whether the alarm has been set.

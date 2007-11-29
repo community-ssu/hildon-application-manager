@@ -496,7 +496,7 @@ cat_text_func (GtkTreeViewColumn *column,
     {
       full_name = g_strdup_printf("%s - %s",
 				  c->name,
-				  _("ai_ti_failed_catalogue"));
+				  _("ai_ia_failed_catalogue"));
     }
   else
     full_name = g_strdup (c->name);
