@@ -4684,31 +4684,10 @@ cmd_save_backup_data ()
 
 /* MANAGEMENT FOR FAILED CATALOGUES LOG FILE */
 
-static int
-compare_failed_catalogues (xexp *cat1, xexp *cat2)
-{
-  xexp *errors = xexp_aref (cat1, "errors");
-
-  /* Regardless of the second catalogue having got errors, if the
-     first one has got, show it after the second one */
-  if (errors != NULL && xexp_first (errors) != NULL)
-    return 1;
-
-  /* If no errors were found, leave the order as is */
-  return -1;
-}
-
 static void
 save_failed_catalogues (xexp *failed_catalogues)
 {
-  if (failed_catalogues)
-    {
-      xexp *sorted_catalogues =
-	xexp_list_sort (failed_catalogues, compare_failed_catalogues);
-
-      if (sorted_catalogues)
-	xexp_write_file (FAILED_CATALOGUES_FILE, sorted_catalogues);
-    }
+  xexp_write_file (FAILED_CATALOGUES_FILE, failed_catalogues);
 }
 
 static xexp *

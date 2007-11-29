@@ -672,6 +672,45 @@ reset_cat_list (cat_dialog_closure *c)
   c->selected_cat = NULL;
 }
 
+static bool
+cat_has_errors (xexp *cat)
+{
+  xexp *errors = (xexp_is (cat, "catalogue")
+		  ? xexp_aref (cat, "errors")
+		  : NULL);
+
+  return errors != NULL && xexp_first (errors) != NULL;
+}
+
+static int
+cat_compare (xexp *cat1, xexp *cat2)
+{
+  int w1 = (xexp_is (cat1, "catalogue")
+	    ? xexp_aref_int (cat1, "sort-weight", 0)
+	    : -2000);
+  int w2 = (xexp_is (cat2, "catalogue")
+	    ? xexp_aref_int (cat2, "sort-weight", 0)
+	    : -2000);
+
+  if (cat_has_errors (cat1))
+    w1 -= 1000;
+
+  if (cat_has_errors (cat2))
+    w2 -= 1000;
+
+  if (w1 > w2)
+    return -1;
+  else if (w1 == w2)
+    {
+      const char *n1 = catalogue_name (cat1);
+      const char *n2 = catalogue_name (cat2);
+      
+      return strcmp (n1, n2);
+    }
+  else
+    return 1;
+}
+
 static void
 set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
 {
@@ -679,27 +718,23 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
   catcache **catptr = &c->caches;
   GtkTreePath *path_to_select = NULL;
 
- /* Retrieve path to select if needed (used inside the loop) */
- if (iter_to_select)
-   {
-     path_to_select = gtk_tree_model_get_path (GTK_TREE_MODEL (c->store),
-					       iter_to_select);
-   }
+  xexp_list_sort (c->catalogues_xexp, cat_compare);
+
+  /* Retrieve path to select if needed (used inside the loop) */
+  if (iter_to_select)
+    {
+      path_to_select = gtk_tree_model_get_path (GTK_TREE_MODEL (c->store),
+						iter_to_select);
+    }
 
   /* If it exists, clear previous list store */
- if (c->store)
+  if (c->store)
     gtk_list_store_clear (c->store);
 
   for (xexp *catx = xexp_first (c->catalogues_xexp); catx;
        catx = xexp_rest (catx))
     {
-      xexp *errors = (xexp_is (catx, "catalogue")
-		      ? xexp_aref (catx, "errors")
-		      : NULL);
-
-      if (c->show_only_errors
-	  && (errors == NULL
-	      || xexp_first (errors) == NULL))
+      if (c->show_only_errors && !cat_has_errors (catx))
 	continue;
 
       catcache *cat = make_catcache_from_xexp (c, catx);
