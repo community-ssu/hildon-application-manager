@@ -1,3 +1,14 @@
+2007-11-29  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/update-notifier.c (timout_id, blinking_timeout_id): Renamed
+	former to latter for extra clarity.
+	(setup_alarm): Return whether the alarm has been set.
+	(setup_alarm_now): New, to be used as a timeout callback.
+	(update_notifier_init): Call it after one minute.  The alarm
+	framework should be ready to use by then.
+	(update_notifier_finalize): Remove alarm_init and blinking timeout
+	sources.
+
 2007-11-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/settings.cc (show_settings_dialog_flow): Use English instead

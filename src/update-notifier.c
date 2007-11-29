@@ -67,7 +67,8 @@ struct _UpdateNotifierPrivate
   gint button_pressed_handler_id;
   gint open_ham_item_activated_handler_id;
 
-  guint timeout_id;
+  guint blinking_timeout_id;
+  guint alarm_init_timeout_id;
 
   GConfClient *gconf;
   guint *gconf_notifications;
@@ -103,7 +104,7 @@ static void setup_dbus (UpdateNotifier *upno);
 
 static gchar *get_http_proxy ();
 static void setup_inotify (UpdateNotifier *upno);
-static void setup_alarm (UpdateNotifier *upno);
+static gboolean setup_alarm (UpdateNotifier *upno);
 
 static void update_icon_visibility (UpdateNotifier *upno, GConfValue *value);
 static void update_state (UpdateNotifier *upno);
@@ -125,6 +126,23 @@ update_notifier_class_init (UpdateNotifierClass *klass)
   object_class->finalize = update_notifier_finalize;
 
   g_type_class_add_private (object_class, sizeof (UpdateNotifierPrivate));
+}
+
+static gboolean
+setup_alarm_now (gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  if (setup_alarm (upno))
+    {
+      priv->alarm_init_timeout_id = 0;
+      return FALSE;
+    }
+
+  /* Try again in one minute.
+   */
+  return TRUE;
 }
 
 static void
@@ -163,12 +181,19 @@ update_notifier_init (UpdateNotifier *upno)
 
   setup_dbus (upno);
   setup_inotify (upno);
-  setup_alarm (upno);
 
   update_icon_visibility (upno, gconf_client_get (priv->gconf,
 						  UPNO_GCONF_STATE,
 						  NULL));
   update_state (upno);
+
+  /* We only setup the alarm after a one minute pause since the alarm
+     daemon is not yet running when the plugins are loaded after boot.
+     It is arguably a bug in the alarm framework that the daemon needs
+     to be running to access and modify the alarm queue.
+  */
+  priv->alarm_init_timeout_id =
+    g_timeout_add (60*1000, setup_alarm_now, upno);
 }
 
 static void
@@ -183,6 +208,12 @@ update_notifier_finalize (GObject *object)
 
   if (priv->static_pic)
     g_object_unref (priv->static_pic);
+
+  if (priv->blinking_timeout_id > 0)
+    g_source_remove (priv->blinking_timeout_id);
+
+  if (priv->alarm_init_timeout_id > 0)
+    g_source_remove (priv->alarm_init_timeout_id);
 
   /* Clean up stuff */
   cleanup_alarm (upno);
@@ -349,16 +380,16 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 #else
   if (state == UPNO_ICON_BLINKING)
     {
-      if (priv->timeout_id == 0)
-	priv->timeout_id = g_timeout_add (500, blink_icon, upno);
+      if (priv->blinking_timeout_id == 0)
+	priv->blinking_timeout_id = g_timeout_add (500, blink_icon, upno);
     }
   else
     {
       gtk_widget_show (priv->blinkifier);
-      if (priv->timeout_id > 0)
+      if (priv->blinking_timeout_id > 0)
 	{
-	  g_source_remove (priv->timeout_id);
-	  priv->timeout_id = 0;
+	  g_source_remove (priv->blinking_timeout_id);
+	  priv->blinking_timeout_id = 0;
 	}
     }
 #endif
@@ -803,6 +834,10 @@ search_and_delete_all_alarms (void)
   cookie_t *cookies = NULL;
  
   cookies = alarm_event_query (first, last, 0, 0);
+
+  if (cookies == NULL)
+    return;
+
   for (i = 0; cookies[i] != 0; i++)
     {
       alarm_event_t *alarm = alarm_event_get (cookies[i]);
@@ -816,7 +851,7 @@ search_and_delete_all_alarms (void)
   g_free (cookies);
 }
 
-static void
+static gboolean
 setup_alarm (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
@@ -871,6 +906,7 @@ setup_alarm (UpdateNotifier *upno)
       new_alarm.alarm_time = old_alarm->alarm_time;
       new_alarm.recurrence = old_alarm->recurrence;
     }
+
   alarm_event_free (old_alarm);
 
   /* Setup the rest.
@@ -903,6 +939,8 @@ setup_alarm (UpdateNotifier *upno)
 			UPNO_GCONF_ALARM_COOKIE,
 			alarm_cookie,
 			NULL);
+
+  return alarm_cookie > 0;
 }
 
 static void
