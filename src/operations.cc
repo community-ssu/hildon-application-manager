@@ -783,7 +783,7 @@ ip_warn_about_reboot (ip_clos *c)
   GtkWidget *dialog = NULL;
 
   dialog = gtk_dialog_new_with_buttons
-    (_("ai_ti_create_backup"),
+    (_("ai_ti_operating_system_update"),
      NULL,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,

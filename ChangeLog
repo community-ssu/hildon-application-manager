@@ -1,7 +1,12 @@
+2007-11-30  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/operations.cc (ip_warn_about_reboot): Use
+	ai_ti_operating_system_update as the title.
+
 2007-11-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/repo.cc (cat_has_errors, cat_compare): New.
-	(set_cat_list): Use them to sort the catalogues befopre
+	(set_cat_list): Use them to sort the catalogues before
 	displaying (N76651).
 
 	* src/apt-worker-bin.cc (save_failed_catalogues): Do not sort
