@@ -15,7 +15,7 @@
 	(compare_failed_catalogues): Removed.
 
 	* src/repo.cc (cat_text_func): Use "ai_ia_failed_catalogue"
-	instead of "ai_ti_failed_catalogue".
+	instead of "ai_ti_failed_catalogue" (N76642).
 
 	* src/update-notifier.c (timout_id, blinking_timeout_id): Renamed
 	former to latter for extra clarity.
@@ -34,7 +34,8 @@
 	* src/apt-worker-bin.cc (default_domain, DOMAIN_DEFAULT): Removed
 	former, hard coded default domain with latter.
 	(read_domain_conf): Don't set default_domain.
-	(load_extra_info): Use DOMAIN_DEFAULT instead of default_domain.
+	(load_extra_info): Use DOMAIN_DEFAULT instead of
+	default_domain (N76680).
 
 	* src/main.cc (maybe_refresh_package_cache_without_user): Return
 	silently when we are not idle.
