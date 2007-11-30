@@ -1,7 +1,8 @@
 2007-11-30  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc (ip_warn_about_reboot): Use
-	ai_ti_operating_system_update as the title.
+	ai_ti_operating_system_update as the title and ai_bd_create_backup
+	for the backup button.
 
 2007-11-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
@@ -45,7 +46,8 @@
 	user about closing apps, taking a backup and rebooting.  Check
 	domain violations for each installation and not only once upfront
 	for all.  Reget installable_status etc immediately before
-	installation.
+	installation.  Get package info as the first thing so that all
+	confirmation dialogs are correct (N76639).
 	
 2007-11-28  Mario Sanchez Prada  <msanchez@maemo.org>
 
