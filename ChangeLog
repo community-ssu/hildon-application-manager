@@ -2,7 +2,7 @@
 
 	* src/repo.cc (cat_has_errors, cat_compare): New.
 	(set_cat_list): Use them to sort the catalogues befopre
-	displaying.
+	displaying (N76651).
 
 	* src/apt-worker-bin.cc (save_failed_catalogues): Do not sort
 	catalogues here, it is now done when displaying them.
