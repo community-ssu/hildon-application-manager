@@ -42,6 +42,8 @@
 #define HILDON_APP_MGR_SERVICE "com.nokia.hildon_application_manager"
 #define HILDON_APP_MGR_OBJECT_PATH "/com/nokia/hildon_application_manager"
 #define HILDON_APP_MGR_INTERFACE "com.nokia.hildon_application_manager"
+#define HILDON_APP_MGR_OP_CHECK_UPDATES "check_for_updates"
+#define HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES "show_check_for_updates_view"
 
 #define SEEN_UPDATES_FILE  ".hildon-application-manager-seen-updates"
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"

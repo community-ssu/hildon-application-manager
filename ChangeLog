@@ -1,3 +1,12 @@
+2007-12-03  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.h, src/update-notifier.h
+	(HILDON_APP_MGR_OP_CHECK_UPDATES): New define to avoid using the
+	same define for different DBus services from hildon-app-mgr and
+	the update notifier. Updated callers.
+	(HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES): New define to remove
+	hardcoded string from code. Updated callers.
+
 2007-11-30  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc (ip_warn_about_reboot): Use

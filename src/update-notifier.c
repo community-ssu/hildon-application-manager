@@ -592,7 +592,7 @@ show_check_for_updates_view (UpdateNotifier *upno)
       msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
 					  HILDON_APP_MGR_OBJECT_PATH,
 					  HILDON_APP_MGR_INTERFACE,
-					  "show_check_for_updates_view");
+					  HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES);
       if (msg)
 	{
 	  dbus_connection_send (priv->dbus, msg, NULL);
@@ -627,7 +627,7 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 	  msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
 					      HILDON_APP_MGR_OBJECT_PATH,
 					      HILDON_APP_MGR_INTERFACE,
-					      UPDATE_NOTIFIER_OP_CHECK_UPDATES);
+					      HILDON_APP_MGR_OP_CHECK_UPDATES);
 	  if (msg)
 	    {
 	      dbus_message_set_auto_start (msg, FALSE);
