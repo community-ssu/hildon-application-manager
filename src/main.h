@@ -38,6 +38,16 @@ enum detail_kind {
   remove_details = 2
 };
 
+enum view_id {
+  NO_VIEW = 0,
+  MAIN_VIEW,
+  INSTALL_APPLICATIONS_VIEW,
+  UPGRADE_APPLICATIONS_VIEW,
+  UNINSTALL_APPLICATIONS_VIEW,
+  INSTALL_SECTION_VIEW,
+  SEARCH_RESULTS_VIEW
+};
+
 struct package_info {
 
   package_info ();
@@ -77,6 +87,8 @@ struct package_info {
 
   const char *get_display_name (bool installed);
 };
+
+view_id get_current_view_id ();
 
 void get_intermediate_package_info (package_info *pi,
 				    bool only_installable_info,

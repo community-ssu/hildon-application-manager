@@ -110,6 +110,7 @@ static void update_icon_visibility (UpdateNotifier *upno, GConfValue *value);
 static void update_state (UpdateNotifier *upno);
 
 static void show_check_for_updates_view (UpdateNotifier *upno);
+static gboolean showing_check_for_updates_view (UpdateNotifier *upno);
 static void check_for_updates (UpdateNotifier *upno);
 
 static void cleanup_gconf (UpdateNotifier *upno);
@@ -470,7 +471,9 @@ update_state (UpdateNotifier *upno)
   xexp_free (available_updates);
   xexp_free (seen_updates);
 
-  if (n_new > 0)
+  /* Show the icon (blinking) if there are new updates and if the
+     'check for udpates' view is not being shown in HAM */
+  if ((n_new > 0) && !showing_check_for_updates_view (upno))
     {
       if (priv->icon_state == UPNO_ICON_INVISIBLE)
 	set_icon_visibility (upno, UPNO_ICON_BLINKING);
@@ -599,6 +602,56 @@ show_check_for_updates_view (UpdateNotifier *upno)
 	  dbus_message_unref (msg);
 	}
     }
+}
+
+static gboolean
+showing_check_for_updates_view (UpdateNotifier *upno)
+{
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  DBusMessage     *msg;
+  gboolean showing_view = FALSE;
+
+  if (priv->dbus)
+    {
+      msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
+					  HILDON_APP_MGR_OBJECT_PATH,
+					  HILDON_APP_MGR_INTERFACE,
+					  HILDON_APP_MGR_OP_SHOWING_CHECK_FOR_UPDATES);
+      if (msg)
+	{
+	  DBusError error;
+	  DBusMessage *reply;
+	  DBusMessageIter iter;
+	  DBusPendingCall *pending;
+
+	  /* Send message to HAM */
+	  dbus_error_init (&error);
+	  reply = dbus_connection_send_with_reply_and_block (priv->dbus, msg,
+							     5000, &error);
+	  /* Check for errors */
+	  if (dbus_error_is_set (&error))
+	    {
+	      fprintf (stderr, "Dbus error: %s\n",
+		       error.message);
+	      dbus_error_free (&error);
+	    }
+	  else
+	    {
+	      /* Check boolean value from reply */
+	      dbus_message_iter_init (reply, &iter);
+	      if (dbus_message_iter_get_arg_type (&iter) == DBUS_TYPE_BOOLEAN)
+		dbus_message_iter_get_basic (&iter, &showing_view);
+	    }
+
+	  /* Free memory */
+	  dbus_message_unref (msg);
+	  if (reply)
+	    dbus_message_unref (reply);
+	}
+    }
+
+  return showing_view;
 }
 
 static void

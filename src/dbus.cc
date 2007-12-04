@@ -381,6 +381,29 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 
   if (dbus_message_is_method_call (message,
 				   "com.nokia.hildon_application_manager",
+				   "showing_check_for_updates_view"))
+    {
+      DBusMessage *reply;
+      gboolean showing_view = FALSE;
+
+      /* Check if 'check for updates' view is being shown */
+      if (get_current_view_id () == UPGRADE_APPLICATIONS_VIEW)
+	showing_view = TRUE;
+
+      /* Build reply message with the required boolean value */
+      reply = dbus_message_new_method_return (message);
+      dbus_message_append_args (reply,
+				DBUS_TYPE_BOOLEAN , &showing_view,
+				DBUS_TYPE_INVALID);
+
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
+
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_application_manager",
 				   "check_for_updates"))
     {
       DBusMessage *reply;

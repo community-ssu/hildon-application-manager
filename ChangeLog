@@ -1,3 +1,32 @@
+2007-12-04  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier-conf.h
+	(HILDON_APP_MGR_OP_SHOWING_CHECK_FOR_UPDATES): New define for a
+	new DBus method added to the hildon-application-manager (N76711).
+
+	* src/update-notifier.c (showing_check_for_updates_view): New
+	function. It uses the new Dbus method in HAM to asks if the 'check
+	for updates' view is currently being shown (N76711).
+	(update_state): While checking if there are new updates available,
+	also check if the 'check for udpates' view is not being shown in
+	HAM before setting the plugin in its blinking state (N76711).
+
+	* src/dbus.cc (dbus_handler): Check if the new Dbus message is
+	received. If so, check if the 'check for updates' view is being
+	shown and add the result to the reply message (N76711).
+
+	* src/main.h (enum view_id): New enumeration to store an ID for
+	each view. Created to easily check if the 'check for updates' view
+	is being currently shown (N76711).
+
+	* src/main.h, src/main.cc (get_current_view_id): New function that
+	returns the ID of the current view (N76711).
+
+	* src/main.cc (struct view): Added a new field ('id') to store the
+	ID of each available view (N76711). Added the proper values to
+	each global variable used: main_view, install_applications_view,
+	upgrade_applications_view... and so on (N77611).
+
 2007-12-03  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.h, src/update-notifier.h
