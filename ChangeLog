@@ -1,3 +1,25 @@
+2007-12-05  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* utils/maemo-select-menu-location-main.c
+	(parent_window, dialog_stack): New global variables to manage
+	modal dialogs shown by this utility program (N77198).
+	(dialog_realized): If it's the main dialog, set the transient hint
+	regarding to the application manager window. Otherwise, set the
+	transient hint regarding to its parent window. (N77198).
+	(dialog_exposed): Only raise the window to the top of the X stack
+	if it's the topmost one (N77198).
+	(push_dialog): Take care of the needed logic to manage a new
+	dialog that is being shown in top of another one (N77198).
+	(pop_dialog): Take care of updating the new global variables
+	regarding to the dialogs management (N77198).
+	(run_move_to_dialog): Use push_dialog() and pop_dialog()
+	functions. Set the default response for the dialog (N77198).
+	(selection_location_response): Call to pop_dialog() when
+	destroying the dialog (N77198).
+	(run_select_location_dialog): Call to push_dialog() when showing
+	the main dialog. Connections for "realize" and "expose-event"
+	signals moved to push_dialog() (N77198).
+
 2007-12-04  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier-conf.h

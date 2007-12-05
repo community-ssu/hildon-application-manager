@@ -211,14 +211,41 @@ find_application_manager_window ()
   return find_window ("hildon-application-manager", 2);
 }
 
+static GtkWidget *parent_window = NULL;
+static GSList *dialog_stack = NULL;
+
+static void
+dialog_realized (GtkWidget *dialog, gpointer data)
+{
+  GdkWindow *win = dialog->window;
+  if (parent_window != NULL)
+    {
+      GdkWindow *parent_win = parent_window->window;
+
+      XSetTransientForHint (GDK_WINDOW_XDISPLAY (win),
+			    GDK_WINDOW_XID (win),
+			    GDK_WINDOW_XID (parent_win));
+    }
+  else
+    {
+      /* This happens only for the main dialog  */
+      Window ai_win = find_application_manager_window ();
+
+      if (ai_win)
+	XSetTransientForHint (GDK_WINDOW_XDISPLAY (win), GDK_WINDOW_XID (win),
+			      ai_win);
+    }
+}
+
 static void
 dialog_exposed (GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
   GdkWindow *win  = widget->window;
   GtkWidget *child = NULL;
 
-  /* Raise this window to the top of the X stack */
-  gdk_window_set_keep_above (win, TRUE);
+  /* Raise this window to the top of the X stack if it's the topmost one */
+  if (dialog_stack == NULL || dialog_stack->data == widget)
+    gdk_window_set_keep_above (win, TRUE);
 
   /* Progate expose event to children */
   child = gtk_bin_get_child (GTK_BIN (widget));
@@ -230,25 +257,40 @@ dialog_exposed (GtkWidget *widget, GdkEventExpose *event, gpointer data)
     }
 }
 
-static void
-dialog_realized (GtkWidget *widget, gpointer data)
+void
+push_dialog (GtkWidget *dialog)
 {
-  GdkWindow *win = widget->window;
-  Window ai_win = find_application_manager_window ();
-  
-  if (ai_win)
-    XSetTransientForHint (GDK_WINDOW_XDISPLAY (win), GDK_WINDOW_XID (win),
-			  ai_win);
+  gtk_window_set_modal (GTK_WINDOW (dialog), parent_window == NULL);
+
+  if (dialog_stack)
+    {
+      gtk_window_set_transient_for (GTK_WINDOW (dialog),
+				    GTK_WINDOW (dialog_stack->data));
+    }
+
+  g_signal_connect (dialog, "realize",
+		    G_CALLBACK (dialog_realized), NULL);
+
+  g_signal_connect (dialog, "expose-event",
+		    G_CALLBACK (dialog_exposed), NULL);
+
+  dialog_stack = g_slist_prepend (dialog_stack, dialog);
 }
 
-/* find_string walks the part of tree model descending from PARENT
-   looking for a node with a string in column COLUMN that matches
-   WANTED.  When it finds such a node, RESULT is pointed to it and
-   find_string returns TRUE.  Otherwise, find_String returns FALSE and
-   RESULT is invalid.
+void
+pop_dialog (GtkWidget *dialog)
+{
+  g_assert (dialog_stack && dialog_stack->data == dialog);
 
-   When PARENT is NULL, find_string starts at the root.
-*/
+  {
+    GSList *old = dialog_stack;
+    dialog_stack = dialog_stack->next;
+    g_slist_free_1 (old);
+  }
+
+  if (dialog_stack == NULL || dialog_stack->next == NULL)
+    parent_window = NULL;
+}
 
 static gboolean
 find_string (GtkTreeIter *result,
@@ -407,9 +449,11 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
 					GTK_RESPONSE_OK,
 					NULL);
 
+  gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
+
   box = gtk_hbox_new (TRUE, 12);
   treeview = make_folder_tree_view (model);
-	
+
   scroller = gtk_scrolled_window_new (NULL, NULL);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(scroller),
 				  GTK_POLICY_AUTOMATIC,
@@ -421,6 +465,9 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
   gtk_box_pack_start (GTK_BOX (box), scroller, FALSE, TRUE, 0);
   gtk_container_add (GTK_CONTAINER(scroller), treeview);
 
+  parent_window = GTK_WIDGET (parent);
+  push_dialog (dialog);
+
   gtk_widget_show_all (dialog);
   gtk_dialog_run (GTK_DIALOG (dialog));
 
@@ -431,6 +478,8 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
 			-1);
 
   gtk_widget_destroy (dialog);
+  pop_dialog (dialog);
+
   return dest;
 }
 
@@ -491,7 +540,7 @@ change_folder (sml_closure *c)
   if (find_desktop_id (&entry_iter, c->desktop_id, c->model, NULL))
     {
       gchar *dest;
-      dest = run_move_to_dialog (GTK_WINDOW (c->dialog), 
+      dest = run_move_to_dialog (GTK_WINDOW (c->dialog),
 				 _fm_("ckdg_ti_change_folder"),
 				 c->model);
       if (dest)
@@ -523,7 +572,10 @@ selection_location_response (GtkDialog *dialog, int response, gpointer data)
     {
       set_menu_contents (c->model);
       g_free (c);
+
       gtk_widget_destroy (GTK_WIDGET (dialog));
+      pop_dialog (dialog);
+
       gtk_main_quit ();
     }
 }
@@ -552,12 +604,6 @@ run_select_location_dialog (GtkTreeModel *model,
      _ai_("ai_bd_select_location_ok"), GTK_RESPONSE_OK,
      _ai_("ai_bd_select_location_change_folder"), RESPONSE_CHANGE_FOLDER,
      NULL);
-
-  g_signal_connect (c->dialog, "realize",
-		    G_CALLBACK (dialog_realized), NULL);
-
-  g_signal_connect (c->dialog, "expose-event",
-		    G_CALLBACK (dialog_exposed), NULL);
 
   vbox = GTK_DIALOG (c->dialog)->vbox;
 
@@ -632,6 +678,10 @@ run_select_location_dialog (GtkTreeModel *model,
 		    G_CALLBACK (selection_location_response), c);
 
   update_select_location_dialog (c);
+
+  parent_window = NULL;
+  push_dialog (c->dialog);
+
   gtk_widget_show_all (c->dialog);
   gtk_main ();
 }
