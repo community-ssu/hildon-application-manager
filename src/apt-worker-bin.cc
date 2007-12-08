@@ -1687,16 +1687,13 @@ mark_related (pkgCache::PkgIterator &pkg)
 /* Revert the cache to its initial state.  More concretely, all
    packages are marked as 'keep' and 'unrelated'.
 
-   The effect on the cache should be the same as calling
-   pkgDebCache::Init, but much faster.
+   XXX - let libapt-pkg handle the auto flags.
 */
 void
 cache_reset_package (pkgCache::PkgIterator &pkg)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
-
-  cache.MarkKeep (pkg);
 
   if (state->extra_info[pkg->ID].autoinst)
     cache[pkg].Flags |= pkgCache::Flag::Auto;
@@ -1715,10 +1712,11 @@ cache_reset ()
 
   pkgDepCache &cache = *(state->cache);
 
+  cache.Init (NULL);
+
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     cache_reset_package (pkg);
 }
-
 /* Determine whether PKG replaces TARGET.
  */
 static bool

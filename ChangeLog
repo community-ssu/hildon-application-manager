@@ -1,3 +1,9 @@
+2007-12-09  Marius Vollmer  <mvo@zagadka.de>
+
+	* src/apt-worker-bin.cc (cache_reset_package): Don't call MarkKeep
+	here, it got really slow with libapt-pkg 0.7.6.
+	(cache_reset): Call pkgDepCache::Init here instead.
+
 2007-12-05  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* utils/maemo-select-menu-location-main.c
