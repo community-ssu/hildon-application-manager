@@ -986,17 +986,13 @@ start_entertaining_user ()
 	  gtk_box_pack_start (GTK_BOX (box), entertainment.sub_label, TRUE, TRUE, 0);
 	}
 
-      /* Cancel button: add to active area and set default response */
+      /* Cancel button: add to action area and set default response */
       entertainment.cancel_button =
 	gtk_dialog_add_button (GTK_DIALOG (entertainment.dialog),
 			       dgettext("hildon-libs",
 					"ecdg_bd_confirmation_note_cancel"),
 			       GTK_RESPONSE_CANCEL);
-
-      gtk_dialog_add_action_widget (GTK_DIALOG (entertainment.dialog),
-				    entertainment.cancel_button,
-				    GTK_RESPONSE_CANCEL);
-
+ 
       gtk_dialog_set_default_response (GTK_DIALOG (entertainment.dialog),
 				       GTK_RESPONSE_CANCEL);
 
