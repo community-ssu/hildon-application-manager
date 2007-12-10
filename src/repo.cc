@@ -106,7 +106,9 @@ pill_response (GtkDialog *dialog, gint response, gpointer unused)
     {
       red_pill_mode = (response == GTK_RESPONSE_YES);
       save_settings ();
-      get_package_list (APTSTATE_DEFAULT);
+
+      if (red_pill_show_all || red_pill_show_magic_sys)
+	get_package_list (APTSTATE_DEFAULT);
     }
 }
 

@@ -137,22 +137,29 @@ save_settings ()
     }
 }
 
-#define MAX_BOOLEAN_OPTIONS 10
+enum boolean_options {
+  OPT_CLEAN_AFTER_INSTALL,
+  OPT_ASSUME_CONNECTION,
+  OPT_BREAK_LOCKS,
+  OPT_SHOW_DEPS,
+  OPT_SHOW_ALL,
+  OPT_SHOW_MAGIC_SYS,
+  OPT_INCLUDE_DETAILS_IN_LOG,
+  OPT_DOWNLOAD_PACKAGES_TO_MMC,
+  NUM_BOOLEAN_OPTIONS
+};
 
 struct settings_closure {
   GtkWidget *update_combo;
 
-  int n_booleans;
-  GtkWidget *boolean_btn[MAX_BOOLEAN_OPTIONS];
-  bool *boolean_var[MAX_BOOLEAN_OPTIONS];
-
-  settings_closure () { n_booleans = 0; }
+  GtkWidget *boolean_btn[NUM_BOOLEAN_OPTIONS];
+  bool *boolean_var[NUM_BOOLEAN_OPTIONS];
 };
 
 static void
 make_boolean_option (settings_closure *c, 
 		     GtkWidget *box, GtkSizeGroup *group,
-		     const char *text, bool *var)
+		     const int id, const char *text, bool *var)
 {
   GtkWidget *caption, *btn;
 
@@ -162,12 +169,11 @@ make_boolean_option (settings_closure *c,
 				NULL, HILDON_CAPTION_OPTIONAL);
   gtk_box_pack_start (GTK_BOX (box), caption, FALSE, FALSE, 0);
 
-  int i = c->n_booleans++;
-  if (c->n_booleans > MAX_BOOLEAN_OPTIONS)
+  if (id > NUM_BOOLEAN_OPTIONS)
     abort ();
 
-  c->boolean_btn[i] = btn;
-  c->boolean_var[i] = var;
+  c->boolean_btn[id] = btn;
+  c->boolean_var[id] = var;
 }
 
 static GtkWidget *
@@ -180,23 +186,23 @@ make_settings_tab (settings_closure *c)
 
   vbox = gtk_vbox_new (FALSE, 0);
 
-  make_boolean_option (c, vbox, group,
+  make_boolean_option (c, vbox, group, OPT_CLEAN_AFTER_INSTALL,
 		       "Clean apt cache", &clean_after_install);
-  make_boolean_option (c, vbox, group,
+  make_boolean_option (c, vbox, group, OPT_ASSUME_CONNECTION,
 		       "Assume net connection", &assume_connection);
-  make_boolean_option (c, vbox, group,
+  make_boolean_option (c, vbox, group, OPT_BREAK_LOCKS,
 		       "Break locks", &break_locks);
-  make_boolean_option (c, vbox, group,
+  make_boolean_option (c, vbox, group, OPT_SHOW_DEPS,
 		       "Show dependencies", &red_pill_show_deps);
-  make_boolean_option (c, vbox, group,
+  make_boolean_option (c, vbox, group, OPT_SHOW_ALL,
 		       "Show all packages", &red_pill_show_all);
-  make_boolean_option (c, vbox, group,
+  make_boolean_option (c, vbox, group, OPT_SHOW_MAGIC_SYS,
 		       "Show magic system package",
 		       &red_pill_show_magic_sys);
-  make_boolean_option (c, vbox, group,
+  make_boolean_option (c, vbox, group, OPT_INCLUDE_DETAILS_IN_LOG,
 		       "Include package details in log",
 		       &red_pill_include_details_in_log);
-  make_boolean_option (c, vbox, group,
+  make_boolean_option (c, vbox, group, OPT_DOWNLOAD_PACKAGES_TO_MMC,
 		       "Use MMC to download packages",
 		       &download_packages_to_mmc);
   g_object_unref (group);
@@ -208,15 +214,27 @@ static void
 settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
 {
   settings_closure *c = (settings_closure *)clos;
+  bool needs_refresh = false;
 
   if (response == GTK_RESPONSE_OK)
     {
-      for (int i = 0; i < c->n_booleans; i++)
-	*(c->boolean_var[i]) =
-	  gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (c->boolean_btn[i]));
+      for (int i = 0; i < NUM_BOOLEAN_OPTIONS; i++)
+	{
+	  gboolean current_value =
+	    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (c->boolean_btn[i]));
+
+	  if ((i == OPT_SHOW_ALL || i == OPT_SHOW_MAGIC_SYS) &&
+	      *(c->boolean_var[i]) != current_value)
+	    {
+	      needs_refresh = true;
+	    }
+
+	  *(c->boolean_var[i]) = current_value;
+	}
 
       save_settings ();
-      if (red_pill_mode)
+
+      if (needs_refresh)
 	get_package_list (APTSTATE_DEFAULT);
     }
 

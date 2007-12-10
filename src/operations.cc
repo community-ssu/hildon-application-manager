@@ -193,7 +193,7 @@ installable_status_to_message (package_info *pi,
 
    At the end:
 
-   1. Refresh the lists of packages.
+   1. Refresh the lists of packages, if needed.
 */
 
 struct ip_clos {
@@ -216,6 +216,7 @@ struct ip_clos {
 
   // at the end
   bool entertaining;        // is the progress bar up?
+  bool refresh_needed;      // a package list refresh would be needed
   int n_successful;         // how many have been installed successfully
   
   void (*cont) (int n_successful, void *);
@@ -313,6 +314,7 @@ install_packages (GList *packages,
   c->upgrade_versions = NULL;
   c->n_successful = 0;
   c->entertaining = false;
+  c->refresh_needed = false;
 
   get_intermediate_package_list_info (packages,
 				      true,
@@ -1119,6 +1121,7 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (result_code == rescode_success)
     {
+      c->refresh_needed = true;
       c->n_successful += 1;
 
       if (package_needs_reboot (pi))
@@ -1338,7 +1341,9 @@ ip_end (void *data)
   if (c->entertaining)
     stop_entertaining_user ();
 
-  get_package_list (APTSTATE_DEFAULT);
+  if (c->refresh_needed)
+    get_package_list (APTSTATE_DEFAULT);
+
   save_backup_data ();
 
   if (c->packages != NULL)

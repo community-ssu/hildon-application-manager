@@ -1,3 +1,31 @@
+2007-12-10  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/settings.cc (enum boolean_options): New enumeration with the
+	list of boolean options available, to easily access to the related
+	widgets and values.
+	(MAX_BOOLEAN_OPTIONS): Removed. Instead of this use the last value
+	of the new enumeration added: NUM_BOOLEAN_OPTIONS.
+	(struct settings_closure): Removed field n_booleans and the
+	settings_closure() function, since they're not needed anymore.
+	(make_boolean_option): Added a new parameter: the ID of the
+	boolean option, taken from the new enumeration. Changed internal
+	code according to this modification.
+	(make_settings_tab): Use the parameter in make_boolean_option().
+	(settings_dialog_response): Check if is needed to refresh the
+	packages list after changing the settings (N78303).
+
+	* src/repo.cc (pill_response): Check if is needed to refresh the
+	packages list after switching to/from red pill mode (N78303).
+
+	* src/operations.cc (struct ip_clos): Added the new field
+	'refresh_needed' to store when a packages list refresh would be
+	needed after the install/upgrade/remove process (N78303).
+	(install_packages): Initialize the new field (N78303).
+	(ip_install_cur_reply): Set 'refresh_needed' to TRUE if
+	rescode_success is returned as result code (N78303).
+	(ip_end): Only refresh the packages list when the new field was
+	set to TRUE (N78303).
+
 2007-12-09  Marius Vollmer  <mvo@zagadka.de>
 
 	* src/apt-worker-bin.cc (cache_reset_package): Don't call MarkKeep
