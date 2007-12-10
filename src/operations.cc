@@ -216,11 +216,12 @@ struct ip_clos {
 
   // at the end
   bool entertaining;        // is the progress bar up?
-  bool refresh_needed;      // a package list refresh would be needed
   int n_successful;         // how many have been installed successfully
-  
+
   void (*cont) (int n_successful, void *);
   void *data;
+
+  bool refresh_needed;      // a package list refresh would be needed
 };
 
 static void ip_install_with_info (void *data);
@@ -1119,9 +1120,10 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (clean_after_install)
     apt_worker_clean (c->state, ip_clean_reply, NULL);
 
+  c->refresh_needed = true;
+
   if (result_code == rescode_success)
-    {
-      c->refresh_needed = true;
+    { 
       c->n_successful += 1;
 
       if (package_needs_reboot (pi))

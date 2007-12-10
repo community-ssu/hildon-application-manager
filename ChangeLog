@@ -1,5 +1,8 @@
 2007-12-10  Mario Sanchez Prada  <msanchez@maemo.org>
 
+	* src/operations.cc (ip_install_cur_reply): Set 'refresh_needed'
+	to TRUE if this function was called (N78303).
+
 	* src/settings.cc (enum boolean_options): New enumeration with the
 	list of boolean options available, to easily access to the related
 	widgets and values.
