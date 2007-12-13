@@ -1,3 +1,9 @@
+2007-12-13  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker-proto.cc (apt_proto_encoder::grow): When
+	reallocating a buffer into a new block of n * 4096 bytes,
+	initialize the non used bytes to zero.
+
 2007-12-11  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (clear_global_section_list): Don't call

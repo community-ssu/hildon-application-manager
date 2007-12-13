@@ -68,9 +68,15 @@ roundup (int val, int factor)
 void
 apt_proto_encoder::grow (int delta)
 {
-  if (len + delta > buf_len)    {
+  int new_size = len + delta;
+  if (new_size > buf_len)    {
       buf_len = roundup (len + delta, 4096);
       buf = (char *)realloc (buf, buf_len);
+
+      /* Initialize those bytes which are left */
+      if (buf_len > new_size)
+	memset (buf+new_size, 0, buf_len - new_size);
+
       if (buf == NULL)
 	{
 	  perror ("realloc");
