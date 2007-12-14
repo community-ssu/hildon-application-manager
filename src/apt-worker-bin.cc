@@ -294,6 +294,7 @@ typedef struct extra_info_struct
 {
   bool autoinst : 1;
   bool related : 1;
+  bool soft : 1;
   domain_t cur_domain, new_domain;
 };
 
@@ -318,6 +319,7 @@ public:
   string source_list;
   string source_parts;
   pkgCacheFile *cache;
+  pkgDepCache::ActionGroup *action_group;
   unsigned int package_count;
   bool cache_generate;
   bool init_cache_after_request;
@@ -1582,6 +1584,7 @@ cache_init (bool with_status)
   if (AptWorkerState::default_state->cache)
     {
       DBG ("closing");
+      delete AptWorkerState::default_state->action_group;
       AptWorkerState::default_state->cache->Close ();
       delete AptWorkerState::default_state->cache;
       delete[] AptWorkerState::default_state->extra_info;
@@ -1593,6 +1596,7 @@ cache_init (bool with_status)
   if (AptWorkerState::temp_state->cache)
     {
       DBG ("closing");
+      delete AptWorkerState::temp_state->action_group;
       AptWorkerState::temp_state->cache->Close ();
       delete AptWorkerState::temp_state->cache;
       delete[] AptWorkerState::temp_state->extra_info;
@@ -1624,7 +1628,13 @@ cache_init (bool with_status)
 
   if (state->cache)
     {
+      /* We create a ActionGroup here that is active for the whole
+	 lifetime of the cache.  This prevents libapt-pkg from
+	 performing certain expensive operations that we don't need to
+	 be done intermediately, such as garbage collection.
+      */
       pkgDepCache &cache = *state->cache;
+      state->action_group = new pkgDepCache::ActionGroup (cache);
       state->package_count = cache.Head ().PackageCount;
       state->extra_info = new extra_info_struct[state->package_count];
     }
@@ -1695,12 +1705,15 @@ cache_reset_package (pkgCache::PkgIterator &pkg)
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
 
+  cache.MarkKeep (pkg);
+
   if (state->extra_info[pkg->ID].autoinst)
     cache[pkg].Flags |= pkgCache::Flag::Auto;
   else
     cache[pkg].Flags &= ~pkgCache::Flag::Auto;
   
   state->extra_info[pkg->ID].related = false;
+  state->extra_info[pkg->ID].soft = false;
 }
 
 void
@@ -1712,11 +1725,93 @@ cache_reset ()
 
   pkgDepCache &cache = *(state->cache);
 
-  cache.Init (NULL);
-
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     cache_reset_package (pkg);
 }
+
+/* Try to fix packages that have been broken by undoing soft changes.
+
+   This is not really complicated, the code only looks impenetrable
+   because of libapt-pkg's data structures.
+
+   For each package that is broken for the planned operation, we try
+   to fix it by undoing the removal of softly removed packages that it
+   depends on.  We do this in a loop since a package that has been put
+   back might be broken itself and be in need of fixing.
+*/
+void
+fix_soft_packages ()
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  if (state->cache == NULL)
+    return;
+
+  pkgDepCache &cache = *(state->cache);
+
+  bool something_changed;
+
+  do 
+    {
+      DBG ("FIX");
+
+      something_changed = false;
+      for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+	{
+	  if (cache[pkg].InstBroken())
+	    {
+	      pkgCache::DepIterator Dep =
+		cache[pkg].InstVerIter(cache).DependsList();
+	      for (; Dep.end() != true;)
+		{
+		  // Grok or groups
+		  pkgCache::DepIterator Start = Dep;
+		  bool Result = true;
+		  for (bool LastOR = true;
+		       Dep.end() == false && LastOR == true;
+		       Dep++)
+		    {
+		      LastOR = ((Dep->CompareOp & pkgCache::Dep::Or)
+				== pkgCache::Dep::Or);
+		    
+		      if ((cache[Dep] & pkgDepCache::DepInstall)
+			  == pkgDepCache::DepInstall)
+			Result = false;
+		    }
+		
+		  // Dep is satisfied okay.
+		  if (Result == false)
+		    continue;
+
+		  // Try to fix it by putting back the first softly
+		  // removed target
+
+		  for (bool LastOR = true;
+		       Start.end() == false && LastOR == true;
+		       Start++)
+		    {
+		      LastOR = ((Start->CompareOp & pkgCache::Dep::Or)
+				== pkgCache::Dep::Or);
+		    
+		      pkgCache::PkgIterator Pkg = Start.TargetPkg ();
+
+		      if (((cache[Start] & pkgDepCache::DepInstall)
+			   != pkgDepCache::DepInstall)
+			  && !Pkg.end()
+			  && cache[Pkg].Delete()
+			  && state->extra_info[Pkg->ID].soft)
+			{
+			  DBG ("= %s", Pkg.Name());
+			  cache_reset_package (Pkg);
+			  something_changed = true;
+			  break;
+			}
+		    }
+		}
+	    }
+	}
+    } while (something_changed);
+}
+
 /* Determine whether PKG replaces TARGET.
  */
 static bool
@@ -1745,6 +1840,7 @@ package_replaces (pkgCache::PkgIterator &pkg,
   return false;
 }
 
+#if 0
 /* Determine whether PKG is a critical dependency of other packages
    thata re going to be installed.
  */
@@ -1770,6 +1866,7 @@ package_is_needed (pkgCache::PkgIterator &pkg)
     }
   return false;
 }
+#endif
 
 /* Mark a package for installation, using a 'no-surprises' approach
    suitable for the Application Manager.
@@ -1780,11 +1877,10 @@ package_is_needed (pkgCache::PkgIterator &pkg)
    is what we want.
 */
 
-static void mark_for_remove (pkgCache::PkgIterator &pkg,
-			     bool only_maybe = false);
+static void mark_for_remove_1 (pkgCache::PkgIterator &pkg, bool soft);
 
 static void
-mark_for_install (pkgCache::PkgIterator &pkg, int level = 0)
+mark_for_install_1 (pkgCache::PkgIterator &pkg, int level)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
@@ -1801,6 +1897,8 @@ mark_for_install (pkgCache::PkgIterator &pkg, int level = 0)
    */
   if (cache[pkg].Mode == pkgDepCache::ModeInstall)
     return;
+
+  DBG ("+ %s", pkg.Name());
 
   /* Now mark it and return if that fails.
    */
@@ -1891,7 +1989,7 @@ mark_for_install (pkgCache::PkgIterator &pkg, int level = 0)
 	  
 	  if (InstPkg.end() == false)
 	    {
-	      mark_for_install (InstPkg, level + 1);
+	      mark_for_install_1 (InstPkg, level + 1);
 
 	      // Set the autoflag, after MarkInstall because
 	      // MarkInstall unsets it
@@ -1916,11 +2014,20 @@ mark_for_install (pkgCache::PkgIterator &pkg, int level = 0)
 
 	      if (!is_user_package (Ver)
 		  && package_replaces (pkg, target))
-		mark_for_remove (target, true);
+		mark_for_remove_1 (target, true);
 	    }
 	  continue;
 	}
     }
+}
+
+static void
+mark_for_install (pkgCache::PkgIterator &pkg)
+{
+  DBG ("INSTALL %s", pkg.Name());
+
+  mark_for_install_1 (pkg, 0);
+  fix_soft_packages ();
 }
 
 /* Mark every upgradeable non-user package for installation.
@@ -1931,13 +2038,16 @@ mark_sys_upgrades ()
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
 
+  DBG ("UPGRADE");
+
   for (pkgCache::PkgIterator p = cache.PkgBegin (); !p.end (); p++)
     {
       if (!p.CurrentVer().end()
 	  && !is_user_package (p.CurrentVer())
 	  && cache[p].Keep())
-	mark_for_install (p);
+	mark_for_install_1 (p, 0);
     }
+  fix_soft_packages ();
 }
 
 /* Mark the named package for installation.  This function also
@@ -1971,23 +2081,22 @@ mark_named_package_for_install (const char *package)
    that it depends on as possible.
 */
 static void
-mark_for_remove (pkgCache::PkgIterator &pkg, bool only_maybe)
+mark_for_remove_1 (pkgCache::PkgIterator &pkg, bool soft)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgDepCache &cache = *(state->cache);
 
-  if (only_maybe && package_is_needed (pkg))
+  if (cache[pkg].Delete ())
     return;
+
+  DBG ("- %s%s", pkg.Name(), soft? " (soft)" : "");
 
   cache.MarkDelete (pkg);
   cache[pkg].Flags &= ~pkgCache::Flag::Auto;
+  state->extra_info[pkg->ID].soft = soft;
 
   if (!cache[pkg].Delete ())
-    {
-      if (only_maybe)
-	cache_reset_package (pkg);
-      return;
-    }
+    return;
 
   // Now try to remove all non-user, auto-installed dependencies of
   // this package.
@@ -2007,9 +2116,18 @@ mark_for_remove (pkgCache::PkgIterator &pkg, bool only_maybe)
 	      && is_auto_package (p)
 	      && !p.CurrentVer().end()
 	      && !is_user_package (p.CurrentVer()))
-	    mark_for_remove (p, true);
+	    mark_for_remove_1 (p, true);
 	}
     }
+}
+
+static void
+mark_for_remove (pkgCache::PkgIterator &pkg)
+{
+  DBG ("REMOVE %s", pkg.Name());
+
+  mark_for_remove_1 (pkg, false);
+  fix_soft_packages ();
 }
 
 /* Getting the package record in a nicely parsable form.
