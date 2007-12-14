@@ -216,7 +216,10 @@ BUGS
 
 - Figure out busy loop in update-notifier when apt-worker runs.
 - Use $HOME/.hildon-application-manager/ directory for per-user state.
+- Make interaction flow system modal after showing the "system update"
+  dialog.
 
+- Reenable apt-transport-https by using nss.
 - Take update-notifier menu contents into account for the blinking state.
 - Call reset_idle_timer more often
 - Reget package list of "Check for updates"
