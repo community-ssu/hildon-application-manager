@@ -1,3 +1,10 @@
+2007-12-14  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (emit_row_changed): Removed a call to
+	gtk_tree_path_free that was leading to an invalid read.
+	(update_packages_list_selection): Free the GtkTreePath here,
+	inside the callback for "row-changed", to avoid the invalid read.
+
 2007-12-14  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Fix soft removal algorithm: don't check whether a package is

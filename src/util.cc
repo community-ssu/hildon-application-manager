@@ -1390,7 +1390,6 @@ emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
 
   path = gtk_tree_model_get_path (model, iter);
   g_signal_emit_by_name (model, "row-changed", path, iter);
-  gtk_tree_path_free (path);
 }
 
 static void
@@ -1975,6 +1974,8 @@ void update_packages_list_selection (GtkTreeModel *model,
   /* Set sensitiveness to the OK button and update required size label */
   gtk_widget_set_sensitive (button, selected_packages);
   fill_required_space_label (label, acc_size);
+
+  gtk_tree_path_free (path); 
 }
 
 struct spl_closure
