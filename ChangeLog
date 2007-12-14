@@ -1,3 +1,37 @@
+2007-12-14  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Fix soft removal algorithm: don't check whether a package is
+	needed when marking it for removal, check later once the whole
+	operation is known.  This makes it possible to Conflict/Replace
+	packages that are originally needed by other packages but can in
+	fact be removed since the other packages will be upgraded or
+	removed as well.
+		
+	* src/apt-worker-bin.cc (class AptWorkerState): Added
+	action_group member.
+	(cache_init): Create an ActionGroup for the cache that is active
+	for its whole lifetime.  This prevents libapt-pkg from performing
+	certain expensive operations that we don't need to be done
+	intermediately, such as garbage collection.
+	(extra_info_struct): Added 'soft' member.
+	(cache_reset_package, cache_reset): Reverted change from
+	2007-12-09.  Specifically, call MarkKeep again in
+	cache_reset_package and don't call Init in cache_reset.  The
+	ActionGroup takes care of the performace regression.  Reset 'soft'
+	flag in cache_reset_package.
+	(fix_soft_packages): New.
+	(mark_for_install, mark_for_install_1, mark_for_remove,
+	mark_for_remove_1): Put algorithm and mutual recursion into
+	mark_for_install_1 and mark_for_remove_1.  Call them from
+	mark_for_install and make_for_remove, respectively.  Call
+	fix_soft_packages afterwards.  Don't check whether a package is
+	needed in mark_for_removal_1 for soft removals and try to put it
+	back when it can't be removed; this will be handled later in
+	fix_soft_packages once the whole operation is known.  Return
+	immediately when a package is already scheduled for removal.
+	(mark_sys_upgrades): Call mark_for_install_1 and
+	fix_soft_packages, as appropriate.
+	
 2007-12-13  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker-proto.cc (apt_proto_encoder::grow): When
@@ -43,6 +77,8 @@
 
 2007-12-09  Marius Vollmer  <mvo@zagadka.de>
 
+	Released 2.1.2
+	
 	* src/apt-worker-bin.cc (cache_reset_package): Don't call MarkKeep
 	here, it got really slow with libapt-pkg 0.7.6.
 	(cache_reset): Call pkgDepCache::Init here instead.
