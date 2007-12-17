@@ -1,5 +1,15 @@
 2007-12-17  Mario Sanchez Prada  <msanchez@maemo.org>
 
+	* src/main.cc (get_package_list_with_cont): Mark the package list
+	as NOT ready and only set next_packages_for_info to NULL before
+	clearing the packages and sections lists, and not only for the
+	APTSTATE_DEFAULT state.
+	(gpi_reply): Don't check out whether the package list is ready or
+	not, the next_packages_for_info variable set to NULL together with
+	the proper use of ref() and unref() functions is just enough.
+	(get_next_package_info): Don't check out the package_list_ready
+	variable, next_packages_for_info variable set to NULL is enough.
+
 	* src/main.cc (get_package_list_reply_default): Mark package list
 	as ready right after building the new list, not later (N76904).
 	(get_package_list_reply): Don't mark the packages list as ready

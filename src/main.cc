@@ -969,14 +969,14 @@ get_package_list_with_cont (int state, void (*cont) (void *data), void *data)
 
   if (state == APTSTATE_DEFAULT)
     {
-      /* Mark pacakge list as not ready and reset some global values */
-      package_list_ready = false;
-      cur_packages_for_info = NULL;
-      next_packages_for_info = NULL;
-
       clear_global_package_list ();
       clear_global_section_list ();
     }
+
+  /* Mark package list as not ready and reset some
+     global values, before freeing the list */
+  package_list_ready = false;
+  next_packages_for_info = NULL;
   free_all_packages (state);
 
   show_updating ();
@@ -1007,25 +1007,22 @@ gpi_reply  (int cmd, apt_proto_decoder *dec, void *clos)
   gpi_closure *c = (gpi_closure *)clos;
   void (*func) (package_info *, void *, bool) = c->func;
   void *data = c->data;
+  package_info *pi = c->pi;
   delete c;
 
-  if (package_list_ready)
+  pi->have_info = false;
+  if (dec)
     {
-      package_info *pi = c->pi;
-
-      pi->have_info = false;
-      if (dec)
+      dec->decode_mem (&(pi->info), sizeof (pi->info));
+      if (!dec->corrupted ())
 	{
-	  dec->decode_mem (&(pi->info), sizeof (pi->info));
-	  if (!dec->corrupted ())
-	    {
-	      pi->have_info = true;
-	    }
+	  pi->have_info = true;
 	}
-
-      func (pi, data, true);
-      pi->unref ();
     }
+
+  func (pi, data, true);
+  pi->unref ();
+
 }
 
 void
@@ -1136,10 +1133,10 @@ get_next_package_info (package_info *pi, void *unused, bool changed)
 	}
     }
 
-  if (package_list_ready && intermediate_info)
+  if (intermediate_info)
     call_with_package_info (intermediate_info, intermediate_only_installable,
 			    get_next_package_info, NULL, intermediate_state);
-  else if (package_list_ready)
+  else
     {
       cur_packages_for_info = next_packages_for_info;
       if (cur_packages_for_info)
