@@ -1,3 +1,17 @@
+2007-12-17  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (get_package_list_reply_default): Mark package list
+	as ready right after building the new list, not later (N76904).
+	(get_package_list_reply): Don't mark the packages list as ready
+	here, it could be too late (N76904).
+	(get_package_list_with_cont): Mark the package list as NOT ready
+	and reset some global variables before clearing the packages and
+	sections lists (N76904).
+	(gpi_reply): Check out whether the package list is ready or not to
+	access its package_info structs both for read or write (N76904).
+	(get_next_package_info): Only call to call_with_package_info if
+	the packages list is ready (N76904).
+
 2007-12-14  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (emit_row_changed): Removed a call to

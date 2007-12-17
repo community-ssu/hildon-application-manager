@@ -777,6 +777,9 @@ sort_all_packages ()
   show_view (cur_view_struct);
 }
 
+static GList *cur_packages_for_info;
+static GList *next_packages_for_info;
+
 struct gpl_closure {
   int state;
   void (*cont) (void *data);
@@ -878,7 +881,7 @@ get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
       else
 	all_si->unref ();
     }
-
+  package_list_ready = true;
   record_seen_updates = true;
 
   sort_all_packages ();
@@ -954,12 +957,6 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
     default:
       delete c;
     }
-
-  /* At least the first package list load is done */
-  if (!package_list_ready)
-    {
-      package_list_ready = true;
-    }
 }
 
 void
@@ -972,6 +969,11 @@ get_package_list_with_cont (int state, void (*cont) (void *data), void *data)
 
   if (state == APTSTATE_DEFAULT)
     {
+      /* Mark pacakge list as not ready and reset some global values */
+      package_list_ready = false;
+      cur_packages_for_info = NULL;
+      next_packages_for_info = NULL;
+
       clear_global_package_list ();
       clear_global_section_list ();
     }
@@ -1005,21 +1007,25 @@ gpi_reply  (int cmd, apt_proto_decoder *dec, void *clos)
   gpi_closure *c = (gpi_closure *)clos;
   void (*func) (package_info *, void *, bool) = c->func;
   void *data = c->data;
-  package_info *pi = c->pi;
   delete c;
 
-  pi->have_info = false;
-  if (dec)
+  if (package_list_ready)
     {
-      dec->decode_mem (&(pi->info), sizeof (pi->info));
-      if (!dec->corrupted ())
-	{
-	  pi->have_info = true;
-	}
-    }
+      package_info *pi = c->pi;
 
-  func (pi, data, true);
-  pi->unref ();
+      pi->have_info = false;
+      if (dec)
+	{
+	  dec->decode_mem (&(pi->info), sizeof (pi->info));
+	  if (!dec->corrupted ())
+	    {
+	      pi->have_info = true;
+	    }
+	}
+
+      func (pi, data, true);
+      pi->unref ();
+    }
 }
 
 void
@@ -1101,9 +1107,6 @@ call_with_package_list_info (GList *package_list,
   call_with_package_list_info_cont (NULL, closure, TRUE);
 }
 
-static GList *cur_packages_for_info;
-static GList *next_packages_for_info;
-
 void row_changed (GtkTreeModel *model, GtkTreeIter *iter);
 
 static package_info *intermediate_info;
@@ -1133,10 +1136,10 @@ get_next_package_info (package_info *pi, void *unused, bool changed)
 	}
     }
 
-  if (intermediate_info)
+  if (package_list_ready && intermediate_info)
     call_with_package_info (intermediate_info, intermediate_only_installable,
 			    get_next_package_info, NULL, intermediate_state);
-  else
+  else if (package_list_ready)
     {
       cur_packages_for_info = next_packages_for_info;
       if (cur_packages_for_info)
@@ -1606,9 +1609,7 @@ check_catalogues ()
 {
   if (package_list_ready)
     {
-      /* Avoid to call get_catalogues if packages_list it not ready,
-	 because that function finally calls to get_catalogues too,
-	 and they could conflict during start up */
+      /* Avoid to call get_catalogues if packages_list it not ready */
       get_catalogues (check_catalogues_reply, NULL);
     }
 }
