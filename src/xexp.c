@@ -414,12 +414,15 @@ xexp_text_as_int (xexp *x)
 xexp *
 xexp_aref (xexp *x, const char *tag)
 {
-  xexp *y = xexp_first (x);
-  while (y)
+  if (xexp_is_list (x))
     {
-      if (xexp_is (y, tag))
-	return y;
-      y = xexp_rest (y);
+      xexp *y = xexp_first (x);
+      while (y)
+	{
+	  if (xexp_is (y, tag))
+	    return y;
+	  y = xexp_rest (y);
+	}
     }
   return NULL;
 }
@@ -635,11 +638,13 @@ static GMarkupParser xexp_markup_parser = {
 static xexp *
 xexp_read_1 (FILE *f, GError **error, int fuzzy)
 {
+  xexp *result = NULL;
   xexp_parse_context xp;
   GMarkupParseContext *ctxt;
   gchar buf[1024];
   size_t buf_size = fuzzy? sizeof (buf) : 1;
   size_t n;
+  gboolean parse_failed = FALSE;
 
   xp.stack = NULL;
   xp.result = NULL;
@@ -648,17 +653,24 @@ xexp_read_1 (FILE *f, GError **error, int fuzzy)
   while (xp.result == NULL && (n = fread (buf, 1, buf_size, f)) > 0)
     {
       if (!g_markup_parse_context_parse (ctxt, buf, n, error))
-	goto error;
+	{
+	  parse_failed = TRUE;
+	  break;
+	}
     }
 
   if (!g_markup_parse_context_end_parse (ctxt, error))
-    goto error;
-    
-  g_assert (xp.result && xp.stack == NULL);
-		   
-  return xp.result;
+    parse_failed = TRUE;
 
- error:
+  g_markup_parse_context_free (ctxt);
+
+  if (!parse_failed)
+    {
+      g_assert (xp.result && xp.stack == NULL);
+      return xp.result;
+    }
+
+  /* An error while parsing has ocurred */
   if (xp.stack)
     {
       xexp *top = (xexp *) g_slist_last (xp.stack)->data;
@@ -667,6 +679,7 @@ xexp_read_1 (FILE *f, GError **error, int fuzzy)
     }
   else if (xp.result)
     xexp_free (xp.result);
+
   return NULL;
 }
 

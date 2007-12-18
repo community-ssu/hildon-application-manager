@@ -1,3 +1,14 @@
+2007-12-18  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker-proto.cc (encode_mem_plus_zeros): Fixed a write
+	error that could happen here under certain situations, leading to
+	valgrind errors (N78626).
+
+	* src/xexp.c (xexp_read_1): Fixed a memory leak (N78626).
+	(xexp_aref): Added extra check to avoid calling to xexp_first(x)
+	when x is not a xexp_list, therefore getting a GLIB CRITICAL
+	message every time the catalogues dialog was opened/closed.
+
 2007-12-17  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (get_package_list_with_cont): Mark the package list

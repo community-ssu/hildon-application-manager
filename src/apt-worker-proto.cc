@@ -91,7 +91,7 @@ apt_proto_encoder::encode_mem_plus_zeros (const void *val, int n, int z)
   int r = roundup (n+z, sizeof (int));
   grow (r);
   memcpy (buf+len, (char *)val, n);
-  memset (buf+len+n, 0, z);
+  memset (buf+len+n, 0, (r - n));
   len += r;
 }
 
