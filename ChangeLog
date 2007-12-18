@@ -31,6 +31,8 @@
 
 2007-12-14  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.3
+	
 	Fix soft removal algorithm: don't check whether a package is
 	needed when marking it for removal, check later once the whole
 	operation is known.  This makes it possible to Conflict/Replace
