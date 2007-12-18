@@ -1,6 +1,0 @@
-#! /bin/sh
-source /etc/profile
-if [ -f /root/.profile ]; then
-  source /root/.profile
-fi
-exec /usr/libexec/apt-worker.bin "$@"
