@@ -1,3 +1,14 @@
+2007-12-19  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/Makefile.am: Removed dist_libexec_SCRIPTS, since the
+	apt-worker script is no longer present in the CVS.
+
+	* src/main.cc: Use /usr/libexec/apt-worker.bin as the apt-worker
+	command, instead of the old apt-worker script.
+
+	* src/xexp.c: Cleaned up an unused local variable that I forgot to
+	delete tomorrow, in my last commit.
+
 2007-12-18  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker-proto.cc (encode_mem_plus_zeros): Fixed a write

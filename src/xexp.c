@@ -638,7 +638,6 @@ static GMarkupParser xexp_markup_parser = {
 static xexp *
 xexp_read_1 (FILE *f, GError **error, int fuzzy)
 {
-  xexp *result = NULL;
   xexp_parse_context xp;
   GMarkupParseContext *ctxt;
   gchar buf[1024];

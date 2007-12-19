@@ -3,7 +3,6 @@ bin_PROGRAMS = hildon-application-manager.launch \
 dist_bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server test-app-killer
 libexec_PROGRAMS = apt-worker.bin
-dist_libexec_SCRIPTS = apt-worker
 hildonstatusbarplugin_LTLIBRARIES = libhildon-update-notifier.la
 
 

@@ -2781,7 +2781,7 @@ main (int argc, char **argv)
   GtkWidget *window = NULL;
   toolbar_struct *m_tb_struct = NULL;
   toolbar_struct *u_tb_struct = NULL;
-  char *apt_worker_prog = "/usr/libexec/apt-worker";
+  char *apt_worker_prog = "/usr/libexec/apt-worker.bin";
   bool show = true;
 
   if (argc > 1 && !strcmp (argv[1], "--no-show"))
