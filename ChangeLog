@@ -7,7 +7,7 @@
 	command, instead of the old apt-worker script.
 
 	* src/xexp.c: Cleaned up an unused local variable that I forgot to
-	delete tomorrow, in my last commit.
+	delete yesterday, in my last commit.
 
 2007-12-18  Mario Sanchez Prada  <msanchez@maemo.org>
 
