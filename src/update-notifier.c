@@ -64,7 +64,8 @@ struct _UpdateNotifierPrivate
   GtkWidget *open_ham_item;
   GdkPixbuf *static_pic;
 
-  gint button_pressed_handler_id;
+  gint button_toggled_handler_id;
+  gint menu_selection_done_handler_id;
   gint open_ham_item_activated_handler_id;
 
   guint blinking_timeout_id;
@@ -94,7 +95,8 @@ static void update_notifier_init (UpdateNotifier *upno);
 static void update_notifier_finalize (GObject *object);
 
 /* Private functions */
-static void button_pressed (GtkWidget *button, gpointer data);
+static void button_toggled (GtkWidget *button, gpointer data);
+static void menu_hidden (GtkMenuShell *menu, gpointer user_data);
 static void open_ham_menu_item_activated (GtkWidget *menu, gpointer data);
 
 static void setup_gconf (UpdateNotifier *upno);
@@ -155,7 +157,7 @@ update_notifier_init (UpdateNotifier *upno)
 
   setup_gconf (upno);
 
-  priv->button = gtk_button_new ();
+  priv->button = gtk_toggle_button_new ();
 
   icon_theme = gtk_icon_theme_get_default ();
   icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
@@ -176,9 +178,9 @@ update_notifier_init (UpdateNotifier *upno)
   gtk_widget_show (priv->blinkifier);
   gtk_widget_show (priv->button);
 
-  priv->button_pressed_handler_id =
-    g_signal_connect (priv->button, "pressed",
-		    G_CALLBACK (button_pressed), upno);
+  priv->button_toggled_handler_id =
+    g_signal_connect (priv->button, "toggled",
+		    G_CALLBACK (button_toggled), upno);
 
   setup_dbus (upno);
   setup_inotify (upno);
@@ -224,10 +226,7 @@ update_notifier_finalize (GObject *object)
 
   /* Unregister signal handlers */
   g_signal_handler_disconnect (priv->button,
-			       priv->button_pressed_handler_id);
-
-  g_signal_handler_disconnect (priv->open_ham_item,
-			       priv->open_ham_item_activated_handler_id);
+			       priv->button_toggled_handler_id);
 
   G_OBJECT_CLASS (g_type_class_peek_parent
 		  (G_OBJECT_GET_CLASS(object)))->finalize(object);
@@ -260,18 +259,30 @@ menu_position_func (GtkMenu   *menu,
 }
 
 static void
-button_pressed (GtkWidget *button, gpointer data)
+button_toggled (GtkWidget *button, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
   set_icon_visibility (upno, UPNO_ICON_STATIC);
 
+  if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON (button)))
+    return;
+
   gtk_menu_popup (GTK_MENU (priv->menu),
 		  NULL, NULL,
 		  menu_position_func, upno,
 		  1,
 		  gtk_get_current_event_time ());
+}
+
+static void
+menu_hidden (GtkMenuShell *menu, gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->button), FALSE);
 }
 
 static void
@@ -483,6 +494,8 @@ update_state (UpdateNotifier *upno)
 
   if (priv->menu)
     {
+      g_signal_handler_disconnect(priv->menu,
+				  priv->menu_selection_done_handler_id);
       g_signal_handler_disconnect (priv->open_ham_item,
 				   priv->open_ham_item_activated_handler_id);
       gtk_widget_destroy (priv->menu);
@@ -511,6 +524,10 @@ update_state (UpdateNotifier *upno)
   item = gtk_menu_item_new_with_label (_("ai_sb_update_am"));
   gtk_menu_append (priv->menu, item);
   gtk_widget_show (item);
+
+  priv->menu_selection_done_handler_id =
+    g_signal_connect (priv->menu, "selection-done",
+			   G_CALLBACK(menu_hidden), upno);
 
   priv->open_ham_item = item;
   priv->open_ham_item_activated_handler_id =
@@ -623,7 +640,6 @@ showing_check_for_updates_view (UpdateNotifier *upno)
 	  DBusError error;
 	  DBusMessage *reply;
 	  DBusMessageIter iter;
-	  DBusPendingCall *pending;
 
 	  /* Send message to HAM */
 	  dbus_error_init (&error);
@@ -694,7 +710,6 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 static void
 check_for_updates (UpdateNotifier *upno)
 {
-  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   GError *error = NULL;
   GPid child_pid;
   gchar *gainroot_cmd = NULL;

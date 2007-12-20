@@ -1,3 +1,22 @@
+2007-12-20  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.c (struct _UpdateNotifierPrivate): Added a
+	new field to store the ID of a new handler and changed the name
+	button_pressed_handler_id into button_toggled_handler_id (N75396).
+	(button_pressed): Renamed into button_toggled. Now it also checks
+	the toggle button status before showing the menu (N75396).
+	(menu_hidden): New. Used to restore the initial status of the
+	toggle button once the menu has disappeared (N75396).
+	(update_notifier_init): Use gtk_toggle_button_new, and connect to
+	the 'toggled' signal of the button, instead of 'pressed' (N75396).
+	(update_notifier_finalize): Disconnect the 'toggled' signal from
+	the related handler (N75396). Don't disconnect here the
+	'activated' signal for the menu item that opens HAM.
+	(update_state): Connect and disconnect here the 'selection-done'
+	signal about the menu (N75396).
+	(showing_check_for_updates_view): Removed an unused variable.
+	(check_for_updates): Removed an unused variable.
+
 2007-12-19  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/Makefile.am: Removed dist_libexec_SCRIPTS, since the
