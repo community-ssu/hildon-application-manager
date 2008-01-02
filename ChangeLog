@@ -1,3 +1,11 @@
+2008-01-02  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* hildon-application-manager.sudoers: Set sudo permissions to
+	apt-worker.bin instead of former apt-worker, to avoid failing
+	while trying to run apt-worker.bin from the front end.
+
+	* src/util.cc: Fixed a memory management error.
+
 2007-12-20  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.c (struct _UpdateNotifierPrivate): Added a

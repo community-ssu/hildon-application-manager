@@ -2861,7 +2861,9 @@ close_apps (void)
       info = (HDWMEntryInfo *) l->data;
 
       /* Avoid closing HAM */
-      current_appname = hd_wm_entry_info_get_app_name (info);
+      if (current_appname != NULL)
+	g_free (current_appname);
+      current_appname = g_strdup (hd_wm_entry_info_get_app_name (info));
       if (!current_appname || strcmp (ham_appname, current_appname) != 0)
 	{
 	  add_log ("\tApp:'%s', Title:'%s'\n",
