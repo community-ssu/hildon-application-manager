@@ -1642,7 +1642,7 @@ cache_init (bool with_status)
   load_extra_info ();
   cache_reset ();
 
-  if (!AptWorkerState::IsTemp ())
+  if (!AptWorkerState::IsTemp () && state->cache != NULL)
     write_available_updates_file ();
 }
 

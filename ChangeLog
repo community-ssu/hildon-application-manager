@@ -37,6 +37,9 @@
 	NULL), to prevent further potential errors. Set the new
 	inotify_ready field to TRUE (N78940).
 
+	* src/apt-worker-bin.cc (cache_init): Avoid writting available
+	updates file if cache is invalid (N78929).
+
 	* configure.ac: Added libhildonwm as a new dependency for the
 	update notifier plugin (N78940).
 
