@@ -37,7 +37,9 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include <libosso.h>
 #include <libhildondesktop/libhildondesktop.h>
+#include <libhildonwm/hd-wm.h>
 
 #include <alarm_event.h>
 
@@ -71,10 +73,11 @@ struct _UpdateNotifierPrivate
   guint blinking_timeout_id;
   guint alarm_init_timeout_id;
 
+  osso_context_t *osso_ctxt;
   GConfClient *gconf;
   guint *gconf_notifications;
-  DBusConnection *dbus;
   GIOChannel *inotify_channel;
+  gboolean inotify_ready;
   int home_watch;
   int varlibham_watch;
 
@@ -102,7 +105,7 @@ static void open_ham_menu_item_activated (GtkWidget *menu, gpointer data);
 static void setup_gconf (UpdateNotifier *upno);
 
 static void set_icon_visibility (UpdateNotifier *upno, int state);
-static void setup_dbus (UpdateNotifier *upno);
+static gboolean setup_dbus (UpdateNotifier *upno);
 
 static gchar *get_http_proxy ();
 static void setup_inotify (UpdateNotifier *upno);
@@ -116,8 +119,8 @@ static gboolean showing_check_for_updates_view (UpdateNotifier *upno);
 static void check_for_updates (UpdateNotifier *upno);
 
 static void cleanup_gconf (UpdateNotifier *upno);
-static void cleanup_dbus (UpdateNotifier *upno);
 static void cleanup_inotify (UpdateNotifier *upno);
+static void cleanup_dbus (UpdateNotifier *upno);
 static void cleanup_alarm (UpdateNotifier *upno);
 
 /* Initialization/destruction functions */
@@ -155,48 +158,53 @@ update_notifier_init (UpdateNotifier *upno)
   GtkIconTheme *icon_theme;
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
-  setup_gconf (upno);
+  priv->osso_ctxt = NULL;
 
-  priv->button = gtk_toggle_button_new ();
+  /* Setup dbus */
+  if (setup_dbus (upno))
+    {
+      setup_gconf (upno);
 
-  icon_theme = gtk_icon_theme_get_default ();
-  icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
-					  "qgn_stat_new_updates",
-					  40,
-					  GTK_ICON_LOOKUP_NO_SVG,
-					  NULL);
+      priv->button = gtk_toggle_button_new ();
+
+      icon_theme = gtk_icon_theme_get_default ();
+      icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
+					      "qgn_stat_new_updates",
+					      40,
+					      GTK_ICON_LOOKUP_NO_SVG,
+					      NULL);
 #if USE_BLINKIFIER
-  priv->static_pic = icon_pixbuf;
-  priv->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
+      priv->static_pic = icon_pixbuf;
+      priv->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
 #else
-  priv->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
+      priv->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
 #endif
   
-  gtk_container_add (GTK_CONTAINER (priv->button), priv->blinkifier);
-  gtk_container_add (GTK_CONTAINER (upno), priv->button);
+      gtk_container_add (GTK_CONTAINER (priv->button), priv->blinkifier);
+      gtk_container_add (GTK_CONTAINER (upno), priv->button);
 
-  gtk_widget_show (priv->blinkifier);
-  gtk_widget_show (priv->button);
+      gtk_widget_show (priv->blinkifier);
+      gtk_widget_show (priv->button);
 
-  priv->button_toggled_handler_id =
-    g_signal_connect (priv->button, "toggled",
-		    G_CALLBACK (button_toggled), upno);
+      priv->button_toggled_handler_id =
+	g_signal_connect (priv->button, "toggled",
+			  G_CALLBACK (button_toggled), upno);
 
-  setup_dbus (upno);
-  setup_inotify (upno);
+      setup_inotify (upno);
 
-  update_icon_visibility (upno, gconf_client_get (priv->gconf,
-						  UPNO_GCONF_STATE,
-						  NULL));
-  update_state (upno);
+      update_icon_visibility (upno, gconf_client_get (priv->gconf,
+						      UPNO_GCONF_STATE,
+						      NULL));
+      update_state (upno);
 
-  /* We only setup the alarm after a one minute pause since the alarm
-     daemon is not yet running when the plugins are loaded after boot.
-     It is arguably a bug in the alarm framework that the daemon needs
-     to be running to access and modify the alarm queue.
-  */
-  priv->alarm_init_timeout_id =
-    g_timeout_add (60*1000, setup_alarm_now, upno);
+      /* We only setup the alarm after a one minute pause since the alarm
+	 daemon is not yet running when the plugins are loaded after boot.
+	 It is arguably a bug in the alarm framework that the daemon needs
+	 to be running to access and modify the alarm queue.
+      */
+      priv->alarm_init_timeout_id =
+	g_timeout_add (60*1000, setup_alarm_now, upno);
+    }
 }
 
 static void
@@ -221,8 +229,8 @@ update_notifier_finalize (GObject *object)
   /* Clean up stuff */
   cleanup_alarm (upno);
   cleanup_inotify (upno);
-  cleanup_dbus (upno);
   cleanup_gconf (upno);
+  cleanup_dbus (upno);
 
   /* Unregister signal handlers */
   g_signal_handler_disconnect (priv->button,
@@ -545,129 +553,128 @@ set_icon_visibility (UpdateNotifier *upno, int state)
 			NULL);
 }
 
-static DBusHandlerResult 
-dbus_filter (DBusConnection *conn, DBusMessage *message, void *data)
+static gint
+osso_rpc_handler(const gchar* interface, const gchar* method,
+                 GArray* arguments, gpointer data, osso_rpc_t* retval)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
-  DBusMessage *reply = NULL;
-  gboolean message_handled = TRUE;
 
-  if (dbus_message_is_method_call (message,
- 				   UPDATE_NOTIFIER_SERVICE,
-				   UPDATE_NOTIFIER_OP_CHECK_UPDATES))
+  if (!strcmp (interface, UPDATE_NOTIFIER_INTERFACE))
     {
-      /* Search for new available updates */
-      check_for_updates (upno);
-    }
-  else if (dbus_message_is_method_call (message,
-					UPDATE_NOTIFIER_SERVICE,
-					UPDATE_NOTIFIER_OP_CHECK_STATE))
-    {
-      /* Update states of the statusbar item */
-      update_state (upno);
-    }
-  else
-    {
-      /* Not handled */
-      message_handled = FALSE;
+      if (!strcasecmp(method, UPDATE_NOTIFIER_OP_CHECK_UPDATES))
+	{
+	  /* Search for new available updates */
+	  check_for_updates (upno);
+	}
+      else if (!strcasecmp(method, UPDATE_NOTIFIER_OP_CHECK_STATE))
+	{
+	  /* Update states of the statusbar item */
+	  update_state (upno);
+	}
     }
 
-  /* Send proper DBus reply message if handled */
-  if (message_handled)
-    {
-      reply = dbus_message_new_method_return (message);
-      dbus_connection_send (conn, reply, NULL);
-      dbus_message_unref (reply);
-
-      return DBUS_HANDLER_RESULT_HANDLED;
-    }
-
-  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  return OSSO_OK;
 }
 
-static void
+static gboolean
 setup_dbus (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  priv->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+  osso_return_t result;
 
-  if (priv->dbus)
+  priv->osso_ctxt = osso_initialize ("hildon_update_notifier",
+					PACKAGE_VERSION, TRUE, NULL);
+  if (!priv->osso_ctxt)
+    return FALSE;
+
+  result = osso_rpc_set_cb_f_with_free (priv->osso_ctxt,
+					UPDATE_NOTIFIER_SERVICE,
+					UPDATE_NOTIFIER_OBJECT_PATH,
+					UPDATE_NOTIFIER_INTERFACE,
+					osso_rpc_handler,
+					upno,
+					osso_rpc_free_val);
+
+  return (result == OSSO_OK);
+}
+
+static gboolean
+ham_is_running ()
+{
+  HDWM *hdwm;
+  HDWMEntryInfo *info = NULL;
+  GList *apps_list = NULL;
+  GList *l = NULL;
+  gchar *ham_appname = NULL;
+  gchar *current_appname = NULL;
+  gboolean app_found = FALSE;
+
+  hdwm = hd_wm_get_singleton ();
+  hd_wm_update_client_list (hdwm);
+
+  ham_appname = g_strdup ("Application manager");
+  apps_list = hd_wm_get_applications (hdwm);
+  for (l = apps_list; l; l = l->next)
     {
-      dbus_connection_add_filter (priv->dbus, dbus_filter, upno, NULL);
-      dbus_bus_request_name (priv->dbus,
-			     UPDATE_NOTIFIER_SERVICE,
-			     DBUS_NAME_FLAG_DO_NOT_QUEUE,
-			     NULL);
+      info = (HDWMEntryInfo *) l->data;
+
+      if (current_appname != NULL)
+	g_free (current_appname);
+
+      current_appname = g_strdup (hd_wm_entry_info_get_app_name (info));
+
+      if (current_appname && !strcmp (ham_appname, current_appname))
+	{
+	  app_found = TRUE;
+	  break;
+	}
     }
+
+  /* Free resources */
+  g_free (ham_appname);
+  g_free (current_appname);
+
+  return app_found;
 }
 
 static void
 show_check_for_updates_view (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  DBusMessage     *msg;
 
-  if (priv->dbus)
-    {
-      msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
-					  HILDON_APP_MGR_OBJECT_PATH,
-					  HILDON_APP_MGR_INTERFACE,
-					  HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES);
-      if (msg)
-	{
-	  dbus_connection_send (priv->dbus, msg, NULL);
-	  dbus_message_unref (msg);
-	}
-    }
+  osso_rpc_async_run (priv->osso_ctxt,
+		      HILDON_APP_MGR_SERVICE,
+		      HILDON_APP_MGR_OBJECT_PATH,
+		      HILDON_APP_MGR_INTERFACE,
+		      HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES,
+		      NULL,
+		      NULL,
+		      DBUS_TYPE_INVALID);
 }
 
 static gboolean
 showing_check_for_updates_view (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+  osso_return_t result;
+  osso_rpc_t reply;
 
-  DBusMessage     *msg;
-  gboolean showing_view = FALSE;
-
-  if (priv->dbus)
+  if (ham_is_running ())
     {
-      msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
-					  HILDON_APP_MGR_OBJECT_PATH,
-					  HILDON_APP_MGR_INTERFACE,
-					  HILDON_APP_MGR_OP_SHOWING_CHECK_FOR_UPDATES);
-      if (msg)
-	{
-	  DBusError error;
-	  DBusMessage *reply;
-	  DBusMessageIter iter;
+      result = osso_rpc_run (priv->osso_ctxt,
+			     HILDON_APP_MGR_SERVICE,
+			     HILDON_APP_MGR_OBJECT_PATH,
+			     HILDON_APP_MGR_INTERFACE,
+			     HILDON_APP_MGR_OP_SHOWING_CHECK_FOR_UPDATES,
+			     &reply,
+			     DBUS_TYPE_INVALID);
 
-	  /* Send message to HAM */
-	  dbus_error_init (&error);
-	  reply = dbus_connection_send_with_reply_and_block (priv->dbus, msg,
-							     5000, &error);
-	  /* Check for errors */
-	  if (dbus_error_is_set (&error))
-	    {
-	      fprintf (stderr, "Dbus error: %s\n",
-		       error.message);
-	      dbus_error_free (&error);
-	    }
-	  else
-	    {
-	      /* Check boolean value from reply */
-	      dbus_message_iter_init (reply, &iter);
-	      if (dbus_message_iter_get_arg_type (&iter) == DBUS_TYPE_BOOLEAN)
-		dbus_message_iter_get_basic (&iter, &showing_view);
-	    }
-
-	  /* Free memory */
-	  dbus_message_unref (msg);
-	  if (reply)
-	    dbus_message_unref (reply);
-	}
+      /* Return boolean value from reply */
+      if (result == OSSO_OK && reply.type == DBUS_TYPE_BOOLEAN)
+	return reply.value.b;
     }
 
-  return showing_view;
+  return FALSE;
 }
 
 static void
@@ -688,21 +695,16 @@ check_for_updates_done (GPid pid, int status, gpointer data)
       /* Ask the Application Manager to perform the update, but don't
 	 start it if it isn't running already.
        */
-
-      DBusMessage     *msg;
-
-      if (priv->dbus)
+      if (ham_is_running ())
 	{
-	  msg = dbus_message_new_method_call (HILDON_APP_MGR_SERVICE,
-					      HILDON_APP_MGR_OBJECT_PATH,
-					      HILDON_APP_MGR_INTERFACE,
-					      HILDON_APP_MGR_OP_CHECK_UPDATES);
-	  if (msg)
-	    {
-	      dbus_message_set_auto_start (msg, FALSE);
-	      dbus_connection_send (priv->dbus, msg, NULL);
-	      dbus_message_unref (msg);
-	    }
+	  osso_rpc_async_run (priv->osso_ctxt,
+			      HILDON_APP_MGR_SERVICE,
+			      HILDON_APP_MGR_OBJECT_PATH,
+			      HILDON_APP_MGR_INTERFACE,
+			      HILDON_APP_MGR_OP_CHECK_UPDATES,
+			      NULL,
+			      NULL,
+			      DBUS_TYPE_INVALID);
 	}
     }
 }
@@ -834,8 +836,14 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
   int ifd = g_io_channel_unix_get_fd (channel);
   int len, i;
 
+  /* Return if the object was already destroyed
+     or the if inotify is not still ready */
+  if (!priv || !priv->inotify_ready)
+    return FALSE;
+
   while (1)
     {
+
       len = read (ifd, buf, BUF_LEN);
       if (len < 0) 
 	{
@@ -852,12 +860,14 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
 
 	  event = (struct inotify_event *) &buf[i];
 
-	  if (is_file_modified_event (event,
-				      priv->home_watch,
-				      SEEN_UPDATES_FILE)
-	      || is_file_modified_event (event,
-					 priv->varlibham_watch,
-					 "available-updates"))
+	  if ((priv->home_watch != -1 &&
+	       is_file_modified_event (event,
+				       priv->home_watch,
+				       SEEN_UPDATES_FILE))
+	      || (priv->varlibham_watch != -1 &&
+		  is_file_modified_event (event,
+					  priv->varlibham_watch,
+					  "available-updates")))
 	    update_state (upno);
 	    
 	  i += sizeof (struct inotify_event) + event->len;
@@ -890,6 +900,8 @@ setup_inotify (UpdateNotifier *upno)
 	inotify_add_watch (ifd,
 			   "/var/lib/hildon-application-manager",
 			   IN_CLOSE_WRITE | IN_MOVED_TO);
+
+      priv->inotify_ready = TRUE;
     }
 }
 
@@ -1033,14 +1045,7 @@ cleanup_dbus (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
-  priv->dbus = dbus_bus_get (DBUS_BUS_SESSION, NULL);
-
-  if (priv->dbus != NULL)
-    {
-      dbus_connection_remove_filter (priv->dbus, dbus_filter, NULL);
-      dbus_connection_close (priv->dbus);
-      dbus_connection_unref (priv->dbus);
-    }
+  osso_deinitialize(priv->osso_ctxt);
 }
 
 static void
@@ -1054,9 +1059,13 @@ cleanup_inotify (UpdateNotifier *upno)
 
       inotify_rm_watch (ifd, priv->home_watch);
       inotify_rm_watch (ifd, priv->varlibham_watch);
+      priv->home_watch = -1;
+      priv->varlibham_watch = -1;
 
       g_io_channel_shutdown (priv->inotify_channel, TRUE, NULL);
       g_io_channel_unref (priv->inotify_channel);
+      priv->inotify_channel = NULL;
+      priv->inotify_ready = FALSE;
     }
 }
 

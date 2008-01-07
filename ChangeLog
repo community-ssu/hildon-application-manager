@@ -1,3 +1,45 @@
+2008-01-07  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.c (struct _UpdateNotifierPrivate): Added a
+	new field (osso_context) and removed another one (dbus), since
+	dbus functions are now replaced by osso_rpc equivalences. Also,
+	added a new bool field (inotify_ready) to properly mark the
+	inotify subsystem as ready or not, in order to avoid memory errors
+	in the inotify handler (N78940).
+	(update_notifier_init): Try to setup dbus first, and only continue
+	with the rest of the initialization process if it doesn't
+	fail (N78940).
+	(update_notifier_finalize): Do the dbus cleanup at the last
+	stage (N78940).
+	(dbus_filter): Removed.
+	(osso_rpc_handler): Osso rpc handler to manage incoming rpc
+	messages, substituting to dbus_filter() (N78940).
+	(setup_dbus): Use osso_rpc functions instead of the Dbus API, so
+	install a osso_rpc handler instead a dbus filter. Return a
+	gboolean value telling whether the setup process was OK or
+	not (N78940).
+	(ham_is_running): Uses libhildonwm to check whether HAM is running
+	or not. Used before sending some Dbus messages to HAM (N78940).
+	(show_check_for_updates_view): Use osso_rpc API (N78940).
+	(showing_check_for_updates_view): Use osso_rpc API, but only in
+	case HAM was not running (N78940).
+	(check_for_updates_done): Check if HAM is running before sending a
+	HILDON_APP_MGR_OP_CHECK_UPDATES message to it.
+	(handle_inotify): Check the private structure and the new
+	inotify_ready variable to avoid reading invalid data when the
+	inotify channel has been already closed, or when the GObject have
+	been already finalized. Also, be careful checking that the added
+	watches are valid before using them, because of the same
+	reason (N78940).
+	(setup_inotify): Set the new inotify_ready field to TRUE (N78940).
+	(cleanup_dbus): Just call to osso_deinitialize (N78940).
+	(cleanup_inotify): Set private variables to invalid values (-1 and
+	NULL), to prevent further potential errors. Set the new
+	inotify_ready field to TRUE (N78940).
+
+	* configure.ac: Added libhildonwm as a new dependency for the
+	update notifier plugin (N78940).
+
 2008-01-02  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* hildon-application-manager.sudoers: Set sudo permissions to
