@@ -34,6 +34,35 @@
 	executed between the downloading and the installing processes. It
 	allows to do some extra checks in that stage from the frontend,
 	instead of having to do them in the AW.
+	(ip_install_cur): Call to apt_worker_download_package instead of
+	calling to apt_worker_install_package, passing the new function
+	ip_download_cur_reply as the callback to be executed after that.
+	(enough_battery_to_update): New function to check whether there is
+	or not enough battery to upgrade packages (N79022).
+	(ip_install_one): Added new conditions to check if there's enough
+	battery before downloading and installing packages when it's an
+	upgrade process. Added a hardcoded message for showing an error
+	message to the user when there's not enough battery (N79022).
+        (ip_download_cur_reply): Likewise. Added the battery check in the
+	same way, in order to allow a second check once the required
+	packages are downloaded but not installed yet (N79022).
+
+	* src/util.cc (send_reboot_message): Moved to dbus.cc, since it's
+	Dbus related stuff so it makes more sense to put it there.
+
+	* src/dbus.h, src/dbus.cc (struct battery_info): New struct to
+	store the information retieved about the battery state (N79022).
+	(init_dbus_or_die): Also get signals from bme-dbus-proxy (N79022).
+	(check_battery_status): New public function to check the battery
+	status by sending and capturing Dbus signals. If being executed
+	inside the scratchbox, it does nothing and returns NULL (N79022).
+	(send_battery_status_request): New private function to send a Dbus
+	signal asking for information about the battery status (N79022).
+	(receive_battery_status_update): New private function to gather
+	information about the battery status received inside of two
+	signals emitted by bme-dbus-proxy. It returns a battery_info
+	struct with gathered information, which could have invalid data if
+	the timeout expired without receiving the information (N79022).
 
 2008-01-07  Mario Sanchez Prada  <msanchez@maemo.org>
 

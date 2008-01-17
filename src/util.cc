@@ -21,10 +21,6 @@
  *
  */
 
-#include <dbus/dbus.h>
-#include <dbus/dbus-glib-lowlevel.h>
-#include <mce/dbus-names.h>
-
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
@@ -3204,31 +3200,4 @@ volume_path_is_mounted (const gchar *path)
   g_list_free (list);
   g_free (path_as_uri);
   return result;
-}
-
-void
-send_reboot_message (void)
-{
-  DBusConnection *conn;
-  DBusMessage *msg;
-
-  /* Helps debugging. */
-  add_log ("Sending reboot message.\n");
-
-  conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
-  if (!conn)
-    {
-      add_log ("Could not get system bus.\n");
-      return;
-    }
-
-  msg = dbus_message_new_method_call (MCE_SERVICE,
-				      MCE_REQUEST_PATH,
-				      MCE_REQUEST_IF,
-				      MCE_REBOOT_REQ);
-
-  dbus_connection_send (conn, msg, NULL);
-  dbus_connection_flush (conn);
-
-  add_log ("Reboot message sent, quit the application.\n");
 }

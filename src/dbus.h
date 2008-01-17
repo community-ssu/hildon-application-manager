@@ -24,10 +24,35 @@
 #ifndef HAM_DBUS_H
 #define HAM_DBUS_H
 
+/*
+ Struct to store info about the battery status
+
+  level values:
+    -1: Invalid data
+     1: under 25% of max charge
+     2: between 25%-50% of max charge
+     3: between 50%-75% of max charge
+     4: over 75% of max charge
+
+  charging values:
+    -1: Invalid data
+     0: Charging off
+     1: Charging on
+*/
+struct battery_info {
+  gint level;
+  gint charging;
+};
+
+
 /* Return the device name.
  */
 const char *device_name ();
 
 void init_dbus_or_die (bool top_existing);
+
+void send_reboot_message (void);
+
+battery_info *check_battery_status (void);
 
 #endif /* !HAM_DBUS_H */

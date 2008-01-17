@@ -39,6 +39,7 @@
 #include "log.h"
 #include "settings.h"
 #include "details.h"
+#include "dbus.h"
 
 #define _(x) gettext (x)
 
@@ -848,6 +849,23 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
     }
 }
 
+gboolean
+enough_battery_to_update (void)
+{
+  battery_info *batt_info = NULL;;
+
+  batt_info = check_battery_status ();
+  if (batt_info != NULL)
+    {
+      if (batt_info->charging != -1 &&
+	  !batt_info->charging && batt_info->level <= 2)
+	return FALSE;
+
+      delete batt_info;
+    }
+  return TRUE;
+}
+
 static void
 ip_install_one (void *data)
 {
@@ -861,62 +879,74 @@ ip_install_one (void *data)
   else
     add_log ("Installing %s %s\n", pi->name, pi->available_version);
 
-  int64_t free_space = get_free_space ();
-  if (free_space < 0)
-    annoy_user_with_errno (errno, "get_free_space",
-			   ip_end, c);
-
-  bool keep_installing = false;
-  if (pi->info.required_free_space < free_space)
+  /* Check battery when doing an upgrade */
+  if (!pi->installed_version || enough_battery_to_update ())
     {
-      /* Check MMCs first if download to mmc option is enabled */
-      if (download_packages_to_mmc)
+      bool keep_installing = false;
+      int64_t free_space = get_free_space ();
+
+      if (free_space < 0)
+	annoy_user_with_errno (errno, "get_free_space",
+			       ip_end, c);
+
+      if (pi->info.required_free_space < free_space)
 	{
-	  if (volume_path_is_mounted (INTERNAL_MMC_MOUNTPOINT) &&
-	      pi->info.download_size < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT))
+	  /* Check MMCs first if download to mmc option is enabled */
+	  if (download_packages_to_mmc)
 	    {
-	      c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
-	      keep_installing = true;
-	    }
-	  else if (volume_path_is_mounted (REMOVABLE_MMC_MOUNTPOINT) &&
-		   pi->info.download_size < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT))
-	    {
-	      c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
-	      keep_installing = true;
+	      if (volume_path_is_mounted (INTERNAL_MMC_MOUNTPOINT) &&
+		  pi->info.download_size < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT))
+		{
+		  c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
+		  keep_installing = true;
+		}
+	      else if (volume_path_is_mounted (REMOVABLE_MMC_MOUNTPOINT) &&
+		       pi->info.download_size < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT))
+		{
+		  c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
+		  keep_installing = true;
+		}
 	    }
 	}
 
-      /* Check internal flash if it's still needed */
+      /* Check internal flash at last */
       if (!keep_installing &&
-	  (free_space > (pi->info.required_free_space + pi->info.download_size)))
+	  free_space > (pi->info.required_free_space + pi->info.download_size))
 	{
 	  keep_installing = true;
 	}
-    }
 
-  /* If there's enough space somewhere, proceed with installation */
-  if (keep_installing)
-    ip_check_upgrade (c);
+      /* If there's enough space somewhere, proceed with installation */
+      if (keep_installing)
+	ip_check_upgrade (c);
+      else
+	{
+	  /* Not enough free space */
+      
+	  if (red_pill_mode)
+	    {
+	      /* Allow continuation
+	       */
+	      char *msg =
+		g_strdup_printf ("%s\n%s",
+				 dgettext ("hildon-common-strings",
+					   "sfil_ni_not_enough_memory"),
+				 _("ai_ni_continue_install"));
+	      ask_yes_no (msg, ip_maybe_continue, c);
+	      g_free (msg);
+	    }
+	  else
+	    ip_abort_cur (c, dgettext ("hildon-common-strings",
+				       "sfil_ni_not_enough_memory"),
+			  false);
+	}
+    }
   else
     {
-      /* Not enough free space */
-      
-      if (red_pill_mode)
-	{
-	  /* Allow continuation
-	   */
-	  char *msg =
-	    g_strdup_printf ("%s\n%s",
-			     dgettext ("hildon-common-strings",
-				       "sfil_ni_not_enough_memory"),
-			     _("ai_ni_continue_install"));
-	  ask_yes_no (msg, ip_maybe_continue, c);
-	  g_free (msg);
-	}
-      else
-	ip_abort_cur (c, dgettext ("hildon-common-strings",
-				   "sfil_ni_not_enough_memory"),
-		      false);
+      /* Not enough battery to do the upgrade */
+      ip_abort_cur (c,
+		    _("!!Not enough battery left to upgrade packages."),
+		    false);
     }
 }
 
@@ -1118,37 +1148,47 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (result_code == rescode_success)
     {
-      /* Check free space before downloading */
-      int64_t free_space = get_free_space ();
-      if (free_space < 0)
-	annoy_user_with_errno (errno, "get_free_space",
-			       ip_end, c);
-
-      if (pi->info.required_free_space < free_space)
+      if (!pi->installed_version || enough_battery_to_update ())
 	{
-	  /* Proceed to instal if there's enough free space */
-	  apt_worker_install_package (c->state, pi->name,
-				      c->alt_download_root,
-				      ip_install_cur_reply, c);
+	  /* Check free space before downloading */
+	  int64_t free_space = get_free_space ();
+	  if (free_space < 0)
+	    annoy_user_with_errno (errno, "get_free_space",
+				   ip_end, c);
+
+	  if (pi->info.required_free_space < free_space)
+	    {
+	      /* Proceed to instal if there's enough free space */
+	      apt_worker_install_package (c->state, pi->name,
+					  c->alt_download_root,
+					  ip_install_cur_reply, c);
+	    }
+	  else
+	    {
+	      if (red_pill_mode)
+		{
+		  /* Allow continuation
+		   */
+		  char *msg =
+		    g_strdup_printf ("%s\n%s",
+				     dgettext ("hildon-common-strings",
+					       "sfil_ni_not_enough_memory"),
+				     _("ai_ni_continue_install"));
+		  ask_yes_no (msg, ip_maybe_continue, c);
+		  g_free (msg);
+		}
+	      else
+		ip_abort_cur (c, dgettext ("hildon-common-strings",
+					   "sfil_ni_not_enough_memory"),
+			      false);
+	    }
 	}
       else
 	{
-	  if (red_pill_mode)
-	    {
-	      /* Allow continuation
-	       */
-	      char *msg =
-		g_strdup_printf ("%s\n%s",
-				 dgettext ("hildon-common-strings",
-					   "sfil_ni_not_enough_memory"),
-				 _("ai_ni_continue_install"));
-	      ask_yes_no (msg, ip_maybe_continue, c);
-	      g_free (msg);
-	    }
-	  else
-	    ip_abort_cur (c, dgettext ("hildon-common-strings",
-				       "sfil_ni_not_enough_memory"),
-			  false);
+	  /* Not enough battery to do the upgrade */
+	  ip_abort_cur (c,
+			_("!!Not enough battery left to upgrade packages."),
+			false);
 	}
     }
   else if (entertainment_was_cancelled ())
