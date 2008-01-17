@@ -673,14 +673,12 @@ apt_worker_install_check (int state, const char *package,
 }
 
 void
-apt_worker_install_package (int state, const char *package,
-			    const char *alt_download_root,
-			    bool check_free_space, bool updating,
-			    apt_worker_callback *callback, void *data)
+apt_worker_download_package (int state, const char *package,
+			     const char *alt_download_root,
+			     apt_worker_callback *callback, void *data)
 {
   request.reset ();
   request.encode_string (package);
-
   request.encode_string (alt_download_root);
 
   char *http_proxy = get_http_proxy ();
@@ -690,9 +688,31 @@ apt_worker_install_package (int state, const char *package,
   char *https_proxy = get_https_proxy ();
   request.encode_string (https_proxy);
   g_free (https_proxy);
-  
-  request.encode_int (check_free_space);
 
+  /* Download the package, and then install it */
+  call_apt_worker (APTCMD_DOWNLOAD_PACKAGE, state,
+		   request.get_buf (), request.get_len (),
+		   callback, data);
+}
+
+void
+apt_worker_install_package (int state, const char *package,
+			    const char *alt_download_root,
+			    apt_worker_callback *callback, void *data)
+{
+  request.reset ();
+  request.encode_string (package);
+  request.encode_string (alt_download_root);
+
+  char *http_proxy = get_http_proxy ();
+  request.encode_string (http_proxy);
+  g_free (http_proxy);
+  
+  char *https_proxy = get_https_proxy ();
+  request.encode_string (https_proxy);
+  g_free (https_proxy);
+
+  /* Install the package */
   call_apt_worker (APTCMD_INSTALL_PACKAGE, state,
 		   request.get_buf (), request.get_len (),
 		   callback, data);

@@ -100,11 +100,15 @@ void apt_worker_install_check (int state,
 			       apt_worker_callback *callback,
 			       void *data);
 
+void apt_worker_download_package (int state,
+				  const char *package,
+				  const char *alt_download_root,
+				  apt_worker_callback *callback,
+				  void *data);
+
 void apt_worker_install_package (int state,
 				 const char *package,
 				 const char *alt_download_root,
-				 bool check_free_space,
-				 bool updating,
 				 apt_worker_callback *callback,
 				 void *data);
 

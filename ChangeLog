@@ -1,3 +1,40 @@
+2008-01-17  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	Added a new APTCMD_DOWNLOAD_PACKAGE command, to allow downloading
+	packages separately from installing them from the frontend. Quite
+	useful for some checks, such as the check for enough free space,
+	when installing/upgrading packages, or checking for enough battery
+	left to upgrade packages.
+
+	* src/apt-worker-proto.h: Added APTCMD_DOWNLOAD_PACKAGE.
+
+	* src/apt-worker-bin.cc (get_free_space): Removed, since it's no
+	longer need from now on, as this check is going to be performed
+	from the frontend, at operations.cc.
+	(handle_request): Added a case for the new command, which
+	delegates in the new cmd_download_package function.
+	(cmd_install_check): Changed the call to operation due to changes
+	made over its prototype.
+	(cmd_install_package): Likewise.
+	(cmd_download_package): New. It decodes needed parameters to
+	download (but not install) the required packages.
+	(operation): Changed it's prototype to accept a boolean parameter
+	that tells whether or not it must only download the required
+	packages. Removed the old boolean parameter to ask it for checking
+	out for enough free space before installing packages, since it's
+	no longer needed.
+
+	* src/apt-worker-client.cc, src/apt-worker-client.h
+	(apt_worker_download_package): New function to request the AW to
+	execute the new download command.
+	(apt_worker_install_package): Removed unused check_free_space and
+	updating boolean parameters.
+
+	* src/operations.cc (ip_download_cur_reply): New function to be
+	executed between the downloading and the installing processes. It
+	allows to do some extra checks in that stage from the frontend,
+	instead of having to do them in the AW.
+
 2008-01-07  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.c (struct _UpdateNotifierPrivate): Added a

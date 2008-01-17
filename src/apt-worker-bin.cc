@@ -717,6 +717,7 @@ int cmd_check_updates (bool with_status = true);
 void cmd_get_catalogues ();
 void cmd_set_catalogues ();
 void cmd_install_check ();
+void cmd_download_package ();
 void cmd_install_package ();
 void cmd_remove_check ();
 void cmd_remove_package ();
@@ -872,6 +873,10 @@ handle_request ()
 
     case APTCMD_INSTALL_CHECK:
       cmd_install_check ();
+      break;
+
+    case APTCMD_DOWNLOAD_PACKAGE:
+      cmd_download_package ();
       break;
 
     case APTCMD_INSTALL_PACKAGE:
@@ -3470,11 +3475,10 @@ cmd_set_catalogues ()
   response.encode_int (success);
 }
 
-static int64_t get_free_space (const char *path);
 static bool set_dir_cache_archives (const char *alt_download_root);
-
-int operation (bool only_check, const char *alt_download_root,
-	       bool check_free_space);
+static int operation (bool check_only,
+		      const char *alt_download_root,
+		      bool download_only);
 
 /* APTCMD_INSTALL_CHECK
  *
@@ -3494,27 +3498,26 @@ cmd_install_check ()
   if (ensure_cache (true))
     {
       found = mark_named_package_for_install (package);
-      result_code = operation (true, NULL, true);
+      result_code = operation (true, NULL, false);
       cache_reset ();
     }
 
   response.encode_int (found && result_code == rescode_success);
 }
 
-/* APTCMD_INSTALL_PACKAGE
+/* APTCMD_DOWNLOAD_PACKAGE
  *
- * Install a package, using the common "operation ()" code, that
+ * Download a package, using the common "operation ()" code, that
  * installs packages marked for install.
  */
 
 void
-cmd_install_package ()
+cmd_download_package ()
 {
   const char *package = request.decode_string_in_place ();
   const char *alt_download_root = request.decode_string_in_place ();
   const char *http_proxy = request.decode_string_in_place ();
   const char *https_proxy = request.decode_string_in_place ();
-  int check_free_space = request.decode_int ();
 
   int result_code = rescode_failure;
 
@@ -3533,7 +3536,47 @@ cmd_install_package ()
   if (ensure_cache (true))
     {
       if (mark_named_package_for_install (package))
-	result_code = operation (false, alt_download_root, check_free_space);
+	result_code = operation (false, alt_download_root, true);
+      else
+	result_code = rescode_packages_not_found;
+    }
+
+  need_cache_init ();
+  response.encode_int (result_code);
+}
+
+/* APTCMD_INSTALL_PACKAGE
+ *
+ * Install a package, using the common "operation ()" code, that
+ * installs packages marked for install.
+ */
+
+void
+cmd_install_package ()
+{
+  const char *package = request.decode_string_in_place ();
+  const char *alt_download_root = request.decode_string_in_place ();
+  const char *http_proxy = request.decode_string_in_place ();
+  const char *https_proxy = request.decode_string_in_place ();
+
+  int result_code = rescode_failure;
+
+  if (http_proxy)
+    {
+      setenv ("http_proxy", http_proxy, 1);
+      DBG ("http_proxy: %s", http_proxy);
+    }
+
+  if (https_proxy)
+    {
+      setenv ("https_proxy", https_proxy, 1);
+      DBG ("https_proxy: %s", https_proxy);
+    }
+
+  if (ensure_cache (true))
+    {
+      if (mark_named_package_for_install (package))
+	result_code = operation (false, alt_download_root, false);
       else
 	result_code = rescode_packages_not_found;
     }
@@ -3942,18 +3985,6 @@ combine_rescodes (int all, int one)
     return rescode_failure;
 }
 
-static int64_t
-get_free_space (const char *path)
-{
-  struct statvfs buf;
-
-  if (statvfs(path, &buf) != 0)
-    return -1;
-
-  int64_t res = (int64_t)buf.f_bfree * (int64_t)buf.f_bsize;
-  return res;
-}
-
 /* Sets an alternative cache directory to download packages.
    If alt_download_root is NULL, then the default path is set */
 static bool
@@ -4014,7 +4045,6 @@ set_dir_cache_archives (const char *alt_download_root)
   return result;
 }
 
-
 /* operation () is used to run pending apt operations
  * (removals or installations). If check_only parameter is
  * enabled, it will only check if the operation is doable.
@@ -4023,9 +4053,8 @@ set_dir_cache_archives (const char *alt_download_root)
  * cmd_install_check and cmd_remove_package
  */
 
-int
-operation (bool check_only, const char *alt_download_root,
-	   bool check_free_space)
+static int
+operation (bool check_only, const char *alt_download_root, bool download_only)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgCacheFile &Cache = *(state->cache);
@@ -4095,9 +4124,6 @@ operation (bool check_only, const char *alt_download_root,
 
   // Create the package manager
   //
-  if (Pm.Get() != 0)
-    delete (Pm.Get());
-
   Pm = new myDPkgPM (Cache);
 
   // Create the order list explicitely in a way that we like.  We
@@ -4127,41 +4153,6 @@ operation (bool check_only, const char *alt_download_root,
     }
 
   collect_new_domains ();
-
-  /* Check for enough free space. */
-  {
-    struct statvfs Buf;
-    string OutputDir = _config->FindDir("Dir::Cache::Archives");
-    double download_size = FetchBytes - FetchPBytes;
-
-    /* Check ouput dir info */
-    if (statvfs(OutputDir.c_str(),&Buf) != 0)
-      {
-	_error->Errno("statvfs","Couldn't determine free space in %s",
-		      OutputDir.c_str());
-	return rescode_failure;
-      }
-
-    if (unsigned(Buf.f_bfree) <= download_size / Buf.f_bsize)
-      {
-	if (state->using_alt_archives_dir)
-	  {
-	    /* Downloading packages to an alternative place */
-
-	    /* Not enough space: Let's try again just ignoring
-	       the alternative place, and using default instead */
-	    set_dir_cache_archives (NULL);
-	    return operation (check_only, NULL, check_free_space);
-	  }
-	else
-	  {
-	    /* Downloading packages to the usual place */
-	    _error->Error("You don't have enough free space in %s.",
-			  OutputDir.c_str());
-	    return rescode_out_of_space;
-	  }
-      }
-  }
 
   /* Send a status report now if we are going to download
      something.  This makes sure that the progress dialog is
@@ -4213,28 +4204,10 @@ operation (bool check_only, const char *alt_download_root,
   if (result != rescode_success)
     return (result == rescode_failure)?rescode_download_failed:result;
 
-  send_status (op_general, -1, 0, 0);
+  send_status (op_general, -1, 0, 0); 
 
-  /* Compute required free space for install the packages */
-  int64_t required_free_space = 0;
-  if (check_free_space)
-    {
-      pkgDepCache &cache = *(state->cache);
-      for (pkgCache::PkgIterator pkg = cache.PkgBegin();
-	   pkg.end() != true;
-	   pkg++)
-	{
-	  if (cache[pkg].Upgrade())
-	    {
-	      pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
-	      package_record rec (ver);
-	      required_free_space += get_required_free_space (rec);
-	    }
-	}
-    }
-
-  /* Check free space for installation */
-  if (required_free_space < get_free_space ("/"))
+  /* Install packages if not just downloading */
+  if (!download_only)
     {
       /* Do install */
       _system->UnLock();
@@ -4247,16 +4220,11 @@ operation (bool check_only, const char *alt_download_root,
 	  _error->PendingError() == true)
 	return rescode_failure;
 
-      if (Res == pkgPackageManager::Completed)
-	return rescode_success;
+      if (Res != pkgPackageManager::Completed)
+	return rescode_failure;
+    }
 
-      return rescode_failure;
-    }
-  else
-    {
-      _error->Error("You don't have enough free space in /.");
-      return rescode_out_of_space;
-    }
+  return rescode_success;
 }
 
 /* APTCMD_CLEAN

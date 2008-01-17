@@ -259,6 +259,7 @@ static void ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec,
 static void ip_check_upgrade_loop (ip_clos *c);
 static void ip_check_upgrade_cmd_done (int status, void *data);
 static void ip_install_cur (void *data);
+static void ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
@@ -1095,11 +1096,77 @@ ip_install_cur (void *data)
   g_free (title);
 
   set_log_start ();
-  apt_worker_install_package (c->state, pi->name,
-			      c->alt_download_root,
-			      red_pill_mode == FALSE,
-			      pi->installed_version != NULL,
-			      ip_install_cur_reply, c);
+  apt_worker_download_package (c->state, pi->name,
+			       c->alt_download_root,
+			       ip_download_cur_reply, c);
+}
+
+static void
+ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
+
+  if (dec == NULL)
+    {
+      ip_end (c);
+      return;
+    }
+
+  apt_proto_result_code result_code =
+    apt_proto_result_code (dec->decode_int ());
+
+  if (result_code == rescode_success)
+    {
+      /* Check free space before downloading */
+      int64_t free_space = get_free_space ();
+      if (free_space < 0)
+	annoy_user_with_errno (errno, "get_free_space",
+			       ip_end, c);
+
+      if (pi->info.required_free_space < free_space)
+	{
+	  /* Proceed to instal if there's enough free space */
+	  apt_worker_install_package (c->state, pi->name,
+				      c->alt_download_root,
+				      ip_install_cur_reply, c);
+	}
+      else
+	{
+	  if (red_pill_mode)
+	    {
+	      /* Allow continuation
+	       */
+	      char *msg =
+		g_strdup_printf ("%s\n%s",
+				 dgettext ("hildon-common-strings",
+					   "sfil_ni_not_enough_memory"),
+				 _("ai_ni_continue_install"));
+	      ask_yes_no (msg, ip_maybe_continue, c);
+	      g_free (msg);
+	    }
+	  else
+	    ip_abort_cur (c, dgettext ("hildon-common-strings",
+				       "sfil_ni_not_enough_memory"),
+			  false);
+	}
+    }
+  else if (entertainment_was_cancelled ())
+    ip_end (c);
+  else
+    {
+      result_code = scan_log_for_result_code (result_code);
+      char *msg =
+	result_code_to_message (pi, result_code);
+      if (msg == NULL)
+	msg = g_strdup_printf ((pi->installed_version != NULL
+				? _("ai_ni_error_update_failed")
+				: _("ai_ni_error_installation_failed")),
+			       pi->get_display_name (false));
+
+      ip_abort_cur (c, msg, false);
+      g_free (msg);
+    }
 }
 
 static void

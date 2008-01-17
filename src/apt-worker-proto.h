@@ -46,6 +46,7 @@ enum apt_command {
   APTCMD_SET_CATALOGUES,
 
   APTCMD_INSTALL_CHECK,
+  APTCMD_DOWNLOAD_PACKAGE,      // needs network
   APTCMD_INSTALL_PACKAGE,      // needs network
 
   APTCMD_REMOVE_CHECK,
