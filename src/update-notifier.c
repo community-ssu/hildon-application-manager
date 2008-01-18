@@ -74,8 +74,6 @@ struct _UpdateNotifierPrivate
   guint alarm_init_timeout_id;
 
   osso_context_t *osso_ctxt;
-  osso_display_state_t display_state;
-
   GConfClient *gconf;
   guint *gconf_notifications;
   GIOChannel *inotify_channel;
@@ -100,10 +98,10 @@ static void update_notifier_init (UpdateNotifier *upno);
 static void update_notifier_finalize (GObject *object);
 
 /* Private functions */
-static void display_event_cb (osso_display_state_t state, gpointer data);
 static void button_toggled (GtkWidget *button, gpointer data);
 static void menu_hidden (GtkMenuShell *menu, gpointer user_data);
 static void open_ham_menu_item_activated (GtkWidget *menu, gpointer data);
+static void display_event_cb (osso_display_state_t state, gpointer data);
 
 static void setup_gconf (UpdateNotifier *upno);
 
@@ -272,15 +270,6 @@ menu_position_func (GtkMenu   *menu,
 }
 
 static void
-display_event_cb (osso_display_state_t state, gpointer data)
-{
-  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
-  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-
-  priv->display_state = state;
-}
-
-static void
 button_toggled (GtkWidget *button, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
@@ -313,6 +302,59 @@ open_ham_menu_item_activated (GtkWidget *menu, gpointer data)
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
 
   show_check_for_updates_view (upno);
+}
+
+#if !USE_BLINKIFIER
+static gboolean
+blink_icon (gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  if (GTK_WIDGET_VISIBLE (priv->blinkifier))
+    gtk_widget_hide (priv->blinkifier);
+  else
+    gtk_widget_show (priv->blinkifier);
+
+  return TRUE;
+}
+#endif
+
+static void
+display_event_cb (osso_display_state_t state, gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  if (priv->icon_state == UPNO_ICON_BLINKING)
+    {
+#if USE_BLINKIFIER
+      if (state == OSSO_DISPLAY_OFF)
+	{
+	  g_object_set(priv->blinkifier, "pixbuf", priv->static_pic, NULL);
+	}
+      else
+	{
+	  g_object_set(priv->blinkifier, "pixbuf-animation",
+		       hn_app_pixbuf_anim_blinker_new(priv->static_pic, 1000, -1, 100),
+		       NULL);
+	}
+#else
+      if (state == OSSO_DISPLAY_OFF)
+	{
+	  if (priv->blinking_timeout_id > 0)
+	    {
+	      g_source_remove (priv->blinking_timeout_id);
+	      priv->blinking_timeout_id = 0;
+	    }
+	}
+      else
+	{
+	  if (priv->blinking_timeout_id == 0)
+	    priv->blinking_timeout_id = g_timeout_add (500, blink_icon, upno);
+	}
+#endif
+    }
 }
 
 static void
@@ -360,25 +402,6 @@ setup_gconf (UpdateNotifier *upno)
   /* Finish the list of connection IDs */
   priv->gconf_notifications[2] = -1;
 }
-
-#if !USE_BLINKIFIER
-static gboolean
-blink_icon (gpointer data)
-{
-  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
-  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-
-  if (priv->display_state != OSSO_DISPLAY_OFF)
-    {
-      if (GTK_WIDGET_VISIBLE (priv->blinkifier))
-	gtk_widget_hide (priv->blinkifier);
-      else
-	gtk_widget_show (priv->blinkifier);
-    }
-
-  return TRUE;
-}
-#endif
 
 static void
 set_condition_carefully (UpdateNotifier *upno, gboolean condition)

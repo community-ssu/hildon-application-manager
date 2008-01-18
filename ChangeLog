@@ -1,10 +1,10 @@
 2008-01-17  Mario Sanchez Prada  <msanchez@maemo.org>
 
-	* src/update-notifier.c (UpdateNotifierPrivate): Added a new field
-	to keep track of the display state (N79304).
-	(update_notifier_init): Set callback for display events	(N79304).
-	(display_event_cb): Just update the new field (N79304).
-	(blink_icon): Don't blink if display is blank (N79304).
+	* src/update-notifier.c (update_notifier_init): Connect a callback
+	for managing display events (N79304).
+	(display_event_cb): Stop the notifier icon from blinking when the
+	display is blank, and restore to its blinking state (if needed)
+	when the display is not blank again (N79304).
 
 	* src/operations.cc (ip_check_upgrade_reply): Skip the cert
 	information of the reply only if not upgrading (N78908).
