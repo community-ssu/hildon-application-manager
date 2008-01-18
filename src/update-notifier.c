@@ -765,7 +765,7 @@ check_for_updates (UpdateNotifier *upno)
     gainroot_cmd = g_strdup ("/usr/bin/sudo");
 
   /* Build command to be spawned */
-  const char *argv[] =
+  char *argv[] =
     { gainroot_cmd,
       "/usr/libexec/apt-worker",
       "check-for-updates",

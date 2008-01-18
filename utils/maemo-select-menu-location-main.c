@@ -574,7 +574,7 @@ selection_location_response (GtkDialog *dialog, int response, gpointer data)
       g_free (c);
 
       gtk_widget_destroy (GTK_WIDGET (dialog));
-      pop_dialog (dialog);
+      pop_dialog (GTK_WIDGET (dialog));
 
       gtk_main_quit ();
     }

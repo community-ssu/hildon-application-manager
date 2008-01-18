@@ -1,3 +1,4 @@
+
 /*
  * This file is part of the hildon-application-manager.
  *
@@ -28,10 +29,12 @@
 #include <gdk/gdkx.h>
 #include <hildon/hildon-window.h>
 #include <hildon/hildon-file-chooser-dialog.h>
+#include <hildon/hildon-banner.h>
 
 #include <glib.h>
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib.h>
+#include <dbus/dbus-glib-lowlevel.h>
 
 GtkWidget *window, *grab_widget;
 DBusConnection *connection;

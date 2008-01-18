@@ -26,10 +26,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <glib.h>
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib.h>
+#include <dbus/dbus-glib-lowlevel.h>
 
 static char* type_to_name (int message_type)
 {
@@ -103,4 +105,6 @@ main (int argc, char **argv)
     GMainLoop *loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (loop);
   }
+
+  return 0;
 }

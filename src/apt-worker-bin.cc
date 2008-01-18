@@ -4547,7 +4547,7 @@ encode_localized_field (pkgTagSection *section, const char *field,
 static bool
 substreq (const char *start, const char *end, const char *str)
 {
-  return end-start == strlen (str) && !strncmp (start, str, end-start);
+  return ((size_t)(end-start) == strlen (str)) && !strncmp (start, str, end-start);
 }
 
 static int

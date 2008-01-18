@@ -136,7 +136,8 @@ xexp_list_sort (xexp *x,
       xexp *x_item2 = NULL;
 
       /* Sort the list */
-      x_slist = g_slist_sort (x_slist, xexp_compare_func);
+      x_slist = g_slist_sort (x_slist,
+			      (gint (*)(gconstpointer, gconstpointer)) xexp_compare_func);
 
       /* Rebuild the xexp expression from the sorted list */
 
