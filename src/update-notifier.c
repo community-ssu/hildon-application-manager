@@ -74,6 +74,8 @@ struct _UpdateNotifierPrivate
   guint alarm_init_timeout_id;
 
   osso_context_t *osso_ctxt;
+  osso_display_state_t display_state;
+
   GConfClient *gconf;
   guint *gconf_notifications;
   GIOChannel *inotify_channel;
@@ -98,6 +100,7 @@ static void update_notifier_init (UpdateNotifier *upno);
 static void update_notifier_finalize (GObject *object);
 
 /* Private functions */
+static void display_event_cb (osso_display_state_t state, gpointer data);
 static void button_toggled (GtkWidget *button, gpointer data);
 static void menu_hidden (GtkMenuShell *menu, gpointer user_data);
 static void open_ham_menu_item_activated (GtkWidget *menu, gpointer data);
@@ -163,6 +166,8 @@ update_notifier_init (UpdateNotifier *upno)
   /* Setup dbus */
   if (setup_dbus (upno))
     {
+      osso_hw_set_display_event_cb (priv->osso_ctxt, display_event_cb, upno);
+
       setup_gconf (upno);
 
       priv->button = gtk_toggle_button_new ();
@@ -267,6 +272,15 @@ menu_position_func (GtkMenu   *menu,
 }
 
 static void
+display_event_cb (osso_display_state_t state, gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  priv->display_state = state;
+}
+
+static void
 button_toggled (GtkWidget *button, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
@@ -354,10 +368,13 @@ blink_icon (gpointer data)
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
-  if (GTK_WIDGET_VISIBLE (priv->blinkifier))
-    gtk_widget_hide (priv->blinkifier);
-  else
-    gtk_widget_show (priv->blinkifier);
+  if (priv->display_state != OSSO_DISPLAY_OFF)
+    {
+      if (GTK_WIDGET_VISIBLE (priv->blinkifier))
+	gtk_widget_hide (priv->blinkifier);
+      else
+	gtk_widget_show (priv->blinkifier);
+    }
 
   return TRUE;
 }
