@@ -1021,6 +1021,8 @@ ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   ip_clos *c = (ip_clos *)data;
 
+  package_info *pi = (package_info *)(c->cur->data);
+
   c->upgrade_names = NULL;
   c->upgrade_versions = NULL;
 
@@ -1030,28 +1032,30 @@ ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec, void *data)
       return;
     }
 
-  /* Skip the cert information of the reply.
+  /* Skip the cert information of the reply if not upgrading.
    */
-
-  while (!dec->corrupted ())
+  if (pi->installed_version == NULL)
     {
-      apt_proto_pkgtrust trust = apt_proto_pkgtrust (dec->decode_int ());
-      if (trust == pkgtrust_end)
-	break;
+      while (!dec->corrupted ())
+	{
+	  apt_proto_pkgtrust trust = apt_proto_pkgtrust (dec->decode_int ());
+	  if (trust == pkgtrust_end)
+	    break;
       
-      dec->decode_string_in_place ();  // name
-    }
+	  dec->decode_string_in_place ();  // name
+	}
 
-  while (!dec->corrupted ())
-    {
-      char *name = dec->decode_string_dup ();
-      if (name == NULL)
-	break;
+      while (!dec->corrupted ())
+	{
+	  char *name = dec->decode_string_dup ();
+	  if (name == NULL)
+	    break;
 
-      char *version = dec->decode_string_dup ();
+	  char *version = dec->decode_string_dup ();
 
-      push (c->upgrade_names, name);
-      push (c->upgrade_versions, version);
+	  push (c->upgrade_names, name);
+	  push (c->upgrade_versions, version);
+	}
     }
 
   int success = dec->decode_int ();
