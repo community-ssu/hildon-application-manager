@@ -23,7 +23,6 @@
 
 /* XXX
 
-   - Make sure icon doesn't blink when screen is off
    - Plug all the leaks
 */
 

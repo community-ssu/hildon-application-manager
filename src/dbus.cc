@@ -805,6 +805,13 @@ check_battery_status (void)
       send_battery_status_request ();
       batt_info = receive_battery_status_update ();
     }
-
+  else
+    {
+      /* If working in the scratchbox, return a ad-hoc struct telling
+	 that there's enough battery and that it's chargin on */
+      batt_info = new battery_info ();
+      batt_info->level = 4;
+      batt_info->charging = TRUE;
+    }
   return batt_info;
 }
