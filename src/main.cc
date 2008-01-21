@@ -2683,7 +2683,7 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
     {
       /* 'Update all' button - XXX needs i18n */
       update_all_button =
-	GTK_WIDGET (gtk_tool_button_new (gtk_label_new ("Update all"), NULL));
+	GTK_WIDGET (gtk_tool_button_new (gtk_label_new (_("ai_tb_update_all")), NULL));
       gtk_tool_item_set_expand (GTK_TOOL_ITEM (update_all_button), TRUE);
       gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (update_all_button), TRUE);
 

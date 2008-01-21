@@ -1,5 +1,8 @@
 2008-01-21  Mario Sanchez Prada  <msanchez@maemo.org>
 
+	* src/main.cc (create_toolbar): Replaced the "Update all"
+	hardcoded string with "ai_tb_update_all".
+
 	* src/operations.cc (enough_battery_to_update): Improved the code
 	to check the battery status. Fixed a memory leak (N79022).
 	(ip_check_upgrade_reply): Removed code added recently to only skip
