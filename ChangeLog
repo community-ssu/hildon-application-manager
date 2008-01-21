@@ -4,6 +4,25 @@
 	to check the battery status. Fixed a memory leak (N79022).
 	(ip_check_upgrade_reply): Removed code added recently to only skip
 	cert information when upgrading, since it's not a valid patch.
+	(ip_not_enough_memory): New function to refactor duplicate code
+	called from ip_install_one and ip_install_cur (N79022).
+	(struct ipneb_clos): New struct to pass data to the new
+	ip_not_enough_battery_confirm_response function (N79022).
+	(ip_not_enough_battery_confirm): New function to show a
+	confirmation dialog to the user when there's not enough battery to
+	do an upgrade, giving the choice to retry (by plugging the charger
+	into the device) or to cancel the upgrade (N79022).
+	(ip_not_enough_battery_confirm_response): New function to manage
+	the answer in the confirmation dialog (N79022).
+	(ip_install_one): Use the new ip_not_enough_memory function when
+	there's not enough free space, and ip_not_enough_battery_confirm
+	if there's not enough battery to upgrade (N79022).
+	(ip_check_upgrade_loop): Call to ip_download_cur instead of
+	ip_install_cur, since that's is the first step now (N79022).
+	(ip_download_cur): Renamed from ip_install_cur, as now this is the
+	first function to be called, before installing anything	(N79022).
+	(ip_install_cur): New function with code to install an already
+	downloaded package. Called from ip_download_cur_reply (N79022).
 
 	* src/dbus.h (struct battery_info): Changed the 'chargin' field to
 	have a gboolean datatype, instead of gint (N79022).

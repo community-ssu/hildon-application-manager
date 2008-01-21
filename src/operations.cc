@@ -246,6 +246,11 @@ static void ip_with_new_info (package_info *pi, void *data, bool changed);
 static void ip_warn_about_reboot (ip_clos *c);
 static void ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 					   gpointer data);
+
+static void ip_not_enough_memory (void *data);
+static void ip_not_enough_battery_confirm (void (*cont) (void *data), void *data);
+static void ip_not_enough_battery_confirm_response (bool res, void *data);
+
 static void ip_install_one (void *data);
 static void ip_maybe_continue (bool res, void *data);
 
@@ -259,8 +264,9 @@ static void ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec,
 				    void *data);
 static void ip_check_upgrade_loop (ip_clos *c);
 static void ip_check_upgrade_cmd_done (int status, void *data);
-static void ip_install_cur (void *data);
+static void ip_download_cur (void *data);
 static void ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
+static void ip_install_cur (void *data);
 static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
@@ -849,7 +855,7 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
     }
 }
 
-gboolean
+static gboolean
 enough_battery_to_update (void)
 {
   battery_info *batt_info = NULL;
@@ -862,6 +868,64 @@ enough_battery_to_update (void)
       delete batt_info;
     }
   return result;
+}
+
+static void
+ip_not_enough_memory (void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (red_pill_mode)
+    {
+      /* Allow continuation
+       */
+      char *msg =
+	g_strdup_printf ("%s\n%s",
+			 dgettext ("hildon-common-strings",
+				   "sfil_ni_not_enough_memory"),
+			 _("ai_ni_continue_install"));
+      ask_yes_no (msg, ip_maybe_continue, c);
+      g_free (msg);
+    }
+  else
+    ip_abort_cur (c, dgettext ("hildon-common-strings",
+			       "sfil_ni_not_enough_memory"),
+		  false);
+}
+
+struct ipneb_clos {
+  void (*callback) (void *data);
+  void *data;
+};
+
+static void
+ip_not_enough_battery_confirm (void (*cont) (void *data),
+			       void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  ipneb_clos *neb_clos = NULL;
+  gchar *text = g_strdup (_("ai_ni_error_battery_empty"));
+
+  neb_clos = new ipneb_clos;
+  neb_clos->callback = cont;
+  neb_clos->data = c;
+
+  ask_yes_no (text, ip_not_enough_battery_confirm_response, neb_clos);
+
+  g_free (text);
+}
+
+static void
+ip_not_enough_battery_confirm_response (bool res, void *data)
+{
+  ipneb_clos *c = (ipneb_clos *)data;
+
+  if (res)
+    c->callback (c->data);
+  else
+    ip_end (c->data);
+
+  delete c;
 }
 
 static void
@@ -920,31 +984,13 @@ ip_install_one (void *data)
       else
 	{
 	  /* Not enough free space */
-      
-	  if (red_pill_mode)
-	    {
-	      /* Allow continuation
-	       */
-	      char *msg =
-		g_strdup_printf ("%s\n%s",
-				 dgettext ("hildon-common-strings",
-					   "sfil_ni_not_enough_memory"),
-				 _("ai_ni_continue_install"));
-	      ask_yes_no (msg, ip_maybe_continue, c);
-	      g_free (msg);
-	    }
-	  else
-	    ip_abort_cur (c, dgettext ("hildon-common-strings",
-				       "sfil_ni_not_enough_memory"),
-			  false);
+	  ip_not_enough_memory (c);
 	}
     }
   else
     {
       /* Not enough battery to do the upgrade */
-      ip_abort_cur (c,
-		    _("!!Not enough battery left to upgrade packages."),
-		    false);
+      ip_not_enough_battery_confirm (ip_install_one, c);
     }
 }
 
@@ -1071,7 +1117,7 @@ ip_check_upgrade_loop (ip_clos *c)
       ip_execute_checkrm_script (name, params, ip_check_upgrade_cmd_done, c);
     }
   else
-    ip_install_cur (c);
+    ip_download_cur (c);
 }
 
 static void
@@ -1109,7 +1155,7 @@ ip_check_upgrade_cmd_done (int status, void *data)
 }
 
 static void
-ip_install_cur (void *data)
+ip_download_cur (void *data)
 {
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
@@ -1144,50 +1190,7 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
     apt_proto_result_code (dec->decode_int ());
 
   if (result_code == rescode_success)
-    {
-      if (!pi->installed_version || enough_battery_to_update ())
-	{
-	  /* Check free space before downloading */
-	  int64_t free_space = get_free_space ();
-	  if (free_space < 0)
-	    annoy_user_with_errno (errno, "get_free_space",
-				   ip_end, c);
-
-	  if (pi->info.required_free_space < free_space)
-	    {
-	      /* Proceed to instal if there's enough free space */
-	      apt_worker_install_package (c->state, pi->name,
-					  c->alt_download_root,
-					  ip_install_cur_reply, c);
-	    }
-	  else
-	    {
-	      if (red_pill_mode)
-		{
-		  /* Allow continuation
-		   */
-		  char *msg =
-		    g_strdup_printf ("%s\n%s",
-				     dgettext ("hildon-common-strings",
-					       "sfil_ni_not_enough_memory"),
-				     _("ai_ni_continue_install"));
-		  ask_yes_no (msg, ip_maybe_continue, c);
-		  g_free (msg);
-		}
-	      else
-		ip_abort_cur (c, dgettext ("hildon-common-strings",
-					   "sfil_ni_not_enough_memory"),
-			      false);
-	    }
-	}
-      else
-	{
-	  /* Not enough battery to do the upgrade */
-	  ip_abort_cur (c,
-			_("!!Not enough battery left to upgrade packages."),
-			false);
-	}
-    }
+    ip_install_cur (c);
   else if (entertainment_was_cancelled ())
     ip_end (c);
   else
@@ -1203,6 +1206,40 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 
       ip_abort_cur (c, msg, false);
       g_free (msg);
+    }
+}
+
+static void
+ip_install_cur (void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
+
+  if (!pi->installed_version || enough_battery_to_update ())
+    {
+      /* Check free space before downloading */
+      int64_t free_space = get_free_space ();
+      if (free_space < 0)
+	annoy_user_with_errno (errno, "get_free_space",
+			       ip_end, c);
+
+      if (pi->info.required_free_space < free_space)
+	{
+	  /* Proceed to instal if there's enough free space */
+	  apt_worker_install_package (c->state, pi->name,
+				      c->alt_download_root,
+				      ip_install_cur_reply, c);
+	}
+      else
+	{
+	  /* Not enough free space */
+	  ip_not_enough_memory (c);
+	}
+    }
+  else
+    {
+      /* Not enough battery to do the upgrade */
+      ip_not_enough_battery_confirm (ip_install_cur, c);
     }
 }
 
