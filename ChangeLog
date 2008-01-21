@@ -2,12 +2,20 @@
 
 	* src/operations.cc (enough_battery_to_update): Improved the code
 	to check the battery status. Fixed a memory leak (N79022).
+	(ip_check_upgrade_reply): Removed code added recently to only skip
+	cert information when upgrading, since it's not a valid patch.
 
 	* src/dbus.h (struct battery_info): Changed the 'chargin' field to
 	have a gboolean datatype, instead of gint (N79022).
 
 	* src/dbus.cc (receive_battery_status_update): Some needed changes
 	due to the datatype modification commented above (N79022).
+	(check_battery_status): Return an ad-hoc battery_info struct
+	telling that there's enough battery, and the "device" is charging
+	on when executing HAM in the scratchbox (N79022).
+
+	* src/update-notifier.c: Removed a comment from the XXX section
+	regarding to the blinking icon when the screen is off.
 
 2008-01-18  Mario Sanchez Prada  <msanchez@maemo.org>
 
