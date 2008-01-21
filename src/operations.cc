@@ -852,18 +852,16 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 gboolean
 enough_battery_to_update (void)
 {
-  battery_info *batt_info = NULL;;
+  battery_info *batt_info = NULL;
+  gboolean result = FALSE;
 
   batt_info = check_battery_status ();
   if (batt_info != NULL)
     {
-      if (batt_info->charging != -1 &&
-	  !batt_info->charging && batt_info->level <= 2)
-	return FALSE;
-
+      result = (batt_info->level > 2) || batt_info->charging;
       delete batt_info;
     }
-  return TRUE;
+  return result;
 }
 
 static void

@@ -35,13 +35,12 @@
      4: over 75% of max charge
 
   charging values:
-    -1: Invalid data
-     0: Charging off
-     1: Charging on
+     FALSE: Charging off
+      TRUE: Charging on
 */
 struct battery_info {
   gint level;
-  gint charging;
+  gboolean charging;
 };
 
 
