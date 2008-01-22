@@ -1,3 +1,13 @@
+2008-01-22  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/operations.cc (ip_install_one): Added an extra check to only
+	check the battery level when upgrading an OS package (N79022).
+	(ip_install_cur): Likewise (N79022).
+
+	* src/util.cc (emit_row_changed): Free the GtkTreePath here, not
+	in update_packages_list_selection.
+	(update_packages_list_selection): gtk_tree_path_free() removed.
+
 2008-01-21  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (create_toolbar): Replaced the "Update all"

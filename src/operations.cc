@@ -941,8 +941,10 @@ ip_install_one (void *data)
   else
     add_log ("Installing %s %s\n", pi->name, pi->available_version);
 
-  /* Check battery when doing an upgrade */
-  if (!pi->installed_version || enough_battery_to_update ())
+  /* Check battery when doing an upgrade of an OS package */
+  if (!pi->installed_version ||
+      !(pi->info.install_flags & pkgflag_system_update) ||
+      enough_battery_to_update ())
     {
       bool keep_installing = false;
       int64_t free_space = get_free_space ();
@@ -1215,7 +1217,10 @@ ip_install_cur (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
-  if (!pi->installed_version || enough_battery_to_update ())
+  /* Check battery when doing an upgrade of an OS package */
+  if (!pi->installed_version ||
+      !(pi->info.install_flags & pkgflag_system_update) ||
+      enough_battery_to_update ())
     {
       /* Check free space before downloading */
       int64_t free_space = get_free_space ();
