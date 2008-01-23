@@ -1,5 +1,20 @@
 2008-01-23 Felipe Erias Morandeira  <femorandeira@maemo.org>
 
+        * src/util.cc (package_info_func): retrieve the information that
+        will be shown for a given package, and fill the cell renderer with it.
+        (make_global_package_list): create a treeview using Modest's cell renderers
+
+        * src/modest-hbox-cell-renderer.[hc]: added legal notice
+
+        * src/modest-vbox-cell-renderer.c : added legal notice
+        (modest_vbox_cell_renderer_get_size) don't expand for invisible children
+
+        * src/modest-vbox-cell-renderer.h : added legal notice
+
+        * src/Makefile.am: updated to use the new code files.
+
+2008-01-23 Felipe Erias Morandeira  <femorandeira@maemo.org>
+
         * src/modest-hbox-cell-renderer.[hc]: This is a cell renderer from
         Modest that renders children renderers inside a horizontal box.
 
