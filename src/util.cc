@@ -50,6 +50,8 @@
 #include "operations.h"
 #include "apt-worker-client.h"
 #include "update-notifier.h"
+#include "modest-hbox-cell-renderer.h"
+#include "modest-vbox-cell-renderer.h"
 
 extern "C" {
 #include <libhildonwm/hd-wm.h>
@@ -1342,44 +1344,6 @@ global_icon_func (GtkTreeViewColumn *column,
 }
 
 static void
-global_name_func (GtkTreeViewColumn *column,
-		  GtkCellRenderer *cell,
-		  GtkTreeModel *model,
-		  GtkTreeIter *iter,
-		  gpointer data)
-{
-  GtkTreeView *tree = (GtkTreeView *)data;
-  GtkTreeSelection *selection = gtk_tree_view_get_selection (tree);
-  package_info *pi;
-
-  gtk_tree_model_get (model, iter, 0, &pi, -1);
-  if (!pi)
-    return;
-
-  const char *name = pi->get_display_name (global_installed);
-
-  if (gtk_tree_selection_iter_is_selected (selection, iter))
-    {
-      const gchar *desc;
-      gchar *markup;
-      if (global_installed)
-	desc = pi->installed_short_description;
-      else
-	{
-	  desc = pi->available_short_description;
-	  if (desc == NULL)
-	    desc = pi->installed_short_description;
-	}
-      markup = g_markup_printf_escaped ("%s\n<small>%s</small>",
-					name, desc);
-      g_object_set (cell, "markup", markup, NULL);
-      g_free (markup);
-    }
-  else
-    g_object_set (cell, "text", name, NULL);
-}
-
-static void
 emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
 {
   GtkTreePath *path;
@@ -1388,24 +1352,6 @@ emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
   g_signal_emit_by_name (model, "row-changed", path, iter);
 
   gtk_tree_path_free (path);
-}
-
-static void
-global_version_func (GtkTreeViewColumn *column,
-		     GtkCellRenderer *cell,
-		     GtkTreeModel *model,
-		     GtkTreeIter *iter,
-		     gpointer data)
-{
-  package_info *pi;
-  gtk_tree_model_get (model, iter, 0, &pi, -1);
-  if (!pi)
-    return;
-
-  g_object_set (cell, "text", (global_installed
-			       ? pi->installed_version
-			       : pi->available_version),
-		NULL);
 }
 
 static void
@@ -1429,6 +1375,60 @@ global_size_func (GtkTreeViewColumn *column,
   else
     strcpy (buf, "-");
   g_object_set (cell, "text", buf, NULL);
+}
+
+static void
+package_info_func (GtkTreeViewColumn *column,
+                   GtkCellRenderer *cell,
+                   GtkTreeModel *model,
+                   GtkTreeIter *iter,
+                   gpointer data)
+{
+  GtkTreeView *tree = (GtkTreeView *)data;
+  GtkTreeSelection *selection = gtk_tree_view_get_selection (tree);
+  package_info *pi;
+  const gchar *name;
+  const gchar *version;
+  GtkCellRendererText *name_rend, *version_rend, *desc_rend;
+  name_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "name-renderer");
+  version_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "version-renderer");
+  desc_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "desc-renderer");
+
+  gtk_tree_model_get (model, iter, 0, &pi, -1);
+  if (!pi)
+    return;
+  
+  name = pi->get_display_name (global_installed);
+  g_object_set (name_rend, "text", 
+                name,
+                NULL);
+
+  version = (global_installed? pi->installed_version: pi->available_version);
+  g_object_set (version_rend, "text", 
+                version,
+                NULL);
+
+  if (gtk_tree_selection_iter_is_selected (selection, iter))
+    {
+      const gchar *desc;
+      gchar *markup;
+
+      g_object_set (desc_rend, "visible", TRUE, NULL);
+      if (global_installed)
+        desc = pi->installed_short_description;
+      else
+        {
+          desc = pi->available_short_description;
+          if (desc == NULL)
+            desc = pi->installed_short_description;
+        }
+      markup = g_markup_printf_escaped ("<small>%s</small>", desc);
+      g_object_set (desc_rend, "markup", markup, NULL);
+      
+      g_free (markup);
+    }
+  else
+    g_object_set (desc_rend, "visible", FALSE, NULL);
 }
 
 static bool global_have_last_selection;
@@ -1586,7 +1586,8 @@ make_global_package_list (GList *packages,
       return label;
     }
 
-  GtkCellRenderer *renderer;
+  GtkCellRenderer *renderer, *v_renderer, *h_renderer, *name_renderer; 
+  GtkCellRenderer *version_renderer, *desc_renderer;
   GtkTreeViewColumn *column;
   GtkWidget *tree, *scroller;
 
@@ -1602,17 +1603,45 @@ make_global_package_list (GList *packages,
   gtk_tree_view_column_pack_start (column, renderer, FALSE);
   gtk_tree_view_column_set_cell_data_func (column, renderer, global_icon_func, tree, NULL);
 
-  renderer = gtk_cell_renderer_text_new ();
-  g_object_set (renderer, "yalign", 0.0, NULL);
-  gtk_tree_view_column_pack_end (column, renderer, TRUE);
-  gtk_tree_view_column_set_cell_data_func (column, renderer, global_name_func, tree, NULL);
+  v_renderer = modest_vbox_cell_renderer_new ();
+  h_renderer = modest_hbox_cell_renderer_new ();
+  
+  g_object_set (h_renderer, "xpad", 0, NULL);
+  
+  name_renderer = gtk_cell_renderer_text_new ();
+  g_object_set (name_renderer, "yalign", 0.0, 
+                "ellipsize-set", FALSE, 
+                "xpad", 0, NULL);
+  
+  version_renderer = gtk_cell_renderer_text_new ();
+  g_object_set (version_renderer, "yalign", 0.0, 
+                "xalign", 1.0,
+                "ellipsize-set", FALSE, 
+                "xpad", 0, NULL);
+  
+  desc_renderer = gtk_cell_renderer_text_new ();
+  g_object_set (desc_renderer, "yalign", 0.0, NULL);
+  g_object_set (desc_renderer, "xalign", 0.0, NULL);
+  g_object_set (desc_renderer, "visible", FALSE, NULL);
+  g_object_set (desc_renderer, "ellipsize-set", TRUE, NULL);
+  g_object_set (desc_renderer, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
+  
+  modest_hbox_cell_renderer_append (MODEST_HBOX_CELL_RENDERER (h_renderer), name_renderer, TRUE);
+  modest_hbox_cell_renderer_append (MODEST_HBOX_CELL_RENDERER (h_renderer), version_renderer, TRUE);
+  modest_vbox_cell_renderer_append (MODEST_VBOX_CELL_RENDERER (v_renderer), h_renderer, FALSE);
+  modest_vbox_cell_renderer_append (MODEST_VBOX_CELL_RENDERER (v_renderer), desc_renderer, FALSE);
+  g_object_set_data (G_OBJECT (v_renderer), "h-renderer", h_renderer);
+  g_object_set_data (G_OBJECT (v_renderer), "version-renderer", version_renderer);
+  g_object_set_data (G_OBJECT (v_renderer), "name-renderer", name_renderer);
+  g_object_set_data (G_OBJECT (v_renderer), "desc-renderer", desc_renderer);
+  
+  gtk_tree_view_column_pack_end (column, v_renderer, TRUE);
+  gtk_tree_view_column_set_cell_data_func (column, v_renderer, package_info_func, tree, NULL);
 
   /* Set odd/even rows in different colors */
   gtk_tree_view_set_rules_hint(GTK_TREE_VIEW (tree), TRUE);
 
   gtk_tree_view_insert_column (GTK_TREE_VIEW (tree), column, -1);
-
-  column = gtk_tree_view_get_column (GTK_TREE_VIEW (tree), 0);
 
   // Setting the sizing of this columne to FIXED but not specifying
   // the width is a workaround for some bug in GtkTreeView.  If we
@@ -1623,40 +1652,24 @@ make_global_package_list (GList *packages,
   gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
   gtk_tree_view_column_set_expand (column, TRUE);
 
+  column = gtk_tree_view_column_new ();
+  gtk_tree_view_column_set_alignment (column, 1.0);
+  gtk_tree_view_column_set_expand (column, FALSE);
+  g_object_set (column, "spacing", 14, NULL);
+  gtk_tree_view_column_set_title (column, _("ai_li_size"));
+
   renderer = gtk_cell_renderer_text_new ();
   g_object_set (renderer, "yalign", 0.0, NULL);
   g_object_set (renderer, "xalign", 1.0, NULL);
-  gtk_tree_view_insert_column_with_data_func (GTK_TREE_VIEW (tree),
-					      -1,
-					      _("ai_li_version"),
-					      renderer,
-					      global_version_func,
-					      tree,
-					      NULL);
-  column = gtk_tree_view_get_column (GTK_TREE_VIEW (tree), 1);
-  gtk_tree_view_column_set_alignment (column, 1.0);
-  gtk_tree_view_column_set_expand (column, FALSE);
+  gtk_tree_view_column_pack_end (column, renderer, TRUE);
+  gtk_tree_view_column_set_cell_data_func (column, renderer,
+                                           global_size_func, tree,
+                                           NULL);
 
-  {
-    column = gtk_tree_view_column_new ();
-    gtk_tree_view_column_set_alignment (column, 1.0);
-    gtk_tree_view_column_set_expand (column, FALSE);
-    g_object_set (column, "spacing", 14, NULL);
-    gtk_tree_view_column_set_title (column, _("ai_li_size"));
+  renderer = gtk_cell_renderer_text_new ();
+  gtk_tree_view_column_pack_end (column, renderer, FALSE);
 
-    renderer = gtk_cell_renderer_text_new ();
-    g_object_set (renderer, "yalign", 0.0, NULL);
-    g_object_set (renderer, "xalign", 1.0, NULL);
-    gtk_tree_view_column_pack_end (column, renderer, TRUE);
-    gtk_tree_view_column_set_cell_data_func (column, renderer,
-					     global_size_func, tree,
-					     NULL);
-
-    renderer = gtk_cell_renderer_text_new ();
-    gtk_tree_view_column_pack_end (column, renderer, FALSE);
-
-    gtk_tree_view_insert_column (GTK_TREE_VIEW (tree), column, -1);
-  }
+  gtk_tree_view_insert_column (GTK_TREE_VIEW (tree), column, -1);
 
   scroller = gtk_scrolled_window_new (NULL, NULL);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),

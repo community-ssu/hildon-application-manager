@@ -1,4 +1,9 @@
-/* Copyright (c) 2007, Nokia Corporation
+/* This file is part of the hildon-application-manager.
+ * 
+ * Parts of this file are derived from Modest.
+ * 
+ * Modest's legal notice:
+ * Copyright (c) 2007, Nokia Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,12 +32,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <config.h>
-
-#include <glib/gi18n-lib.h>
 #include <gtk/gtkwidget.h>
+#include <gtk/gtkcellrenderertext.h>
 
-#include <modest-text-utils.h>
 #include <modest-hbox-cell-renderer.h>
 
 #define RENDERER_EXPAND_ATTRIBUTE "box-expand"
@@ -260,26 +262,30 @@ modest_hbox_cell_renderer_render       (GtkCellRenderer       *cell,
 	ModestHBoxCellRendererPrivate *priv = MODEST_HBOX_CELL_RENDERER_GET_PRIVATE (cell);
 	gint nvis_children = 0;
 	gint nexpand_children = 0;
+	gint nfat_children = 0;
 	GtkTextDirection direction;
 	GList *node = NULL;
 	GtkCellRenderer *child;
 	gint width, extra;
 	
 	direction = gtk_widget_get_direction (widget);
-	nvis_children = 0;
-	nexpand_children = 0;
 
 	/* Counts visible and expandable children cell renderers */
 	for (node = priv->renderers_list; node != NULL; node = g_list_next (node)) {
 		gboolean visible, expand;
+		gint req_width = 0;
 		child = (GtkCellRenderer *) node->data;
 		g_object_get (G_OBJECT (child), "visible", &visible, NULL);
 		expand = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (child), RENDERER_EXPAND_ATTRIBUTE));
-		
+		gtk_cell_renderer_get_size (child, widget, NULL, NULL, NULL, &req_width, NULL);
+
 		if (visible) {
-			nvis_children += 1;
-			if (expand)
-				nexpand_children += 1;
+			nvis_children++;
+			if (expand) {
+				nexpand_children++;
+				if (req_width > cell_area->width/2)
+					nfat_children ++;
+			}
 		}
 	}
 
@@ -321,12 +327,33 @@ modest_hbox_cell_renderer_render       (GtkCellRenderer       *cell,
 				g_object_get (child, "xpad", &child_xpad, "ypad", &child_ypad, NULL);
 
 				if (expand) {
-					if (nexpand_children == 1)
-						child_req.width += width;
-					else
+					if (GTK_IS_CELL_RENDERER_TEXT (child) && width < 0) {
+						/* The fattest renderers get slimmed down */
+						if (child_req.width > cell_area->width/2) {
+							child_req.width += width/nfat_children;
+							width -= width/nfat_children;
+							nfat_children--;
+							g_object_set (child, 
+							              "width", child_req.width, 
+							              "ellipsize-set", TRUE, 
+							              "ellipsize", PANGO_ELLIPSIZE_END, 
+							              NULL);
+						} else if (nfat_children == 0) {
+							child_req.width += extra;
+							width -= extra;
+							g_object_set (child,
+							              "width", child_req.width,
+							              "ellipsize-set", TRUE,
+							              "ellipsize", PANGO_ELLIPSIZE_END, 
+							              NULL);
+						}
+					} else {
 						child_req.width += extra;
-					nexpand_children -= 1;
-					width -= extra;
+						width -= extra;
+					}
+					nexpand_children --;
+					if (nexpand_children != 0)
+						extra = width/nexpand_children;
 				}
 
 				child_alloc.width = MAX (1, child_req.width);

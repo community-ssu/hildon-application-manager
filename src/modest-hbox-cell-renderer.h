@@ -1,4 +1,9 @@
-/* Copyright (c) 2007, Nokia Corporation
+/* This file is part of the hildon-application-manager.
+ * 
+ * Parts of this file are derived from Modest.
+ * 
+ * Modest's legal notice:
+ * Copyright (c) 2007, Nokia Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

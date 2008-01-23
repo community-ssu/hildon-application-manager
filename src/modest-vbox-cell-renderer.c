@@ -1,4 +1,9 @@
-/* Copyright (c) 2007, Nokia Corporation
+/* This file is part of the hildon-application-manager.
+ * 
+ * Parts of this file are derived from Modest.
+ * 
+ * Modest's legal notice:
+ * Copyright (c) 2007, Nokia Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,13 +32,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <config.h>
-
-#include <glib/gi18n-lib.h>
-
 #include <gtk/gtkwidget.h>
 
-#include <modest-text-utils.h>
 #include <modest-vbox-cell-renderer.h>
 
 #define RENDERER_EXPAND_ATTRIBUTE "box-expand"
@@ -205,6 +205,7 @@ modest_vbox_cell_renderer_get_size     (GtkCellRenderer       *cell,
 	gint full_width, full_height;
 	GList *node;
 	ModestVBoxCellRendererPrivate *priv = MODEST_VBOX_CELL_RENDERER_GET_PRIVATE (cell);
+	gboolean visible = FALSE;
 
 	calc_width = 0;
 	calc_height = 0;
@@ -215,7 +216,8 @@ modest_vbox_cell_renderer_get_size     (GtkCellRenderer       *cell,
 
 		gtk_cell_renderer_get_size (renderer, widget, NULL, NULL, NULL,
 					    &renderer_width, &renderer_height);
-		if ((renderer_width > 0)&&(renderer_height > 0)) {
+		g_object_get (G_OBJECT (renderer), "visible", &visible, NULL);
+		if (visible && (renderer_width > 0) && (renderer_height > 0)) {
 			calc_width = MAX (calc_width, renderer_width);
 			calc_height += renderer_height;
 		}

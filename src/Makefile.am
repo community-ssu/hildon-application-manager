@@ -10,6 +10,10 @@ hildon_application_manager_launch_SOURCES = main.h			\
                                             main.cc			\
 					    operations.h		\
 					    operations.cc		\
+					    modest-hbox-cell-renderer.h	\
+					    modest-hbox-cell-renderer.c	\
+					    modest-vbox-cell-renderer.h	\
+					    modest-vbox-cell-renderer.c	\
 					    util.h			\
 					    util.cc			\
 					    details.h			\
