@@ -4072,7 +4072,16 @@ operation (bool check_only, const char *alt_download_root, bool download_only)
 
   if (Cache->DelCount() == 0 && Cache->InstCount() == 0 &&
       Cache->BadCount() == 0)
-    return rescode_success;
+    {
+      /* Encode trust summary and upgrades information when running
+	 APTCMD_INSTALL_CHECK, even when there's nothing to do */
+      if (check_only)
+	{
+	  response.encode_int (pkgtrust_end);
+	  response.encode_string (NULL);
+	}
+      return rescode_success;
+    }
 
   // Create the text record parser
   pkgRecords Recs (Cache);

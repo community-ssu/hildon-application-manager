@@ -1,3 +1,10 @@
+2008-01-23  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker-bin.cc (operation): Don't forget to encode the
+	trust summary and upgrades information fields in the response when
+	running APTCMD_INSTALL_CHECK, even when there's nothing to do, to
+	be compliant with the defined protocol (N78908).
+
 2008-01-22  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operations.cc (ip_install_one): Added an extra check to only
