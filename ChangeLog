@@ -1,3 +1,11 @@
+2008-01-23 Felipe Erias Morandeira  <femorandeira@igalia.org>
+
+        * src/modest-hbox-cell-renderer.[hc]: This is a cell renderer from
+        Modest that renders children renderers inside a horizontal box.
+
+        * src/modest-vbox-cell-renderer.[hc]: This is a cell renderer from
+        Modest that renders children renderers inside a vertical box.
+
 2008-01-23  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker-bin.cc (operation): Don't forget to encode the
