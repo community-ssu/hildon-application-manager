@@ -150,7 +150,8 @@ get_catalogues_callback (int cmd,
     }
   else
     {
-      what_the_fock_p ();
+      if (dec)
+	what_the_fock_p ();
       xexp_free (x);
       c->cont (NULL, c->data);
     }

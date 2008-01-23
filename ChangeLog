@@ -13,6 +13,10 @@
 	running APTCMD_INSTALL_CHECK, even when there's nothing to do, to
 	be compliant with the defined protocol (N78908).
 
+	* src/repo.cc (get_catalogues_callback): Be silent when
+	get_catalogue fails, and just add a message to the log without
+	showing an 'Operation failed' banner (N76745).
+
 2008-01-22  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operations.cc (ip_install_one): Added an extra check to only
