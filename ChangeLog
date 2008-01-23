@@ -1,4 +1,4 @@
-2008-01-23 Felipe Erias Morandeira  <femorandeira@igalia.org>
+2008-01-23 Felipe Erias Morandeira  <femorandeira@maemo.org>
 
         * src/modest-hbox-cell-renderer.[hc]: This is a cell renderer from
         Modest that renders children renderers inside a horizontal box.
