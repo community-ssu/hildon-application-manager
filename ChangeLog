@@ -1,3 +1,16 @@
+2008-01-29  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker-bin.cc (domains_last_modified): New global
+	variable to keep track of when was the last modification for
+	/etc/hildon-application-manager/domains file (N79708).
+	(file_last_modified): New function to check when a file was
+	modified for the last time (N79708).
+	(read_domain_conf): Update the new domains_last_modified variable
+	by calling to file_last_modified (DOMAIN_CONF) (N79708).
+	(handle_request): Check if the domains file was modified since the
+	last time it was read, to know whether or not is needed to call to
+	read_domain_conf again to keep global variables updated (N79708).
+
 2008-01-23 Felipe Erias Morandeira  <femorandeira@maemo.org>
 
         * src/util.cc (package_info_func): retrieve the information that

@@ -197,12 +197,27 @@ struct domain_info {
 xexp *domain_conf = NULL;
 domain_info *domains = NULL;
 int domains_number = 0;
+time_t domains_last_modified = -1;
 
 #define DOMAIN_INVALID  -1
 #define DOMAIN_UNSIGNED  0
 #define DOMAIN_SIGNED    1 
 
 #define DOMAIN_DEFAULT DOMAIN_UNSIGNED
+
+static time_t
+file_last_modified (const char *file_name)
+{
+  struct stat buf;
+
+  if (stat(DOMAIN_CONF, &buf) == -1)
+    {
+      perror ("error retriving file info");
+      return -1;
+    }
+
+  return buf.st_mtime;
+}
 
 static void
 read_domain_conf ()
@@ -250,8 +265,9 @@ read_domain_conf ()
 	}
     }
 
-  /* Update domains number */
+  /* Update domains number and last modified timestamp */
   domains_number = i;
+  domains_last_modified = file_last_modified (DOMAIN_CONF);
 }
 
 static domain_t
@@ -821,6 +837,7 @@ handle_request ()
   char stack_reqbuf[FIXED_REQUEST_BUF_SIZE];
   char *reqbuf;
   AptWorkerState * state = 0;
+  time_t last_modified = -1;
 
   must_read (&req, sizeof (req));
 
@@ -839,6 +856,11 @@ handle_request ()
 
   ensure_state (req.state);
   state = AptWorkerState::GetCurrent ();
+
+  /* Re-read domains conf file if modified */
+  last_modified = file_last_modified (DOMAIN_CONF);
+  if (last_modified != domains_last_modified)
+    read_domain_conf ();
 
   switch (req.cmd)
     {
