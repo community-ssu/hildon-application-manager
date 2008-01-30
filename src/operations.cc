@@ -666,10 +666,18 @@ ip_install_loop (ip_clos *c)
 	  if (c->all_packages->next == NULL)
 	    {
 	      package_info *pi = (package_info *)c->all_packages->data;
-	      char *str = g_strdup_printf ((pi->installed_version != NULL
-					    ? _("ai_ni_update_successful")
-					    : _("ai_ni_install_successful")),
-					   pi->get_display_name (false));
+	      char *str = NULL;
+	      if (pi->installed_version != NULL)
+		{
+		  str = g_strdup_printf (_("ai_ni_update_successful"),
+					 pi->get_display_name (false),
+					 pi->available_version);
+		}
+	      else
+		{
+		  str = g_strdup_printf (_("ai_ni_install_successful"),
+					 pi->get_display_name (false));
+		}
 	      annoy_user (str, ip_end, c);
 	      g_free (str);
 	    }
@@ -2005,10 +2013,18 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (success)
     {
-      char *str = g_strdup_printf (c->pi->installed_version
-				   ? _("ai_ni_update_successful")
-				   : _("ai_ni_install_successful"),
-				   c->pi->get_display_name (false));
+      char *str = NULL;
+      if (c->pi->installed_version != NULL)
+	{
+	  str = g_strdup_printf (_("ai_ni_update_successful"),
+				 c->pi->get_display_name (false),
+				 c->pi->available_version);
+	}
+      else
+	{
+	  str = g_strdup_printf (_("ai_ni_install_successful"),
+				 c->pi->get_display_name (false));
+	}
       annoy_user (str, if_end_with_success, c);
       g_free (str);
     }

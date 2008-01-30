@@ -1,3 +1,9 @@
+2008-01-30  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/operations.cc (ip_install_loop): Add version number to the
+	output string after a successfully upgrade (N79744).
+	(if_install_reply): Likewise (N79744).
+
 2008-01-29  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker-bin.cc (domains_last_modified): New global
