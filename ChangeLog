@@ -1,8 +1,11 @@
 2008-01-30  Mario Sanchez Prada  <msanchez@maemo.org>
 
-	* src/operations.cc (ip_install_loop): Add version number to the
-	output string after a successfully upgrade (N79744).
+	* src/operations.cc (ip_install_loop): Add package version number
+	to the output string after a successfully upgrade (N79744).
 	(if_install_reply): Likewise (N79744).
+	(ip_download_cur): Add package version number to the output string
+	shown while the upgrading process is ongoing (N79949).
+	(if_install): Likewise (N79949).
 
 2008-01-29  Mario Sanchez Prada  <msanchez@maemo.org>
 

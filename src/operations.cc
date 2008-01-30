@@ -1170,10 +1170,19 @@ ip_download_cur (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
-  char *title = g_strdup_printf (pi->installed_version
-				 ? _("ai_nw_updating")
-				 : _("ai_nw_installing"),
-				 pi->get_display_name (false));
+  char *title = NULL;
+  if (pi->installed_version != NULL)
+    {
+      title = g_strdup_printf (_("ai_nw_updating"),
+			       pi->get_display_name (false),
+			       pi->available_version);
+    }
+  else
+    {
+      title = g_strdup_printf (_("ai_nw_installing"),
+			       pi->get_display_name (false));
+    }
+
   set_entertainment_fun (NULL, -1, -1, 0);
   set_entertainment_main_title (title);
   g_free (title);
@@ -1974,10 +1983,19 @@ if_install (bool res, void *data)
 
   if (res)
     {
-      char *title = g_strdup_printf ((c->pi->installed_version
-				      ? _("ai_nw_updating")
-				      : _("ai_nw_installing")),
-				     c->pi->get_display_name (false));
+      char *title = NULL;
+      if (c->pi->installed_version != NULL)
+	{
+	  title = g_strdup_printf (_("ai_nw_updating"),
+				   c->pi->get_display_name (false),
+				   c->pi->available_version);
+	}
+      else
+	{
+	  title = g_strdup_printf (_("ai_nw_installing"),
+				   c->pi->get_display_name (false));
+	}
+
       set_entertainment_fun (NULL, -1, -1, 0);
       set_entertainment_cancel (NULL, NULL);
       set_entertainment_main_title (title);
