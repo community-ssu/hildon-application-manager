@@ -1,3 +1,14 @@
+2008-02-01  Felipe Erias Morandeira <femorandeira@maemo.org>
+
+        * src/main.cc (restore_packages_flow): ensure connection before
+        calling refresh_package_cache_without_user()
+
+        * src/util.cc (select_package_list_with_info): display as
+        insensitive those packages that can't be installed;
+        (make_select_package_list_store): fill the boolean column
+        COLUMN_SP_INSTALLABLE with true or false depending whether the
+        package has a candidate version for installation or not.
+
 2008-02-01  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.h, src/util.cc (ask_yes_no_with_details): Added a new

@@ -1898,6 +1898,7 @@ clear_global_section_list ()
 }
 
 enum {
+  COLUMN_SP_INSTALLABLE,
   COLUMN_SP_SELECTED,
   COLUMN_SP_NAME,
   COLUMN_SP_SIZE,
@@ -1914,6 +1915,7 @@ make_select_package_list_store (GList *package_list, int64_t *total_size)
 
   list_store = gtk_list_store_new (SP_N_COLUMNS,
 				   G_TYPE_BOOLEAN,
+                                   G_TYPE_BOOLEAN,
 				   G_TYPE_STRING,
 				   G_TYPE_STRING,
 				   G_TYPE_POINTER);
@@ -1922,12 +1924,15 @@ make_select_package_list_store (GList *package_list, int64_t *total_size)
     {
       package_info *pi = (package_info *) node->data;
       GtkTreeIter iter;
+      gboolean installable = (pi->available_version != NULL) && (strlen(pi->available_version) > 0); 
       char package_size_str[20] = "";
-      size_string_general (package_size_str, 20,
-			   pi->info.install_user_size_delta);
+      if (installable)
+        size_string_general (package_size_str, 20,
+                             pi->info.install_user_size_delta);
       gtk_list_store_append (list_store, &iter);
       gtk_list_store_set (list_store, &iter,
-			  COLUMN_SP_SELECTED, TRUE,
+                          COLUMN_SP_INSTALLABLE, installable,
+			  COLUMN_SP_SELECTED, installable,
 			  COLUMN_SP_NAME, pi->get_display_name (false),
 			  COLUMN_SP_SIZE, package_size_str,
 			  COLUMN_SP_PACKAGE_INFO, pi,
@@ -2147,12 +2152,14 @@ select_package_list_with_info (void *data)
 		    G_CALLBACK (package_selected_toggled_callback), tree_view);
   column = gtk_tree_view_column_new_with_attributes ("Marked", renderer,
 						     "active", COLUMN_SP_SELECTED,
+						     "activatable", COLUMN_SP_INSTALLABLE,
 						     NULL);
   gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
 			       column);
   renderer = gtk_cell_renderer_text_new ();
   column = gtk_tree_view_column_new_with_attributes ("Name", renderer,
 						     "text", COLUMN_SP_NAME,
+                                                     "sensitive", COLUMN_SP_INSTALLABLE,
 						     NULL);
   gtk_tree_view_column_set_expand(column, TRUE);
   gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
@@ -2160,6 +2167,7 @@ select_package_list_with_info (void *data)
   renderer = gtk_cell_renderer_text_new ();
   column = gtk_tree_view_column_new_with_attributes ("Size", renderer,
 						     "text", COLUMN_SP_SIZE,
+                                                     "sensitive", COLUMN_SP_INSTALLABLE,
 						     NULL);
   gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
 			       column);
@@ -2184,6 +2192,9 @@ select_package_list_with_info (void *data)
   upls_data->button = ok_button;
   upls_data->required_space_label = required_space_label;
 
+  update_packages_list_selection(GTK_TREE_MODEL (c->list_store),
+                                 NULL, NULL, upls_data);
+  
   /* Connect signals */
   g_signal_connect (list_store, "row-changed",
 		    G_CALLBACK (update_packages_list_selection),

@@ -2196,6 +2196,28 @@ static void rp_restore (bool keep_going, void *data);
 static void rp_unsuccessful (void *data);
 static void rp_end (int n_successful, void *data);
 
+struct restore_cont_data
+{
+  void (*restore_cont) (const char *title, int state,
+      void (*cont) (bool keep_going, void *data), void *data);
+  gchar* msg;
+  apt_state aptstate;
+  void (*restore_cont_cont) (bool keep_going, void *data);
+  void *data;
+};
+
+void
+rp_ensure_cont (bool success, void *data)
+{
+  restore_cont_data *c = (restore_cont_data *) data;
+  
+  c->restore_cont (c->msg,
+                   c->aptstate,
+                   c->restore_cont_cont,
+                   c->data);
+  delete c;
+}
+
 void
 restore_packages_flow ()
 {
@@ -2208,9 +2230,15 @@ restore_packages_flow ()
       g_free (filename);
       
       if (backup)
-	refresh_package_cache_without_user (_("ai_nw_preparing_installation"),
-					    APTSTATE_DEFAULT,
-					    rp_restore, backup);
+        {
+          restore_cont_data *rc_data = new restore_cont_data;
+          rc_data->restore_cont = refresh_package_cache_without_user;
+          rc_data->msg = _("ai_nw_preparing_installation");
+          rc_data->aptstate = APTSTATE_DEFAULT;
+          rc_data->restore_cont_cont = rp_restore;
+          rc_data->data = backup;
+          ensure_network (rp_ensure_cont, rc_data);
+        }
       else
 	annoy_user (_("ai_ni_operation_failed"), rp_unsuccessful, backup);
     }
