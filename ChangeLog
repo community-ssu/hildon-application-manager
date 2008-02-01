@@ -1,5 +1,16 @@
 2008-02-01  Felipe Erias Morandeira <femorandeira@maemo.org>
 
+        * Fixes NB#78889
+
+        * src/main.cc (set_catalogues_and_refresh): ensures that
+        there is an internet connection before calling the APT worker
+        (set_catalogues_and_refresh_cont): calls
+        apt_worker_set_catalogues when the ensure_network() call finishes
+
+2008-02-01  Felipe Erias Morandeira <femorandeira@maemo.org>
+
+        * Fixes NB#79653
+
         * src/main.cc (restore_packages_flow): ensure connection before
         calling refresh_package_cache_without_user()
 

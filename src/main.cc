@@ -1375,8 +1375,29 @@ struct scar_clos {
   int state;
 };
 
+struct set_catalogues_refresh_data {
+  void (*cont) (int state, xexp *catalogues,
+      apt_worker_callback *callback, void *data);
+  int state;
+  xexp *catalogues;
+  apt_worker_callback *callback;
+  void *cont_data;
+};
+
 static void scar_set_catalogues_reply (int cmd, apt_proto_decoder *dec,
 				       void *data);
+
+static void set_catalogues_and_refresh_cont  (bool success, void *data)
+{
+  set_catalogues_refresh_data *scr_data = (set_catalogues_refresh_data *) data;
+
+  scr_data->cont (scr_data->state,
+                  scr_data->catalogues,
+                  scr_data->callback,
+                  scr_data->cont_data);
+  
+  delete scr_data;
+}
 
 void
 set_catalogues_and_refresh (xexp *catalogues,
@@ -1391,8 +1412,15 @@ set_catalogues_and_refresh (xexp *catalogues,
   c->title = g_strdup (title);
   c->state = state;
 
-  apt_worker_set_catalogues (state, catalogues,
-			     scar_set_catalogues_reply, c);
+  set_catalogues_refresh_data *scr_data = new set_catalogues_refresh_data;
+
+  scr_data->cont = apt_worker_set_catalogues;
+  scr_data->state = state;
+  scr_data->catalogues = catalogues;
+  scr_data->callback = scar_set_catalogues_reply;
+  scr_data->cont_data = c; 
+
+  ensure_network (set_catalogues_and_refresh_cont, scr_data);
 }
 
 static void
