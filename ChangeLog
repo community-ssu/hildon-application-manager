@@ -1,32 +1,30 @@
 2008-02-01  Felipe Erias Morandeira <femorandeira@maemo.org>
 
-        * Fixes NB#78889
-
-        * src/main.cc (set_catalogues_and_refresh): ensures that
-        there is an internet connection before calling the APT worker
-        (set_catalogues_and_refresh_cont): calls
-        apt_worker_set_catalogues when the ensure_network() call finishes
-
-2008-02-01  Felipe Erias Morandeira <femorandeira@maemo.org>
-
-        * Fixes NB#79653
+        * src/util.cc (select_package_list_with_info): display as
+	insensitive those packages that can't be installed (N79653).
+        (make_select_package_list_store): fill the boolean column
+	COLUMN_SP_INSTALLABLE with true or false depending whether the
+	package has a candidate version for installation or not (N79653).
 
         * src/main.cc (restore_packages_flow): ensure connection before
-        calling refresh_package_cache_without_user()
-
-        * src/util.cc (select_package_list_with_info): display as
-        insensitive those packages that can't be installed;
-        (make_select_package_list_store): fill the boolean column
-        COLUMN_SP_INSTALLABLE with true or false depending whether the
-        package has a candidate version for installation or not.
+        calling refresh_package_cache_without_user() (N79653).
+	(set_catalogues_and_refresh): ensures that there is
+	an internet connection before calling the APT worker (N78889).
+        (set_catalogues_and_refresh_cont): calls apt_worker_set_catalogues
+	when the ensure_network() call finishes (N78889).
 
 2008-02-01  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.h, src/util.cc (ask_yes_no_with_details): Added a new
 	parameter to add a help topic icon if needed (N80020).
+	(is_interaction_flow_active): New function to check out whether or
+	not a interaction flow has been finished (N79779).
 
 	* src/operations.cc (up_confirm): Add help icon for the uninstall
 	dialog pointing to the right help topic (N80020).
+
+	* src/main.cc (window_delete_event): Ensure that not any
+	interaction flow is active when closing the main window (N79779).
 
 2008-01-30  Mario Sanchez Prada  <msanchez@maemo.org>
 

@@ -243,6 +243,12 @@ end_interaction_flow ()
   reset_idle_timer ();
 }
 
+bool
+is_interaction_flow_active ()
+{
+  return interaction_flow_active;
+}
+
 void
 present_main_window ()
 {

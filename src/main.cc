@@ -2375,6 +2375,10 @@ window_destroy (GtkWidget* widget, gpointer data)
 static gboolean
 window_delete_event (GtkWidget* widget, GdkEvent *ev, gpointer data)
 {
+  /* Finish any interaction flow if it's still active */
+  if (is_interaction_flow_active ())
+    end_interaction_flow ();
+
   menu_close ();
   return TRUE;
 }

@@ -78,6 +78,7 @@
 bool start_interaction_flow ();
 bool start_foreign_interaction_flow (Window parent);
 void end_interaction_flow ();
+bool is_interaction_flow_active ();
 
 void reset_idle_timer ();
 bool start_interaction_flow_when_idle (void (*cont) (void *), void *data);
