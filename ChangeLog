@@ -1,3 +1,11 @@
+2008-02-01  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.h, src/util.cc (ask_yes_no_with_details): Added a new
+	parameter to add a help topic icon if needed (N80020).
+
+	* src/operations.cc (up_confirm): Add help icon for the uninstall
+	dialog pointing to the right help topic (N80020).
+
 2008-01-30  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operations.cc (ip_install_loop): Add package version number
