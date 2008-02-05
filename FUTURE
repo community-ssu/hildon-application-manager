@@ -1,6 +1,52 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Pushing of messages into the update notifier plugin
+
+Product management wants to be able to notify the user about
+significant new applications that are available for theri internet
+tablets.  They want to use the existing update notifier statusbar
+plugin for that.
+
+The update-notifier plugin should be able to watch a given URI and
+present information from this URL via the statusbar icon.  When the
+contents of the resource behind the URI has changed, the icon should
+start blinking; when the user taps it, the blinking should stop and a
+menu with information from the resource should open; when the user
+selects an action from the menu, the icon should disappear.
+
+The original update notification functionality of the statusbar plugin
+should have priority: the resource watching functionality should only
+control the icon when the update notification functionality would hide
+the icon.
+
+The URI should be checked at the same time as the checking for
+updates.
+
+Final details about the UI and the content of the watched resource are
+upcoming.  The menu should have two action items in it: "Tell me
+more", which opens the web browser with a given URI, and "No thanks",
+which does nothing else than hide the icon.
+
+To get started, the content of the resource should be assumed to be a
+xexp of the form:
+
+  <info>
+   <text>Blah, blah</text>
+   <uri>http://www.example.com/</uri>
+  </info>
+
+This should yield a menu like this:
+
+  Blah, blah                <- insensitive
+  -----------
+  Show me more              <- open browser on http://www.example.com
+  No, thanks.               <- hides icon
+
+It is important that checking the URI does not block the process.  If
+needed, a separate process should be spawned (no threads, please).
+
+
 * Better handling and reporting of dependency and conflict issues.
 
 We need to get better at explaining the reasons why a given operation
@@ -47,6 +93,9 @@ The following steps might be appropriate:
   <pkg>" and "remove <pkg>" and make them available in the apt-worker
   (preferably aptitudes).  Don't remove the existing algorithms.
 
+- Add a red-pill setting that makes the apt-worker use those
+  algorithms.
+
 - Tune the algorithms to favor upgrading over removal, as explained
   under point 1 above.
 
@@ -74,9 +123,6 @@ The following steps might be appropriate:
 
   The reports should always include the respective versions of the
   packages.
-
-- Add a red-pill setting that makes the apt-worker use those
-  algorithms.
 
 - Experiment!  Make a decision whether we can ship with these
   algorithms enabled by default or whether we can get the next step
