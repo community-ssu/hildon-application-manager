@@ -221,7 +221,7 @@ one or more of the following words:
 
   This flag tells the AM that it should run /usr/bin/flash-and-reboot
   after everything else has been done.  The flash-and-reboot program
-  is run as "user" without a single argument of "--yes".  The idea is
+  is run as "user" with a single argument of "--yes".  The idea is
   that flash-and-reboot would ask the user for permission to proceed
   in order to prevent surprises, unless given the "--yes" option.
 
