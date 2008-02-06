@@ -1,3 +1,7 @@
+2008-02-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 2.1.4.
+
 2008-02-01  Felipe Erias Morandeira <femorandeira@maemo.org>
 
         * src/util.cc (select_package_list_with_info): display as
