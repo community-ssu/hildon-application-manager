@@ -1,7 +1,38 @@
 New features for the Hildon Application Manager
 ===============================================
 
-* Pushing of messages into the update notifier plugin
+* Automatic recovery after an interrupted operation [mvo]
+
+When a package management operation is interrupted abruptly, the
+system might still be able to recover by trying to complete the update
+on the next boot.
+
+To acomplish this, the apt-worker is run in a new "rescue" mode on
+every boot, as early as possible.
+
+The rescue mode will determine whether any repairs are needed, and if
+so, will attempt them.  Determining whether any repairs are needed
+must be fast.
+
+Steps:
+
+- Move flash-and-reboot functionality into apt-worker so that it is
+  available during repairs.
+
+- Have the apt-worker write a journal for each INSTALL_PACKAGE
+  operation.  The journal entry should contain the package name and
+  the location with the packages.
+
+- Add the "rescue" command line command which will look at the
+  journal.  If the journal is non-empty, try to finish it.
+
+Finishing the journal means first running "dpkg --configure -a",
+ignoring any errors, and then redoing the installation described in
+the journal.  If any packages would need to be downloaded, this step
+is skipped.  Then, "dpkg --configure -a --force-all" is run, for good
+measure.
+
+* Pushing of messages into the update notifier plugin [felipe]
 
 Product management wants to be able to notify the user about
 significant new applications that are available for theri internet
@@ -47,7 +78,7 @@ It is important that checking the URI does not block the process.  If
 needed, a separate process should be spawned (no threads, please).
 
 
-* Better handling and reporting of dependency and conflict issues.
+* Better handling and reporting of dependency and conflict issues. [mario]
 
 We need to get better at explaining the reasons why a given operation
 can not be performed so that the user has a chance of taking
