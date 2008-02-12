@@ -28,9 +28,16 @@ Steps:
 
 Finishing the journal means first running "dpkg --configure -a",
 ignoring any errors, and then redoing the installation described in
-the journal.  If any packages would need to be downloaded, this step
-is skipped.  Then, "dpkg --configure -a --force-all" is run, for good
+the journal.  Then, "dpkg --configure -a --force-all" is run, for good
 measure.
+
+If any packages would need to be downloaded, the repair is not done.
+
+If the required, the device is rebooted, or flash-and-reboot is run at
+the end, or booting is allowed to continue.
+
+UI of this to be decided.
+
 
 * Pushing of messages into the update notifier plugin [felipe]
 
