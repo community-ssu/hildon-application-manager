@@ -2466,7 +2466,13 @@ set_current_toolbar (toolbar_struct *tb_struct)
   if (current_tb_struct != tb_struct)
     {
       gtk_widget_hide_all (current_tb_struct->toolbar);
-      gtk_widget_show_all (tb_struct->toolbar);
+
+      if ((!is_fullscreen && normal_toolbar) ||
+	  (is_fullscreen && fullscreen_toolbar))
+	{
+	  gtk_widget_show_all (tb_struct->toolbar);
+	}
+
       current_tb_struct = tb_struct;
     }
 }
@@ -2477,9 +2483,9 @@ set_current_toolbar_visibility (bool f)
   if (current_tb_struct->toolbar)
     {
       if (f)
-	gtk_widget_show (current_tb_struct->toolbar);
+	gtk_widget_show_all (current_tb_struct->toolbar);
       else
-	gtk_widget_hide (current_tb_struct->toolbar);
+	gtk_widget_hide_all (current_tb_struct->toolbar);
     }
 }
 
@@ -2741,7 +2747,7 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
 
   if (show_update_all_button)
     {
-      /* 'Update all' button - XXX needs i18n */
+      /* 'Update all' button */
       update_all_button =
 	GTK_WIDGET (gtk_tool_button_new (gtk_label_new (_("ai_tb_update_all")), NULL));
       gtk_tool_item_set_expand (GTK_TOOL_ITEM (update_all_button), TRUE);
@@ -2900,6 +2906,10 @@ main (int argc, char **argv)
   updates_tb_struct = u_tb_struct;
   current_tb_struct = main_tb_struct;
 
+  /* If the normal toolbar is visible, show it */
+  if (normal_toolbar)
+    gtk_widget_show_all (current_tb_struct->toolbar);
+
   /* Add toolbars */
   hildon_window_add_toolbar (HILDON_WINDOW (window),
 			     GTK_TOOLBAR (m_tb_struct->toolbar));
@@ -2941,9 +2951,6 @@ main (int argc, char **argv)
 
   if (show)
     present_main_window ();
-
-  /* Set the main toolbar visible */
-  gtk_widget_show_all (m_tb_struct->toolbar);
 
   gtk_main ();
 }

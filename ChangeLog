@@ -1,3 +1,13 @@
+2008-02-12  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (set_current_toolbar): Take into account the global
+	toolbar settings and the fullscreen mode to know whether the
+	current toolbar should be shown or not (N80147).
+	(set_current_toolbar_visibility): Use gtk_widget_show_all to
+	ensure that the toolbar buttons are always shown (N80147).
+	(main): Only show the current toolbar at startup if the global
+	setting tells that it should be shown (N80147).
+
 2008-02-06  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.4.
