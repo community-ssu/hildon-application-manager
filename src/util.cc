@@ -2380,6 +2380,8 @@ show_deb_file_chooser (void (*cont) (char *uri, void *data),
   g_signal_connect (fcd, "response",
 		    G_CALLBACK (fcd_response), c);
 
+  set_dialog_help (fcd, "Utilities_ApplicationInstaller_selectpackage");
+
   gtk_widget_show_all (fcd);
 }
 
