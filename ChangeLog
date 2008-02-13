@@ -1,3 +1,8 @@
+2008-02-13  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/menu.cc (create_menu): Reordered menu items to be compliant
+	with the latest UI specs (N80647).
+
 2008-02-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc (ip_check_domain_reply): Use new

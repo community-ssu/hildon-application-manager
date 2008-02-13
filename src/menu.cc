@@ -243,10 +243,6 @@ create_menu (HildonWindow *window)
 		    G_CALLBACK (fullscreen_toolbar_activated), NULL);
 
   /* get a reference to the widget to set sensitiveness as needed */
-  restore_item = add_item (tools,
-			   _("ai_me_tools_restore"), 
-			   _("ai_ib_nothing_restore"),
-			   restore_packages_flow);
   if (red_pill_mode)
     {
       add_item (tools,
@@ -260,6 +256,10 @@ create_menu (HildonWindow *window)
     add_item (tools,
 	      _("ai_me_tools_search"), _("ai_ib_unable_search"),
 	      show_search_dialog_flow);
+  restore_item = add_item (tools,
+			   _("ai_me_tools_restore"), 
+			   _("ai_ib_nothing_restore"),
+			   restore_packages_flow);
   add_item (tools,
 	    _("ai_me_tools_log"), NULL,
 	    show_log_dialog_flow);
