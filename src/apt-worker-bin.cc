@@ -1386,8 +1386,8 @@ save_extra_info ()
 	      if (state->extra_info[pkg->ID].cur_domain == i)
 		fprintf (f, "%s\n", pkg.Name ());
 	    }
+	  fclose (f);
 	}
-      fclose (f);
     }
 }
 

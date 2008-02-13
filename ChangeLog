@@ -1,3 +1,8 @@
+2008-02-13  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker-bin.cc (save_extra_info): Don't call fclose on a
+	NULL pointer (N80650).
+
 2008-02-12  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (set_current_toolbar): Take into account the global
