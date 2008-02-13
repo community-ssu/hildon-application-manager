@@ -1,5 +1,8 @@
 2008-02-13  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/operations.cc (ip_check_domain_reply): Use new
+	"ai_ni_error_broken_path_%s" logical id (N80629).
+
 	* src/apt-worker-bin.cc (save_extra_info): Don't call fclose on a
 	NULL pointer (N80650).
 
