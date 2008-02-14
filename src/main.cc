@@ -656,21 +656,59 @@ compare_section_names (gconstpointer a, gconstpointer b)
 }
 
 static gint
+compare_system_updates (package_info *pi_a, package_info *pi_b)
+{
+  if (((pi_a->flags & pkgflag_system_update)
+       != (pi_b->flags & pkgflag_system_update)))
+    {
+      if (pi_a->flags & pkgflag_system_update)
+	return -1;
+
+      if (pi_b->flags & pkgflag_system_update)
+	return 1;
+    }
+
+  /* None of the two packages has a higher priority
+     both of them are system updates or both of them are not */
+  return 0;
+}
+
+static gint
 compare_package_installed_names (gconstpointer a, gconstpointer b)
 {
-  const char *name_a = ((package_info *)a)->get_display_name (true);
-  const char *name_b = ((package_info *)b)->get_display_name (true);
-  
-  return package_sort_sign * g_ascii_strcasecmp (name_a, name_b);
+  package_info *pi_a = (package_info *)a;
+  package_info *pi_b = (package_info *)b;
+
+  gint result =
+    compare_system_updates (pi_a, pi_b);
+
+  if (!result)
+    {
+      result = package_sort_sign *
+	g_ascii_strcasecmp (pi_a->get_display_name (true),
+			    pi_b->get_display_name (true));
+    }
+
+  return result;
 }
 
 static gint
 compare_package_available_names (gconstpointer a, gconstpointer b)
 {
-  const char *name_a = ((package_info *)a)->get_display_name (false);
-  const char *name_b = ((package_info *)b)->get_display_name (false);
-  
-  return package_sort_sign * g_ascii_strcasecmp (name_a, name_b);
+  package_info *pi_a = (package_info *)a;
+  package_info *pi_b = (package_info *)b;
+
+  gint result =
+    compare_system_updates (pi_a, pi_b);
+
+  if (!result)
+    {
+      result = package_sort_sign *
+	g_ascii_strcasecmp (pi_a->get_display_name (false),
+			    pi_b->get_display_name (false));
+    }
+
+  return result;
 }
 
 static gint
@@ -686,7 +724,16 @@ compare_package_installed_versions (gconstpointer a, gconstpointer b)
   package_info *pi_a = (package_info *)a;
   package_info *pi_b = (package_info *)b;
 
-  return compare_versions (pi_a->installed_version, pi_b->installed_version);
+  gint result =
+    compare_system_updates (pi_a, pi_b);
+
+  if (!result)
+    {
+      result =
+	compare_versions (pi_a->installed_version, pi_b->installed_version);
+    }
+
+  return result;
 }
 
 static gint
@@ -695,7 +742,16 @@ compare_package_available_versions (gconstpointer a, gconstpointer b)
   package_info *pi_a = (package_info *)a;
   package_info *pi_b = (package_info *)b;
 
-  return compare_versions (pi_a->available_version, pi_b->available_version);
+  gint result =
+    compare_system_updates (pi_a, pi_b);
+
+  if (!result)
+    {
+      result =
+	compare_versions (pi_a->available_version, pi_b->available_version);
+    }
+
+  return result;
 }
 
 static gint
@@ -704,8 +760,17 @@ compare_package_installed_sizes (gconstpointer a, gconstpointer b)
   package_info *pi_a = (package_info *)a;
   package_info *pi_b = (package_info *)b;
 
-  return (package_sort_sign *
-	  (pi_a->installed_size - pi_b->installed_size));
+  gint result =
+    compare_system_updates (pi_a, pi_b);
+
+  if (!result)
+    {
+      result =
+	(package_sort_sign *
+	 (pi_a->installed_size - pi_b->installed_size));
+    }
+
+  return result;
 }
 
 static gint
@@ -718,9 +783,20 @@ compare_package_download_sizes (gconstpointer a, gconstpointer b)
   // instead in that case.
   
   if (pi_a->have_info && pi_b->have_info)
-    return (package_sort_sign * 
-	    (pi_a->info.download_size - pi_b->info.download_size));
-  else
+    {
+      gint result =
+	compare_system_updates (pi_a, pi_b);
+
+      if (!result)
+	{
+	  result =
+	    (package_sort_sign *
+	     (pi_a->info.download_size - pi_b->info.download_size));
+	}
+
+      return result;
+    }
+
     return compare_package_available_names (a, b);
 }
 
@@ -805,6 +881,7 @@ get_package_list_entry (apt_proto_decoder *dec)
   info->available_pretty_name = dec->decode_string_dup ();
   info->available_short_description = dec->decode_string_dup ();
   available_icon = dec->decode_string_in_place ();
+  info->flags = dec->decode_int ();
   
   info->installed_icon = pixbuf_from_base64 (installed_icon);
   if (available_icon)
@@ -881,6 +958,7 @@ get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
       else
 	all_si->unref ();
     }
+
   package_list_ready = true;
   record_seen_updates = true;
 
@@ -2121,6 +2199,7 @@ install_named_packages (int state, const char **packages,
 	  package_info *pi = new package_info;
 	  pi->name = g_strdup (*current_package);
 	  pi->available_version = g_strdup ("");
+	  pi->flags = 0;
 
 	  pi->have_info = true;
 	  pi->info.installable_status = status_not_found;

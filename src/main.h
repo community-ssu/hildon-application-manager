@@ -71,6 +71,7 @@ struct package_info {
   GdkPixbuf *installed_icon;
   char *available_short_description;
   GdkPixbuf *available_icon;
+  int flags;
 
   bool have_info;
   apt_proto_package_info info;

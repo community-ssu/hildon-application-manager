@@ -1,3 +1,27 @@
+2008-02-14  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker-proto.h: Updated the comment with the definition
+	for GET_PACKAGE_LIST, adding the new 'flags' field (N79897).
+
+	* src/apt-worker-bin.cc (cmd_get_package_list): Encode available
+	flags for each package, out of the info field (N79897).
+
+	* src/main.h (struct package_info): Added a new 'flags' field to
+	allow checking the flags for a package even when the 'info' field
+	has not been filled yet (N79897).
+
+	* src/main.cc (compare_system_updates): New function to be used in
+	the comparison functions to sort the list of packages, so packages
+	with the pkgflag_system_update flag are listed in first place,
+	regardless of the sorting criteria and order (N79897).
+	(compare_package_installed_names): Use compare_system_updates() to
+	take into account packages with the system_update flag (N79897).
+	(compare_package_available_names): Likewise (N79897).
+	(compare_package_installed_versions): Likewise (N79897).
+	(compare_package_available_versions): Likewise (N79897).
+	(compare_package_installed_sizes): Likewise (N79897).
+	(compare_package_download_sizes): Likewise (N79897).
+
 2008-02-13  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/menu.cc (create_menu): Reordered menu items to be compliant

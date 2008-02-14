@@ -203,6 +203,7 @@ enum apt_proto_operation {
 // - available_pretty_name or null (string)
 // - available_short_description or null (string)
 // - available_icon or null (string)
+// - flags (int)
 //
 // When the available_short_description would be identical to the
 // installed_short_description, it is set to null.  Likewise for the

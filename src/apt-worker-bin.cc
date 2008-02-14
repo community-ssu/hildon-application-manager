@@ -2433,6 +2433,8 @@ cmd_get_package_list ()
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
+      int flags = 0;
+
       /* Get installed and candidate iterators for current package */
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
@@ -2517,6 +2519,13 @@ cmd_get_package_list ()
 	encode_version_info (1, candidate, false);
       else
 	encode_empty_version_info (false);
+
+      if (!candidate.end())
+	{
+	  package_record rec (candidate);
+	  flags = get_flags (rec);
+	}
+      response.encode_int (flags);
     }
 
   if (show_magic_sys)
