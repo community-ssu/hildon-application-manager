@@ -266,6 +266,8 @@ static void ip_check_upgrade_loop (ip_clos *c);
 static void ip_check_upgrade_cmd_done (int status, void *data);
 static void ip_download_cur (void *data);
 static void ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
+static void ip_download_cur_retry_confirm (apt_proto_result_code result_code, void *data);
+static void ip_download_cur_retry_confirm_response (bool result, void *data);
 static void ip_install_cur (void *data);
 static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
@@ -1195,11 +1197,75 @@ ip_download_cur (void *data)
 			       ip_download_cur_reply, c);
 }
 
+struct ipdcr_clos {
+  apt_proto_result_code result_code;
+  ip_clos *c;
+};
+
+static void
+ip_download_cur_retry_confirm (apt_proto_result_code result_code, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
+  ipdcr_clos *clos = new ipdcr_clos;
+
+  result_code = scan_log_for_result_code (result_code);
+  char *msg = result_code_to_message (pi, result_code);
+  if (msg == NULL)
+    msg = g_strdup_printf ((pi->installed_version != NULL
+        ? _("ai_ni_error_update_failed")
+        : _("ai_ni_error_installation_failed")),
+        pi->get_display_name (false));
+  
+  char *message = NULL;
+  /* TODO : use an internationalized string */
+  message = g_strdup_printf ("%s\n%s", msg, "!!Retry?");
+
+  clos->result_code = result_code;
+  clos->c = c;
+  
+  ask_yes_no (message, ip_download_cur_retry_confirm_response, clos);
+  
+  g_free (message);
+  g_free (msg);
+}
+
+static void
+ip_download_cur_retry_confirm_response (bool result, void *data)
+{
+  ipdcr_clos *clos = (ipdcr_clos *)data;
+  ip_clos *c = (ip_clos *) clos->c;
+  package_info *pi = (package_info *)(c->cur->data);
+  
+  if (result)
+    {
+      ip_download_cur (c);
+    }
+  else
+    {
+      if (c->cur->next != NULL)
+        {
+          char *msg = result_code_to_message (pi, clos->result_code);
+          if (msg == NULL)
+            msg = g_strdup_printf ((pi->installed_version != NULL
+                ? _("ai_ni_error_update_failed")
+                : _("ai_ni_error_installation_failed")),
+                pi->get_display_name (false));
+
+          ip_abort_cur (c, msg, false);
+          g_free (msg);
+        }
+      else
+        ip_end (c);
+    }
+  
+  delete clos;
+}
+
 static void
 ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   ip_clos *c = (ip_clos *)data;
-  package_info *pi = (package_info *)(c->cur->data);
 
   if (dec == NULL)
     {
@@ -1215,19 +1281,7 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   else if (entertainment_was_cancelled ())
     ip_end (c);
   else
-    {
-      result_code = scan_log_for_result_code (result_code);
-      char *msg =
-	result_code_to_message (pi, result_code);
-      if (msg == NULL)
-	msg = g_strdup_printf ((pi->installed_version != NULL
-				? _("ai_ni_error_update_failed")
-				: _("ai_ni_error_installation_failed")),
-			       pi->get_display_name (false));
-
-      ip_abort_cur (c, msg, false);
-      g_free (msg);
-    }
+    ip_download_cur_retry_confirm(result_code, c);
 }
 
 static void
