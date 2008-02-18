@@ -1,3 +1,23 @@
+2008-02-18  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker-bin.cc (cmd_check_updates): Call to
+	save_failed_catalogues regardless of the result code returned to
+	always keep the failed-catalogues file properly updated (N79934).
+	(cmd_get_catalogues): If there's not a configuration file on disk,
+	write a empty one, otherwise add errors xexp structs to those
+	catalogues present inside the failed-catalogues file (N79934).
+	(save_failed_catalogues): Save ONLY catalogues with errors in the
+	failed-catalogues file, since non-failed catalogues are not useful
+	for the merging process in merge_catalogues_with_errors (N79934).
+	(load_failed_catalogues): Return NULL and clean failed-catalogues
+	file if there are no errors contained inside of it (N79934).
+	(merge_catalogues_with_errors): New function. It takes an xexp
+	struct with the catalogues read from the configuration file and it
+	merges it with the content retrieved from the failed-catalogues
+	file, in order to avoid some awful errors that happened sometimes
+	when the failed-catalogues file, if present, was used right as if
+	it was the configuration file itself (N79934).
+
 2008-02-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/operations.cc (ip_download_cur_retry_confirm): if download

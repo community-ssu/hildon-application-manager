@@ -749,13 +749,14 @@ int cmdline_check_updates (char **argv);
  */
 
 /* Since it's needed to save the full report (including errors) after
-   any refresh of the catalogues list, three functions where implemented
+   any refresh of the catalogues list, four functions were implemented
    to take care of the writting/reading to/from disk process.
 */
 
-static void save_failed_catalogues (xexp *failed_catalogues);
+static void save_failed_catalogues (xexp *catalogues);
 static xexp *load_failed_catalogues ();
 static void clean_failed_catalogues ();
+static xexp *merge_catalogues_with_errors (xexp *catalogues);
 
 /** MANAGEMENT OF FILE WITH INFO ABOUT AVAILABLE UPDATES */
 
@@ -3302,11 +3303,8 @@ cmd_check_updates (bool with_status)
 
   int result_code = update_package_cache (catalogues, with_status);
 
-  if (result_code != rescode_success)
-    {
-      /* Save errors to disk */
-      save_failed_catalogues (catalogues);
-    }
+  /* Save potential errors to disk */
+  save_failed_catalogues (catalogues);
 
   response.encode_xexp (catalogues);
   response.encode_int (result_code);
@@ -3441,18 +3439,27 @@ append_system_source_dir (xexp *catalogues, string Dir)
 void
 cmd_get_catalogues ()
 {
-  xexp *catalogues;
+  struct stat buf;
+  int stat_result;
+  xexp *catalogues = NULL;
 
-  /* First check if there's an errors file after the last refresh */
-  catalogues = load_failed_catalogues ();
-
-  /* If there's no error file, check sources list files, as usual */
-  if (catalogues == NULL)
+  /* Check if there are problems reading the file */
+  stat_result = stat (CATALOGUE_CONF, &buf);
+  if (!stat_result)
     {
-      /* Map the catalogue report to delete error reports from it */
+      /* Map the catalogue report to (maybe) delete error reports from it */
       xexp *tmp_catalogues = xexp_read_file (CATALOGUE_CONF);
       catalogues = xexp_list_map (tmp_catalogues, map_catalogue_error_details);
       xexp_free (tmp_catalogues);
+
+      /* Add errors to those catalogues inside the failed-catalogues file */
+      merge_catalogues_with_errors (catalogues);
+    }
+  else
+    {
+      /* If there's not a conf file on disk, write a empty one */
+      catalogues = xexp_list_new ("catalogues");
+      xexp_write_file (CATALOGUE_CONF, catalogues);
     }
 
   string Main = _config->FindFile("Dir::Etc::sourcelist");
@@ -4809,9 +4816,26 @@ cmd_save_backup_data ()
 /* MANAGEMENT FOR FAILED CATALOGUES LOG FILE */
 
 static void
-save_failed_catalogues (xexp *failed_catalogues)
+save_failed_catalogues (xexp *catalogues)
 {
-  xexp_write_file (FAILED_CATALOGUES_FILE, failed_catalogues);
+  xexp *failed_catalogues = xexp_list_new ("catalogues");
+
+  /* Save ONLY catalogues with errors */
+  for (xexp *cat = xexp_first (catalogues); cat; cat = xexp_rest (cat))
+    {
+      xexp *errors_item = xexp_aref (cat, "errors");
+
+      /* If containing errors details, add it to the list */
+      if (errors_item)
+	xexp_append_1 (failed_catalogues, xexp_copy (cat));
+    }
+
+  if (xexp_length (failed_catalogues) > 0)
+    xexp_write_file (FAILED_CATALOGUES_FILE, failed_catalogues);
+  else
+    clean_failed_catalogues ();
+
+  xexp_free (failed_catalogues);
 }
 
 static xexp *
@@ -4824,7 +4848,18 @@ load_failed_catalogues ()
   /* Check if there are problems reading the file */
   stat_result = stat (FAILED_CATALOGUES_FILE, &buf);
   if (!stat_result)
-    failed_catalogues = xexp_read_file (FAILED_CATALOGUES_FILE);
+    {
+      failed_catalogues = xexp_read_file (FAILED_CATALOGUES_FILE);
+      if (xexp_length (failed_catalogues) <= 0)
+	{
+	  /* Return NULL and clean failed catalogues file if there
+	     are no errors contained inside of it (quite odd) */
+	  xexp_free (failed_catalogues);
+	  failed_catalogues = NULL;
+
+	  clean_failed_catalogues ();
+	}
+    }
   else if (errno != ENOENT)
     log_stderr ("error reading file %s: %m", FAILED_CATALOGUES_FILE);
 
@@ -4895,6 +4930,72 @@ write_available_updates_file ()
     }
 
   xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
+}
+
+static xexp *
+merge_catalogues_with_errors (xexp *catalogues)
+{
+  xexp *failed_catalogues = NULL;
+
+  /* First check if there's an errors file after the last refresh */
+  failed_catalogues = load_failed_catalogues ();
+
+  /* Add errors (if present) for each catalogue */
+  if (failed_catalogues != NULL)
+    {
+      const char *uri = NULL, *f_uri = NULL;
+      const char *dist = NULL, *f_dist = NULL;
+      const char *comp = NULL, *f_comp = NULL;
+
+      for (xexp *cat = xexp_first (catalogues); cat; cat = xexp_rest (cat))
+	{
+	  uri = xexp_aref_text (cat, "uri");
+	  dist = xexp_aref_text (cat, "dist");
+	  comp = xexp_aref_text (cat, "components");
+
+	  /* Look for errors for this catalogue */
+	  for (xexp *f_cat = xexp_first (failed_catalogues); f_cat; f_cat = xexp_rest (f_cat))
+	    {
+	      f_uri = xexp_aref_text (f_cat, "uri");
+	      f_dist = xexp_aref_text (f_cat, "dist");
+	      f_comp = xexp_aref_text (f_cat, "components");
+
+	      /* If matches the uri (mandatory field), check the other ones */
+	      if (!strcmp (uri, f_uri))
+		{
+		  xexp *errors_item = NULL;
+
+		  /* 'dist' fields must be the same, or NULL, to continue */
+		  if ((dist == NULL || f_dist == NULL || strcmp (dist, f_dist)) &&
+		      !(dist == NULL && f_dist == NULL))
+		    continue;
+
+		  /* 'dist' fields must be the same, or NULL, to continue */
+		  if ((comp == NULL || f_comp == NULL || strcmp (comp, f_comp)) &&
+		      !(comp == NULL && f_comp == NULL))
+		    continue;
+
+		  /* If reached, errors would be about the same
+		     catalogue found in the configuration file */
+		  errors_item = xexp_aref (f_cat, "errors");
+		  if (errors_item != NULL)
+		    {
+		      /* Append a copy of errors to the catalogues xexp */
+		      xexp_append_1 (cat, xexp_copy (errors_item));
+
+		      /* Delete the xexp from errors file, in order
+			 not to check it again in later checks */
+		      xexp_del (failed_catalogues, f_cat);
+		    }
+		}
+	    }
+	}
+
+      /* Free the catalogues errors xexp */
+      xexp_free (failed_catalogues);
+    }
+
+  return catalogues;
 }
 
 static xexp *
