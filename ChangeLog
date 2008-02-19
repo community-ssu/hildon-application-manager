@@ -1,5 +1,7 @@
 2008-02-19  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* Makefile.am (EXTRA_DIST): Added COPYING.LIB (N80746).
+
 	* src/operations.cc (ip_reboot): Call get_package_list_with_cont
 	before rebooting so that the new state is properly saved for the
 	benefit of backup and update notifier.

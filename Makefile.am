@@ -46,12 +46,13 @@ uninstall-local:
           rm $(vardir)/available_updates; \
         fi
 
-EXTRA_DIST = hildon-application-manager.desktop			\
+EXTRA_DIST = COPYING.LIB                                        \
+             hildon-application-manager.desktop	                \
              com.nokia.hildon_application_manager.service	\
              hildon-application-manager.xml			\
              hildon-application-manager.conf			\
              hildon-application-manager.sh			\
-	     hildon-application-manager.sudoers
+             hildon-application-manager.sudoers
 
 deb:
 	./make-package $(PACKAGE) $(VERSION) .
