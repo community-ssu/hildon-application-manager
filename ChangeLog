@@ -1,5 +1,7 @@
 2008-02-19  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.5
+	
 	* debian/postinst: Make sure that the HAM_STATE_DIR is owned by
 	"user".
 
