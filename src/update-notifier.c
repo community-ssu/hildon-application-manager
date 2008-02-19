@@ -35,6 +35,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <curl/curl.h>
 
 #include <libosso.h>
 #include <libhildondesktop/libhildondesktop.h>
@@ -54,6 +55,12 @@
 
 #define HTTP_PROXY_GCONF_DIR      "/system/http_proxy"
 
+/* For opening an URL */
+#define URL_SERVICE                     "com.nokia.osso_browser"
+#define URL_REQUEST_PATH                "/com/nokia/osso_browser/request"
+#define URL_REQUEST_IF                  "com.nokia.osso_browser"
+#define URL_OPEN_MESSAGE                "open_new_window"
+
 #define UPDATE_NOTIFIER_GET_PRIVATE(object)(G_TYPE_INSTANCE_GET_PRIVATE ((object), UPDATE_NOTIFIER_TYPE, UpdateNotifierPrivate))
 
 typedef struct _UpdateNotifierPrivate UpdateNotifierPrivate;
@@ -63,11 +70,15 @@ struct _UpdateNotifierPrivate
   GtkWidget *blinkifier;
   GtkWidget *menu;
   GtkWidget *open_ham_item;
+  GtkWidget *show_notification_item;
+  GtkWidget *reject_notification_item;
   GdkPixbuf *static_pic;
 
   gint button_toggled_handler_id;
   gint menu_selection_done_handler_id;
   gint open_ham_item_activated_handler_id;
+  gint show_notification_item_activated_handler_id;
+  gint reject_notification_item_activated_handler_id;
 
   guint blinking_timeout_id;
   guint alarm_init_timeout_id;
@@ -81,6 +92,8 @@ struct _UpdateNotifierPrivate
   int varlibham_watch;
 
   int icon_state;
+  
+  GMutex* notifications_thread_mutex;
 };
 
 HD_DEFINE_PLUGIN (UpdateNotifier, update_notifier, STATUSBAR_TYPE_ITEM);
@@ -117,6 +130,7 @@ static void update_state (UpdateNotifier *upno);
 static void show_check_for_updates_view (UpdateNotifier *upno);
 static gboolean showing_check_for_updates_view (UpdateNotifier *upno);
 static void check_for_updates (UpdateNotifier *upno);
+static void check_for_notifications (UpdateNotifier *upno);
 
 static void cleanup_gconf (UpdateNotifier *upno);
 static void cleanup_inotify (UpdateNotifier *upno);
@@ -163,6 +177,8 @@ update_notifier_init (UpdateNotifier *upno)
   /* Setup dbus */
   if (setup_dbus (upno))
     {
+      priv->notifications_thread_mutex =g_mutex_new ();
+      
       osso_hw_set_display_event_cb (priv->osso_ctxt, display_event_cb, upno);
 
       setup_gconf (upno);
@@ -234,6 +250,9 @@ update_notifier_finalize (GObject *object)
   cleanup_gconf (upno);
   cleanup_dbus (upno);
 
+  if (priv->notifications_thread_mutex)
+    g_mutex_free (priv->notifications_thread_mutex);
+  
   /* Unregister signal handlers */
   g_signal_handler_disconnect (priv->button,
 			       priv->button_toggled_handler_id);
@@ -301,6 +320,120 @@ open_ham_menu_item_activated (GtkWidget *menu, gpointer data)
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
 
   show_check_for_updates_view (upno);
+}
+
+static void
+update_seen_notifications ()
+{
+  /* This function copies AVAILABLE_NOTIFICATIONS_FILE to SEEN_NOTIFICATIONS_FILE */
+  gchar *seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_NOTIFICATIONS_FILE);
+  FILE *in, *out;
+  char ch;
+  gchar *available_name = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
+
+  if ((in = fopen (available_name, "r")) == NULL)
+    {
+      goto exit;
+    }
+  
+  if ((out = fopen (seen_name, "w")) == NULL)
+    {
+      fclose (in);  
+      goto exit;
+    }
+
+  while (!feof (in)) 
+    {
+      ch = getc (in);
+      if (ferror (in))
+        {
+          clearerr (in);
+          break;
+        }
+      else 
+        {
+          if (!feof (in))
+            putc (ch, out);
+          if (ferror (out)) 
+            {
+              clearerr (out);
+              break;
+            }
+        }
+    }
+  fclose(in);
+  fclose(out);
+  
+  exit:
+  g_free (available_name);
+  g_free(seen_name);
+}
+
+static gboolean
+dbus_open_url (char* url)
+{
+  /*
+   dbus-send --print-reply --dest=com.nokia.osso_browser /com/nokia/osso_browser/request com.nokia.osso_browser.open_new_window string:'http://example.com'
+   */
+
+  if (!url)
+    return FALSE;
+
+  DBusConnection *conn;
+  DBusMessage *msg;
+  gboolean result = FALSE;
+
+  conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+  if (!conn)
+    {
+      return result;
+    }
+  
+  msg = dbus_message_new_method_call (URL_SERVICE,
+                                      URL_REQUEST_PATH,
+                                      URL_REQUEST_IF,
+                                      URL_OPEN_MESSAGE);
+  dbus_message_set_no_reply(msg, TRUE);
+  dbus_message_append_args (msg,
+                            DBUS_TYPE_STRING, &url,
+                            DBUS_TYPE_INVALID);
+
+  result = dbus_connection_send (conn, msg, NULL);
+  dbus_connection_flush (conn);
+  dbus_message_unref(msg);
+
+  return result;
+}
+
+struct show_notification_menu_item_activated_data
+{
+  gchar *notification_url;
+  UpdateNotifier *upno;
+};
+
+static void
+show_notification_menu_item_activated (GtkWidget *menu, gpointer data)
+{
+  struct show_notification_menu_item_activated_data *c = 
+    (struct show_notification_menu_item_activated_data*)data;
+  UpdateNotifier *upno = UPDATE_NOTIFIER (c->upno);
+  
+  if (dbus_open_url (c->notification_url))
+    update_seen_notifications ();
+  
+  update_state(upno);
+
+  g_free (c->notification_url);
+  g_free (c);
+}
+
+static void
+reject_notification_menu_item_activated (GtkWidget *menu, gpointer data)
+{
+  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  
+  update_seen_notifications ();
+  update_state(upno);
 }
 
 #if !USE_BLINKIFIER
@@ -455,19 +588,35 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 }
 
 static void
-add_readonly_item (GtkWidget *menu, const char *fmt, ...)
+menu_add_readonly_item (GtkWidget *menu, gboolean is_markup, const char *fmt, ...)
 {
   GtkWidget *label, *item;
   va_list ap;
   gchar *text;
+  GtkRequisition req;
 
   va_start (ap, fmt);
   text = g_strdup_vprintf (fmt, ap);
   va_end (ap);
 
-  item = gtk_menu_item_new ();
-  label = gtk_label_new (text);
+  if (is_markup)
+    {
+      item = gtk_menu_item_new ();
+      label = gtk_label_new (NULL);
+      gtk_label_set_markup (GTK_LABEL(label), text);
+    }
+  else
+    {
+      item = gtk_menu_item_new ();
+      label = gtk_label_new (text);
+    }
+  gtk_label_set_line_wrap (GTK_LABEL(label), TRUE);
+  gtk_label_set_justify (GTK_LABEL(label), GTK_JUSTIFY_FILL);
   gtk_misc_set_alignment (GTK_MISC(label), 0.0, 0.5);
+  gtk_widget_size_request (label, &req);
+  if (req.width > AVAILABLE_NOTIFICATIONS_MENU_WIDTH)
+    gtk_widget_set_size_request (label, AVAILABLE_NOTIFICATIONS_MENU_WIDTH, -1);
+  
   gtk_container_add (GTK_CONTAINER (item), label);
   gtk_menu_append (GTK_MENU (menu), item);
   gtk_widget_show (item);
@@ -479,12 +628,28 @@ add_readonly_item (GtkWidget *menu, const char *fmt, ...)
 }
 
 static void
+menu_add_separator (GtkWidget *menu)
+{
+  GtkWidget *item = gtk_separator_menu_item_new ();
+  gtk_menu_append (menu, item);
+  gtk_widget_show (item);
+}
+
+static void
 update_state (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  xexp *available_updates, *seen_updates;
+  xexp *available_updates, *seen_updates, *available_nots, *seen_notifications;
   int n_os = 0, n_certified = 0, n_other = 0;
   int n_new = 0;
+  gboolean new_updates = FALSE;
+  gboolean new_notifications = FALSE;
+  gchar *available_title = NULL;
+  gchar *available_text = NULL;
+  gchar *available_uri = NULL;
+  gchar *seen_title = NULL;
+  gchar *seen_text = NULL;
+  gchar *seen_uri = NULL;
 
   GtkWidget *item;
   
@@ -528,58 +693,174 @@ update_state (UpdateNotifier *upno)
 
   xexp_free (available_updates);
   xexp_free (seen_updates);
+  new_updates = (n_new > 0);
 
-  /* Show the icon (blinking) if there are new updates and if the
-     'check for udpates' view is not being shown in HAM */
-  if ((n_new > 0) && !showing_check_for_updates_view (upno))
+  /* Update notifications list */
+  if (!new_updates)
     {
-      if (priv->icon_state == UPNO_ICON_INVISIBLE)
-	set_icon_visibility (upno, UPNO_ICON_BLINKING);
-    }
-  else
-    set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
+      gchar *available_name = NULL; 
+      gchar *seen_name = NULL;
+      
+      available_name = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
+      available_nots = xexp_read_file (available_name);
+      g_free (available_name);
 
+      seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_NOTIFICATIONS_FILE);
+      seen_notifications = xexp_read_file (seen_name);
+      g_free (seen_name);
+      
+      if (seen_notifications == NULL)
+          seen_notifications = xexp_list_new ("info");
+      
+      if (available_nots)
+        {
+          xexp *x;
+          if (xexp_is (available_nots, "info") && !xexp_is_empty (available_nots))
+            {
+              for (x = xexp_first (available_nots); x; x = xexp_rest (x))
+                {
+                  if (xexp_is (x, "title")) 
+                    available_title = g_strdup (xexp_text (x));
+                  else if (xexp_is (x, "text")) 
+                    available_text = g_strdup (xexp_text (x));
+                  else if (xexp_is (x, "uri")) 
+                    available_uri = g_strdup (xexp_text (x));
+                }
+            }
+
+          xexp_free (available_nots);
+
+          new_notifications = (available_text != NULL) && (available_uri != NULL);  
+
+          if (new_notifications && seen_notifications)
+            {
+              xexp *x;
+              if (xexp_is (seen_notifications, "info") && !xexp_is_empty (seen_notifications))
+                {
+                  for (x = xexp_first (seen_notifications); x && new_notifications; x = xexp_rest (x))
+                    {
+                      if (xexp_is (x, "title")) 
+                        seen_title = g_strdup (xexp_text (x));
+                      else if (xexp_is (x, "text")) 
+                        seen_text = g_strdup (xexp_text (x));
+                      else if (xexp_is (x, "uri")) 
+                        seen_uri = g_strdup (xexp_text (x));
+                    }
+                  new_notifications = 
+                    strcmp (available_title, seen_title)
+                    || strcmp(available_text, seen_text) 
+                    || strcmp(available_uri, seen_uri);
+                }
+            }
+          xexp_free (seen_notifications);
+        }
+    }
+  
   if (priv->menu)
     {
       g_signal_handler_disconnect(priv->menu,
 				  priv->menu_selection_done_handler_id);
       g_signal_handler_disconnect (priv->open_ham_item,
 				   priv->open_ham_item_activated_handler_id);
+      g_signal_handler_disconnect (priv->show_notification_item,
+                                   priv->show_notification_item_activated_handler_id);
+      g_signal_handler_disconnect (priv->reject_notification_item,
+                                   priv->reject_notification_item_activated_handler_id);
       gtk_widget_destroy (priv->menu);
     }
 
   priv->menu = gtk_menu_new ();
 
-  if (n_certified + n_other + n_os > 0)
-    {
-      add_readonly_item (priv->menu, _("ai_sb_update_description"));
-
-      if (n_certified > 0)
-	add_readonly_item (priv->menu, _("ai_sb_update_nokia_%d"),
-			   n_certified);
-      if (n_other > 0)
-	add_readonly_item (priv->menu, _("ai_sb_update_thirdparty_%d"),
-			   n_other);
-      if (n_os > 0)
-	add_readonly_item (priv->menu, _("ai_sb_update_os"));
-
-      item = gtk_separator_menu_item_new ();
-      gtk_menu_append (priv->menu, item);
-      gtk_widget_show (item);
-    }
-
-  item = gtk_menu_item_new_with_label (_("ai_sb_update_am"));
-  gtk_menu_append (priv->menu, item);
-  gtk_widget_show (item);
-
   priv->menu_selection_done_handler_id =
     g_signal_connect (priv->menu, "selection-done",
-			   G_CALLBACK(menu_hidden), upno);
+                      G_CALLBACK(menu_hidden), upno);
+/*  priv->menu_selection_done_handler_id =
+      g_signal_connect (priv->menu, "deactivate",
+                        G_CALLBACK(menu_hidden), upno); */
 
-  priv->open_ham_item = item;
-  priv->open_ham_item_activated_handler_id =
-    g_signal_connect (item, "activate",
-		      G_CALLBACK (open_ham_menu_item_activated), upno);
+  if (new_updates && !showing_check_for_updates_view (upno))
+    {
+      if (priv->icon_state == UPNO_ICON_INVISIBLE)
+        set_icon_visibility (upno, UPNO_ICON_BLINKING);
+      menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_description"));
+
+      if (n_certified > 0)
+	menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_nokia_%d"),
+			   n_certified);
+      if (n_other > 0)
+	menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_thirdparty_%d"),
+			   n_other);
+      if (n_os > 0)
+	menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_os"));
+
+      menu_add_separator (priv->menu);
+
+      item = gtk_menu_item_new_with_label (_("ai_sb_update_am"));
+      gtk_menu_shell_append ((GtkMenuShell *)priv->menu, item);
+      gtk_widget_show (item);
+
+      priv->open_ham_item = item;
+      priv->open_ham_item_activated_handler_id =
+        g_signal_connect (item, "activate",
+                          G_CALLBACK (open_ham_menu_item_activated), upno);
+    }
+  else if (new_notifications)
+    {
+      gchar* formatted_title = NULL;
+      gchar* formatted_text = NULL;
+
+      if (priv->icon_state == UPNO_ICON_INVISIBLE)
+	set_icon_visibility (upno, UPNO_ICON_BLINKING);
+
+      menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_app_push_desc"));
+
+      formatted_title = g_markup_printf_escaped ("<b>%s</b>",
+						available_title);
+      menu_add_readonly_item (priv->menu, TRUE, formatted_title);
+      g_free (formatted_title);
+
+      formatted_text = g_markup_printf_escaped ("<small>%s</small>",
+						available_text);
+      menu_add_readonly_item (priv->menu, TRUE, formatted_text);
+      g_free (formatted_text);
+
+      menu_add_separator (priv->menu);
+
+      item = gtk_menu_item_new_with_label (_("ai_sb_app_push_no"));
+      gtk_menu_shell_append ((GtkMenuShell *)priv->menu, item);
+      gtk_widget_show (item);
+
+      priv->reject_notification_item = item;
+      priv->reject_notification_item_activated_handler_id =
+        g_signal_connect (item, "activate",
+                          G_CALLBACK (reject_notification_menu_item_activated),
+			  upno);
+      
+      menu_add_separator (priv->menu);
+      
+      item = gtk_menu_item_new_with_label (_("ai_sb_app_push_link"));
+      gtk_menu_shell_append ((GtkMenuShell *)priv->menu, item);
+      gtk_widget_show (item);
+      
+      struct show_notification_menu_item_activated_data *c = 
+        g_new0 (struct show_notification_menu_item_activated_data, 1);
+      c->upno = upno;
+      c->notification_url = g_strdup (available_uri);
+      priv->show_notification_item = item;
+      priv->show_notification_item_activated_handler_id =
+        g_signal_connect (item, "activate",
+                          G_CALLBACK (show_notification_menu_item_activated),
+			  c);
+    }
+  else
+    set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
+  
+  g_free (available_title);
+  g_free (available_text);
+  g_free (available_uri);
+  g_free (seen_title);
+  g_free (seen_text);
+  g_free (seen_uri);
 }
 
 static void
@@ -597,13 +878,30 @@ osso_rpc_handler(const gchar* interface, const gchar* method,
                  GArray* arguments, gpointer data, osso_rpc_t* retval)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
+  gchar *seen_name = NULL;
+  xexp *seen_updates = NULL;
 
   if (!strcmp (interface, UPDATE_NOTIFIER_INTERFACE))
     {
       if (!strcasecmp(method, UPDATE_NOTIFIER_OP_CHECK_UPDATES))
 	{
-	  /* Search for new available updates */
-	  check_for_updates (upno);
+	  /* first run? */
+	  seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_UPDATES_FILE);
+
+	  if (!g_file_test (seen_name, G_FILE_TEST_EXISTS))
+	    {
+	      seen_updates = xexp_list_new ("updates");
+	      xexp_write_file (seen_name, seen_updates);
+	      xexp_free (seen_updates);
+	    }
+	  else
+	    {
+	      /* Search for new available updates */
+	      check_for_updates (upno);
+	      /* Search for notifications */
+	      check_for_notifications (upno);
+	    }
+	  g_free (seen_name);
 	}
       else if (!strcasecmp(method, UPDATE_NOTIFIER_OP_CHECK_STATE))
 	{
@@ -794,6 +1092,63 @@ check_for_updates (UpdateNotifier *upno)
   g_free (proxy);
 }
 
+static gpointer
+check_for_notifications_thread (gpointer userdata)
+{
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (userdata);
+  GConfClient *conf = NULL;
+  gchar *target_file = NULL;
+  gchar *proxy = NULL;
+  gchar *uri = NULL;
+  CURLcode result;
+  FILE *f;
+
+  /* only one thread is allowed to download stuff at any given moment */
+  if (!g_mutex_trylock (priv->notifications_thread_mutex))
+    return NULL;
+  
+  conf = gconf_client_get_default ();
+  uri = gconf_client_get_string (conf, UPNO_GCONF_URI, NULL);
+  if (!uri)
+    goto exit;
+
+  target_file  = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
+  
+  f = fopen (target_file, "w");
+  if (!f)
+    goto exit;
+
+  proxy = get_http_proxy ();
+  
+  CURL *handle = curl_easy_init ();
+  /* curl_easy_setopt (handle, CURLOPT_WRITEFUNCTION, NULL); */
+  curl_easy_setopt (handle, CURLOPT_WRITEDATA, f);
+  curl_easy_setopt (handle, CURLOPT_URL, uri);
+  if (proxy != NULL)
+    curl_easy_setopt (handle, CURLOPT_PROXY, proxy);
+
+  result = curl_easy_perform (handle);
+
+  fclose (f);
+
+  exit:
+  
+  g_mutex_unlock (priv->notifications_thread_mutex);
+  if (target_file)
+    g_free (target_file);
+  if (uri)
+    g_free (uri);
+  if (proxy)
+    g_free (proxy);
+  return NULL;
+}
+
+static void
+check_for_notifications (UpdateNotifier *upno)
+{
+  g_thread_create ((GThreadFunc)check_for_notifications_thread, upno, FALSE, NULL);
+}
+
 static gchar *
 get_http_proxy ()
 {
@@ -885,32 +1240,36 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
 
       len = read (ifd, buf, BUF_LEN);
       if (len < 0) 
-	{
-	  if (errno == EINTR)
-	    continue;
-	  else
-	    return FALSE;
-	}
-      
+        {
+          if (errno == EINTR)
+            continue;
+          else
+            return FALSE;
+        }
+
       i = 0;
       while (i < len)
-	{
-	  struct inotify_event *event;
+        {
+          struct inotify_event *event;
 
-	  event = (struct inotify_event *) &buf[i];
+          event = (struct inotify_event *) &buf[i];
 
-	  if ((priv->home_watch != -1 &&
-	       is_file_modified_event (event,
-				       priv->home_watch,
-				       SEEN_UPDATES_FILE))
-	      || (priv->varlibham_watch != -1 &&
-		  is_file_modified_event (event,
-					  priv->varlibham_watch,
-					  "available-updates")))
-	    update_state (upno);
-	    
-	  i += sizeof (struct inotify_event) + event->len;
-	}
+          if ((priv->varlibham_watch != -1 
+              && is_file_modified_event (event, priv->varlibham_watch,"available-updates"))
+              || (priv->home_watch != -1 
+                  && 
+                  ( is_file_modified_event (event, priv->home_watch, SEEN_UPDATES_FILE)
+                      || is_file_modified_event (event, priv->home_watch, SEEN_NOTIFICATIONS_FILE)
+                      || is_file_modified_event (event, priv->home_watch, AVAILABLE_NOTIFICATIONS_FILE)
+                  )
+              )
+          )
+            {
+              update_state (upno);
+            }
+
+          i += sizeof (struct inotify_event) + event->len;
+        }
 
       return TRUE;
     }

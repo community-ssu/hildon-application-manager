@@ -29,6 +29,7 @@
 #define UPNO_GCONF_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
 #define UPNO_GCONF_CHECK_INTERVAL UPNO_GCONF_DIR "/check_interval"
 #define UPNO_GCONF_LAST_UPDATE    UPNO_GCONF_DIR "/last_update"
+#define UPNO_GCONF_URI            UPNO_GCONF_DIR "/uri"
 
 #define UPNO_DEFAULT_CHECK_INTERVAL (24*60)
 
@@ -48,5 +49,10 @@
 
 #define SEEN_UPDATES_FILE  ".hildon-application-manager-seen-updates"
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
+
+/* these files will be in the user's local folder: */
+#define SEEN_NOTIFICATIONS_FILE      ".hildon-application-manager-seen-notifications"
+#define AVAILABLE_NOTIFICATIONS_FILE ".hildon-application-manager-available-notifications"
+#define AVAILABLE_NOTIFICATIONS_MENU_WIDTH 500
 
 #endif /* !UPDATE_NOTIFIER_CONF_H */
