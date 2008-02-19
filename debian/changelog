@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.1.6~unreleased) unstable; urgency=low
+
+  * 
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 19 Feb 2008 19:03:50 +0200
+
 hildon-application-manager (1:2.1.5) unstable; urgency=low
 
   * Added Build-Dependency on libcurl3-dev for the new 'adpull' feature of
