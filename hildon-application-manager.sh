@@ -13,7 +13,7 @@ fi
 cats="/var/lib/hildon-application-manager/catalogues.backup"
 cats2="/var/lib/hildon-application-manager/catalogues2.backup"
 pkgs="/var/lib/hildon-application-manager/packages.backup"
-upkgs="$HOME/.hildon-application-manager.backup"
+upkgs="$HOME/.hildon-application-manager/packages.backup"
 
 if grep -q "$cats" "$1"
 then
@@ -21,6 +21,10 @@ then
 elif grep -q "$cats2" "$1"
 then
   sudo /usr/bin/hildon-application-manager-util restore-catalogues2
+fi
+
+if [ ! -d $HOME/.hildon-application-manager ]; then
+  mkdir $HOME/.hildon-application-manager
 fi
 
 if grep -q "$pkgs" "$1"

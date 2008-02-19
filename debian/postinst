@@ -58,6 +58,57 @@ if [ ! -e /var/lib/osso-application-installer ]; then
   ln -s hildon-application-manager /var/lib/osso-application-installer
 fi
 
+HAM_STATE_DIR=/home/user/.hildon-application-manager
+
+if [ ! -d $HAM_STATE_DIR ]; then
+  mkdir $HAM_STATE_DIR
+fi
+
+if [ -e /home/user/.hildon-application-manager-state ]; then
+    if [ ! -e $HAM_STATE_DIR/state ]; then
+	mv /home/user/.hildon-application-manager-state \
+	   $HAM_STATE_DIR/state
+    else
+	rm /home/user/.hildon-application-manager-state
+    fi
+fi
+
+if [ -e /home/user/.hildon-application-manager.backup ]; then
+    if [ ! -e $HAM_STATE_DIR/packages.backup ]; then
+	mv /home/user/.hildon-application-manager.backup \
+	   $HAM_STATE_DIR/packages.backup
+    else
+	rm /home/user/.hildon-application-manager.backup
+    fi
+fi
+
+if [ -e /home/user/.hildon-application-manager-seen-updates ]; then
+    if [ ! -e $HAM_STATE_DIR/seen-updates ]; then
+	mv /home/user/.hildon-application-manager-seen-updates \
+	   $HAM_STATE_DIR/seen-updates
+    else
+	rm /home/user/.hildon-application-manager-seen-updates
+    fi
+fi
+
+if [ -e /home/user/.hildon-application-manager-seen-notifications ]; then
+    if [ ! -e $HAM_STATE_DIR/seen-notifications ]; then
+	mv /home/user/.hildon-application-manager-seen-notifications \
+	   $HAM_STATE_DIR/seen-notifications
+    else
+	rm /home/user/.hildon-application-manager-seen-notifications
+    fi
+fi
+
+if [ -e /home/user/.hildon-application-manager-available-notifications ]; then
+    if [ ! -e $HAM_STATE_DIR/available-notifications ]; then
+	mv /home/user/.hildon-application-manager-available-notifications \
+	   $HAM_STATE_DIR/available-notifications
+    else
+	rm /home/user/.hildon-application-manager-available-notifications
+    fi
+fi
+
 ## Clean away old configuration files
 
 rm -f /etc/osso-backup/applications/osso-application-manager.conf

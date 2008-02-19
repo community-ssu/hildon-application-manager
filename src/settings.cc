@@ -335,12 +335,32 @@ show_sort_settings_dialog_flow ()
 bool fullscreen_toolbar = true;
 bool normal_toolbar = true;
 
-#define STATE_FILE ".hildon-application-manager-state"
+#define STATE_FILE "state"
 
 void
 load_state ()
 {
-  FILE *f = open_user_file (STATE_FILE, "r");
+  FILE *f = NULL;
+  struct stat buf;
+  int stat_result;
+  bool using_old_file = false;
+
+  /* Look for the file under HAM_STATE_DIR first */
+  char *full_path = g_strdup_printf ("%s/%s",
+				     HAM_STATE_DIR,
+				     STATE_FILE);
+  stat_result = stat (full_path, &buf);
+  if (stat_result)
+    {
+      /* Try the old file if not found yet */
+      using_old_file = true;
+      g_free (full_path);
+      full_path = g_strdup_printf (HAM_STATE_DIR "-%s",
+				   STATE_FILE);
+    }
+  f = open_user_file (full_path, "r");
+  g_free (full_path);
+
   if (f)
     {
       char *line = NULL;
@@ -362,17 +382,54 @@ load_state ()
 	}
       free (line);
       fclose (f);
+
+      /* Save the state in the right place */
+      if (!using_old_file)
+	save_state ();
     }
 }
 
 void
 save_state ()
 {
-  FILE *f = open_user_file (STATE_FILE, "w");
-  if (f)
+  char *state_dir = g_strdup_printf ("%s/%s",
+				     getenv ("HOME"),
+				     HAM_STATE_DIR);
+
+  /* Save the file under HAM_STATE_DIR (create it, if needed) */
+  if (!mkdir (state_dir, 0777) || errno == EEXIST)
     {
-      fprintf (f, "fullscreen-toolbar %d\n", fullscreen_toolbar);
-      fprintf (f, "normal-toolbar %d\n", normal_toolbar);
-      fclose (f);
+      struct stat buf;
+      int stat_result;
+      char *current_path = NULL;
+      char *old_path = NULL;
+
+      current_path = g_strdup_printf ("%s/%s",
+				  HAM_STATE_DIR,
+				  STATE_FILE);
+
+      FILE *f = open_user_file (current_path, "w");
+      g_free (current_path);
+
+      if (f)
+	{
+	  fprintf (f, "fullscreen-toolbar %d\n", fullscreen_toolbar);
+	  fprintf (f, "normal-toolbar %d\n", normal_toolbar);
+	  fclose (f);
+	}
+
+      /* Delete, if present, the previous file under HOME dir */
+      g_free (current_path);
+      old_path = g_strdup_printf ("%s/" HAM_STATE_DIR "-%s",
+				  getenv ("HOME"),
+				  STATE_FILE);
+
+      stat_result = stat (old_path, &buf);
+      if (!stat_result)
+	unlink (old_path);
+
+      g_free (old_path);
     }
+
+  g_free (state_dir);
 }

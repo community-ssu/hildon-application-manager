@@ -48,7 +48,8 @@ extern bool red_pill_include_details_in_log;
 #define SORT_BY_VERSION 1
 #define SORT_BY_SIZE    2
 
-#define RESTORE_BACKUP_FILENAME ".hildon-application-manager.backup"
+#define HAM_STATE_DIR ".hildon-application-manager"
+#define RESTORE_BACKUP_FILENAME HAM_STATE_DIR "/packages.backup"
 
 void show_settings_dialog_flow ();
 void show_sort_settings_dialog_flow ();

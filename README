@@ -215,7 +215,6 @@ BUGS
 ----
 
 - Figure out busy loop in update-notifier when apt-worker runs.
-- Use $HOME/.hildon-application-manager/ directory for per-user state.
 - Make interaction flow system modal after showing the "system update"
   dialog.
 
