@@ -35,7 +35,7 @@ AC_SUBST(AW_DEPS_CFLAGS)
 AC_SUBST(AW_DEPS_LIBS)
 
 PKG_CHECK_MODULES(NOTIFIER_DEPS, gtk+-2.0 glib-2.0 libhildondesktop gconf-2.0
-                                 libhildonwm dbus-1 libalarm)
+                                 libhildonwm dbus-1 libalarm libcurl)
 AC_SUBST(NOTIFIER_DEPS_LIBS)
 AC_SUBST(NOTIFIER_DEPS_CFLAGS)
 
@@ -52,7 +52,7 @@ AC_DEFINE_UNQUOTED(DEB_HOST_ARCH, "$DEB_HOST_ARCH", [Debian architecture])
 
 # Default distribution
 #
-AC_DEFINE(DEFAULT_DIST, "chinook", [Default distribution name])
+AC_DEFINE(DEFAULT_DIST, "diablo", [Default distribution name])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
