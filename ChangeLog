@@ -1,3 +1,57 @@
+2008-02-19  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* configure.ac (AW_DEPS_LIBS): Added libcurl to NOTIFIER_DEPS.
+	Changed default distribution to "diablo".
+
+	* src/hildon-update-notifier.desktop (X-Text-Domain): Added so
+	that Name gets localized correctly (N79321).
+
+2008-02-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
+	
+	* update-notifier-conf.h: added definitions for UPNO_GCONF_URI,
+	SEEN_NOTIFICATIONS_FILE, AVAILABLE_NOTIFICATIONS_FILE and 
+	AVAILABLE_NOTIFICATIONS_MENU_WIDTH
+
+	* update-notifier.c : Pushing of messages into the update notifier
+	plugin; included curl/curl.h; defined DBus params for opening a
+	browser window
+	(_UpdateNotifierPrivate) : added fields show_notification_item,
+	reject_notification_item, notifications_thread_mutex
+	show_notification_item_activated_handler_id, and
+	reject_notification_item_activated_handler_id
+	(update_notifier_init) : initialize notifications_thread_mutex
+	(update_notifier_finalize) : free notifications_thread_mutex
+	(update_seen_notifications) : copies AVAILABLE_NOTIFICATIONS_FILE
+	to SEEN_NOTIFICATIONS_FILE
+	(dbus_open_url) : sends the DBus message to open an URL in a new
+	browser window
+	(show_notification_menu_item_activated) : callback to the "Show me
+	more" menu item that opens the notification URL, calls
+	update_seen_notifications and updates the component's state
+	(reject_notification_menu_item_activated) : callback to the "No
+	thanks" menu item that just calls update_seen_notifications and
+	updates the component's state
+	(menu_add_readonly_item) : adds a read-only item to a menu
+	(menu_add_separator) : adds a separator to a menu
+	(update_state) : reads the "available notifications" and the "seen
+	notifications" files; if there are new updates and there aren't
+	new package upgrades to tell the user about, the widget notifies
+	the user by showing an icon that displays the menu specified in
+	the specs
+	(osso_rpc_handler) : when the alarm goes off, check for
+	notifications as well as for updates; this function tries to avoid
+	this the first time, so users don't get notifications on their
+	first day with the device
+	(check_for_notifications) : launches a new thread that will
+	download the notifications file from internet
+	(check_for_notifications_thread) : gets the notifications URI from
+	GConf, downloads its contents using libcurl and saves them in the
+	"available notifications" file; the field
+	notifications_thread_mutex is used to prevent that more that one
+	thread can run this code at the same time: if a thread is still
+	running, the newest one just finishes
+	(handle_inotify) : monitor changes in the notifications files
+	
 2008-02-18  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker-bin.cc (cmd_check_updates): Call to
