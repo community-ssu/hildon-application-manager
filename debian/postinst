@@ -62,6 +62,7 @@ HAM_STATE_DIR=/home/user/.hildon-application-manager
 
 if [ ! -d $HAM_STATE_DIR ]; then
   mkdir $HAM_STATE_DIR
+  chown user:users $HAM_STATE_DIR
 fi
 
 if [ -e /home/user/.hildon-application-manager-state ]; then

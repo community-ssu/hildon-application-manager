@@ -1,3 +1,8 @@
+2008-02-19  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* debian/postinst: Make sure that the HAM_STATE_DIR is owned by
+	"user".
+
 2008-02-19  Mario Sanchez Prada  <msanchez@maemo.org>
 
         Implemented the "Use $HOME/.hildon-application-manager/ directory
