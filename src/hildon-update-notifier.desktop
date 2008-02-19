@@ -1,5 +1,6 @@
 [Desktop Entry]
 Name=tncpa_li_plugin_update_notifier
+X-Text-Domain=hildon-application-manager
 Icon=qgn_stat_new_updates
 Category=temporal
 Type=default
