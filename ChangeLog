@@ -1,3 +1,32 @@
+2008-02-19  Mario Sanchez Prada  <msanchez@maemo.org>
+
+        Implemented the "Use $HOME/.hildon-application-manager/ directory
+	for per-user state" bug described in README file.
+
+	* debian/postinst: Take care of moving, if needed, every already
+	existing file from its old place to the newer one, that is, from
+	/home/user to /home/user/.hildon-application-manager.
+
+	* hildon-application-manager.sh: Update the backup file URI.
+
+	* src/settings.h (HAM_STATE_DIR): New define pointing to
+	/home/user/.hildon-application-manager directory.
+	(RESTORE_BACKUP_FILENAME): Point to the new URI.
+
+	* src/settings.cc (STATE_FILE): Properly modified according to the
+	rest of the bug implementation.
+	(load_state): Double-check to take into account (if present) the
+	old state file when the newer one is not present.
+	(save_state): Likewise.
+
+	* src/update-notifier-conf.h (HAM_STATE_DIR): New define pointing
+	to /home/user/.hildon-application-manager directory.
+	(SEEN_UPDATES_FILE HAM_STATE_DIR): Point to the new URI.
+	(SEEN_NOTIFICATIONS_FILE): Likewise.
+	(AVAILABLE_NOTIFICATIONS_FILE): Likewise.
+
+	* README: Removed the bug description from the bugs list.
+
 2008-02-19  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* Makefile.am (EXTRA_DIST): Added COPYING.LIB (N80746).
