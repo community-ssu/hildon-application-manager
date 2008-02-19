@@ -1,5 +1,9 @@
 2008-02-19  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/operations.cc (ip_reboot): Call get_package_list_with_cont
+	before rebooting so that the new state is properly saved for the
+	benefit of backup and update notifier.
+
 	* configure.ac (AW_DEPS_LIBS): Added libcurl to NOTIFIER_DEPS.
 	Changed default distribution to "diablo".
 

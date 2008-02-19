@@ -290,6 +290,7 @@ static void ip_abort_response (GtkDialog *dialog, gint response,
 static void ip_end (void *data);
 
 static void ip_reboot (void *data);
+static void ip_reboot_delayed (void *data);
 static gboolean ip_reboot_now (void *data);
 static void ip_flash_and_reboot_done (int status, void *data);
 
@@ -1583,8 +1584,17 @@ ip_reboot (void *data)
   ip_clos *c = (ip_clos *)data;
 
   annoy_user (_("ai_cb_restarting_device"), NULL, NULL);
-    
-  g_timeout_add (2000, ip_reboot_now, c);
+
+  /* We need to get the package list before rebooting so that the
+     "seen updates" state is stored correctly.
+   */
+  get_package_list_with_cont (c->state, ip_reboot_delayed, c);
+}
+
+static void
+ip_reboot_delayed (void *data)
+{
+  g_timeout_add (2000, ip_reboot_now, data);
 }
 
 static gboolean
