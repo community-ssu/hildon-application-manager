@@ -34,7 +34,7 @@
 
   The Application Manager can run one interaction flow at any single
   time.  A local flow is started with START_INTERACTION_FLOW and ended
-  with END_INTERACTION_FLOW.  A flowe that should run on top of a
+  with END_INTERACTION_FLOW.  A flow that should run on top of a
   foreign window is started with START_FOREIGN_INTERACTION_FLOW and
   ended with END_INTERACTION_FLOW.
 
@@ -71,7 +71,7 @@
   Calling RESET_IDLE_TIMER will inform the idle interaction flow
   machinery that the user performed some action that should delay the
   start of a pending interaction flow.  You don't need to do this for
-  interaction flows themselved, but for example when the user switches
+  interaction flows themselves, but for example when the user switches
   the views.
 */
 
@@ -139,6 +139,10 @@ void maybe_exit ();
   Clicking this button opens the "Details" dialog with the given
   package info PI and hint INSTALLED.  See show_package_details for
   the meaning of PI and INSTALLED.
+
+  ASK_YES_NO_WITH_ARBITRARY_DETAILS is like ask_yes_no_with_details
+  but instead of showing a package details dialog, it invokes a
+  callback.
 
   ANNOY_USER display TEXT in a information note.  Clicking "Ok"
   removes that information note.  No continuation can be specified.
