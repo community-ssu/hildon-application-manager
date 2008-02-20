@@ -154,7 +154,7 @@ using namespace std;
 
 /* You know what this means.
  */
-#define DEBUG
+/*#define DEBUG*/
 /*#define DEBUG_COMMANDS*/
 
 /** RUN-TIME CONFIGURATION
