@@ -1,6 +1,64 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Avoiding invisible interaction flows [mario]
+
+Currently, it is possible to start and interaction flow (using
+start_interaction_flow, say) without immediatly popping up a dialog
+that would represent this interaction flow.
+
+The delays used to be shortish, but they can now be quite long because
+of big OS updates.
+
+For example, opening the "Details" dialog for a "OS2008 Reloaded"
+update can take a couple of seconds and there is therefore a long gap
+between activating the button and the dialog opening.
+
+Two things need to be done: the preparing of large operations needs to
+be sped up, and potential gaps in the UI flow need to be plugged.
+This feature is about pluggin the gaps in the UI.
+
+First, the gaps need to be identified: look for uses of
+start_interaction_flow etc and make sure that no operation is
+performed between calling this start_interaction_flow function and
+showing the first dialog.
+
+No apt-worker request can be assumed to be quick (not even things like
+APTCMD_GET_CATALOGUES that don't require significant processing) since
+the apt-worker might be busy with something else before being able to
+process a quick request.
+
+If information from the apt-worker is needed to construct the dialog,
+the code could be changed to show an 'empty' dialog with insensitive
+buttons and a "updating" progress banner.  When the information
+arrives, the dialog should be filled and the buttons should be made
+sensitive.
+
+Please prepare a list of these cases so that we can quickly see
+whether this approach needs to be refined in some cases.
+
+The details dialog is already a bit special: do not make the "Close"
+button insensitive while waiting for more information from the
+apt-worker.  It should be able to close the dialog at any time.  The
+apt-worker request does not need to be canceled in that case, but the
+eventual reply should be safely ignored, of course.
+
+Maybe some apt-worker requests need to split in two so that the first
+half can finish quickly.
+
+* Speeding up preparation of large operations [mvo]
+
+[ Also see the previous feature. ]
+
+Computing an update (calling mark_install in the apt-worker, etc) used
+to be quick enough, but now it can be quite slow since we have large
+OS updates.  This needs to be sped up.
+
+When performing an installation, the frontend asks the backend to
+compute the same update three times or so.  Either the frontend needs
+to ask less often or the backend should keep the last operation in the
+cache.
+
 * Automatic recovery after an interrupted operation [mvo]
 
 When a package management operation is interrupted abruptly, the
@@ -85,7 +143,7 @@ It is important that checking the URI does not block the process.  If
 needed, a separate process should be spawned (no threads, please).
 
 
-* Better handling and reporting of dependency and conflict issues. [mario]
+* Better handling and reporting of dependency and conflict issues. [--]
 
 We need to get better at explaining the reasons why a given operation
 can not be performed so that the user has a chance of taking
