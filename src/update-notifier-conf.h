@@ -48,12 +48,15 @@
 #define HILDON_APP_MGR_OP_SHOWING_CHECK_FOR_UPDATES "showing_check_for_updates_view"
 
 #define HAM_STATE_DIR ".hildon-application-manager"
-#define SEEN_UPDATES_FILE HAM_STATE_DIR "/seen-updates"
+#define SEEN_UPDATES_FILENAME "/seen-updates"
+#define SEEN_UPDATES_FILE HAM_STATE_DIR "/" SEEN_UPDATES_FILENAME
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
 
-/* these files will be in the user's local folder: */
-#define SEEN_NOTIFICATIONS_FILE      HAM_STATE_DIR "/seen-notifications"
-#define AVAILABLE_NOTIFICATIONS_FILE HAM_STATE_DIR "/available-notifications"
+#define SEEN_NOTIFICATIONS_FILENAME  "seen-notifications"
+#define AVAILABLE_NOTIFICATIONS_FILENAME "available-notifications"
+#define SEEN_NOTIFICATIONS_FILE      HAM_STATE_DIR "/" SEEN_NOTIFICATIONS_FILENAME
+#define AVAILABLE_NOTIFICATIONS_FILE HAM_STATE_DIR "/" AVAILABLE_NOTIFICATIONS_FILENAME
+
 #define AVAILABLE_NOTIFICATIONS_MENU_WIDTH 500
 
 #endif /* !UPDATE_NOTIFIER_CONF_H */

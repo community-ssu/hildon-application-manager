@@ -322,51 +322,28 @@ open_ham_menu_item_activated (GtkWidget *menu, gpointer data)
   show_check_for_updates_view (upno);
 }
 
+/* This function copies AVAILABLE_NOTIFICATIONS_FILE to SEEN_NOTIFICATIONS_FILE */
 static void
 update_seen_notifications ()
 {
-  /* This function copies AVAILABLE_NOTIFICATIONS_FILE to SEEN_NOTIFICATIONS_FILE */
-  gchar *seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_NOTIFICATIONS_FILE);
-  FILE *in, *out;
-  char ch;
-  gchar *available_name = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
-
-  if ((in = fopen (available_name, "r")) == NULL)
-    {
-      goto exit;
-    }
+  gchar *available_name, *seen_name;
+  xexp *available_nots, *seen_nots;
   
-  if ((out = fopen (seen_name, "w")) == NULL)
-    {
-      fclose (in);  
-      goto exit;
-    }
-
-  while (!feof (in)) 
-    {
-      ch = getc (in);
-      if (ferror (in))
-        {
-          clearerr (in);
-          break;
-        }
-      else 
-        {
-          if (!feof (in))
-            putc (ch, out);
-          if (ferror (out)) 
-            {
-              clearerr (out);
-              break;
-            }
-        }
-    }
-  fclose(in);
-  fclose(out);
-  
-  exit:
+  available_name = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
+  available_nots = xexp_read_file (available_name);
   g_free (available_name);
-  g_free(seen_name);
+
+  if (!available_nots)
+    return;
+  
+  seen_nots = xexp_copy (available_nots);
+  
+  seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_NOTIFICATIONS_FILE);
+  xexp_write_file(seen_name, seen_nots);
+  g_free (seen_name);
+  
+  xexp_free (available_nots);
+  xexp_free (seen_nots);
 }
 
 static gboolean
@@ -639,17 +616,19 @@ static void
 update_state (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  xexp *available_updates, *seen_updates, *available_nots, *seen_notifications;
+  xexp *available_updates, *seen_updates;
+  xexp *available_nots = NULL;
+  xexp *seen_notifications = NULL;
   int n_os = 0, n_certified = 0, n_other = 0;
   int n_new = 0;
   gboolean new_updates = FALSE;
   gboolean new_notifications = FALSE;
-  gchar *available_title = NULL;
-  gchar *available_text = NULL;
-  gchar *available_uri = NULL;
-  gchar *seen_title = NULL;
-  gchar *seen_text = NULL;
-  gchar *seen_uri = NULL;
+  const gchar *available_title;
+  const gchar *available_text;
+  const gchar *available_uri;
+  const gchar *seen_title;
+  const gchar *seen_text;
+  const gchar *seen_uri;
 
   GtkWidget *item;
   
@@ -700,7 +679,7 @@ update_state (UpdateNotifier *upno)
     {
       gchar *available_name = NULL; 
       gchar *seen_name = NULL;
-      
+
       available_name = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
       available_nots = xexp_read_file (available_name);
       g_free (available_name);
@@ -708,58 +687,38 @@ update_state (UpdateNotifier *upno)
       seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_NOTIFICATIONS_FILE);
       seen_notifications = xexp_read_file (seen_name);
       g_free (seen_name);
-      
-      if (seen_notifications == NULL)
-          seen_notifications = xexp_list_new ("info");
-      
+
       if (available_nots)
         {
-          xexp *x;
           if (xexp_is (available_nots, "info") && !xexp_is_empty (available_nots))
             {
-              for (x = xexp_first (available_nots); x; x = xexp_rest (x))
-                {
-                  if (xexp_is (x, "title")) 
-                    available_title = g_strdup (xexp_text (x));
-                  else if (xexp_is (x, "text")) 
-                    available_text = g_strdup (xexp_text (x));
-                  else if (xexp_is (x, "uri")) 
-                    available_uri = g_strdup (xexp_text (x));
-                }
+              available_title = xexp_aref_text(available_nots, "title");
+              available_text = xexp_aref_text(available_nots, "text");
+              available_uri = xexp_aref_text(available_nots, "uri");
             }
+        }
 
-          xexp_free (available_nots);
+      new_notifications = (available_title!=NULL) && (available_uri!=NULL) && (available_text!=NULL);  
 
-          new_notifications = (available_text != NULL) && (available_uri != NULL);  
-
-          if (new_notifications && seen_notifications)
+      if (new_notifications && seen_notifications)
+        {
+          if (xexp_is (seen_notifications, "info") && !xexp_is_empty (seen_notifications))
             {
-              xexp *x;
-              if (xexp_is (seen_notifications, "info") && !xexp_is_empty (seen_notifications))
-                {
-                  for (x = xexp_first (seen_notifications); x && new_notifications; x = xexp_rest (x))
-                    {
-                      if (xexp_is (x, "title")) 
-                        seen_title = g_strdup (xexp_text (x));
-                      else if (xexp_is (x, "text")) 
-                        seen_text = g_strdup (xexp_text (x));
-                      else if (xexp_is (x, "uri")) 
-                        seen_uri = g_strdup (xexp_text (x));
-                    }
-                  new_notifications = 
-                    strcmp (available_title, seen_title)
-                    || strcmp(available_text, seen_text) 
-                    || strcmp(available_uri, seen_uri);
-                }
+              seen_title = xexp_aref_text (seen_notifications, "title");
+              seen_text = xexp_aref_text (seen_notifications, "text");
+              seen_uri = xexp_aref_text (seen_notifications, "uri");
+              new_notifications = new_notifications &&
+                        ((!seen_title || (strcmp (available_title, seen_title) != 0)) ||
+                         (!seen_uri   || (strcmp (available_uri,   seen_uri)   != 0)) ||
+                         (!seen_text  || (strcmp (available_text,  seen_text)  != 0)));
             }
-          xexp_free (seen_notifications);
         }
     }
-  
+
   if (priv->menu)
     {
-      g_signal_handler_disconnect(priv->menu,
-				  priv->menu_selection_done_handler_id);
+      g_signal_handler_disconnect (priv->menu,
+				   priv->menu_selection_done_handler_id);
       g_signal_handler_disconnect (priv->open_ham_item,
 				   priv->open_ham_item_activated_handler_id);
       g_signal_handler_disconnect (priv->show_notification_item,
@@ -769,6 +728,9 @@ update_state (UpdateNotifier *upno)
       gtk_widget_destroy (priv->menu);
     }
 
+  priv->open_ham_item = NULL;
+  priv->show_notification_item = NULL;
+  priv->reject_notification_item = NULL;
   priv->menu = gtk_menu_new ();
 
   priv->menu_selection_done_handler_id =
@@ -855,12 +817,8 @@ update_state (UpdateNotifier *upno)
   else
     set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
   
-  g_free (available_title);
-  g_free (available_text);
-  g_free (available_uri);
-  g_free (seen_title);
-  g_free (seen_text);
-  g_free (seen_uri);
+  xexp_free (available_nots);
+  xexp_free (seen_notifications);
 }
 
 static void
@@ -1258,9 +1216,9 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
               && is_file_modified_event (event, priv->varlibham_watch,"available-updates"))
               || (priv->home_watch != -1 
                   && 
-                  ( is_file_modified_event (event, priv->home_watch, SEEN_UPDATES_FILE)
-                      || is_file_modified_event (event, priv->home_watch, SEEN_NOTIFICATIONS_FILE)
-                      || is_file_modified_event (event, priv->home_watch, AVAILABLE_NOTIFICATIONS_FILE)
+                  ( is_file_modified_event (event, priv->home_watch, SEEN_UPDATES_FILENAME)
+                      || is_file_modified_event (event, priv->home_watch, SEEN_NOTIFICATIONS_FILENAME)
+                      || is_file_modified_event (event, priv->home_watch, AVAILABLE_NOTIFICATIONS_FILENAME)
                   )
               )
           )
@@ -1279,6 +1237,7 @@ static void
 setup_inotify (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+  gchar *state_dir;
   int ifd;
 
   ifd = inotify_init ();
@@ -1288,11 +1247,12 @@ setup_inotify (UpdateNotifier *upno)
       g_io_add_watch (priv->inotify_channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
 		      handle_inotify, upno);
 
-      
+      state_dir = g_strdup_printf ("%s/%s", getenv ("HOME"), HAM_STATE_DIR);
       priv->home_watch =
-	inotify_add_watch (ifd,
-			   getenv ("HOME"),
-			   IN_CLOSE_WRITE | IN_MOVED_TO);
+        inotify_add_watch (ifd,
+                           state_dir,
+                           IN_CLOSE_WRITE | IN_MOVED_TO);
+      g_free (state_dir);
 
       priv->varlibham_watch =
 	inotify_add_watch (ifd,

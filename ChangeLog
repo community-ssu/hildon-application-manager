@@ -1,3 +1,16 @@
+2008-02-20  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* update-notifier-conf.h: added SEEN_UPDATES_FILENAME,
+	SEEN_NOTIFICATIONS_FILENAME and AVAILABLE_NOTIFICATIONS_FILENAME
+
+	* update-notifier.c : (update_seen_notifications) use xexp_copy
+	and other xexp_* functions
+	(update_state) use xexp_aref_text for simpler code and better
+	semantics
+	(handle_inotify) handle the new location of the auxiliary files
+	(setup_inotify) watch for inotify events in 
+	'/home/user/.hildon-application-manager' instead of '/home/user'
+
 2008-02-19  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.5
