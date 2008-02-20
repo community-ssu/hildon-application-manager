@@ -1,3 +1,63 @@
+2008-02-20  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	Improving the "Use $HOME/.hildon-application-manager/ directory
+	for per-user state" bug implementation, by adding a new API to
+	manage user files (state files). This API will be use both by the
+	frontend of the HAM and the update-notifier status bar plugin.
+
+	* src/user_files.h, src/user_files.c: New files implementing a
+	small API for managing user files under the "state" directory.
+	It takes care, in a "clean" way, of files that could be placed in
+	"deprecated" directories, so it's easy to ask for a file without
+	having to be worried about it current location.
+	(HAM_STATE_DIR): Moved from its original location to have it here,
+	centralized together with the rest of "defines".
+	(UFILE_RESTORE_BACKUP): Likewise, and renamed with the "UFILE_"
+	prefix to be have a more uniform "nomenclator" (from settings.h).
+	(UFILE_HAM_STATE): Likewise (from settings.cc).
+	(UFILE_SEEN_UPDATES): Likewise (update-notifier-conf.h).
+	(UFILE_SEEN_NOTIFICATIONS): Likewise (update-notifier-conf.h).
+	(UFILE_AVAILABLE_NOTIFICATIONS):Likewise (update-notifier-conf.h).
+	(user_file_get_state_dir_path): Returns the full path to the state
+	directory for HAM.
+	(user_file_open_for_read): Returns a FILE pointer for the desired
+	file, when it's going to be used for reading.
+	(user_file_open_for_write): Returns a FILE pointer for the desired
+	file, when it's going to be used for writing.
+
+	* src/main.cc (make_upgrade_applications_view): Call to the new
+	user_file_open_for_write function.
+	(restore_packages_flow): Use user_file_open_for_read function.
+
+	* src/menu.cc (create_menu): Use user_file_open_for_read.
+
+	* src/settings.cc (load_state): Use user_file_open_for_read.
+	(save_state): Use user_file_open_for_write.
+
+	* src/update-notifier-conf.h (SEEN_UPDATES_FILENAME): Removed, as
+	now the UFILE_SEENS_UPDATE definition has the same value.
+	(SEEN_NOTIFICATIONS_FILENAME): Removed (same reason)
+	(AVAILABLE_NOTIFICATIONS_FILENAME): Removed (same reason).
+
+	* src/update-notifier.c (update_seen_notifications): Use the new
+	user_file_open_for_read and user_file_open_for_write functions.
+	(update_state): Use user_file_open_for_read when needed.
+	(osso_rpc_handler): Use user_file_get_state_dir_path and
+	user_file_open_for_write as needed.
+	(check_for_notifications_thread): Use the renamed define
+	UFILE_AVAILABLE_NOTIFICATIONS.
+	(handle_inotify): Use the renamed defines UFILE_SEEN_UPDATES,
+	UFILE_SEEN_NOTIFICATIONS and UFILE_AVAILABLE_NOTIFICATIONS.
+	(setup_inotify): Use user_file_get_state_dir_path instead of
+	building the full path by itself.
+
+	* src/Makefile.am: From now on, also compile user_file.[ch] both
+	for the HAM and the update-notifier statusbar plugin.
+
+	* debian/postinst: Removed the scriptish lines that moved some
+	files from their old location to the newer one, as it not needed
+	anymore now we have this API.
+
 2008-02-20  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* update-notifier-conf.h: added SEEN_UPDATES_FILENAME,

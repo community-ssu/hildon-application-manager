@@ -21,42 +21,27 @@
  *
  */
 
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#ifndef USER_FILES_H
+#define USER_FILES_H
 
-void load_settings ();
-void save_settings ();
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// User serviceable settings
-//
-extern int    package_sort_key;
-extern int    package_sort_sign;
+#define HAM_STATE_DIR ".hildon-application-manager"
+#define UFILE_RESTORE_BACKUP "packages.backup"
+#define UFILE_HAM_STATE "state"
+#define UFILE_SEEN_UPDATES "seen-updates"
+#define UFILE_SEEN_NOTIFICATIONS "seen-notifications"
+#define UFILE_AVAILABLE_NOTIFICATIONS "available-notifications"
 
-// Non-user serviceable settings, please ask your local geek.
-//
-extern bool clean_after_install;
-extern bool assume_connection;
-extern bool break_locks;
-extern bool download_packages_to_mmc;
-extern bool red_pill_mode;
-extern bool red_pill_show_deps;
-extern bool red_pill_show_all;
-extern bool red_pill_show_magic_sys;
-extern bool red_pill_include_details_in_log;
+gchar *user_file_get_state_dir_path ();
+FILE *user_file_open_for_read (const gchar *name);
+FILE *user_file_open_for_write (const gchar *name);
 
-#define SORT_BY_NAME    0
-#define SORT_BY_VERSION 1
-#define SORT_BY_SIZE    2
+#ifdef __cplusplus
+}
+#endif
 
-void show_settings_dialog_flow ();
-void show_sort_settings_dialog_flow ();
+#endif /* !USER_FILES_H */
 
-// Persistent state
-//
-extern bool fullscreen_toolbar;
-extern bool normal_toolbar;
-
-void load_state ();
-void save_state ();
-
-#endif /* !SETTINGS_H */

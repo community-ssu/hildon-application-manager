@@ -48,6 +48,7 @@
 
 #include "hn-app-pixbuf-anim-blinker.h"
 #include "xexp.h"
+#include "user_files.h"
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
@@ -326,22 +327,28 @@ open_ham_menu_item_activated (GtkWidget *menu, gpointer data)
 static void
 update_seen_notifications ()
 {
-  gchar *available_name, *seen_name;
+  FILE *available_file = NULL, *seen_file = NULL;
   xexp *available_nots, *seen_nots;
-  
-  available_name = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
-  available_nots = xexp_read_file (available_name);
-  g_free (available_name);
+  GError *error = NULL;
 
-  if (!available_nots)
+  available_file = user_file_open_for_read (UFILE_AVAILABLE_NOTIFICATIONS);
+  if (available_file != NULL)
+    {
+      available_nots = xexp_read (available_file, &error);
+      fclose (available_file);
+    }
+  else
     return;
-  
+
   seen_nots = xexp_copy (available_nots);
-  
-  seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_NOTIFICATIONS_FILE);
-  xexp_write_file(seen_name, seen_nots);
-  g_free (seen_name);
-  
+
+  seen_file = user_file_open_for_write (UFILE_SEEN_NOTIFICATIONS);
+  if (seen_file != NULL)
+    {
+      xexp_write (seen_file, seen_nots);
+      fclose (seen_file);
+    }
+
   xexp_free (available_nots);
   xexp_free (seen_nots);
 }
@@ -619,6 +626,8 @@ update_state (UpdateNotifier *upno)
   xexp *available_updates, *seen_updates;
   xexp *available_nots = NULL;
   xexp *seen_notifications = NULL;
+  FILE *seen_file = NULL;
+  GError *error = NULL;
   int n_os = 0, n_certified = 0, n_other = 0;
   int n_new = 0;
   gboolean new_updates = FALSE;
@@ -633,11 +642,14 @@ update_state (UpdateNotifier *upno)
   GtkWidget *item;
   
   available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
-  
-  gchar *name = g_strdup_printf ("%s/%s", getenv ("HOME"),
-				 SEEN_UPDATES_FILE);
-  seen_updates = xexp_read_file (name);
-  g_free (name);
+
+  seen_file = user_file_open_for_read (UFILE_SEEN_UPDATES);
+
+  if (seen_file != NULL)
+    {
+      seen_updates = xexp_read (seen_file, &error);
+      fclose (seen_file);
+    }
 
   if (seen_updates == NULL)
     seen_updates = xexp_list_new ("updates");
@@ -677,16 +689,22 @@ update_state (UpdateNotifier *upno)
   /* Update notifications list */
   if (!new_updates)
     {
-      gchar *available_name = NULL; 
-      gchar *seen_name = NULL;
+      FILE *available_file = NULL, *seen_file = NULL;
+      GError *error = NULL;
 
-      available_name = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
-      available_nots = xexp_read_file (available_name);
-      g_free (available_name);
+      available_file = user_file_open_for_read (UFILE_AVAILABLE_NOTIFICATIONS);
+      if (available_file != NULL)
+	{
+	  available_nots = xexp_read (available_file, &error);
+	  fclose (available_file);
+	}
 
-      seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_NOTIFICATIONS_FILE);
-      seen_notifications = xexp_read_file (seen_name);
-      g_free (seen_name);
+      seen_file = user_file_open_for_read (UFILE_SEEN_NOTIFICATIONS);
+      if (seen_file != NULL)
+	{
+	  seen_notifications = xexp_read (seen_file, &error);
+	  fclose (seen_file);
+	}
 
       if (available_nots)
         {
@@ -836,21 +854,29 @@ osso_rpc_handler(const gchar* interface, const gchar* method,
                  GArray* arguments, gpointer data, osso_rpc_t* retval)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
-  gchar *seen_name = NULL;
-  xexp *seen_updates = NULL;
 
   if (!strcmp (interface, UPDATE_NOTIFIER_INTERFACE))
     {
       if (!strcasecmp(method, UPDATE_NOTIFIER_OP_CHECK_UPDATES))
 	{
 	  /* first run? */
-	  seen_name = g_strdup_printf ("%s/%s", getenv ("HOME"), SEEN_UPDATES_FILE);
+	  FILE *seen_file = NULL;
+	  gchar *ufiles_base_dir = user_file_get_state_dir_path ();
+	  gchar *seen_name = NULL;
+	  xexp *seen_updates = NULL;
 
-	  if (!g_file_test (seen_name, G_FILE_TEST_EXISTS))
+	  seen_file = user_file_open_for_write (UFILE_SEEN_UPDATES);
+	  seen_name = g_strdup_printf ("%s/%s",
+				       ufiles_base_dir,
+				       UFILE_SEEN_UPDATES);
+	  g_free (ufiles_base_dir);
+
+	  if (!g_file_test (seen_name, G_FILE_TEST_EXISTS) && (seen_file != NULL))
 	    {
 	      seen_updates = xexp_list_new ("updates");
-	      xexp_write_file (seen_name, seen_updates);
+	      xexp_write (seen_file, seen_updates);
 	      xexp_free (seen_updates);
+	      fclose (seen_file);
 	    }
 	  else
 	    {
@@ -1070,7 +1096,7 @@ check_for_notifications_thread (gpointer userdata)
   if (!uri)
     goto exit;
 
-  target_file  = g_strdup_printf ("%s/%s", getenv ("HOME"), AVAILABLE_NOTIFICATIONS_FILE);
+  target_file  = g_strdup_printf ("%s/%s", getenv ("HOME"), UFILE_AVAILABLE_NOTIFICATIONS);
   
   f = fopen (target_file, "w");
   if (!f)
@@ -1212,16 +1238,15 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
 
           event = (struct inotify_event *) &buf[i];
 
-          if ((priv->varlibham_watch != -1 
+          if ((priv->varlibham_watch != -1
               && is_file_modified_event (event, priv->varlibham_watch,"available-updates"))
-              || (priv->home_watch != -1 
-                  && 
-                  ( is_file_modified_event (event, priv->home_watch, SEEN_UPDATES_FILENAME)
-                      || is_file_modified_event (event, priv->home_watch, SEEN_NOTIFICATIONS_FILENAME)
-                      || is_file_modified_event (event, priv->home_watch, AVAILABLE_NOTIFICATIONS_FILENAME)
-                  )
-              )
-          )
+              || (priv->home_watch != -1 &&
+                  ( is_file_modified_event (event, priv->home_watch, UFILE_SEEN_UPDATES)
+		    || is_file_modified_event (event, priv->home_watch, UFILE_SEEN_NOTIFICATIONS)
+		    || is_file_modified_event (event, priv->home_watch, UFILE_AVAILABLE_NOTIFICATIONS)
+		    )
+		  )
+	      )
             {
               update_state (upno);
             }
@@ -1247,7 +1272,7 @@ setup_inotify (UpdateNotifier *upno)
       g_io_add_watch (priv->inotify_channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
 		      handle_inotify, upno);
 
-      state_dir = g_strdup_printf ("%s/%s", getenv ("HOME"), HAM_STATE_DIR);
+      state_dir = user_file_get_state_dir_path ();
       priv->home_watch =
         inotify_add_watch (ifd,
                            state_dir,

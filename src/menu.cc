@@ -34,6 +34,7 @@
 #include "repo.h"
 #include "search.h"
 #include "apt-worker-client.h"
+#include "user_files.h"
 
 #define _(x) gettext (x)
 
@@ -195,7 +196,8 @@ create_menu (HildonWindow *window)
   GtkWidget *item;
   GtkWidget *restore_item;
   GtkAccelGroup *accel_group;
-  gchar *restore_filename;
+  FILE *restore_file = NULL;
+  GError *error = NULL;
 
   accel_group = gtk_accel_group_new ();
   gtk_window_add_accel_group (GTK_WINDOW (window), accel_group);
@@ -273,10 +275,13 @@ create_menu (HildonWindow *window)
 			  accel_group, 'q');
 
   /* Set sensitiveness for restore_packages menu item */
-  restore_filename = g_strdup_printf ("%s/%s", 
-				      g_get_home_dir (), RESTORE_BACKUP_FILENAME);
-  gtk_widget_set_sensitive (restore_item, (xexp_read_file (restore_filename) != NULL));
-  g_free (restore_filename);
+  restore_file = user_file_open_for_read (UFILE_RESTORE_BACKUP);
+
+  if (restore_file != NULL)
+    {
+      gtk_widget_set_sensitive (restore_item, (xexp_read (restore_file, &error) != NULL));
+      fclose (restore_file);
+    }
 
   gtk_widget_show_all (GTK_WIDGET (main));
 }

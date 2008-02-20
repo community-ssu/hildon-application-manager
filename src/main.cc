@@ -47,6 +47,7 @@
 #include "instr.h"
 #include "repo.h"
 #include "dbus.h"
+#include "user_files.h"
 
 #include "update-notifier-conf.h"
 
@@ -1789,16 +1790,21 @@ make_upgrade_applications_view (view *v)
   if (record_seen_updates
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
+      FILE *file = NULL;
       xexp *seen_updates = xexp_list_new ("updates");
       for (GList *pkg = upgradeable_packages; pkg; pkg = pkg->next)
 	xexp_cons (seen_updates,
 		   xexp_text_new ("pkg", 
 				  ((package_info *)pkg->data)->name));
-      gchar *name = g_strdup_printf ("%s/%s", getenv ("HOME"),
-				     SEEN_UPDATES_FILE);
-      xexp_write_file (name, seen_updates);
+
+      file = user_file_open_for_write (UFILE_SEEN_UPDATES);
+
+      if (file != NULL)
+	{
+	  xexp_write (file, seen_updates);
+	  fclose (file);
+	}
       xexp_free (seen_updates);
-      g_free (name);
 
       record_seen_updates = false;
     }
@@ -2330,12 +2336,17 @@ restore_packages_flow ()
 {
   if (start_interaction_flow ())
     {
-      char *filename =
-	g_strdup_printf ("%s/%s",
-			 g_get_home_dir (), RESTORE_BACKUP_FILENAME);
-      xexp *backup = xexp_read_file (filename);
-      g_free (filename);
-      
+      FILE *file = NULL;
+      GError *error = NULL;
+      xexp *backup = NULL;
+
+      file = user_file_open_for_read (UFILE_RESTORE_BACKUP);
+      if (file != NULL)
+	{
+	  backup = xexp_read (file, &error);
+	  fclose (file);
+	}
+
       if (backup)
         {
           restore_cont_data *rc_data = new restore_cont_data;

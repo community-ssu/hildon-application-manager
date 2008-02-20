@@ -40,7 +40,9 @@ hildon_application_manager_launch_SOURCES = main.h			\
 					    apt-worker-proto.cc		\
                                             confutils.h			\
                                             confutils.cc		\
-                                            update-notifier-conf.h
+                                            update-notifier-conf.h      \
+                                            user_files.h                \
+                                            user_files.c
 hildon_application_manager_launch_CFLAGS =   $(HAM_DEPS_CFLAGS) -shared
 hildon_application_manager_launch_CXXFLAGS = $(HAM_DEPS_CFLAGS) -shared \
                                              -fno-rtti -fno-exceptions
@@ -82,7 +84,9 @@ libhildon_update_notifier_la_SOURCES = update-notifier.h		\
 	                               hn-app-pixbuf-anim-blinker.h	\
 	                               hn-app-pixbuf-anim-blinker.c	\
                                        xexp.h				\
-                                       xexp.c
+                                       xexp.c                           \
+                                       user_files.h                     \
+                                       user_files.c
 libhildon_update_notifier_la_CFLAGS = $(NOTIFIER_DEPS_CFLAGS)
 libhildon_update_notifier_la_LIBADD = $(NOTIFIER_DEPS_LIBS)
 
