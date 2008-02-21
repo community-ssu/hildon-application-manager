@@ -188,7 +188,8 @@ show_log_dialog_flow ()
   if (start_interaction_flow ())
     {
       GtkWidget *dialog, *text_view;
-      
+      gint response;
+
       dialog = gtk_dialog_new_with_buttons (_("ai_ti_log"),
 					    NULL,
 					    GTK_DIALOG_MODAL,
@@ -212,8 +213,13 @@ show_log_dialog_flow ()
       gtk_widget_set_usize (dialog, 600,300);
       gtk_widget_show_all (dialog);
       
-      g_signal_connect (dialog, "response",
-			G_CALLBACK (log_response), text_view);
+      do
+	{
+	  gtk_widget_show_all (dialog);
+	  response = gtk_dialog_run (GTK_DIALOG (dialog));
+	  log_response (GTK_DIALOG (dialog), response, text_view);
+	}
+      while (response != GTK_RESPONSE_CLOSE);
     }
 }
 

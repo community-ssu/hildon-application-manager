@@ -19,7 +19,12 @@
 	(check_for_notifications_thread): Fixed a problem based on opening
 	a file for reading when writing, by libculr, was required. Also
 	added extra logic to validate the downloaded file to be sure about
-	if it's or not a valid notification file before writing it to disk.
+	if it's or not a valid notification file before writing it to
+	disk.
+
+	* src/log.cc (show_log_dialog_flow): Changed the management of the
+	dialog to use gtk_dialog_run instead of connecting the "response"
+	signal, to avoid HAM crashing under certain conditions (N81056).
 
 2008-02-21  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
