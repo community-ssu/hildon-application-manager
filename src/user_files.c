@@ -40,6 +40,10 @@ user_file_get_state_dir_path ()
   required_dir = g_strdup_printf ("%s/%s",
 				  getenv ("HOME"),
 				  HAM_STATE_DIR);
+
+  if (mkdir (required_dir, 0777) && errno != EEXIST)
+    return NULL;
+
   return required_dir;
 }
 
@@ -55,6 +59,8 @@ user_file_open_for_read (const gchar *name)
   gchar *full_state_dir = NULL;
 
   full_state_dir = user_file_get_state_dir_path ();
+  if (full_state_dir == NULL)
+    return NULL;
 
   /* Look for the old file */
   old_path = g_strdup_printf ("%s-%s", full_state_dir, name);
@@ -67,8 +73,7 @@ user_file_open_for_read (const gchar *name)
   new_path = g_strdup_printf ("%s/%s", full_state_dir, name);
   stat_result = stat (new_path, &buf);
 
-  if (stat_result && old_file &&
-      (!mkdir (full_state_dir, 0777) || errno == EEXIST))
+  if (stat_result && old_file)
     {
       /* If new file was not found, but an old one was, copy it into
 	 the right place before removing it */
@@ -114,10 +119,9 @@ user_file_open_for_write (const gchar *name)
   gchar *full_state_dir = NULL;
 
   full_state_dir = user_file_get_state_dir_path ();
-
-  /* Save the file under HAM_STATE_DIR (create it, if needed) */
-  if (!mkdir (full_state_dir, 0777) || errno == EEXIST)
+  if (full_state_dir != NULL)
     {
+      /* Save the file under HAM_STATE_DIR (create it, if needed) */
       struct stat buf;
       int stat_result;
       gchar *current_path = NULL;
@@ -137,9 +141,32 @@ user_file_open_for_write (const gchar *name)
 
       f = fopen (current_path, "w");
       g_free (current_path);
+
+      g_free (full_state_dir);
     }
 
-  g_free (full_state_dir);
-
   return f;
+}
+
+int
+user_file_remove (const gchar *name)
+{
+  gchar *full_state_dir = NULL;
+  int result = -1;
+
+  full_state_dir = user_file_get_state_dir_path ();
+  if (full_state_dir != NULL)
+    {
+      gchar *current_path = NULL;
+
+      /* Delete, if present, the previous file under HOME dir */
+      current_path = g_strdup_printf ("%s/%s", full_state_dir, name);
+
+      result = unlink (current_path);
+
+      g_free (current_path);
+      g_free (full_state_dir);
+    }
+
+  return result;
 }

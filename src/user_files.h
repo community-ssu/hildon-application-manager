@@ -38,6 +38,7 @@ extern "C" {
 gchar *user_file_get_state_dir_path ();
 FILE *user_file_open_for_read (const gchar *name);
 FILE *user_file_open_for_write (const gchar *name);
+int user_file_remove (const gchar *name);
 
 #ifdef __cplusplus
 }

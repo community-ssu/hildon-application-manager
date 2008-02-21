@@ -325,7 +325,7 @@ open_ham_menu_item_activated (GtkWidget *menu, gpointer data)
 
 /* This function copies AVAILABLE_NOTIFICATIONS_FILE to SEEN_NOTIFICATIONS_FILE */
 static void
-update_seen_notifications ()
+update_seen_notifications (UpdateNotifier *upno)
 {
   FILE *available_file = NULL, *seen_file = NULL;
   xexp *available_nots, *seen_nots;
@@ -336,21 +336,24 @@ update_seen_notifications ()
     {
       available_nots = xexp_read (available_file, &error);
       fclose (available_file);
+
+      if (available_nots != NULL)
+	{
+	  seen_nots = xexp_copy (available_nots);
+
+	  seen_file = user_file_open_for_write (UFILE_SEEN_NOTIFICATIONS);
+	  if (seen_file != NULL)
+	    {
+	      xexp_write (seen_file, seen_nots);
+	      fclose (seen_file);
+	    }
+	  xexp_free (available_nots);
+	  xexp_free (seen_nots);
+
+	  /* Force to inmediatly set its INVISIBLE state */
+	  set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
+	}
     }
-  else
-    return;
-
-  seen_nots = xexp_copy (available_nots);
-
-  seen_file = user_file_open_for_write (UFILE_SEEN_NOTIFICATIONS);
-  if (seen_file != NULL)
-    {
-      xexp_write (seen_file, seen_nots);
-      fclose (seen_file);
-    }
-
-  xexp_free (available_nots);
-  xexp_free (seen_nots);
 }
 
 static gboolean
@@ -403,7 +406,7 @@ show_notification_menu_item_activated (GtkWidget *menu, gpointer data)
   UpdateNotifier *upno = UPDATE_NOTIFIER (c->upno);
   
   if (dbus_open_url (c->notification_url))
-    update_seen_notifications ();
+    update_seen_notifications (upno);
   
   update_state(upno);
 
@@ -416,7 +419,7 @@ reject_notification_menu_item_activated (GtkWidget *menu, gpointer data)
 {
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
   
-  update_seen_notifications ();
+  update_seen_notifications (upno);
   update_state(upno);
 }
 
@@ -632,12 +635,12 @@ update_state (UpdateNotifier *upno)
   int n_new = 0;
   gboolean new_updates = FALSE;
   gboolean new_notifications = FALSE;
-  const gchar *available_title;
-  const gchar *available_text;
-  const gchar *available_uri;
-  const gchar *seen_title;
-  const gchar *seen_text;
-  const gchar *seen_uri;
+  const gchar *available_title = NULL;
+  const gchar *available_text = NULL;
+  const gchar *available_uri = NULL;
+  const gchar *seen_title = NULL;
+  const gchar *seen_text = NULL;
+  const gchar *seen_uri = NULL;
 
   GtkWidget *item;
   
@@ -706,7 +709,7 @@ update_state (UpdateNotifier *upno)
 	  fclose (seen_file);
 	}
 
-      if (available_nots)
+      if (available_nots != NULL)
         {
           if (xexp_is (available_nots, "info") && !xexp_is_empty (available_nots))
             {
@@ -718,7 +721,7 @@ update_state (UpdateNotifier *upno)
 
       new_notifications = (available_title!=NULL) && (available_uri!=NULL) && (available_text!=NULL);  
 
-      if (new_notifications && seen_notifications)
+      if (new_notifications && (seen_notifications != NULL))
         {
           if (xexp_is (seen_notifications, "info") && !xexp_is_empty (seen_notifications))
             {
@@ -843,10 +846,15 @@ static void
 set_icon_visibility (UpdateNotifier *upno, int state)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  gconf_client_set_int (priv->gconf, 
+  int old_state = gconf_client_get_int (priv->gconf, UPNO_GCONF_STATE, NULL);
+
+  gconf_client_set_int (priv->gconf,
 			UPNO_GCONF_STATE,
 			state,
 			NULL);
+
+  if (state != old_state && state != UPNO_ICON_STATIC)
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->button), FALSE);
 }
 
 static gint
@@ -1081,45 +1089,60 @@ check_for_notifications_thread (gpointer userdata)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (userdata);
   GConfClient *conf = NULL;
-  gchar *target_file = NULL;
+  FILE *tmp_file = NULL;
+  GError *error = NULL;
   gchar *proxy = NULL;
   gchar *uri = NULL;
-  CURLcode result;
-  FILE *f;
 
   /* only one thread is allowed to download stuff at any given moment */
   if (!g_mutex_trylock (priv->notifications_thread_mutex))
     return NULL;
-  
+
   conf = gconf_client_get_default ();
   uri = gconf_client_get_string (conf, UPNO_GCONF_URI, NULL);
-  if (!uri)
-    goto exit;
+  tmp_file  = user_file_open_for_write (UFILE_AVAILABLE_NOTIFICATIONS ".tmp");
 
-  target_file  = g_strdup_printf ("%s/%s", getenv ("HOME"), UFILE_AVAILABLE_NOTIFICATIONS);
-  
-  f = fopen (target_file, "w");
-  if (!f)
-    goto exit;
+  if (uri != NULL && tmp_file != NULL)
+    {
+      CURL *handle = curl_easy_init ();
+      CURLcode result;
+      xexp *tmp_data = NULL;
 
-  proxy = get_http_proxy ();
-  
-  CURL *handle = curl_easy_init ();
-  /* curl_easy_setopt (handle, CURLOPT_WRITEFUNCTION, NULL); */
-  curl_easy_setopt (handle, CURLOPT_WRITEDATA, f);
-  curl_easy_setopt (handle, CURLOPT_URL, uri);
-  if (proxy != NULL)
-    curl_easy_setopt (handle, CURLOPT_PROXY, proxy);
+      proxy = get_http_proxy ();
 
-  result = curl_easy_perform (handle);
+      /* curl_easy_setopt (handle, CURLOPT_WRITEFUNCTION, NULL); */
+      curl_easy_setopt (handle, CURLOPT_WRITEDATA, tmp_file);
+      curl_easy_setopt (handle, CURLOPT_URL, uri);
+      if (proxy != NULL)
+	curl_easy_setopt (handle, CURLOPT_PROXY, proxy);
 
-  fclose (f);
+      result = curl_easy_perform (handle);
 
-  exit:
-  
+      fclose (tmp_file);
+
+      /* Validate data */
+      tmp_file  = user_file_open_for_read (UFILE_AVAILABLE_NOTIFICATIONS ".tmp");
+      tmp_data = xexp_read (tmp_file, &error);
+      fclose (tmp_file);
+
+      if (tmp_data != NULL && xexp_is_list (tmp_data) && xexp_is (tmp_data, "info"))
+	{
+	  FILE *target_file = NULL;
+
+	  /* Copy data to the final file if validated */
+	  target_file  = user_file_open_for_write (UFILE_AVAILABLE_NOTIFICATIONS);
+	  if (target_file != NULL)
+	    {
+	      xexp_write (target_file, tmp_data);
+	      fclose (target_file);
+	    }
+	}
+
+      /* Delete temp file */
+      user_file_remove (UFILE_AVAILABLE_NOTIFICATIONS ".tmp");
+    }
+
   g_mutex_unlock (priv->notifications_thread_mutex);
-  if (target_file)
-    g_free (target_file);
   if (uri)
     g_free (uri);
   if (proxy)
