@@ -31,7 +31,7 @@
 	so they can see the whole string of text. It inherits GtkHBox.
 	(ham_long_label_new) : Creates a HamLongLabel with the given text
 	(ham_long_label_new_with_markup) : Creates a #HamLongLabel with the
-	given Pango markup. 
+	given Pango markup.
 	(ham_long_label_set_text) : Sets the given text in a HamLongLabel.
 	(ham_long_label_set_markup) : Sets the given markup in a HamLongLabel.
 
@@ -105,13 +105,13 @@
 	(update_state) use xexp_aref_text for simpler code and better
 	semantics
 	(handle_inotify) handle the new location of the auxiliary files
-	(setup_inotify) watch for inotify events in 
+	(setup_inotify) watch for inotify events in
 	'/home/user/.hildon-application-manager' instead of '/home/user'
 
 2008-02-19  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.5
-	
+
 	* debian/postinst: Make sure that the HAM_STATE_DIR is owned by
 	"user".
 
@@ -159,9 +159,9 @@
 	that Name gets localized correctly (N79321).
 
 2008-02-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
-	
+
 	* update-notifier-conf.h: added definitions for UPNO_GCONF_URI,
-	SEEN_NOTIFICATIONS_FILE, AVAILABLE_NOTIFICATIONS_FILE and 
+	SEEN_NOTIFICATIONS_FILE, AVAILABLE_NOTIFICATIONS_FILE and
 	AVAILABLE_NOTIFICATIONS_MENU_WIDTH
 
 	* update-notifier.c : Pushing of messages into the update notifier
@@ -203,7 +203,7 @@
 	thread can run this code at the same time: if a thread is still
 	running, the newest one just finishes
 	(handle_inotify) : monitor changes in the notifications files
-	
+
 2008-02-18  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker-bin.cc (cmd_check_updates): Call to
@@ -229,8 +229,8 @@
 	* src/operations.cc (ip_download_cur_retry_confirm): if download
 	failed, offer the user the possibility of retrying it.
 	(ip_download_cur_retry_confirm_response): following the user's
-	decision, retry the download again or abort the operation 
-	(ip_download_cur_reply): uses the previous functions to handle 
+	decision, retry the download again or abort the operation
+	(ip_download_cur_reply): uses the previous functions to handle
 	failures during downloads
 
 2008-02-14  Mario Sanchez Prada  <msanchez@maemo.org>
