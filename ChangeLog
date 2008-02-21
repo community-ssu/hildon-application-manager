@@ -1,3 +1,17 @@
+2008-02-21  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src repo.cc (add_entry) : Use HamLongLabel instead of GtkLabel.
+
+	* ham-long-label.[ch] : Composite widget that makes it possible
+	to show long strings (i.e. URLs) in a single line; if the text
+	is too long, two buttons allow the user to move back and forth
+	so they can see the whole string of text. It inherits GtkHBox.
+	(ham_long_label_new) : Creates a HamLongLabel with the given text
+	(ham_long_label_new_with_markup) : Creates a #HamLongLabel with the
+	given Pango markup. 
+	(ham_long_label_set_text) : Sets the given text in a HamLongLabel.
+	(ham_long_label_set_markup) : Sets the given markup in a HamLongLabel.
+
 2008-02-20  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Improving the "Use $HOME/.hildon-application-manager/ directory

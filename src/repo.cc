@@ -39,6 +39,7 @@
 #include "util.h"
 #include "log.h"
 #include "confutils.h"
+#include "ham-long-label.h"
 
 #define _(x)       gettext (x)
 
@@ -53,18 +54,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
 
   if (readonly)
     {
-      GtkTextBuffer *buffer;
-
-      entry = gtk_text_view_new ();
-           
-      buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (entry));
-      gtk_text_view_set_editable (GTK_TEXT_VIEW (entry), false);
-      
-      if (text)
-	gtk_text_buffer_set_text (buffer, text, end-text);
-
-      gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (entry), FALSE);
-      g_object_set (entry, "can-focus", FALSE, NULL);
+      entry = ham_long_label_new (text);
     }
   else
     {
