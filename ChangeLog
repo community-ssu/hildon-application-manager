@@ -1,3 +1,7 @@
+2008-02-21  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* ham-long-label.[ch] : Added legal notice.
+
 2008-02-21  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/usr_files.h, src/user_files.h (user_file_remove): New, used
