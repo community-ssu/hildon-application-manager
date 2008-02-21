@@ -214,7 +214,7 @@ documented in the header files.
 BUGS
 ----
 
-- Figure out busy loop in update-notifier when apt-worker runs.
+- Remove "Cancel" button from "Uninstalling" progress note.
 - Make interaction flow system modal after showing the "system update"
   dialog.
 
