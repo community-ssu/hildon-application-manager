@@ -71,6 +71,9 @@ static void *idle_data = NULL;
 
 #define IDLE_TIMEOUT_SECS 60
 
+#define ENTERTAINMENT_DIALOG_MIN_WIDTH 400
+#define ENTERTAINMENT_DIALOG_MAX_WIDTH 700
+
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
 {
@@ -904,9 +907,23 @@ entertainment_update_title ()
 	  /* Set the main title */
 	  if (entertainment.main_title)
 	    {
+	      GtkRequisition req;
 	      gtk_label_set_text (GTK_LABEL (entertainment.main_label),
 				  entertainment.main_title);
-
+	      gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
+	                              PANGO_ELLIPSIZE_NONE);
+	      /* the following tries to deal with very long strings (> ~700px),
+	       * so it shouldn't really be used in practice; anyway, it makes
+	       * them require the max. width of the dialog and then ellipsize
+	       * at the end */
+	      gtk_widget_size_request (entertainment.main_label, &req);
+	      if (req.width > ENTERTAINMENT_DIALOG_MAX_WIDTH)
+	        {
+	          gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
+	                                  PANGO_ELLIPSIZE_END);
+	          gtk_widget_set_size_request (entertainment.main_label,
+	                                       ENTERTAINMENT_DIALOG_MAX_WIDTH, -1);
+	        }
 	    }
 	  else
 	    {
@@ -922,7 +939,7 @@ entertainment_update_title ()
 	    }
 	  else
 	    {
-	      /* Reset the main title to an empty string */
+	      /* Reset the subtitle to an empty string */
 	      gtk_label_set_text (GTK_LABEL (entertainment.sub_label), "");
 	    }
 	}
@@ -963,6 +980,8 @@ start_entertaining_user ()
   if (entertainment.dialog == NULL)
     {
       GtkWidget *box;
+      GdkGeometry geom;
+      GtkRequisition req;
 
       /* Build a custom dialog with two labels for main title and
 	 subtitle (only in red-pill mode), a progress bar and a
@@ -976,6 +995,16 @@ start_entertaining_user ()
       gtk_window_set_decorated (GTK_WINDOW (entertainment.dialog), FALSE);
       gtk_dialog_set_has_separator (GTK_DIALOG (entertainment.dialog), FALSE);
 
+      /* Set size */
+      geom.min_height = -1;
+      geom.max_height = -1;
+      geom.min_width = ENTERTAINMENT_DIALOG_MIN_WIDTH;
+      geom.max_width = ENTERTAINMENT_DIALOG_MAX_WIDTH;
+      gtk_window_set_geometry_hints (GTK_WINDOW (entertainment.dialog), 
+                                     NULL,
+                                     &geom,
+                                     (GdkWindowHints) (GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE));
+      
       /* Add the internal box */
       box = gtk_vbox_new (FALSE, HILDON_MARGIN_DOUBLE);
       gtk_container_add (GTK_CONTAINER (GTK_DIALOG(entertainment.dialog)->vbox), box);
@@ -984,9 +1013,18 @@ start_entertaining_user ()
       entertainment.main_label = gtk_label_new (entertainment.main_title);
       gtk_label_set_text (GTK_LABEL (entertainment.main_label), entertainment.main_title);
       gtk_label_set_ellipsize (GTK_LABEL (entertainment.main_label),
-			       PANGO_ELLIPSIZE_END);
-      gtk_box_pack_start (GTK_BOX (box), entertainment.main_label, TRUE, TRUE, 0);
+			       PANGO_ELLIPSIZE_NONE);
+      gtk_widget_size_request (entertainment.main_label, &req);
+      if (req.width > ENTERTAINMENT_DIALOG_MAX_WIDTH)
+        {
+          gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
+                                  PANGO_ELLIPSIZE_END);
+          gtk_widget_set_size_request (entertainment.main_label,
+                                       ENTERTAINMENT_DIALOG_MAX_WIDTH, -1);
+        }
 
+      gtk_box_pack_start (GTK_BOX (box), entertainment.main_label, TRUE, TRUE, 0);
+      
       /* Add the progress bar */
       entertainment.bar = gtk_progress_bar_new ();
       gtk_box_pack_start (GTK_BOX (box), entertainment.bar, FALSE, FALSE, 0);
@@ -1011,9 +1049,6 @@ start_entertaining_user ()
  
       gtk_dialog_set_default_response (GTK_DIALOG (entertainment.dialog),
 				       GTK_RESPONSE_CANCEL);
-
-      /* Set size */
-      gtk_widget_set_usize (entertainment.dialog, 400, -1);
 
       /* Connect signals */
       g_signal_connect (entertainment.cancel_button,

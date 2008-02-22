@@ -1,3 +1,12 @@
+2008-02-22  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* util.cc : (entertainment_update_title) the label doesn't
+	ellipsize unless it is too big; otherwise its requisition
+	would be too small and the dialog wouldn't need to expand
+	(start_entertaining_user) : the dialog's width can be
+	between 400 and 700 pixels, so there is enough room for
+	longer labels
+
 2008-02-21  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* ham-long-label.[ch] : Added legal notice.
