@@ -5,7 +5,7 @@
 	would be too small and the dialog wouldn't need to expand
 	(start_entertaining_user) : the dialog's width can be
 	between 400 and 700 pixels, so there is enough room for
-	longer labels
+	longer labels (N80495).
 
 2008-02-21  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
@@ -41,17 +41,20 @@
 
 2008-02-21  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
-	* src repo.cc (add_entry) : Use HamLongLabel instead of GtkLabel.
-
-	* ham-long-label.[ch] : Composite widget that makes it possible
-	to show long strings (i.e. URLs) in a single line; if the text
-	is too long, two buttons allow the user to move back and forth
-	so they can see the whole string of text. It inherits GtkHBox.
-	(ham_long_label_new) : Creates a HamLongLabel with the given text
-	(ham_long_label_new_with_markup) : Creates a #HamLongLabel with the
-	given Pango markup.
-	(ham_long_label_set_text) : Sets the given text in a HamLongLabel.
-	(ham_long_label_set_markup) : Sets the given markup in a HamLongLabel.
+	* src repo.cc (add_entry) : Use HamLongLabel instead of using
+	GtkLabel (N80685).  * ham-long-label.[ch] : Composite widget that
+	makes it possible to show long strings (i.e. URLs) in a single
+	line; if the text is too long, two buttons would allow the user to
+	move back and forth so they can see the whole string of text. It
+	inherits from GtkHBox (N80685).
+	(ham_long_label_new) : Creates a HamLongLabel with the given
+	text (N80685).
+	(ham_long_label_new_with_markup) : Creates a #HamLongLabel with
+	the given Pango markup (N80685).
+	(ham_long_label_set_text) : Sets the given text in a
+	HamLongLabel (N80685).
+	(ham_long_label_set_markup) : Sets the given markup in a
+	HamLongLabel (N80685).
 
 2008-02-20  Mario Sanchez Prada  <msanchez@maemo.org>
 
