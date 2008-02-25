@@ -1,3 +1,8 @@
+2008-02-25  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* util.cc (make_global_package_list) : Add the title of the
+	version column (N80908).
+
 2008-02-22  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* util.cc : (entertainment_update_title) the label doesn't

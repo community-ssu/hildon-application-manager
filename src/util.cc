@@ -1649,6 +1649,8 @@ make_global_package_list (GList *packages,
   gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (tree), TRUE);
 
   column = gtk_tree_view_column_new ();
+  gtk_tree_view_column_set_title (column, _("ai_li_version"));
+  gtk_tree_view_column_set_alignment (column, 1.0);
 
   renderer = gtk_cell_renderer_pixbuf_new ();
   g_object_set (renderer, "yalign", 0.0, NULL);
