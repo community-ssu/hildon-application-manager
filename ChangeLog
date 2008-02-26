@@ -1,3 +1,7 @@
+2008-02-26  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/update-notifier.c (get_osso_product_hardware): New.
+
 2008-02-25  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* util.cc (make_global_package_list) : Add the title of the

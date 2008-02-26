@@ -138,6 +138,8 @@ static void cleanup_inotify (UpdateNotifier *upno);
 static void cleanup_dbus (UpdateNotifier *upno);
 static void cleanup_alarm (UpdateNotifier *upno);
 
+static const char *get_osso_product_hardware ();
+
 /* Initialization/destruction functions */
 
 static void
@@ -1485,4 +1487,41 @@ cleanup_alarm (UpdateNotifier *upno)
 				       UPNO_GCONF_ALARM_COOKIE,
 				       NULL);
   alarm_event_del (alarm_cookie);
+}
+
+static const char *
+get_osso_product_hardware ()
+{
+  static char *product_hardware = NULL;
+
+  if (product_hardware)
+    return product_hardware;
+
+  /* XXX - There is a library in maemo somewhere to do this, but it is
+           not included in the maemo SDK, so we have to do it
+           ourselves.  Ridiculous, I know.
+  */
+
+  product_hardware = "";
+  FILE *f = fopen ("/proc/component_version", "r");
+  if (f)
+    {
+      char *line = NULL;
+      size_t len = 0;
+      ssize_t n;
+
+      while ((n = getline (&line, &len, f)) != -1)
+	{
+	  if (n > 0 && line[n-1] == '\n')
+	    line[n-1] = '\0';
+
+	  if (sscanf (line, "product %as", &product_hardware) == 1)
+	    break;
+	}
+
+      free (line);
+      fclose (f);
+    }
+
+  return product_hardware;
 }
