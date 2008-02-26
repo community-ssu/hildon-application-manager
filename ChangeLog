@@ -1,3 +1,11 @@
+2008-02-26  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.c (safe_signal_disconnect): New function to
+	easily disconnect signals handler withouth having to take care of
+	those which haven't ever been connected yet.
+	(update_state): Use safe_signal_disconnect to disconnect all the
+	signal handlers, therefore to avoid invalid disconnections.
+
 2008-02-26  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/update-notifier.c (get_osso_product_hardware): New.

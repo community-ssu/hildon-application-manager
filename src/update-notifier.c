@@ -625,6 +625,16 @@ menu_add_separator (GtkWidget *menu)
 }
 
 static void
+safe_signal_disconnect (gpointer instance, gulong handler_id)
+{
+  if ((instance != NULL) &&
+      g_signal_handler_is_connected (instance, handler_id))
+    {
+      g_signal_handler_disconnect (instance, handler_id);
+    }
+}
+
+static void
 update_state (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
@@ -740,15 +750,20 @@ update_state (UpdateNotifier *upno)
 
   if (priv->menu)
     {
-      g_signal_handler_disconnect (priv->menu,
-				   priv->menu_selection_done_handler_id);
-      g_signal_handler_disconnect (priv->open_ham_item,
-				   priv->open_ham_item_activated_handler_id);
-      g_signal_handler_disconnect (priv->show_notification_item,
-                                   priv->show_notification_item_activated_handler_id);
-      g_signal_handler_disconnect (priv->reject_notification_item,
-                                   priv->reject_notification_item_activated_handler_id);
+      safe_signal_disconnect (priv->menu,
+			      priv->menu_selection_done_handler_id);
+      safe_signal_disconnect (priv->open_ham_item,
+			      priv->open_ham_item_activated_handler_id);
+      safe_signal_disconnect (priv->show_notification_item,
+			      priv->show_notification_item_activated_handler_id);
+      safe_signal_disconnect (priv->reject_notification_item,
+			      priv->reject_notification_item_activated_handler_id);
       gtk_widget_destroy (priv->menu);
+
+      priv->menu = NULL;
+      priv->open_ham_item = NULL;
+      priv->show_notification_item = NULL;
+      priv->reject_notification_item = NULL;
     }
 
   priv->open_ham_item = NULL;
@@ -759,9 +774,6 @@ update_state (UpdateNotifier *upno)
   priv->menu_selection_done_handler_id =
     g_signal_connect (priv->menu, "selection-done",
                       G_CALLBACK(menu_hidden), upno);
-/*  priv->menu_selection_done_handler_id =
-      g_signal_connect (priv->menu, "deactivate",
-                        G_CALLBACK(menu_hidden), upno); */
 
   if (new_updates && !showing_check_for_updates_view (upno))
     {
