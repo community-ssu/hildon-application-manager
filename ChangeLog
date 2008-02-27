@@ -1,3 +1,7 @@
+2008-02-27  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 2.1.6
+
 2008-02-27  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	*  src/update-notifier.c (update_state) : use the URL in the
