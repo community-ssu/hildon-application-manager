@@ -138,6 +138,9 @@ static void cleanup_inotify (UpdateNotifier *upno);
 static void cleanup_dbus (UpdateNotifier *upno);
 static void cleanup_alarm (UpdateNotifier *upno);
 
+static char *url_eval (const char *url);
+static gint str_find_pos (const gchar *haystack, const gchar *needle);
+static gchar *str_substitute (const gchar *url, const gchar *code, const gchar *value);
 static const char *get_osso_product_hardware ();
 
 /* Initialization/destruction functions */
@@ -842,7 +845,7 @@ update_state (UpdateNotifier *upno)
       struct show_notification_menu_item_activated_data *c = 
         g_new0 (struct show_notification_menu_item_activated_data, 1);
       c->upno = upno;
-      c->notification_url = g_strdup (available_uri);
+      c->notification_url = url_eval (available_uri);
       priv->show_notification_item = item;
       priv->show_notification_item_activated_handler_id =
         g_signal_connect (item, "activate",
@@ -1499,6 +1502,76 @@ cleanup_alarm (UpdateNotifier *upno)
 				       UPNO_GCONF_ALARM_COOKIE,
 				       NULL);
   alarm_event_del (alarm_cookie);
+}
+
+/* Returns the position of needle in haystack, or -1 if it can't be found.
+ */
+static gint
+str_find_pos (const gchar *haystack, const gchar *needle)
+{
+  gint i, j;
+  gint pos = -1;
+  gint needle_len = strlen (needle);
+  gint end = strlen (haystack) - needle_len;
+  gboolean found = FALSE;
+
+  for (i = 0; !found && (i <= end); i++)
+    {
+      found = TRUE;
+      for (j = 0; j < needle_len; j++)
+        {
+          found = found && (haystack[i+j] == needle[j]);
+          if (!found)
+            break;
+        }
+
+      if (found)
+        pos = i;
+    }
+  return pos;
+}
+
+/* Substitutes every appearance of code in url with value.
+ */
+static gchar *
+str_substitute (const gchar *url, const gchar *code, const gchar *value)
+{
+  gchar *tmp = NULL;
+  GString *string = NULL;
+  gint pos = -1;
+  gint max_iterations = -1;
+
+  g_return_val_if_fail (url != NULL, NULL);
+
+  max_iterations = strlen (url);
+  string = g_string_new (url);
+
+  pos = str_find_pos (string->str, code);
+
+  while (pos >= 0 && max_iterations >= 0)
+    {
+      g_string_erase (string, pos, strlen (code));
+      g_string_insert (string, pos, value);
+      pos = str_find_pos (string->str, code);
+      max_iterations--;
+    }
+
+  tmp = g_strdup (string->str);
+  g_string_free (string, TRUE);
+  return tmp;
+}
+
+/* Substitutes the know variables in url with the appropiate value.
+ * Right now, it only recognizes URL_VARIABLE_HARDWARE
+ */
+static char *
+url_eval (const char *url)
+{
+  char * result;
+  
+  result = str_substitute (url, URL_VARIABLE_HARDWARE, get_osso_product_hardware());
+  
+  return result;
 }
 
 static const char *

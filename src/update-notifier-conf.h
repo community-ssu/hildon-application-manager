@@ -50,4 +50,8 @@
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
 #define AVAILABLE_NOTIFICATIONS_MENU_WIDTH 500
 
+#define URL_VARIABLE_PREFIX     "$\{"
+#define URL_VARIABLE_SUFFIX     "\}"
+#define URL_VARIABLE_HARDWARE  URL_VARIABLE_PREFIX "HARDWARE" URL_VARIABLE_SUFFIX
+
 #endif /* !UPDATE_NOTIFIER_CONF_H */

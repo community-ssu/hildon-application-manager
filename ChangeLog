@@ -1,3 +1,15 @@
+2008-02-27  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/update-notifier-conf.h : defined URL_VARIABLE_PREFIX,
+	URL_VARIABLE_SUFFIX and URL_VARIABLE_HARDWARE
+
+	* src/update-notifier.c (update_state) : substitute existing
+	variables in the URL when the menu is created
+	(url_eval) : evaluates the variables in the given string
+	(str_substitute) : substitutes each appearance of a code in a
+	string with the given value
+	(str_find_pos) : returns the position of a substring in a string
+
 2008-02-26  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.c (safe_signal_disconnect): New function to
