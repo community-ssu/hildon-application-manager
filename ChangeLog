@@ -1,5 +1,13 @@
 2008-02-27  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
+	*  src/update-notifier.c (update_state) : use the URL in the
+	downloaded XML when the menu is created, whitour looking for
+	variables
+	(check_for_notifications_thread) : substitute variables in the
+	string from GConf
+
+2008-02-27  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
 	* src/update-notifier-conf.h : defined URL_VARIABLE_PREFIX,
 	URL_VARIABLE_SUFFIX and URL_VARIABLE_HARDWARE
 

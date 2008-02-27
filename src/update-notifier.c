@@ -845,7 +845,7 @@ update_state (UpdateNotifier *upno)
       struct show_notification_menu_item_activated_data *c = 
         g_new0 (struct show_notification_menu_item_activated_data, 1);
       c->upno = upno;
-      c->notification_url = url_eval (available_uri);
+      c->notification_url = g_strdup (available_uri);
       priv->show_notification_item = item;
       priv->show_notification_item_activated_handler_id =
         g_signal_connect (item, "activate",
@@ -1109,6 +1109,7 @@ check_for_notifications_thread (gpointer userdata)
   FILE *tmp_file = NULL;
   GError *error = NULL;
   gchar *proxy = NULL;
+  gchar *gconf_uri = NULL;
   gchar *uri = NULL;
 
   /* only one thread is allowed to download stuff at any given moment */
@@ -1116,7 +1117,8 @@ check_for_notifications_thread (gpointer userdata)
     return NULL;
 
   conf = gconf_client_get_default ();
-  uri = gconf_client_get_string (conf, UPNO_GCONF_URI, NULL);
+  gconf_uri = gconf_client_get_string (conf, UPNO_GCONF_URI, NULL);
+  uri = url_eval (gconf_uri);
   tmp_file  = user_file_open_for_write (UFILE_AVAILABLE_NOTIFICATIONS ".tmp");
 
   if (uri != NULL && tmp_file != NULL)
@@ -1160,6 +1162,8 @@ check_for_notifications_thread (gpointer userdata)
     }
 
   g_mutex_unlock (priv->notifications_thread_mutex);
+  if (gconf_uri)
+    g_free (gconf_uri);
   if (uri)
     g_free (uri);
   if (proxy)
