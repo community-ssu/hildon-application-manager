@@ -781,7 +781,7 @@ ip_get_info_for_install (void *data)
      installations.
   */
   pi->have_info = false;
-  get_package_info (pi, false, ip_with_new_info, c, c->state);
+  get_package_info (pi, true, ip_with_new_info, c, c->state);
 }
 
 static void

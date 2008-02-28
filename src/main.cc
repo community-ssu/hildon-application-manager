@@ -1207,7 +1207,7 @@ gpiib_trigger ()
     {
       package_info *pi = (package_info *)n->data;
       gpiib_next = n->next;
-      get_package_info (pi, false,
+      get_package_info (pi, true,
 			gpiib_done, NULL,
 			APTSTATE_DEFAULT);
     }

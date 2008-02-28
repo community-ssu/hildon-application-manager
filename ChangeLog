@@ -1,5 +1,18 @@
 2008-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker-bin.cc (check_cache_state): New.
+	(mark_named_package_for_install, mark_for_remove): Use it.
+	(cache_reset): Also reset state for check_cache_state.
+	(cache_reset_broken_count): New.  We need to remember it from a
+	cache that is in reset state.
+
+	* src/operations.cc (ip_get_info_for_install): Only get the
+	'installable' info, the 'removable' info is not needed and asking
+	for it messes with the simple caching now done in the apt-worker.
+	* src/main.cc (gpiib_trigger): Likewise.
+	* src/details.cc (show_package_details): Likewise, when the dialog
+	is for the 'install' details.
+
 	Cleanup of the 'intermediate' package info getting machinery.  It
 	was too tricky for its own good.
 

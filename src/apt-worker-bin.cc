@@ -1223,6 +1223,10 @@ main (int argc, char **argv)
     functions in this section implement this idea.  These principal
     functions are available:
 
+    We remember which operation the cache currently represents.  That
+    way, we can avoid recomputing it when the frontend requests the
+    same operation multiple times in a row (which it likes to do).
+
     - cache_init
 
     This function creates or recreates the cache from
@@ -1596,6 +1600,29 @@ clear_dpkg_updates ()
 
 void cache_reset ();
 
+/* The operation represented by the cache.
+ */
+static char *current_cache_package = NULL;
+static bool current_cache_is_install;
+static int cache_reset_broken_count = 0;
+
+static bool
+check_cache_state (const char *package, bool is_install)
+{
+  if (current_cache_package
+      && current_cache_is_install == is_install
+      && strcmp (current_cache_package, package) == 0)
+    return true;
+
+  if (current_cache_package)
+    cache_reset ();
+
+  current_cache_package = g_strdup (package);
+  current_cache_is_install = is_install;
+  return false;
+}
+
+
 /* Initialize libapt-pkg if this has not been already and (re-)create
    PACKAGE_CACHE.  If the cache can not be created, PACKAGE_CACHE is
    set to NULL and an appropriate message is output.
@@ -1755,6 +1782,10 @@ cache_reset ()
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     cache_reset_package (pkg);
+
+  g_free (current_cache_package);
+  current_cache_package = NULL;
+  cache_reset_broken_count = cache.BrokenCount();
 }
 
 /* Try to fix packages that have been broken by undoing soft changes.
@@ -2085,6 +2116,9 @@ mark_sys_upgrades ()
 static bool
 mark_named_package_for_install (const char *package)
 {
+  if (check_cache_state (package, true))
+    return true;
+
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   if (!strcmp (package, "magic:sys"))
     {
@@ -2153,6 +2187,9 @@ static void
 mark_for_remove (pkgCache::PkgIterator &pkg)
 {
   DBG ("REMOVE %s", pkg.Name());
+
+  if (check_cache_state (pkg.Name (), false))
+    return;
 
   mark_for_remove_1 (pkg, false);
   fix_soft_packages ();
@@ -2694,9 +2731,8 @@ cmd_get_package_info ()
 
       // simulate install
       
-      unsigned int old_broken_count = cache.BrokenCount();
       mark_named_package_for_install (package);
-      if (cache.BrokenCount() > old_broken_count)
+      if (cache.BrokenCount() > cache_reset_broken_count)
 	info.installable_status = installable_status ();
       else
 	info.installable_status = status_able;
@@ -2716,8 +2752,6 @@ cmd_get_package_info ()
 	    }
 	}
 
-      cache_reset ();
-
       if (!only_installable_info)
 	{
 	  // simulate remove
@@ -2728,7 +2762,6 @@ cmd_get_package_info ()
 	    }
 	  else
 	    {
-	      old_broken_count = cache.BrokenCount();
 	      if (!pkg.end())
 		mark_for_remove (pkg);
 
@@ -2752,13 +2785,12 @@ cmd_get_package_info ()
 
 	      if (info.removable_status == status_unknown)
 		{
-		  if (cache.BrokenCount() > old_broken_count)
+		  if (cache.BrokenCount() > cache_reset_broken_count)
 		    info.removable_status = removable_status ();
 		  else
 		    info.removable_status = status_able;
 		}
 	      info.remove_user_size_delta = (int64_t) cache.UsrSize ();
-	      cache_reset ();
 	    }
 	}
     }
@@ -2956,8 +2988,6 @@ encode_install_summary (const char *want)
     }
 
   response.encode_int (sumtype_end);
-
-  cache_reset ();
 }
 
 void
@@ -2989,8 +3019,6 @@ encode_remove_summary (pkgCache::PkgIterator &want)
     }
 
   response.encode_int (sumtype_end);
-
-  cache_reset ();
 }
 
 bool
@@ -3537,7 +3565,6 @@ cmd_install_check ()
     {
       found = mark_named_package_for_install (package);
       result_code = operation (true, NULL, false);
-      cache_reset ();
     }
 
   response.encode_int (found && result_code == rescode_success);
@@ -3645,8 +3672,6 @@ cmd_remove_check ()
 	      if (cache[pkg].Delete())
 		response.encode_string (pkg.Name());
 	    }
-
-	  cache_reset ();
 	}
     }
 
