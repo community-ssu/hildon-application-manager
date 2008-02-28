@@ -51,8 +51,7 @@ GPid apt_worker_pid;
 
 gboolean apt_worker_ready = FALSE;
 
-static void cancel_request (int cmd);
-static void cancel_all_pending_requests ();
+static void cancel_all_pending_worker_calls ();
 
 static GString *pmstatus_line;
 
@@ -200,7 +199,7 @@ notice_apt_worker_failure ()
   apt_worker_out_fd = -1;
   apt_worker_cancel_fd = -1;
 
-  cancel_all_pending_requests ();
+  cancel_all_pending_worker_calls ();
 
   what_the_fock_p ();
 }
@@ -284,7 +283,7 @@ start_apt_worker (gchar *prog)
   return true;
 }
 
-static void send_pending_apt_worker_cmds ();
+static void maybe_send_one_worker_call ();
 
 static void
 finish_apt_worker_startup ()
@@ -299,7 +298,7 @@ finish_apt_worker_startup ()
 
   apt_worker_ready = TRUE;
 
-  send_pending_apt_worker_cmds ();
+  maybe_send_one_worker_call ();
 }
 
 void
@@ -381,43 +380,74 @@ next_seq ()
   return seq++;
 }
 
-struct pending_request {
+static apt_worker_callback *status_callback;
+static void *status_callback_data;
+
+struct worker_call {
+  worker_call *next;
+
+  int cmd;
   int seq;
   int state;
-
-  char *data;   // data != NULL means that this is a delayed command,
-  int len;      // see send_pending_apt_worker_cmds.
+  char *data;
+  int len;
 
   apt_worker_callback *done_callback;
   void *done_data;
 };
 
-static pending_request pending[APTCMD_MAX];
+static int n_pending_calls = 0;
+static worker_call *pending_calls, **pending_tail = &pending_calls;
+static worker_call *active_call;
 
-static void
-send_apt_worker_cmd (int cmd)
+static worker_call *
+get_next_pending_worker_call ()
 {
-  if (!send_apt_worker_request (cmd,
-				pending[cmd].state,
-				pending[cmd].seq,
-				pending[cmd].data,
-				pending[cmd].len))
+  worker_call *c = pending_calls;
+  if (c)
     {
-      what_the_fock_p ();
-      cancel_request (cmd);
+      pending_calls = c->next;
+      c->next = NULL;
+      if (pending_tail == &(c->next))
+	pending_tail = &pending_calls;
+      n_pending_calls -= 1;
+      fprintf (stderr, "- %d\n", n_pending_calls);
     }
+  return c;
 }
 
 static void
-send_pending_apt_worker_cmds ()
+cancel_worker_call (worker_call *c)
 {
-  for (int cmd = 0; cmd < APTCMD_MAX; cmd++)
+  if (c->done_callback)
+    c->done_callback (c->cmd, NULL, c->done_data);
+
+  g_free (c->data);
+  delete c;
+}
+
+static void
+maybe_send_one_worker_call ()
+{
+  if (!apt_worker_ready)
+    return;
+
+  while (active_call == NULL)
     {
-      if (pending[cmd].data)
+      worker_call *c = get_next_pending_worker_call ();
+      if (c == NULL)
+	return;
+
+      if (!send_apt_worker_request (c->cmd, c->state, c->seq, c->data, c->len))
 	{
-	  send_apt_worker_cmd (cmd);
-	  g_free (pending[cmd].data);
-	  pending[cmd].data = NULL;
+	  what_the_fock_p ();
+	  cancel_worker_call (c);
+	}
+      else
+	{
+	  g_free (c->data);
+	  c->data = NULL;
+	  active_call = c;
 	}
     }
 }
@@ -433,56 +463,52 @@ call_apt_worker (int cmd, int state, char *data, int len,
     {
       add_log ("apt-worker is not running\n");
       done_callback (cmd, NULL, done_data);
+      return;
     }
-  else if (pending[cmd].done_callback)
+
+  worker_call *c = new worker_call;
+  c->cmd = cmd;
+  c->seq = next_seq ();
+  c->state = state;
+  c->done_callback = done_callback;
+  c->done_data = done_data;
+
+  /* XXX - If we can send the request immediately, we don't need to
+           copy DATA.
+  */
+
+  c->len = len;
+  if (len > 0)
     {
-      add_log ("apt-worker command %d already pending\n", cmd);
-      done_callback (cmd, NULL, done_data);
+      c->data = (char *)g_malloc (len);
+      memcpy (c->data, data, len);
     }
   else
+    c->data = NULL;
+
+  c->next = NULL;
+  *pending_tail = c;
+  pending_tail = &(c->next);
+
+  n_pending_calls += 1;
+  fprintf (stderr, "+ %d\n", n_pending_calls);
+
+  maybe_send_one_worker_call ();
+}
+
+
+static void
+cancel_all_pending_worker_calls ()
+{
+  if (active_call)
     {
-      pending[cmd].seq = next_seq ();
-      pending[cmd].state = state;
-      pending[cmd].done_callback = done_callback;
-      pending[cmd].done_data = done_data;
-
-      if (apt_worker_ready)
-	{
-	  pending[cmd].data = data;
-	  pending[cmd].len = len;
-	  send_apt_worker_cmd (cmd);
-	  pending[cmd].data = NULL;
-	}
-      else
-	{
-	  /* We need to make sure that pending[cmd].data is not NULL,
-	     since that is the flag that tells
-	     send_pending_apt_worker_cmds that this command is indeed
-	     pending.
-	  */
-	  pending[cmd].data = (char *)g_malloc (len == 0? 1 : len);
-	  pending[cmd].len = len;
-	  memcpy (pending[cmd].data, data, len);
-	}
+      cancel_worker_call (active_call);
+      active_call = NULL;
     }
-}
 
-static void
-cancel_request (int cmd)
-{
-  apt_worker_callback *done_callback = pending[cmd].done_callback;
-  void *done_data = pending[cmd].done_data;
-
-  pending[cmd].done_callback = NULL;
-  if (done_callback)
-    done_callback (cmd, NULL, done_data);
-}
-
-static void
-cancel_all_pending_requests ()
-{
-  for (int i = 0; i < APTCMD_MAX; i++)
-    cancel_request (i);
+  worker_call *c;
+  while (c = get_next_pending_worker_call ())
+    cancel_worker_call (c);
 }
 
 void
@@ -495,8 +521,6 @@ handle_one_apt_worker_response ()
   static int response_len = 0;
   static apt_proto_decoder dec;
 
-  int cmd;
-
   assert (!running);
     
   if (!must_read (&res, sizeof (res)))
@@ -506,7 +530,6 @@ handle_one_apt_worker_response ()
     }
       
   //printf ("got response %d/%d/%d\n", res.cmd, res.seq, res.len);
-  cmd = res.cmd;
 
   if (response_len < res.len)
     {
@@ -522,39 +545,34 @@ handle_one_apt_worker_response ()
       return;
     }
 
-  if (cmd < 0 || cmd >= APTCMD_MAX)
-    {
-      fprintf (stderr, "unrecognized command %d\n", res.cmd);
-      return;
-    }
-
   if (!apt_worker_ready)
     finish_apt_worker_startup ();
 
   dec.reset (response_data, res.len);
 
-  if (cmd == APTCMD_STATUS)
+  if (res.cmd == APTCMD_STATUS)
     {
       running = true;
-      if (pending[cmd].done_callback)
-	pending[cmd].done_callback (cmd, &dec, pending[cmd].done_data);
+      if (status_callback)
+	status_callback (res.cmd, &dec, status_callback_data);
       running = false;
       return;
     }
 
-  if (pending[cmd].seq != res.seq)
+  if (active_call == NULL || active_call->seq != res.seq)
     {
       fprintf (stderr, "ignoring out of sequence reply.\n");
       return;
     }
   
-  apt_worker_callback *done_callback = pending[cmd].done_callback;
-  pending[cmd].done_callback = NULL;
-
   running = true;
-  assert (done_callback);
-  done_callback (cmd, &dec, pending[cmd].done_data);
+  worker_call *c = active_call;
+  active_call = NULL;
+  c->done_callback (res.cmd, &dec, c->done_data);
+  delete c;
   running = false;
+
+  maybe_send_one_worker_call ();
 }
 
 static apt_proto_encoder request;
@@ -562,8 +580,8 @@ static apt_proto_encoder request;
 void
 apt_worker_set_status_callback (apt_worker_callback *callback, void *data)
 {
-  pending[APTCMD_STATUS].done_callback = callback;
-  pending[APTCMD_STATUS].done_data = data;
+  status_callback = callback;
+  status_callback_data = data;
 }
 
 void
