@@ -3,7 +3,7 @@ New features for the Hildon Application Manager
 
 * Avoiding invisible interaction flows [mario]
 
-Currently, it is possible to start and interaction flow (using
+Currently, it is possible to start an interaction flow (using
 start_interaction_flow, say) without immediatly popping up a dialog
 that would represent this interaction flow.
 
@@ -39,9 +39,9 @@ whether this approach needs to be refined in some cases.
 
 The details dialog is already a bit special: do not make the "Close"
 button insensitive while waiting for more information from the
-apt-worker.  It should be able to close the dialog at any time.  The
-apt-worker request does not need to be canceled in that case, but the
-eventual reply should be safely ignored, of course.
+apt-worker.  It should be possible to close the dialog at any time.
+The apt-worker request does not need to be canceled in that case, but
+the eventual reply should be safely ignored, of course.
 
 Maybe some apt-worker requests need to split in two so that the first
 half can finish quickly.
