@@ -72,7 +72,7 @@ static void set_operation_callback (void (*func) (gpointer), gpointer data);
 static void enable_search (bool f);
 static void set_current_help_topic (const char *topic);
 
-void get_package_list_info (GList *packages);
+static void get_package_infos_in_background (GList *packages);
 
 struct view {
   view *parent;
@@ -377,7 +377,7 @@ make_main_view (view *v)
   gtk_widget_show_all (view);
   g_object_unref(btn_group);
 
-  get_package_list_info (NULL);
+  get_package_infos_in_background (NULL);
 
   enable_search (false);
   set_current_help_topic (AI_TOPIC ("mainview"));
@@ -854,9 +854,6 @@ sort_all_packages ()
   show_view (cur_view_struct);
 }
 
-static GList *cur_packages_for_info;
-static GList *next_packages_for_info;
-
 struct gpl_closure {
   int state;
   void (*cont) (void *data);
@@ -1052,10 +1049,11 @@ get_package_list_with_cont (int state, void (*cont) (void *data), void *data)
       clear_global_section_list ();
     }
 
-  /* Mark package list as not ready and reset some
-     global values, before freeing the list */
+  /* Mark package list as not ready and cancel the package info
+     getting in the background before freeing the list
+  */
   package_list_ready = false;
-  next_packages_for_info = NULL;
+  get_package_infos_in_background (NULL);
   free_all_packages (state);
 
   show_updating ();
@@ -1074,17 +1072,45 @@ get_package_list (int state)
   get_package_list_with_cont (state, NULL, NULL);
 }
 
+/* GET_PACKAGE_INFO
+ */
+
 struct gpi_closure {
-  void (*func) (package_info *, void *, bool);
+  void (*cont) (package_info *, void *, bool);
   void *data;
   package_info *pi;
 };
+
+static void gpi_reply  (int cmd, apt_proto_decoder *dec, void *clos);
+
+void
+get_package_info (package_info *pi,
+		  bool only_installable_info,
+		  void (*cont) (package_info *, void *, bool),
+		  void *data,
+		  int state)
+{
+  if (pi->have_info
+      && (only_installable_info
+	  || pi->info.removable_status != status_unknown))
+    cont (pi, data, false);
+  else
+    {
+      gpi_closure *c = new gpi_closure;
+      c->cont = cont;
+      c->data = data;
+      c->pi = pi;
+      pi->ref ();
+      apt_worker_get_package_info (state, pi->name, only_installable_info,
+				   gpi_reply, c);
+    }
+}
 
 static void
 gpi_reply  (int cmd, apt_proto_decoder *dec, void *clos)
 {
   gpi_closure *c = (gpi_closure *)clos;
-  void (*func) (package_info *, void *, bool) = c->func;
+  void (*cont) (package_info *, void *, bool) = c->cont;
   void *data = c->data;
   package_info *pi = c->pi;
   delete c;
@@ -1096,38 +1122,18 @@ gpi_reply  (int cmd, apt_proto_decoder *dec, void *clos)
       if (!dec->corrupted ())
 	{
 	  pi->have_info = true;
+	  global_package_info_changed (pi);
 	}
     }
 
-  func (pi, data, true);
+  cont (pi, data, true);
   pi->unref ();
-
 }
 
-void
-call_with_package_info (package_info *pi,
-			bool only_installable_info,
-			void (*func) (package_info *, void *, bool),
-			void *data,
-			int state)
-{
-  if (pi->have_info
-      && (only_installable_info
-	  || pi->info.removable_status != status_unknown))
-    func (pi, data, false);
-  else
-    {
-      gpi_closure *c = new gpi_closure;
-      c->func = func;
-      c->data = data;
-      c->pi = pi;
-      pi->ref ();
-      apt_worker_get_package_info (state, pi->name, only_installable_info,
-				   gpi_reply, c);
-    }
-}
+/* GET_PACKAGE_INFOS
+ */
 
-struct cwpl_closure
+struct gpis_closure
 {
   GList *package_list;
   GList *current_node;
@@ -1137,195 +1143,80 @@ struct cwpl_closure
   int state;
 };
 
-void
-call_with_package_list_info_cont (package_info *pi, void *data, bool unused2)
-{
-  cwpl_closure *closure = (cwpl_closure *) data;
-
-  if (pi && !pi->have_info)
-    {
-      pi->unref ();
-      return;
-    }
-  
-  if (closure->current_node == NULL)
-    {
-      closure->cont(closure->data);
-      delete closure;
-    }
-  else
-    {
-      GList * current_package_node = closure->current_node;
-      closure->current_node = g_list_next (closure->current_node);
-      call_with_package_info ((package_info *) current_package_node->data,
-			      closure->only_installable_info,
-			      call_with_package_list_info_cont,
-			      data,
-			      closure->state);
-    }
-}
+static void gpis_loop (package_info *pi, void *data, bool unused);
 
 void
-call_with_package_list_info (GList *package_list,
-			      bool only_installable_info,
-			      void (*cont) (void *),
-			      void *data,
-			      int state)
+get_package_infos (GList *package_list,
+		   bool only_installable_info,
+		   void (*cont) (void *),
+		   void *data,
+		   int state)
 {
-  cwpl_closure *closure = new cwpl_closure;
-  closure->package_list = package_list;
-  closure->current_node = package_list;
-  closure->only_installable_info = only_installable_info;
-  closure->cont = cont;
-  closure->data = data;
-  closure->state = state;
+  gpis_closure *clos = new gpis_closure;
+  clos->package_list = package_list;
+  clos->current_node = package_list;
+  clos->only_installable_info = only_installable_info;
+  clos->cont = cont;
+  clos->data = data;
+  clos->state = state;
 
-  call_with_package_list_info_cont (NULL, closure, TRUE);
-}
-
-void row_changed (GtkTreeModel *model, GtkTreeIter *iter);
-
-static package_info *intermediate_info;
-static bool intermediate_only_installable;
-static void (*intermediate_callback) (package_info *, void*, bool);
-static void *intermediate_data;
-static int intermediate_state;
-
-static void
-get_next_package_info (package_info *pi, void *unused, bool changed)
-{
-  int state = APTSTATE_DEFAULT;
-
-  if (pi && !pi->have_info)
-    return;
-
-  if (pi && changed)
-    global_package_info_changed (pi);
-
-  if (pi && pi == intermediate_info)
-    {
-      intermediate_info = NULL;
-      if (intermediate_callback)
-	{
-	  intermediate_callback (pi, intermediate_data, changed);
-	  state = intermediate_state;
-	}
-    }
-
-  if (intermediate_info)
-    call_with_package_info (intermediate_info, intermediate_only_installable,
-			    get_next_package_info, NULL, intermediate_state);
-  else
-    {
-      cur_packages_for_info = next_packages_for_info;
-      if (cur_packages_for_info)
-	{
-	  next_packages_for_info = cur_packages_for_info->next;
-	  pi = (package_info *)cur_packages_for_info->data;
-	  call_with_package_info (pi, true, get_next_package_info, NULL, state);
-	}
-    }
-}
-
-void
-get_package_list_info (GList *packages)
-{
-  next_packages_for_info = packages;
-  if (cur_packages_for_info == NULL && intermediate_info == NULL)
-    get_next_package_info (NULL, NULL, false);
-}
-
-void
-get_intermediate_package_info (package_info *pi,
-			       bool only_installable_info,
-			       void (*callback) (package_info *, void *, bool),
-			       void *data,
-			       int state)
-{
-  package_info *old_intermediate_info = intermediate_info;
-
-  if (pi->have_info
-      && (only_installable_info
-	  || pi->info.removable_status != status_unknown))
-    {
-      if (callback)
-	callback (pi, data, false);
-      else
-	pi->unref ();
-    }
-  else if (intermediate_info == NULL || intermediate_callback == NULL)
-    {
-      intermediate_info = pi;
-      intermediate_only_installable = only_installable_info;
-      intermediate_callback = callback;
-      intermediate_data = data;
-      intermediate_state = state;
-    }
-  else
-    {
-      printf ("package info request already pending.\n");
-      pi->unref();
-    }
-
-  if (cur_packages_for_info == NULL && old_intermediate_info == NULL)
-    get_next_package_info (NULL, NULL, false);
-}
-
-struct gipl_clos {
-  GList *packages;
-  bool only_installable_info;
-  int state;
-  
-  void (*cont) (void *data);
-  void *data;
-};
-
-static void gipl_loop (void *data);
-static void gipl_next (package_info *unused_1, void *data, bool unused_2);
-
-void
-get_intermediate_package_list_info (GList *packages,
-				    bool only_installable_info,
-				    void (*cont) (void *data),
-				    void *data,
-				    int state)
-{
-  gipl_clos *c = new gipl_clos;
-
-  c->packages = packages;
-  c->only_installable_info = only_installable_info;
-  c->state = state;
-  c->cont = cont;
-  c->data = data;
-  
-  gipl_loop (c);
-}
-
-
-static void
-gipl_loop (void *data)
-{
-  gipl_clos *c = (gipl_clos *)data;
-
-  if (c->packages == NULL)
-    {
-      c->cont (c->data);
-      delete c;
-    }
-  else
-    get_intermediate_package_info ((package_info *)(c->packages->data),
-				   c->only_installable_info,
-				   gipl_next, c,
-				   c->state);
+  gpis_loop (NULL, clos, TRUE);
 }
 
 static void
-gipl_next (package_info *unused_1, void *data, bool unused_2)
+gpis_loop (package_info *pi, void *data, bool unused)
 {
-  gipl_clos *c = (gipl_clos *)data;
+  gpis_closure *clos = (gpis_closure *)data;
 
-  c->packages = c->packages->next;
-  gipl_loop (c);
+  if (clos->current_node == NULL)
+    {
+      clos->cont (clos->data);
+      delete clos;
+    }
+  else
+    {
+      GList *current_package_node = clos->current_node;
+      clos->current_node = g_list_next (clos->current_node);
+      get_package_info ((package_info *) current_package_node->data,
+			clos->only_installable_info,
+			gpis_loop, clos,
+			clos->state);
+    }
+}
+
+/* GET_PACKAGE_INFOS_IN_BACKGROUND
+ */
+
+static void gpiib_trigger ();
+static void gpiib_done (package_info *pi, void *unused, bool changed);
+
+static GList *gpiib_next;
+
+static void
+get_package_infos_in_background (GList *packages)
+{
+  gpiib_next = packages;
+  gpiib_trigger ();
+}
+
+static void
+gpiib_trigger ()
+{
+  GList *n = gpiib_next;
+  if (n)
+    {
+      package_info *pi = (package_info *)n->data;
+      gpiib_next = n->next;
+      get_package_info (pi, false,
+			gpiib_done, NULL,
+			APTSTATE_DEFAULT);
+    }
+}
+
+static void 
+gpiib_done (package_info *pi, void *data, bool changed)
+{
+  gpiib_trigger ();
 }
 
 /* REFRESH_PACKAGE_CACHE_WITHOUT_USER
@@ -1566,6 +1457,11 @@ install_operation_callback (gpointer data)
   install_package_flow ((package_info *)data);
 }
 
+static void
+ignore_package_info (package_info *pi, void *data, bool changed)
+{
+}
+
 void
 available_package_selected (package_info *pi)
 {
@@ -1574,7 +1470,7 @@ available_package_selected (package_info *pi)
       set_details_callback (available_package_details, pi);
       set_operation_callback (install_operation_callback, pi);
       pi->ref ();
-      get_intermediate_package_info (pi, true, NULL, NULL, APTSTATE_DEFAULT);
+      get_package_info (pi, true, ignore_package_info, NULL, APTSTATE_DEFAULT);
     }
   else
     {
@@ -1671,7 +1567,7 @@ make_install_section_view (view *v)
   gtk_widget_show_all (view);
 
   if (si)
-    get_package_list_info (si->packages);
+    get_package_infos_in_background (si->packages);
 
   enable_search (true);
   set_current_help_topic (AI_TOPIC ("packagesview"));
@@ -1742,7 +1638,7 @@ make_install_applications_view (view *v)
 				  _("ai_me_cs_install"),
 				  available_package_selected, 
 				  available_package_activated);
-      get_package_list_info (si->packages);
+      get_package_infos_in_background (si->packages);
       set_current_help_topic (AI_TOPIC ("packagesview"));
     }
   else
@@ -1788,7 +1684,7 @@ make_upgrade_applications_view (view *v)
 
   gtk_widget_show_all (view);
 
-  get_package_list_info (upgradeable_packages);
+  get_package_infos_in_background (upgradeable_packages);
 
   enable_search (true);
   set_current_help_topic (AI_TOPIC ("updateview"));
@@ -1868,7 +1764,7 @@ make_search_results_view (view *v)
 					: _("ai_me_cs_update")),
 				       available_package_selected,
 				       available_package_activated);
-      get_package_list_info (search_result_packages);
+      get_package_infos_in_background (search_result_packages);
     }
   else
     {

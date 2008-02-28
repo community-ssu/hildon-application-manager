@@ -300,7 +300,7 @@ show_package_details (package_info *pi, detail_kind kind,
   c->cont = cont;
   c->data = data;
   pi->ref ();
-  get_intermediate_package_info (pi, false, spd_with_info, c, c->state);
+  get_package_info (pi, false, spd_with_info, c, c->state);
 }
 
 void

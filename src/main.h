@@ -91,18 +91,18 @@ struct package_info {
 
 view_id get_current_view_id ();
 
-void get_intermediate_package_info (package_info *pi,
-				    bool only_installable_info,
-				    void (*func) (package_info *, void *,
-						  bool),
-				    void *,
-				    int state);
+void get_package_info (package_info *pi,
+		       bool only_installable_info,
+		       void (*cont) (package_info *pi, void *data,
+				     bool changed),
+		       void *data,
+		       int state);
 
-void get_intermediate_package_list_info (GList *packages,
-					 bool only_installable_info,
-					 void (*cont) (void *data),
-					 void *data,
-					 int state);
+void get_package_infos (GList *packages,
+			bool only_installable_info,
+			void (*cont) (void *data),
+			void *data,
+			int state);
 
 struct section_info {
 

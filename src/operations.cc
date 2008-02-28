@@ -328,12 +328,11 @@ install_packages (GList *packages,
   c->entertaining = false;
   c->refresh_needed = false;
 
-  get_intermediate_package_list_info (packages,
-				      true,
-				      ip_install_with_info,
-				      c,
-				      state);
-
+  get_package_infos (packages,
+		     true,
+		     ip_install_with_info,
+		     c,
+		     state);
 }
 
 static bool
@@ -782,7 +781,7 @@ ip_get_info_for_install (void *data)
      installations.
   */
   pi->have_info = false;
-  get_intermediate_package_info (pi, false, ip_with_new_info, c, c->state);
+  get_package_info (pi, false, ip_with_new_info, c, c->state);
 }
 
 static void
@@ -1674,9 +1673,9 @@ uninstall_package (package_info *pi,
   c->cont = cont;
   c->data = data;
   
-  get_intermediate_package_info (c->pi, false,
-				 up_confirm, c,
-				 APTSTATE_DEFAULT);
+  get_package_info (c->pi, false,
+		    up_confirm, c,
+		    APTSTATE_DEFAULT);
 }
 
 static void

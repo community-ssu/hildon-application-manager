@@ -1,5 +1,41 @@
 2008-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Cleanup of the 'intermediate' package info getting machinery.  It
+	was too tricky for its own good.
+
+	* src/apt-worker-client.cc: Rewritten the handling of pending
+	requests: instead of allowing at most one pending request per
+	command code, we keep a dynamic queue.
+	(pending_calls, pending_tail, active_call): New.
+	(cancel_all_pending_worker_calls): New, use instead of
+	cancel_all_pending_requests.
+	(maybe_send_one_worker_call): New, use instead of
+	send_pending_apt_worker_cmds.
+	(cancel_worker_call): New, use instead of cancel_request.
+	(call_apt_worker): Queue a worker_call structure and just call
+	maybe_send_one_worker_call to deal with it.
+	(handle_one_apt_worker_response): Reset active_call and call
+	maybe_send_one_worker_call to send the next request.
+	(status_callback, status_callback_data): New, use instead of the
+	old pending[APTCMD_STATUS] structure.
+	(send_pending_apt_worker_cmds, cancel_request)
+	(cancel_all_pending_requests): Removed.
+
+	* src/main.h, src/main.cc (get_package_info, get_package_infos):
+	New, use them everywhere instead of get_intermediate_package_info
+	and get_intermediate_package_list_info, respectively.
+	(get_package_infos_in_background): New, use instead of
+	get_package_list_info.
+	(get_intermediate_package_info)
+	(get_intermediate_package_list_info, call_with_package_info)
+	(call_with_package_list_info, cur_packages_for_info)
+	(next_packages_for_info): Removed.
+
+	Miscellaneous.
+
+	* src/util.cc (ask_yes_no_with_details): Terminate arguments to
+	g_strconcat with NULL, as required.
+
 	* src/main.cc (make_install_section_view)
 	(make_install_applications_view, make_upgrade_applications_view)
 	(make_uninstall_applications_view): Don't show a "(No installed

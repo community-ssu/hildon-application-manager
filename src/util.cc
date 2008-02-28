@@ -428,7 +428,7 @@ ask_yes_no_with_details (const gchar *title,
   if (help_topic != NULL)
     {
       char *full_help_topic =
-	g_strconcat ("Utilities_ApplicationInstaller_", help_topic);
+	g_strconcat ("Utilities_ApplicationInstaller_", help_topic, NULL);
 
       set_dialog_help (dialog, full_help_topic);
 
@@ -2273,11 +2273,11 @@ select_package_list (GList *package_list,
   closure->cont = cont;
   closure->data = data;
 
-  get_intermediate_package_list_info (package_list,
-				      true,
-				      select_package_list_with_info,
-				      closure,
-				      state);
+  get_package_infos (package_list,
+		     true,
+		     select_package_list_with_info,
+		     closure,
+		     state);
 }
 
 #define KILO 1000
