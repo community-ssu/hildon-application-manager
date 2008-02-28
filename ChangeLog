@@ -1,3 +1,13 @@
+2008-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (make_install_section_view)
+	(make_install_applications_view, make_upgrade_applications_view)
+	(make_uninstall_applications_view): Don't show a "(No installed
+	applications)" label when the package list has not yet been
+	retrieved, just leave the list completely empty.
+	(make_upgrade_applications_view): Don't record the seen-updates
+	when the package list is not ready.
+
 2008-02-27  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.6

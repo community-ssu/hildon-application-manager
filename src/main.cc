@@ -1661,7 +1661,9 @@ make_install_section_view (view *v)
   view =
     make_global_package_list (si? si->packages : NULL,
 			      false,
-			      _("ai_li_no_applications_available"),
+			      (package_list_ready
+			       ? _("ai_li_no_applications_available")
+			       : NULL),
 			      _("ai_me_cs_install"),
 			      available_package_selected, 
 			      available_package_activated);
@@ -1734,7 +1736,9 @@ make_install_applications_view (view *v)
       view = 
 	make_global_package_list (si->packages,
 				  false,
-				  _("ai_li_no_applications_available"),
+				  (package_list_ready
+				   ? _("ai_li_no_applications_available")
+				   : NULL),
 				  _("ai_me_cs_install"),
 				  available_package_selected, 
 				  available_package_activated);
@@ -1775,7 +1779,9 @@ make_upgrade_applications_view (view *v)
   view =
     make_global_package_list (upgradeable_packages,
 			      false,
-			      _("ai_li_no_updates_available"),
+			      (package_list_ready
+			       ? _("ai_li_no_updates_available")
+			       : NULL),
 			      _("ai_me_cs_update"),
 			      available_package_selected,
 			      available_package_activated);
@@ -1787,7 +1793,8 @@ make_upgrade_applications_view (view *v)
   enable_search (true);
   set_current_help_topic (AI_TOPIC ("updateview"));
 
-  if (record_seen_updates
+  if (package_list_ready
+      && record_seen_updates
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
       FILE *file = NULL;
@@ -1824,7 +1831,9 @@ make_uninstall_applications_view (view *v)
 
   view = make_global_package_list (installed_packages,
 				   true,
-				   _("ai_li_no_installed_applications"),
+				   (package_list_ready
+				    ? _("ai_li_no_installed_applications")
+				    : NULL),
 				   _("ai_me_cs_uninstall"),
 				   installed_package_selected,
 				   installed_package_activated);
