@@ -396,7 +396,6 @@ struct worker_call {
   void *done_data;
 };
 
-static int n_pending_calls = 0;
 static worker_call *pending_calls, **pending_tail = &pending_calls;
 static worker_call *active_call;
 
@@ -410,8 +409,6 @@ get_next_pending_worker_call ()
       c->next = NULL;
       if (pending_tail == &(c->next))
 	pending_tail = &pending_calls;
-      n_pending_calls -= 1;
-      fprintf (stderr, "- %d\n", n_pending_calls);
     }
   return c;
 }
@@ -489,9 +486,6 @@ call_apt_worker (int cmd, int state, char *data, int len,
   c->next = NULL;
   *pending_tail = c;
   pending_tail = &(c->next);
-
-  n_pending_calls += 1;
-  fprintf (stderr, "+ %d\n", n_pending_calls);
 
   maybe_send_one_worker_call ();
 }
