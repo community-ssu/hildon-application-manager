@@ -1,5 +1,8 @@
 2008-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Speed up operations by leaving the depcache of the backend in its
+	last state until we know for sure it has to change.
+
 	* src/apt-worker-bin.cc (check_cache_state): New.
 	(mark_named_package_for_install, mark_for_remove): Use it.
 	(cache_reset): Also reset state for check_cache_state.
