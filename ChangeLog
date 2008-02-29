@@ -1,3 +1,35 @@
+2008-02-29  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	Modifications to make the package details dialog to appear
+	immediately after pressing the 'Details' button, even empty if the
+	information to be shown was still not retrieved.
+
+	* src/details.cc (struct spd_clos): New fields, 'dialog' and
+	'showing_dialog' to manage possible conflicting situations when
+	closing the package details dialog before receiving the info.
+	(current_spd_clos): New global variable to keep track of the
+	currently data being shown in the details dialog. Useful to check
+	out-of-sync replies from the AW while the dialog is open.
+	(spd_with_details): Removed, since it was splitted from now on
+	into two functions: spd_create_dialog and spd_fill_with_details.
+	(show_package_details): Prepare to allow the updating banner to be
+	shown when needed and call to spd_create_dialog before calling to
+	get_package_info, to allow the early dialog creation.
+	(spd_with_info): Call to spd_fill_with_details instead of calling
+	to spd_with_details, to fill the previously created dialog with
+	the required data. Also, extra ref the package_info to avoid ugly
+	crashes that could happen sometimes.
+	(spd_details_reply): Add an extra check to return when the closure
+	is NULL, when is not the same than the current one or just when
+	the dialog is already being shown with the package details.
+	(spd_create_dialog): New. Just create an empty dialog with a close
+	button, to be filled later.
+	(spd_fill_with_details): Fill the dialog with the proper data
+	retrieved either from the package_info or from the AW
+	response. Take the dialog reference from the passed closure.
+	(spd_end): Set the current closure to NULL and call to
+	hide_updating, to ensure that the banner is hidden.
+
 2008-02-29  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/update-notifier-conf.h : slight change to URL_VARIABLE_SUFFIX

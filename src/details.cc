@@ -277,15 +277,22 @@ struct spd_clos {
   detail_kind kind;
   bool show_problems;
   int state;
+
+  GtkWidget *dialog;
+  bool showing_details;
+
   void (*cont) (void * data);
   void *data;
 };
 
 static void spd_with_info (package_info *pi, void *data, bool changed);
 static void spd_details_reply (int cmd, apt_proto_decoder *dec, void *data);
-static void spd_with_details (void *data);
+static GtkWidget *spd_create_dialog (void *data);
+static void spd_fill_with_details (void *data);
 static void spd_response (GtkDialog *dialog, gint response, gpointer data);
 static void spd_end (void *data);
+
+static spd_clos *current_spd_clos = NULL;
 
 void
 show_package_details (package_info *pi, detail_kind kind,
@@ -293,15 +300,22 @@ show_package_details (package_info *pi, detail_kind kind,
 		      void (*cont) (void *data), void *data)
 {
   spd_clos *c = new spd_clos;
+  current_spd_clos = c;
+
   c->pi = pi;
   c->kind = kind;
   c->show_problems = show_problems;
   c->state = state;
   c->cont = cont;
   c->data = data;
+  c->dialog = NULL;
+  c->showing_details = false;
   pi->ref ();
-  get_package_info (pi, kind == install_details,
-		    spd_with_info, c, c->state);
+
+  allow_updating ();
+
+  c->dialog = spd_create_dialog (c);
+  get_package_info (pi, false, spd_with_info, c, c->state);
 }
 
 void
@@ -310,13 +324,19 @@ spd_with_info (package_info *pi, void *data, bool changed)
   spd_clos *c = (spd_clos *)data;
 
   if (pi->have_detail_kind != c->kind)
-    apt_worker_get_package_details (pi->name, (c->kind == remove_details
-					       ? pi->installed_version
-					       : pi->available_version),
-				    c->kind, c->state,
-				    spd_details_reply, c);
+    {
+      apt_worker_get_package_details (pi->name, (c->kind == remove_details
+						 ? pi->installed_version
+						 : pi->available_version),
+				      c->kind, c->state,
+				      spd_details_reply, c);
+    }
   else
-    spd_with_details (c);
+    {
+      pi->ref ();
+      spd_fill_with_details (c);
+      pi->unref ();
+    }
 }
 
 static void
@@ -324,7 +344,10 @@ spd_details_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   spd_clos *c = (spd_clos *)data;
 
-  if (dec == NULL)
+  if ((c == NULL) || (c != current_spd_clos) || c->showing_details)
+    return;
+
+  if ((dec == NULL) || (c->pi->have_detail_kind == c->kind))
     {
       spd_end (c);
       return;
@@ -345,26 +368,63 @@ spd_details_reply (int cmd, apt_proto_decoder *dec, void *data)
       g_free (c->pi->dependencies);
       c->pi->dependencies = NULL;
     }
-      
+
   decode_summary (dec, c->pi, c->kind);
 
   c->pi->have_detail_kind = c->kind;
 
-  spd_with_details (c);
+  spd_fill_with_details (c);
+}
+
+static GtkWidget *
+spd_create_dialog (void *data)
+{
+  spd_clos *c = (spd_clos *)data;
+
+  GtkWidget *dialog;
+
+  package_info *pi = c->pi;
+
+  show_updating ();
+
+  dialog = gtk_dialog_new_with_buttons (_("ai_ti_details"),
+					NULL,
+					GTK_DIALOG_MODAL,
+					_("ai_bd_details_close"),
+					GTK_RESPONSE_OK,
+					NULL);
+  push_dialog (dialog);
+
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+  set_dialog_help (dialog, AI_TOPIC ("packagedetailsview"));
+  respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
+
+  g_signal_connect (dialog, "response",
+		    G_CALLBACK (spd_response), c);
+
+  gtk_widget_set_usize (dialog, 600, 320);
+  gtk_widget_show_all (dialog);
+
+  return dialog;
 }
 
 static void
-spd_with_details (void *data)
+spd_fill_with_details (void *data)
 {
+  g_return_if_fail (data != NULL);
+
   spd_clos *c = (spd_clos *)data;
 
   GtkWidget *dialog, *notebook;
   GtkWidget *table, *common;
   GtkWidget *summary_table, *summary_tab;
-
-  package_info *pi = c->pi;
-
+  package_info *pi = NULL;;
   gchar *status;
+
+  pi = c->pi;
+
+  c->showing_details = true;
+  prevent_updating ();
 
   if (pi->installed_version && pi->available_version)
     {
@@ -540,14 +600,7 @@ spd_with_details (void *data)
 				  GTK_POLICY_AUTOMATIC,
 				  GTK_POLICY_AUTOMATIC);
 
-  dialog = gtk_dialog_new_with_buttons (_("ai_ti_details"),
-					NULL,
-					GTK_DIALOG_MODAL,
-					_("ai_bd_details_close"),
-					GTK_RESPONSE_OK,
-					NULL);
-  push_dialog (dialog);
-
+  dialog = c->dialog;
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   set_dialog_help (dialog, AI_TOPIC ("packagedetailsview"));
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
@@ -598,9 +651,12 @@ static void
 spd_end (void *data)
 {
   spd_clos *c = (spd_clos *)data;
-  
+
   c->pi->unref ();
   c->cont (c->data);
+
+  current_spd_clos = NULL;
+  hide_updating ();
 
   delete c;
 }
