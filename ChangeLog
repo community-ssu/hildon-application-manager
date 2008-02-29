@@ -1,3 +1,21 @@
+2008-02-29  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/update-notifier-conf.h : slight change to URL_VARIABLE_SUFFIX
+	* src/update-notifier.c (update_seen_notifications) : cleaner code
+	(update_state) : much simpler code
+	(cleanup_menu) : safely cleans up priv->menu and associated resources
+	(create_new_updates_menu) : check whether there are new updates to show
+	and, in that case, create the associated menu
+	(create_new_notifications_menu) : check whether there are new
+	notifications to show and, in that case, create the associated menu
+	(osso_rpc_handler) : cleaner code, solved a problem that caused the
+	file to be erased sometimes
+	(check_for_notifications_thread) : cleaner code
+	* src/user_files.[ch] (user_file_read_xexp) : opens a configuration
+	file, reads a xexp from it, closes the file and returns the xexp
+	(user_file_write_xexp) : writes a xexp to a configuration file
+
+
 2008-02-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Speed up operations by leaving the depcache of the backend in its

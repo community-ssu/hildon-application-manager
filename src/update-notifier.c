@@ -332,32 +332,16 @@ open_ham_menu_item_activated (GtkWidget *menu, gpointer data)
 static void
 update_seen_notifications (UpdateNotifier *upno)
 {
-  FILE *available_file = NULL, *seen_file = NULL;
-  xexp *available_nots, *seen_nots;
-  GError *error = NULL;
+  xexp *available_nots;
 
-  available_file = user_file_open_for_read (UFILE_AVAILABLE_NOTIFICATIONS);
-  if (available_file != NULL)
+  available_nots = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
+  if (available_nots != NULL)
     {
-      available_nots = xexp_read (available_file, &error);
-      fclose (available_file);
+      user_file_write_xexp (UFILE_SEEN_NOTIFICATIONS, available_nots);
+      xexp_free (available_nots);
 
-      if (available_nots != NULL)
-	{
-	  seen_nots = xexp_copy (available_nots);
-
-	  seen_file = user_file_open_for_write (UFILE_SEEN_NOTIFICATIONS);
-	  if (seen_file != NULL)
-	    {
-	      xexp_write (seen_file, seen_nots);
-	      fclose (seen_file);
-	    }
-	  xexp_free (available_nots);
-	  xexp_free (seen_nots);
-
-	  /* Force to inmediatly set its INVISIBLE state */
-	  set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
-	}
+      /* Force to inmediatly set its INVISIBLE state */
+      set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
     }
 }
 
@@ -637,37 +621,40 @@ safe_signal_disconnect (gpointer instance, gulong handler_id)
     }
 }
 
-static void
-update_state (UpdateNotifier *upno)
+void
+cleanup_menu (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  xexp *available_updates, *seen_updates;
-  xexp *available_nots = NULL;
-  xexp *seen_notifications = NULL;
-  FILE *seen_file = NULL;
-  GError *error = NULL;
-  int n_os = 0, n_certified = 0, n_other = 0;
-  int n_new = 0;
-  gboolean new_updates = FALSE;
-  gboolean new_notifications = FALSE;
-  const gchar *available_title = NULL;
-  const gchar *available_text = NULL;
-  const gchar *available_uri = NULL;
-  const gchar *seen_title = NULL;
-  const gchar *seen_text = NULL;
-  const gchar *seen_uri = NULL;
-
-  GtkWidget *item;
   
-  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
-
-  seen_file = user_file_open_for_read (UFILE_SEEN_UPDATES);
-
-  if (seen_file != NULL)
+  if (priv->menu)
     {
-      seen_updates = xexp_read (seen_file, &error);
-      fclose (seen_file);
+      safe_signal_disconnect (priv->menu,
+                              priv->menu_selection_done_handler_id);
+      safe_signal_disconnect (priv->open_ham_item,
+                              priv->open_ham_item_activated_handler_id);
+      safe_signal_disconnect (priv->show_notification_item,
+                              priv->show_notification_item_activated_handler_id);
+      safe_signal_disconnect (priv->reject_notification_item,
+                              priv->reject_notification_item_activated_handler_id);
+      gtk_widget_destroy (priv->menu);
+
+      priv->menu = NULL;
     }
+  priv->open_ham_item = NULL;
+  priv->show_notification_item = NULL;
+  priv->reject_notification_item = NULL;
+}
+
+gboolean
+create_new_updates_menu (UpdateNotifier *upno)
+{
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+  xexp *available_updates = NULL, *seen_updates = NULL;
+  int n_os = 0, n_certified = 0, n_other = 0, n_new = 0;
+  GtkWidget *item = NULL;
+
+  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
+  seen_updates = user_file_read_xexp (UFILE_SEEN_UPDATES);
 
   if (seen_updates == NULL)
     seen_updates = xexp_list_new ("updates");
@@ -677,121 +664,52 @@ update_state (UpdateNotifier *upno)
       xexp *x, *y;
 
       for (x = xexp_first (available_updates); x; x = xexp_rest (x))
-	{
-	  if (xexp_is_text (x))
-	    {
-	      const char *pkg = xexp_text (x);
-	      
-	      for (y = xexp_first (seen_updates); y; y = xexp_rest (y))
-		if (xexp_is_text (y)
-		    && strcmp (pkg, xexp_text (y)) == 0)
-		  break;
-	      
-	      if (y == NULL)
-		n_new++;
-	      
-	      if (xexp_is (x, "os"))
-		n_os++;
-	      else if (xexp_is (x, "certified"))
-		n_certified++;
-	      else
-		n_other++;
-	    }
-	}
+        {
+          if (xexp_is_text (x))
+            {
+              const char *pkg = xexp_text (x);
+
+              for (y = xexp_first (seen_updates); y; y = xexp_rest (y))
+                if (xexp_is_text (y)
+                    && strcmp (pkg, xexp_text (y)) == 0)
+                  break;
+
+              if (y == NULL)
+                n_new++;
+
+              if (xexp_is (x, "os"))
+                n_os++;
+              else if (xexp_is (x, "certified"))
+                n_certified++;
+              else
+                n_other++;
+            }
+        }
     }
 
   xexp_free (available_updates);
   xexp_free (seen_updates);
-  new_updates = (n_new > 0);
 
-  /* Update notifications list */
-  if (!new_updates)
+  if (n_new > 0 && !showing_check_for_updates_view (upno))
     {
-      FILE *available_file = NULL, *seen_file = NULL;
-      GError *error = NULL;
+      cleanup_menu (upno);
 
-      available_file = user_file_open_for_read (UFILE_AVAILABLE_NOTIFICATIONS);
-      if (available_file != NULL)
-	{
-	  available_nots = xexp_read (available_file, &error);
-	  fclose (available_file);
-	}
+      priv->menu = gtk_menu_new ();
 
-      seen_file = user_file_open_for_read (UFILE_SEEN_NOTIFICATIONS);
-      if (seen_file != NULL)
-	{
-	  seen_notifications = xexp_read (seen_file, &error);
-	  fclose (seen_file);
-	}
-
-      if (available_nots != NULL)
-        {
-          if (xexp_is (available_nots, "info") && !xexp_is_empty (available_nots))
-            {
-              available_title = xexp_aref_text(available_nots, "title");
-              available_text = xexp_aref_text(available_nots, "text");
-              available_uri = xexp_aref_text(available_nots, "uri");
-            }
-        }
-
-      new_notifications = (available_title!=NULL) && (available_uri!=NULL) && (available_text!=NULL);  
-
-      if (new_notifications && (seen_notifications != NULL))
-        {
-          if (xexp_is (seen_notifications, "info") && !xexp_is_empty (seen_notifications))
-            {
-              seen_title = xexp_aref_text (seen_notifications, "title");
-              seen_text = xexp_aref_text (seen_notifications, "text");
-              seen_uri = xexp_aref_text (seen_notifications, "uri");
-              new_notifications = new_notifications &&
-                        ((!seen_title || (strcmp (available_title, seen_title) != 0)) ||
-                         (!seen_uri   || (strcmp (available_uri,   seen_uri)   != 0)) ||
-                         (!seen_text  || (strcmp (available_text,  seen_text)  != 0)));
-            }
-        }
-    }
-
-  if (priv->menu)
-    {
-      safe_signal_disconnect (priv->menu,
-			      priv->menu_selection_done_handler_id);
-      safe_signal_disconnect (priv->open_ham_item,
-			      priv->open_ham_item_activated_handler_id);
-      safe_signal_disconnect (priv->show_notification_item,
-			      priv->show_notification_item_activated_handler_id);
-      safe_signal_disconnect (priv->reject_notification_item,
-			      priv->reject_notification_item_activated_handler_id);
-      gtk_widget_destroy (priv->menu);
-
-      priv->menu = NULL;
-      priv->open_ham_item = NULL;
-      priv->show_notification_item = NULL;
-      priv->reject_notification_item = NULL;
-    }
-
-  priv->open_ham_item = NULL;
-  priv->show_notification_item = NULL;
-  priv->reject_notification_item = NULL;
-  priv->menu = gtk_menu_new ();
-
-  priv->menu_selection_done_handler_id =
-    g_signal_connect (priv->menu, "selection-done",
-                      G_CALLBACK(menu_hidden), upno);
-
-  if (new_updates && !showing_check_for_updates_view (upno))
-    {
-      if (priv->icon_state == UPNO_ICON_INVISIBLE)
-        set_icon_visibility (upno, UPNO_ICON_BLINKING);
+      priv->menu_selection_done_handler_id =
+        g_signal_connect (priv->menu, "selection-done",
+                          G_CALLBACK(menu_hidden), upno);
+      
       menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_description"));
 
       if (n_certified > 0)
-	menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_nokia_%d"),
-			   n_certified);
+        menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_nokia_%d"),
+                                n_certified);
       if (n_other > 0)
-	menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_thirdparty_%d"),
-			   n_other);
+        menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_thirdparty_%d"),
+                                n_other);
       if (n_os > 0)
-	menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_os"));
+        menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_update_os"));
 
       menu_add_separator (priv->menu);
 
@@ -803,24 +721,80 @@ update_state (UpdateNotifier *upno)
       priv->open_ham_item_activated_handler_id =
         g_signal_connect (item, "activate",
                           G_CALLBACK (open_ham_menu_item_activated), upno);
+
+      if (priv->icon_state == UPNO_ICON_INVISIBLE)
+        set_icon_visibility (upno, UPNO_ICON_BLINKING);
+
+      return TRUE;
     }
-  else if (new_notifications)
+  else
+    {
+      return FALSE;
+    }
+}
+
+gboolean
+create_new_notifications_menu (UpdateNotifier *upno)
+{
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+  xexp *seen_notifications = NULL, *available_nots = NULL;
+  const gchar *available_title = NULL, *available_text = NULL, *available_uri = NULL;
+  const gchar *seen_title = NULL, *seen_text = NULL, *seen_uri = NULL;
+  gboolean new_notifications = FALSE, result = FALSE;
+  GtkWidget *item = NULL;
+
+  available_nots = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
+  seen_notifications = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
+
+  if (available_nots != NULL)
+    {
+      if (xexp_is (available_nots, "info") && !xexp_is_empty (available_nots))
+        {
+          available_title = xexp_aref_text(available_nots, "title");
+          available_text = xexp_aref_text(available_nots, "text");
+          available_uri = xexp_aref_text(available_nots, "uri");
+        }
+    }
+
+  new_notifications = (available_title!=NULL) && (available_uri!=NULL) && (available_text!=NULL);  
+
+  if (new_notifications && (seen_notifications != NULL))
+    {
+      if (xexp_is (seen_notifications, "info") && !xexp_is_empty (seen_notifications))
+        {
+          seen_title = xexp_aref_text (seen_notifications, "title");
+          seen_text = xexp_aref_text (seen_notifications, "text");
+          seen_uri = xexp_aref_text (seen_notifications, "uri");
+          new_notifications = new_notifications &&
+          ((!seen_title || (strcmp (available_title, seen_title) != 0)) ||
+              (!seen_uri   || (strcmp (available_uri,   seen_uri)   != 0)) ||
+              (!seen_text  || (strcmp (available_text,  seen_text)  != 0)));
+        }
+    }
+
+  /* Create the menu */
+  if (new_notifications)
     {
       gchar* formatted_title = NULL;
       gchar* formatted_text = NULL;
 
-      if (priv->icon_state == UPNO_ICON_INVISIBLE)
-	set_icon_visibility (upno, UPNO_ICON_BLINKING);
+      cleanup_menu (upno);
+
+      priv->menu = gtk_menu_new ();
+
+      priv->menu_selection_done_handler_id =
+        g_signal_connect (priv->menu, "selection-done",
+                          G_CALLBACK(menu_hidden), upno);
 
       menu_add_readonly_item (priv->menu, FALSE, _("ai_sb_app_push_desc"));
 
       formatted_title = g_markup_printf_escaped ("<b>%s</b>",
-						available_title);
+                                                 available_title);
       menu_add_readonly_item (priv->menu, TRUE, formatted_title);
       g_free (formatted_title);
 
       formatted_text = g_markup_printf_escaped ("<small>%s</small>",
-						available_text);
+                                                available_text);
       menu_add_readonly_item (priv->menu, TRUE, formatted_text);
       g_free (formatted_text);
 
@@ -834,14 +808,14 @@ update_state (UpdateNotifier *upno)
       priv->reject_notification_item_activated_handler_id =
         g_signal_connect (item, "activate",
                           G_CALLBACK (reject_notification_menu_item_activated),
-			  upno);
-      
+                          upno);
+
       menu_add_separator (priv->menu);
-      
+
       item = gtk_menu_item_new_with_label (_("ai_sb_app_push_link"));
       gtk_menu_shell_append ((GtkMenuShell *)priv->menu, item);
       gtk_widget_show (item);
-      
+
       struct show_notification_menu_item_activated_data *c = 
         g_new0 (struct show_notification_menu_item_activated_data, 1);
       c->upno = upno;
@@ -850,13 +824,27 @@ update_state (UpdateNotifier *upno)
       priv->show_notification_item_activated_handler_id =
         g_signal_connect (item, "activate",
                           G_CALLBACK (show_notification_menu_item_activated),
-			  c);
+                          c);
+      
+      if (priv->icon_state == UPNO_ICON_INVISIBLE)
+        set_icon_visibility (upno, UPNO_ICON_BLINKING);
+      
+      result = TRUE;
     }
   else
-    set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
-  
+    {
+      result = FALSE;
+    }
   xexp_free (available_nots);
   xexp_free (seen_notifications);
+  return result;
+}
+
+static void
+update_state (UpdateNotifier *upno)
+{
+  if (!create_new_updates_menu (upno) && !create_new_notifications_menu (upno))
+      set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
 }
 
 static void
@@ -885,23 +873,20 @@ osso_rpc_handler(const gchar* interface, const gchar* method,
       if (!strcasecmp(method, UPDATE_NOTIFIER_OP_CHECK_UPDATES))
 	{
 	  /* first run? */
-	  FILE *seen_file = NULL;
 	  gchar *ufiles_base_dir = user_file_get_state_dir_path ();
 	  gchar *seen_name = NULL;
 	  xexp *seen_updates = NULL;
 
-	  seen_file = user_file_open_for_write (UFILE_SEEN_UPDATES);
 	  seen_name = g_strdup_printf ("%s/%s",
 				       ufiles_base_dir,
 				       UFILE_SEEN_UPDATES);
 	  g_free (ufiles_base_dir);
 
-	  if (!g_file_test (seen_name, G_FILE_TEST_EXISTS) && (seen_file != NULL))
+	  if (!g_file_test (seen_name, G_FILE_TEST_EXISTS))
 	    {
 	      seen_updates = xexp_list_new ("updates");
-	      xexp_write (seen_file, seen_updates);
+	      user_file_write_xexp (UFILE_SEEN_UPDATES, seen_updates);
 	      xexp_free (seen_updates);
-	      fclose (seen_file);
 	    }
 	  else
 	    {
@@ -1107,7 +1092,6 @@ check_for_notifications_thread (gpointer userdata)
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (userdata);
   GConfClient *conf = NULL;
   FILE *tmp_file = NULL;
-  GError *error = NULL;
   gchar *proxy = NULL;
   gchar *gconf_uri = NULL;
   gchar *uri = NULL;
@@ -1119,7 +1103,7 @@ check_for_notifications_thread (gpointer userdata)
   conf = gconf_client_get_default ();
   gconf_uri = gconf_client_get_string (conf, UPNO_GCONF_URI, NULL);
   uri = url_eval (gconf_uri);
-  tmp_file  = user_file_open_for_write (UFILE_AVAILABLE_NOTIFICATIONS ".tmp");
+  tmp_file  = user_file_open_for_write (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
 
   if (uri != NULL && tmp_file != NULL)
     {
@@ -1140,25 +1124,21 @@ check_for_notifications_thread (gpointer userdata)
       fclose (tmp_file);
 
       /* Validate data */
-      tmp_file  = user_file_open_for_read (UFILE_AVAILABLE_NOTIFICATIONS ".tmp");
-      tmp_data = xexp_read (tmp_file, &error);
-      fclose (tmp_file);
+      tmp_data = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
 
       if (tmp_data != NULL && xexp_is_list (tmp_data) && xexp_is (tmp_data, "info"))
-	{
-	  FILE *target_file = NULL;
-
-	  /* Copy data to the final file if validated */
-	  target_file  = user_file_open_for_write (UFILE_AVAILABLE_NOTIFICATIONS);
-	  if (target_file != NULL)
-	    {
-	      xexp_write (target_file, tmp_data);
-	      fclose (target_file);
-	    }
-	}
+        {
+          /* Copy data to the final file if validated */
+          user_file_write_xexp (UFILE_AVAILABLE_NOTIFICATIONS, tmp_data);
+        }
 
       /* Delete temp file */
-      user_file_remove (UFILE_AVAILABLE_NOTIFICATIONS ".tmp");
+      user_file_remove (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
+    }
+  else if (tmp_file != NULL)
+    {
+      fclose (tmp_file);
+      user_file_remove (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
     }
 
   g_mutex_unlock (priv->notifications_thread_mutex);

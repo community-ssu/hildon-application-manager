@@ -170,3 +170,34 @@ user_file_remove (const gchar *name)
 
   return result;
 }
+
+xexp *
+user_file_read_xexp (const gchar *name)
+{
+  FILE *f = NULL;
+  xexp *x = NULL;
+
+  f = user_file_open_for_read (name);
+  if (f != NULL)
+    {
+      x = xexp_read (f, NULL);
+      fclose (f);
+    }
+  return x;
+}
+
+void
+user_file_write_xexp (const gchar *name, xexp *x)
+{
+  FILE *f = NULL;
+
+  if (x != NULL)
+    {
+      f = user_file_open_for_write (name);
+      if (f != NULL)
+        {
+          xexp_write (f, x);
+          fclose (f);
+        }
+    }
+}

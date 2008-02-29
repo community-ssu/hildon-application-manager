@@ -28,17 +28,23 @@
 extern "C" {
 #endif
 
+#include "xexp.h"
+
 #define HAM_STATE_DIR ".hildon-application-manager"
 #define UFILE_RESTORE_BACKUP "packages.backup"
 #define UFILE_HAM_STATE "state"
 #define UFILE_SEEN_UPDATES "seen-updates"
 #define UFILE_SEEN_NOTIFICATIONS "seen-notifications"
 #define UFILE_AVAILABLE_NOTIFICATIONS "available-notifications"
+#define UFILE_AVAILABLE_NOTIFICATIONS_TMP   UFILE_AVAILABLE_NOTIFICATIONS ".tmp"
 
 gchar *user_file_get_state_dir_path ();
 FILE *user_file_open_for_read (const gchar *name);
 FILE *user_file_open_for_write (const gchar *name);
 int user_file_remove (const gchar *name);
+
+xexp *user_file_read_xexp (const gchar *name);
+void user_file_write_xexp (const gchar *name, xexp *x);
 
 #ifdef __cplusplus
 }
