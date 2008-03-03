@@ -2,7 +2,7 @@
 
 	Modifications to make the package details dialog to appear
 	immediately after pressing the 'Details' button, even empty if the
-	information to be shown was still not retrieved.
+	information to be shown was still not retrieved (N80835).
 
 	* src/details.cc (struct spd_clos): New fields, 'dialog' and
 	'showing_dialog' to manage possible conflicting situations when
