@@ -1,3 +1,35 @@
+2008-03-04  Mario Sanchez Prada  <msanchez@igalia.com>
+
+	* src/details.cc (struct spd_clos): New field, 'notebook', to
+	allow removing the notebook from the dialog when it's the second
+	time that spd_with_details is called.
+	(show_package_details): Check out here whether retrieving the
+	package info and details is needed or not.
+	(spd_with_info): Removed, because of the modifications done in
+	show_package_details.
+	(spd_get_details): New. Call to apt_worker_get_package_details to
+	retrieve the package details when needed.
+	(spd_get_details_reply): Renamed spd_details_reply function.
+	(spd_create_dialog): Removed. From now on, the same function will
+	take care of creating the dialog for the first time, as well as to
+	fill it with the full details when they're retrieved.
+	(spd_fill_with_details): Removed, because of the same reason.
+	(spd_create_common_page): New. Take care of building the first
+	page of the notebook, to make the code cleaner.
+	(spd_create_description_page): New. Take care of building the
+	second page of the notebook, to make the code cleaner.
+	(spd_create_summary_page): New. Take care of building the third
+	page of the notebook, to make the code cleaner.
+	(spd_get_summary_label): New. Retrieve a proper text for the label
+	of the third notebook page.
+	(spd_create_deps_page): New. Take care of building the last page
+	of the notebook, to make the code cleaner.
+	(spd_with_details): New. It takes care of creating the dialog for
+	the first time this function is called , as well as using an
+	already created dialog properly when it's the second time this
+	function is called, in order to fill it with the details once
+	they're retrieved.
+
 2008-02-29  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Modifications to make the package details dialog to appear

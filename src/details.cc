@@ -279,16 +279,31 @@ struct spd_clos {
   int state;
 
   GtkWidget *dialog;
+  GtkWidget *notebook;
   bool showing_details;
 
   void (*cont) (void * data);
   void *data;
 };
 
-static void spd_with_info (package_info *pi, void *data, bool changed);
-static void spd_details_reply (int cmd, apt_proto_decoder *dec, void *data);
-static GtkWidget *spd_create_dialog (void *data);
-static void spd_fill_with_details (void *data);
+enum {
+  SPD_COMMON_PAGE,
+  SPD_DESCRIPTION_PAGE,
+  SPD_SUMMARY_PAGE,
+  SPD_DEPS_PAGE
+};
+
+static void spd_get_details (package_info *pi, void *data, bool changed);
+static void spd_get_details_reply (int cmd, apt_proto_decoder *dec, void *data);
+
+static GtkWidget *spd_create_common_page (void *data);
+static GtkWidget *spd_create_description_page (void *data);
+static GtkWidget *spd_create_summary_page (void *data);
+static const gchar *spd_get_summary_label (void *data);
+static GtkWidget *spd_create_deps_page (void *data);
+
+static void spd_with_details (void *data, bool filling_details);
+
 static void spd_response (GtkDialog *dialog, gint response, gpointer data);
 static void spd_end (void *data);
 
@@ -314,36 +329,37 @@ show_package_details (package_info *pi, detail_kind kind,
 
   allow_updating ();
 
-  c->dialog = spd_create_dialog (c);
-  get_package_info (pi, false, spd_with_info, c, c->state);
-}
-
-void
-spd_with_info (package_info *pi, void *data, bool changed)
-{
-  spd_clos *c = (spd_clos *)data;
-
   if (pi->have_detail_kind != c->kind)
     {
-      apt_worker_get_package_details (pi->name, (c->kind == remove_details
-						 ? pi->installed_version
-						 : pi->available_version),
-				      c->kind, c->state,
-				      spd_details_reply, c);
+      spd_with_details (c, false);
+      get_package_info (pi, false, spd_get_details, c, c->state);
     }
   else
     {
-      pi->ref ();
-      spd_fill_with_details (c);
-      pi->unref ();
+      /* Don't retrieve package info or details if already available */
+      spd_with_details (c, false);
     }
 }
 
-static void
-spd_details_reply (int cmd, apt_proto_decoder *dec, void *data)
+void
+spd_get_details (package_info *pi, void *data, bool changed)
 {
   spd_clos *c = (spd_clos *)data;
 
+  apt_worker_get_package_details (pi->name, (c->kind == remove_details
+					     ? pi->installed_version
+					     : pi->available_version),
+				  c->kind, c->state,
+				  spd_get_details_reply, c);
+}
+
+static void
+spd_get_details_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  spd_clos *c = (spd_clos *)data;
+
+  /* Just return when the reply is not about the current details dialog
+     data, or when it's already showing the package details */
   if ((c == NULL) || (c != current_spd_clos) || c->showing_details)
     return;
 
@@ -373,58 +389,17 @@ spd_details_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   c->pi->have_detail_kind = c->kind;
 
-  spd_fill_with_details (c);
+  spd_with_details (c, true);
 }
 
+/* Creates the first page */
 static GtkWidget *
-spd_create_dialog (void *data)
+spd_create_common_page (void *data)
 {
   spd_clos *c = (spd_clos *)data;
-
-  GtkWidget *dialog;
-
-  package_info *pi = c->pi;
-
-  show_updating ();
-
-  dialog = gtk_dialog_new_with_buttons (_("ai_ti_details"),
-					NULL,
-					GTK_DIALOG_MODAL,
-					_("ai_bd_details_close"),
-					GTK_RESPONSE_OK,
-					NULL);
-  push_dialog (dialog);
-
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  set_dialog_help (dialog, AI_TOPIC ("packagedetailsview"));
-  respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
-
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (spd_response), c);
-
-  gtk_widget_set_usize (dialog, 600, 320);
-  gtk_widget_show_all (dialog);
-
-  return dialog;
-}
-
-static void
-spd_fill_with_details (void *data)
-{
-  g_return_if_fail (data != NULL);
-
-  spd_clos *c = (spd_clos *)data;
-
-  GtkWidget *dialog, *notebook;
   GtkWidget *table, *common;
-  GtkWidget *summary_table, *summary_tab;
-  package_info *pi = NULL;;
+  package_info *pi = c->pi;
   gchar *status;
-
-  pi = c->pi;
-
-  c->showing_details = true;
-  prevent_updating ();
 
   if (pi->installed_version && pi->available_version)
     {
@@ -526,21 +501,35 @@ spd_fill_with_details (void *data)
 				  GTK_POLICY_AUTOMATIC,
 				  GTK_POLICY_AUTOMATIC);
 
-  const gchar *summary_label;
-  if (pi->have_detail_kind == remove_details)
-    summary_label = _("ai_ti_details_noteb_uninstalling");
-  else if (pi->info.installable_status != status_able)
-    summary_label = _("ai_ti_details_noteb_problems");
-  else if (pi->installed_version && pi->available_version)
-    summary_label = _("ai_ti_details_noteb_updating");
-  else
-    summary_label = _("ai_ti_details_noteb_installing");
+  return common;
+}
 
-  bool possible;
-  if (pi->have_detail_kind == remove_details)
-    possible = (pi->info.removable_status == status_able);
-  else
-    possible = (pi->info.installable_status == status_able);
+/* Creates the second page */
+static GtkWidget *
+spd_create_description_page (void *data)
+{
+  spd_clos *c = (spd_clos *)data;
+  package_info *pi = c->pi;
+
+  return make_small_text_view (pi->description);
+}
+
+/* Creates the third page */
+static GtkWidget *
+spd_create_summary_page (void *data)
+{
+  spd_clos *c = (spd_clos *)data;
+  GtkWidget *summary_table, *summary_tab;
+  package_info *pi = c->pi;
+
+  bool possible = false;
+  if (pi->have_detail_kind == c->kind)
+    {
+      if (pi->have_detail_kind == remove_details)
+	possible = (pi->info.removable_status == status_able);
+      else
+	possible = (pi->info.installable_status == status_able);
+    }
 
   summary_table = gtk_table_new (1, 2, FALSE);
   gtk_table_set_col_spacings (GTK_TABLE (summary_table), 10);
@@ -600,28 +589,108 @@ spd_fill_with_details (void *data)
 				  GTK_POLICY_AUTOMATIC,
 				  GTK_POLICY_AUTOMATIC);
 
-  dialog = c->dialog;
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  set_dialog_help (dialog, AI_TOPIC ("packagedetailsview"));
-  respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
+  return summary_tab;
+}
+
+/* Get the proper label for the third page */
+static const gchar *
+spd_get_summary_label (void *data)
+{
+  spd_clos *c = (spd_clos *)data;
+  package_info *pi = c->pi;
+  const gchar *summary_label;
+
+  if (!c->showing_details)
+    return NULL;
+
+  if (pi->have_detail_kind == remove_details)
+    summary_label = _("ai_ti_details_noteb_uninstalling");
+  else if (pi->info.installable_status != status_able)
+    summary_label = _("ai_ti_details_noteb_problems");
+  else if (pi->installed_version && pi->available_version)
+    summary_label = _("ai_ti_details_noteb_updating");
+  else
+    summary_label = _("ai_ti_details_noteb_installing");
+
+  return summary_label;
+}
+
+/* Creates the fourth page */
+static GtkWidget *
+spd_create_deps_page (void *data)
+{
+  spd_clos *c = (spd_clos *)data;
+  package_info *pi = c->pi;
+
+  return make_small_text_view (pi->dependencies);
+}
+
+static void
+spd_with_details (void *data, bool filling_details)
+{
+  spd_clos *c = (spd_clos *)data;
+  GtkWidget *dialog, *notebook;
+  package_info *pi = c->pi;
+
+  /* Set this value to check whether the dialog is showing the full
+     details for a package or not */
+  c->showing_details = (pi->have_detail_kind == c->kind);
+
+  if (!filling_details)
+    {
+      /* If it's not filling the details for a package it would mean
+	 it's the first time this function is called, regardless the
+	 full details are already available or not */
+      dialog = gtk_dialog_new_with_buttons (_("ai_ti_details"),
+					    NULL,
+					    GTK_DIALOG_MODAL,
+					    _("ai_bd_details_close"),
+					    GTK_RESPONSE_OK,
+					    NULL);
+
+      push_dialog (dialog);
+
+      gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+      set_dialog_help (dialog, AI_TOPIC ("packagedetailsview"));
+      respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
+
+      /* If dialog is first called, only show the 'Updating banner' if
+	 the full details for the package are not available yet */
+      if (!c->showing_details)
+	show_updating ();
+    }
+  else
+    {
+      /* It's the second time this function is called, so prevent the
+	 banner from 'Updating', use the already created dialog and
+	 remove the old notebook from it before creating a new one */
+      prevent_updating ();
+
+      dialog = c->dialog;
+      notebook = c->notebook;
+
+      gtk_container_remove (GTK_CONTAINER (GTK_DIALOG(dialog)->vbox), notebook);
+    }
 
   notebook = gtk_notebook_new ();
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG(dialog)->vbox), notebook);
+
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-			    common,
+			    spd_create_common_page (c),
 			    gtk_label_new (_("ai_ti_details_noteb_common")));
   gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-			    make_small_text_view (pi->description),
+			    spd_create_description_page (c),
 			    gtk_label_new
 			    (_("ai_ti_details_noteb_description")));
-  int problems_page =
-    gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-			      summary_tab,
-			      gtk_label_new (summary_label));
+
+  gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
+			    spd_create_summary_page (c),
+			    gtk_label_new (spd_get_summary_label (c)));
+
   if (pi->dependencies)
     {
       gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-				make_small_text_view (pi->dependencies),
+				spd_create_deps_page (c),
 				gtk_label_new ("Dependencies"));
     }
 
@@ -633,7 +702,10 @@ spd_fill_with_details (void *data)
 
   if (c->show_problems)
     gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook),
-				   problems_page);
+				   SPD_SUMMARY_PAGE);
+
+  c->dialog = dialog;
+  c->notebook = notebook;
 }
 
 static void
