@@ -752,13 +752,15 @@ spd_with_details (void *data, bool filling_details)
       notebook = c->notebook;
     }
 
-  /* Set the content of the notebook pages */
+  /* Set the content of the first notebook page */
   spd_set_page_widget (SPD_COMMON_PAGE, spd_create_common_page (c));
-  spd_set_page_widget (SPD_DESCRIPTION_PAGE, spd_create_description_page (c));
-  spd_set_page_widget (SPD_SUMMARY_PAGE, spd_create_summary_page (c));
 
   if (c->showing_details)
     {
+      /* Set the content of the rest of the notebook pages */
+      spd_set_page_widget (SPD_DESCRIPTION_PAGE, spd_create_description_page (c));
+      spd_set_page_widget (SPD_SUMMARY_PAGE, spd_create_summary_page (c));
+
       /* Update 'summary' tab label */
       gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
 				  spd_nb_widgets[SPD_SUMMARY_PAGE],

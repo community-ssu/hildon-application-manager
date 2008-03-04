@@ -23,7 +23,7 @@
 	the full details for the package have not been retrieved yet.
 	(spd_set_page_widget): New. Set a widget in a notebook page,
 	taking care of previous widgets that could have been added before.
-	(spd_with_details): Create the notebook main structture even
+	(spd_with_details): Create the notebook main structure even
 	during the first time this function is created, and just replace
 	the information in their pages later, when the needed information
 	is finally retrieved.
