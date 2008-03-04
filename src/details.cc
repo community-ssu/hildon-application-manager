@@ -187,9 +187,23 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
 }
 
 static void
-add_table_field (GtkWidget *table, int row,
-		 const char *field, const char *value,
-		 PangoEllipsizeMode em = PANGO_ELLIPSIZE_NONE)
+add_table_field (GtkWidget *table, int row, const char *field)
+{
+  GtkWidget *label;
+
+  if (field)
+    {
+      label = make_small_label (field);
+      gtk_misc_set_alignment (GTK_MISC (label), 1.0, 0.0);
+      gtk_table_attach (GTK_TABLE (table), label, 0, 1, row, row+1,
+			GTK_FILL, GTK_FILL, 0, 0);
+    }
+}
+
+static void
+add_table_field_and_value (GtkWidget *table, int row,
+			   const char *field, const char *value,
+			   PangoEllipsizeMode em = PANGO_ELLIPSIZE_NONE)
 {
   GtkWidget *label;
 
@@ -224,7 +238,7 @@ add_table_list (GtkWidget *table, int row,
 {
   while (list)
     {
-      add_table_field (table, row++, title, (char *)list->data);
+      add_table_field_and_value (table, row++, title, (char *)list->data);
       title = NULL;
       list = list->next;
     }
@@ -286,12 +300,16 @@ struct spd_clos {
   void *data;
 };
 
-enum {
+enum spd_nb_page_index {
   SPD_COMMON_PAGE,
   SPD_DESCRIPTION_PAGE,
   SPD_SUMMARY_PAGE,
-  SPD_DEPS_PAGE
+  SPD_DEPS_PAGE,
+  SPD_NUM_PAGES
 };
+
+static spd_clos *current_spd_clos = NULL;
+static GtkWidget **spd_nb_widgets = NULL;
 
 static void spd_get_details (package_info *pi, void *data, bool changed);
 static void spd_get_details_reply (int cmd, apt_proto_decoder *dec, void *data);
@@ -306,8 +324,6 @@ static void spd_with_details (void *data, bool filling_details);
 
 static void spd_response (GtkDialog *dialog, gint response, gpointer data);
 static void spd_end (void *data);
-
-static spd_clos *current_spd_clos = NULL;
 
 void
 show_package_details (package_info *pi, detail_kind kind,
@@ -399,99 +415,119 @@ spd_create_common_page (void *data)
   spd_clos *c = (spd_clos *)data;
   GtkWidget *table, *common;
   package_info *pi = c->pi;
-  gchar *status;
-
-  if (pi->installed_version && pi->available_version)
-    {
-      if (pi->broken)
-	{
-	  if (pi->info.installable_status == status_able)
-	    status = _("ai_va_details_status_broken_updateable");
-	  else
-	    status = _("ai_va_details_status_broken_not_updateable");
-	}
-      else
-	{
-	  if (pi->info.installable_status == status_able)
-	    status = _("ai_va_details_status_updateable");
-	  else
-	    status = _("ai_va_details_status_not_updateable");
-	}
-    }
-  else if (pi->installed_version)
-    {
-      if (pi->broken)
-	status = _("ai_va_details_status_broken");
-      else
-	status = _("ai_va_details_status_installed");
-    }
-  else if (pi->available_version)
-    {
-      if (pi->info.installable_status == status_able)
-	status = _("ai_va_details_status_installable");
-      else
-	status = _("ai_va_details_status_not_installable");
-    }
-  else
-    status = "?";
 
   table = gtk_table_new (9, 2, FALSE);
   gtk_table_set_col_spacings (GTK_TABLE (table), 10);
   gtk_table_set_row_spacings (GTK_TABLE (table), 0);
 
-  {
-    const char *display_name =
-      pi->get_display_name (pi->have_detail_kind == remove_details);
-  
-    if (red_pill_mode && strcmp (pi->name, display_name))
-      {
-	char *extended_name = g_strdup_printf ("%s (%s)", display_name,
-					       pi->name);
-	add_table_field (table, 0, _("ai_fi_details_package"), extended_name);
-	g_free (extended_name);
-      }
-    else
-      add_table_field (table, 0, _("ai_fi_details_package"), display_name);
-  }
-
-  gchar *short_description = (pi->have_detail_kind == remove_details
-			      ? pi->installed_short_description
-			      : pi->available_short_description);
-  if (short_description == NULL)
-    short_description = pi->installed_short_description;
-  add_table_field (table, 1, "", short_description);
-
-  add_table_field (table, 2, _("ai_fi_details_maintainer"), pi->maintainer);
-
-  add_table_field (table, 3, _("ai_fi_details_status"), status);
-
-  add_table_field (table, 4, _("ai_fi_details_category"),
-		   nicify_section_name (pi->have_detail_kind == remove_details
-					? pi->installed_section
-					: pi->available_section));
-
-  add_table_field (table, 5, _("ai_va_details_installed_version"),
-		   (pi->installed_version
-		    ? pi->installed_version
-		    : _("ai_va_details_no_info")));
-
-  if (pi->installed_version)
+  if (!c->showing_details)
     {
-      char size_buf[20];
-      size_string_detailed (size_buf, 20, pi->installed_size);
-      add_table_field (table, 6, _("ai_va_details_size"), size_buf);
+      /* If the full data has not been retrieved yet, just create an
+	 insensitive table with the names of the fields */
+      add_table_field (table, 0, _("ai_fi_details_package"));
+      add_table_field (table, 1, "");
+      add_table_field (table, 2, _("ai_fi_details_maintainer"));
+      add_table_field (table, 3, _("ai_fi_details_status"));
+      add_table_field (table, 4, _("ai_fi_details_category"));
+      add_table_field (table, 5, _("ai_va_details_installed_version"));
+      add_table_field (table, 6, _("ai_va_details_size"));
+      add_table_field (table, 7, _("ai_va_details_available_version"));
+      add_table_field (table, 8, _("ai_va_details_download_size"));
+
+      gtk_widget_set_sensitive (GTK_WIDGET (table), FALSE);
     }
-
-  add_table_field (table, 7, _("ai_va_details_available_version"),
-		   (pi->available_version 
-		    ? pi->available_version
-		    : _("ai_va_details_no_info")));
-
-  if (pi->available_version)
+  else
     {
-      char size_buf[20];
-      size_string_detailed (size_buf, 20, pi->info.download_size);
-      add_table_field (table, 8, _("ai_va_details_download_size"), size_buf);
+      gchar *status;
+
+      if (pi->installed_version && pi->available_version)
+	{
+	  if (pi->broken)
+	    {
+	      if (pi->info.installable_status == status_able)
+		status = _("ai_va_details_status_broken_updateable");
+	      else
+		status = _("ai_va_details_status_broken_not_updateable");
+	    }
+	  else
+	    {
+	      if (pi->info.installable_status == status_able)
+		status = _("ai_va_details_status_updateable");
+	      else
+		status = _("ai_va_details_status_not_updateable");
+	    }
+	}
+      else if (pi->installed_version)
+	{
+	  if (pi->broken)
+	    status = _("ai_va_details_status_broken");
+	  else
+	    status = _("ai_va_details_status_installed");
+	}
+      else if (pi->available_version)
+	{
+	  if (pi->info.installable_status == status_able)
+	    status = _("ai_va_details_status_installable");
+	  else
+	    status = _("ai_va_details_status_not_installable");
+	}
+      else
+	status = "?";
+
+      {
+	const char *display_name =
+	  pi->get_display_name (pi->have_detail_kind == remove_details);
+  
+	if (red_pill_mode && strcmp (pi->name, display_name))
+	  {
+	    char *extended_name = g_strdup_printf ("%s (%s)", display_name,
+						   pi->name);
+	    add_table_field_and_value (table, 0, _("ai_fi_details_package"), extended_name);
+	    g_free (extended_name);
+	  }
+	else
+	  add_table_field_and_value (table, 0, _("ai_fi_details_package"), display_name);
+      }
+
+      gchar *short_description = (pi->have_detail_kind == remove_details
+				  ? pi->installed_short_description
+				  : pi->available_short_description);
+      if (short_description == NULL)
+	short_description = pi->installed_short_description;
+      add_table_field_and_value (table, 1, "", short_description);
+
+      add_table_field_and_value (table, 2, _("ai_fi_details_maintainer"), pi->maintainer);
+
+      add_table_field_and_value (table, 3, _("ai_fi_details_status"), status);
+
+      add_table_field_and_value (table, 4, _("ai_fi_details_category"),
+				 nicify_section_name (pi->have_detail_kind == remove_details
+						      ? pi->installed_section
+						      : pi->available_section));
+
+      add_table_field_and_value (table, 5, _("ai_va_details_installed_version"),
+				 (pi->installed_version
+				  ? pi->installed_version
+				  : _("ai_va_details_no_info")));
+
+      if (pi->installed_version)
+	{
+	  char size_buf[20];
+	  size_string_detailed (size_buf, 20, pi->installed_size);
+	  add_table_field_and_value (table, 6, _("ai_va_details_size"), size_buf);
+	}
+
+      add_table_field_and_value (table, 7, _("ai_va_details_available_version"),
+				 (pi->available_version 
+				  ? pi->available_version
+				  : _("ai_va_details_no_info")));
+
+      if (pi->available_version)
+	{
+	  char size_buf[20];
+	  size_string_detailed (size_buf, 20, pi->info.download_size);
+	  add_table_field_and_value (table, 8, _("ai_va_details_download_size"), size_buf);
+	}
     }
 
   common = gtk_scrolled_window_new (NULL, NULL);
@@ -523,7 +559,7 @@ spd_create_summary_page (void *data)
   package_info *pi = c->pi;
 
   bool possible = false;
-  if (pi->have_detail_kind == c->kind)
+  if (c->showing_details)
     {
       if (pi->have_detail_kind == remove_details)
 	possible = (pi->info.removable_status == status_able);
@@ -600,12 +636,11 @@ spd_get_summary_label (void *data)
   package_info *pi = c->pi;
   const gchar *summary_label;
 
-  if (!c->showing_details)
-    return NULL;
-
+  /* Don't return the 'Problems' label while the full details for the
+     package have not been retrieved yet */
   if (pi->have_detail_kind == remove_details)
     summary_label = _("ai_ti_details_noteb_uninstalling");
-  else if (pi->info.installable_status != status_able)
+  else if (c->showing_details && pi->info.installable_status != status_able)
     summary_label = _("ai_ti_details_noteb_problems");
   else if (pi->installed_version && pi->available_version)
     summary_label = _("ai_ti_details_noteb_updating");
@@ -623,6 +658,30 @@ spd_create_deps_page (void *data)
   package_info *pi = c->pi;
 
   return make_small_text_view (pi->dependencies);
+}
+
+static void
+spd_set_page_widget (gint page_number, GtkWidget *widget)
+{
+  g_return_if_fail (0 <= page_number && page_number < SPD_NUM_PAGES);
+  g_return_if_fail (spd_nb_widgets[page_number] != NULL);
+
+  GList *children =
+    gtk_container_get_children (GTK_CONTAINER (spd_nb_widgets[page_number]));
+
+  guint n_children = g_list_length (children);
+
+  if (n_children > 0)
+    {
+      g_assert (n_children == 1);
+      gtk_container_remove (GTK_CONTAINER (spd_nb_widgets[page_number]),
+			    GTK_WIDGET (children->data));
+    }
+
+  gtk_box_pack_start (GTK_BOX (spd_nb_widgets[page_number]),
+		      widget, TRUE, TRUE, 0);
+
+  g_list_free (children);
 }
 
 static void
@@ -658,6 +717,29 @@ spd_with_details (void *data, bool filling_details)
 	 the full details for the package are not available yet */
       if (!c->showing_details)
 	show_updating ();
+
+      /* Create the notebook */
+      notebook = gtk_notebook_new ();
+      gtk_container_add (GTK_CONTAINER (GTK_DIALOG(dialog)->vbox), notebook);
+
+      /* Init the global array of notebook pages */
+      spd_nb_widgets = g_new (GtkWidget *, SPD_NUM_PAGES);
+      spd_nb_widgets[SPD_COMMON_PAGE] = gtk_vbox_new (TRUE, 0);
+      spd_nb_widgets[SPD_DESCRIPTION_PAGE] = gtk_vbox_new (TRUE, 0);
+      spd_nb_widgets[SPD_SUMMARY_PAGE] = gtk_vbox_new (TRUE, 0);
+
+      /* Append the needed notebook pages */
+      gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
+				spd_nb_widgets[SPD_COMMON_PAGE],
+				gtk_label_new (_("ai_ti_details_noteb_common")));
+
+      gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
+				spd_nb_widgets[SPD_DESCRIPTION_PAGE],
+				gtk_label_new (_("ai_ti_details_noteb_description")));
+
+      gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
+				spd_nb_widgets[SPD_SUMMARY_PAGE],
+				gtk_label_new (spd_get_summary_label (c)));
     }
   else
     {
@@ -668,30 +750,27 @@ spd_with_details (void *data, bool filling_details)
 
       dialog = c->dialog;
       notebook = c->notebook;
-
-      gtk_container_remove (GTK_CONTAINER (GTK_DIALOG(dialog)->vbox), notebook);
     }
 
-  notebook = gtk_notebook_new ();
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG(dialog)->vbox), notebook);
+  /* Set the content of the notebook pages */
+  spd_set_page_widget (SPD_COMMON_PAGE, spd_create_common_page (c));
+  spd_set_page_widget (SPD_DESCRIPTION_PAGE, spd_create_description_page (c));
+  spd_set_page_widget (SPD_SUMMARY_PAGE, spd_create_summary_page (c));
 
-  gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-			    spd_create_common_page (c),
-			    gtk_label_new (_("ai_ti_details_noteb_common")));
-  gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-			    spd_create_description_page (c),
-			    gtk_label_new
-			    (_("ai_ti_details_noteb_description")));
-
-  gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-			    spd_create_summary_page (c),
-			    gtk_label_new (spd_get_summary_label (c)));
-
-  if (pi->dependencies)
+  if (c->showing_details)
     {
-      gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-				spd_create_deps_page (c),
-				gtk_label_new ("Dependencies"));
+      /* Update 'summary' tab label */
+      gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
+				  spd_nb_widgets[SPD_SUMMARY_PAGE],
+				  gtk_label_new(spd_get_summary_label (c)));
+
+      if (pi->dependencies)
+	{
+	  spd_nb_widgets[SPD_DEPS_PAGE] = spd_create_deps_page (c);
+	  gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
+				    spd_nb_widgets[SPD_DEPS_PAGE],
+				    gtk_label_new ("Dependencies"));
+	}
     }
 
   g_signal_connect (dialog, "response",
@@ -729,6 +808,9 @@ spd_end (void *data)
 
   current_spd_clos = NULL;
   hide_updating ();
+
+  g_free (spd_nb_widgets);
+  spd_nb_widgets = NULL;
 
   delete c;
 }

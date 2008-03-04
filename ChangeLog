@@ -1,3 +1,34 @@
+2008-03-04  Mario Sanchez Prada  <msanchez@igalia.com>
+
+	Done some changes more about the details dialog, to avoid the
+	'flickering' effect happening while opening the dialog for a
+	package whose details has not been retrieved yet.
+
+	* src/details.cc (add_table_field): New function to just set a
+	text for the 'field' left cell in a two-columns table.
+	(add_table_field_and_value): Rename of the old 'add_table_field'
+	function, which set text for both the 'field' and the 'value'
+	cells in a two-column table.
+	(add_table_list): Call to add_table_field_and_value.
+	(enum spd_nb_page_index): New struct for keeping track of the
+	available notebook pages, as well as the total number of them.
+	(spd_nb_widgets): New global array to keep track of the widgets
+	contained in each notebook page, to easily change them.
+	(spd_create_common_page): Create a table with text only in the
+	'field' column, and in a insensitive state, to reflect that
+	details information about a package is not still available.
+	(spd_create_summary_page): Use c->showing_details for checking
+	whether the details for the package are available or not.
+	(spd_get_summary_label): Don't return the 'Problems' label while
+	the full details for the package have not been retrieved yet.
+	(spd_set_page_widget): New. Set a widget in a notebook page,
+	taking care of previous widgets that could have been added before.
+	(spd_with_details): Create the notebook main structture even
+	during the first time this function is created, and just replace
+	the information in their pages later, when the needed information
+	is finally retrieved.
+	(spd_end): Free and set to NULL the global array spd_nb_widgets.
+
 2008-03-04  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/repo.cc (add_entry) : Use a GtkTextView instead of the custom
