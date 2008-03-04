@@ -1,5 +1,12 @@
 2008-03-04  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
+	* src/repo.cc (add_entry) : Use a GtkTextView instead of the custom
+	widget HamLongLabel.
+	(show_cat_edit_dialog) : Put the contents of the dialog inside a
+	GtkScrolledWindow (NB80685).
+
+2008-03-04  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
 	* src/main.cc (search_packages_reply): Use get_package_list_entry()
 	to decode the information that comes from the apt-worker (NB81329).
 

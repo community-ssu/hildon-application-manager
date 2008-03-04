@@ -39,7 +39,6 @@
 #include "util.h"
 #include "log.h"
 #include "confutils.h"
-#include "ham-long-label.h"
 
 #define _(x)       gettext (x)
 
@@ -54,7 +53,18 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
 
   if (readonly)
     {
-      entry = ham_long_label_new (text);
+      GtkTextBuffer *buffer;
+
+      entry = gtk_text_view_new ();
+
+      buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (entry));
+      gtk_text_view_set_editable (GTK_TEXT_VIEW (entry), false);
+
+      if (text)
+        gtk_text_buffer_set_text (buffer, text, end-text);
+
+      gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (entry), FALSE);
+      g_object_set (entry, "can-focus", FALSE, NULL);    
     }
   else
     {
@@ -301,7 +311,7 @@ static void
 show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 		      bool isnew, bool readonly)
 {
-  GtkWidget *dialog, *vbox, *caption;
+  GtkWidget *dialog, *vbox, *caption, *scrolledw;
   GtkSizeGroup *group;
 
   if (!xexp_is_list (catalogue) || !xexp_is (catalogue, "catalogue"))
@@ -358,7 +368,7 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   if (isnew)
     set_dialog_help (dialog, AI_TOPIC ("newrepository"));
 
-  vbox = GTK_DIALOG (dialog)->vbox;
+  vbox = gtk_vbox_new (FALSE, 6);
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
   
   const char *current_name = catalogue_name (catalogue);
@@ -390,6 +400,13 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 				NULL, HILDON_CAPTION_OPTIONAL);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
   gtk_widget_set_sensitive (c->disabled_button, !c->readonly);
+
+  scrolledw = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledw),
+                                  GTK_POLICY_AUTOMATIC,
+                                  GTK_POLICY_NEVER);
+  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolledw), vbox);
+  gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox), scrolledw);
 
   gtk_widget_set_usize (dialog, 650, -1);
 
