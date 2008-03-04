@@ -1878,19 +1878,11 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   while (!dec->at_end ())
     {
-      const char *name = dec->decode_string_in_place ();
-      dec->decode_string_in_place (); // installed_version
-      dec->decode_int ();             // broken
-      dec->decode_int ();             // installed_size
-      dec->decode_string_in_place (); // installed_section
-      dec->decode_string_in_place (); // installed_pretty_name
-      dec->decode_string_in_place (); // installed_short_description
-      dec->decode_string_in_place (); // installed_icon
-      dec->decode_string_in_place (); // available_version
-      dec->decode_string_in_place (); // available_section
-      dec->decode_string_in_place (); // available_pretty_name
-      dec->decode_string_in_place (); // available_short_description
-      dec->decode_string_in_place (); // available_icon
+      const char *name = NULL;
+      package_info *info = NULL;
+
+      info = get_package_list_entry (dec);
+      name = info->name;
 
       if (parent == &install_applications_view)
 	{
@@ -1912,6 +1904,11 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
       else if (parent == &uninstall_applications_view)
 	find_in_package_list (&result,
 			      installed_packages, name);
+      if (info != NULL)
+        {
+          info->unref();
+          info = NULL;
+        }
     }
 
   if (result)

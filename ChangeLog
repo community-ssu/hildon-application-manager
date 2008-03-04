@@ -1,3 +1,8 @@
+2008-03-04  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/main.cc (search_packages_reply): Use get_package_list_entry()
+	to decode the information that comes from the apt-worker (NB81329).
+
 2008-03-04  Mario Sanchez Prada  <msanchez@igalia.com>
 
 	* src/details.cc (struct spd_clos): New field, 'notebook', to
