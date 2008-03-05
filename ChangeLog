@@ -1,3 +1,32 @@
+2008-03-04  Mario Sanchez Prada  <msanchez@igalia.com>
+
+	Finished changes to finally fix the 'flickering' effect with the
+	package details dialog.
+
+	* src/details.cc (add_table_field): Removed this function to
+	refactor its logic into the add_table_field_and_value function.
+	(add_table_field_and_value): Renamed again into add_table_field,
+	and made that it allows, from now on, to set either the 'field'
+	and the 'value' fields at the same time, or just the 'field' field
+	passing NULL as the 'value' parameter. Updated callers.
+	(struct spd_clos): Added two fields, 'table' and 'spd_nb_widgets',
+	to keep track of the GtkTable in the first notebook page, as well
+	as to de-globalize the list of child widgets, added yesterday.
+	(spd_nb_widgets): De-globalized, as it was explained above.
+	(show_package_details): Initialize the new spd_clos fields.
+	(spd_create_common_page): Show the updating banner here, and make
+	it to just create the common page child widget for the firs time,
+	that is, creating a GtkTable with text only in the first column.
+	(spd_update_common_page): New function that will take care of just
+	updating the GtkTable created with spd_create_common_page. This
+	way, we avoid the 'flickering' effect since the table is reused
+	instead of being removed and created again.
+	(spd_set_page_widget): Use the new spd_nb_widgets as a field of
+	spd_clos, instead of being a global variable.
+	(spd_with_details): Use the changes explained above, to construct
+	the details dialog, both for the first time and when the details
+	data was already retrieved for the package.
+
 2008-03-05  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/update-notifier-conf.h : 
