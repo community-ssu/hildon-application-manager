@@ -1,4 +1,4 @@
-2008-03-05  Mario Sanchez Prada  <msanchez@igalia.com>
+2008-03-05  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Finished changes to finally fix the 'flickering' effect with the
 	package details dialog.
@@ -37,7 +37,7 @@
 	the left bar, the horizontal position of the widget will be equal
 	or greater than AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING (NB81835).
 
-2008-03-04  Mario Sanchez Prada  <msanchez@igalia.com>
+2008-03-04  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Done some changes more about the details dialog, to avoid the
 	'flickering' effect happening while opening the dialog for a
@@ -80,7 +80,7 @@
 	* src/main.cc (search_packages_reply): Use get_package_list_entry()
 	to decode the information that comes from the apt-worker (NB81329).
 
-2008-03-04  Mario Sanchez Prada  <msanchez@igalia.com>
+2008-03-04  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/details.cc (struct spd_clos): New field, 'notebook', to
 	allow removing the notebook from the dialog when it's the second
