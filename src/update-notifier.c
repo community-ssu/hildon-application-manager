@@ -287,6 +287,7 @@ menu_position_func (GtkMenu   *menu,
   *x += (priv->button->allocation.x
 	 + priv->button->allocation.width
 	 - req.width);
+  *x = MAX (*x, AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING);
   *y += (priv->button->allocation.y
 	 + priv->button->allocation.height);
 
@@ -1142,11 +1143,11 @@ check_for_notifications_thread (gpointer userdata)
     }
 
   g_mutex_unlock (priv->notifications_thread_mutex);
-  if (gconf_uri)
+  if (gconf_uri != NULL)
     g_free (gconf_uri);
-  if (uri)
+  if (uri != NULL)
     g_free (uri);
-  if (proxy)
+  if (proxy != NULL)
     g_free (proxy);
   return NULL;
 }

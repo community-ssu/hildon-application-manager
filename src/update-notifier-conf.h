@@ -49,6 +49,7 @@
 
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
 #define AVAILABLE_NOTIFICATIONS_MENU_WIDTH 500
+#define AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING 80
 
 #define URL_VARIABLE_PREFIX     "$\{"
 #define URL_VARIABLE_SUFFIX     "}"
