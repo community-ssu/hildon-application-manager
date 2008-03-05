@@ -1,12 +1,12 @@
 2008-03-05  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/update-notifier-conf.h : 
-	Define AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING.
+	Define AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING and
+	AVAILABLE_NOTIFICATIONS_MENU_TOP_PADDING.
 
 	* src/update-notifier.c (menu_position_func) : to avoid overlapping
 	the left bar, the horizontal position of the widget will be equal
 	or greater than AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING (NB81835).
-
 
 2008-03-04  Mario Sanchez Prada  <msanchez@igalia.com>
 

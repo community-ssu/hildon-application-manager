@@ -289,7 +289,8 @@ menu_position_func (GtkMenu   *menu,
 	 - req.width);
   *x = MAX (*x, AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING);
   *y += (priv->button->allocation.y
-	 + priv->button->allocation.height);
+	 + priv->button->allocation.height
+	 + AVAILABLE_NOTIFICATIONS_MENU_TOP_PADDING);
 
   *push_in = FALSE;
 }
