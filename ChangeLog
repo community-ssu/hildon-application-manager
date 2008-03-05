@@ -1,4 +1,4 @@
-2008-03-04  Mario Sanchez Prada  <msanchez@igalia.com>
+2008-03-05  Mario Sanchez Prada  <msanchez@igalia.com>
 
 	Finished changes to finally fix the 'flickering' effect with the
 	package details dialog.
