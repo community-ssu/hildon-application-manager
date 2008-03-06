@@ -202,6 +202,53 @@ set_catalogue_name (xexp *x, const char *name)
     }
 }
 
+/* "Application Catalogues" interaction flow.
+ */
+
+struct scdf_clos {
+  xexp *catalogues;
+};
+
+static void scdf_dialog_done (bool changed, void *date);
+static void scdf_end (bool keep_going, void *data);
+
+void
+show_catalogue_dialog_flow ()
+{
+  if (start_interaction_flow ())
+    {
+      scdf_clos *c = new scdf_clos;
+
+      c->catalogues = NULL;
+      show_catalogue_dialog (NULL, false,
+			     scdf_dialog_done, c);
+    }
+}
+
+static void
+scdf_dialog_done (bool changed, void *data)
+{
+  scdf_clos *c = (scdf_clos *)data;
+
+  if (changed)
+    set_catalogues_and_refresh (c->catalogues,
+				NULL, APTSTATE_DEFAULT,
+				scdf_end, c);
+  else
+    scdf_end (true, c);
+}
+
+static void
+scdf_end (bool keep_going, void *data)
+{
+  scdf_clos *c = (scdf_clos *)data;
+
+  xexp_free (c->catalogues);
+  delete c;
+
+  end_interaction_flow ();
+}
+
 struct catcache {
   catcache *next;
   struct cat_dialog_closure *cat_dialog;
@@ -216,6 +263,8 @@ struct cat_dialog_closure {
   xexp *catalogues_xexp;
   bool dirty;
   bool show_only_errors;
+
+  bool showing_catalogues;
 
   catcache *selected_cat;
   GtkTreeIter selected_iter;
@@ -241,6 +290,8 @@ struct cat_edit_closure {
   GtkWidget *components_entry;
   GtkWidget *disabled_button;
 };
+
+static cat_dialog_closure *current_cat_dialog_clos = NULL;
 
 static void reset_cat_list (cat_dialog_closure *c);
 static void set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select);
@@ -728,6 +779,9 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
   catcache **catptr = &c->caches;
   GtkTreePath *path_to_select = NULL;
 
+  if (c->catalogues_xexp == NULL)
+    return;
+
   xexp_list_sort (c->catalogues_xexp, cat_compare);
 
   /* Retrieve path to select if needed (used inside the loop) */
@@ -929,6 +983,8 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       gtk_widget_destroy (GTK_WIDGET (dialog));
 
       c->cont (c->dirty, c->data);
+      current_cat_dialog_clos = NULL;
+
       delete c;
     }
 }
@@ -946,22 +1002,40 @@ insensitive_cat_delete_press (GtkButton *button, gpointer data)
     irritate_user (_("ai_ni_unable_remove_repository"));
 }
 
+static void
+scd_get_catalogues_reply (xexp *catalogues, void *data)
+{
+  cat_dialog_closure *c = (cat_dialog_closure *)data;
+  scdf_clos *f_clos = NULL;
+
+  if ((c == NULL) || (c != current_cat_dialog_clos) || c->showing_catalogues)
+    return;
+
+  f_clos = (scdf_clos *)c->data;
+  c->catalogues_xexp = catalogues;
+  f_clos->catalogues = catalogues;
+
+  c->showing_catalogues = true;
+  refresh_cat_list (c);
+}
+
 void
 show_catalogue_dialog (xexp *catalogues,
 		       bool show_only_errors,
 		       void (*cont) (bool changed, void *data),
 		       void *data)
 {
-  g_return_if_fail (catalogues != NULL);
-
   cat_dialog_closure *c = new cat_dialog_closure;
   c->caches = NULL;
   c->catalogues_xexp = catalogues;
   c->dirty = false;
   c->show_only_errors = show_only_errors;
+  c->showing_catalogues = false;
   c->selected_cat = NULL;
   c->cont = cont;
   c->data = data;
+
+  current_cat_dialog_clos = c;
 
   GtkWidget *dialog = gtk_dialog_new ();
 
@@ -1010,63 +1084,10 @@ show_catalogue_dialog (xexp *catalogues,
   gtk_widget_set_usize (dialog, 600, 300);
   
   gtk_widget_show_all (dialog);
+
+  /* Retrieve the catalogues information */
+  get_catalogues (scd_get_catalogues_reply, c);
 }
-
-/* "Application Catalogues" interaction flow.
- */
-
-struct scdf_clos {
-  xexp *catalogues;
-};
-
-static void scdf_with_catalogues (xexp *catalogues, void *data);
-static void scdf_dialog_done (bool changed, void *date);
-static void scdf_end (bool keep_going, void *data);
-
-void
-show_catalogue_dialog_flow ()
-{
-  if (start_interaction_flow ())
-    {
-      scdf_clos *c = new scdf_clos;
-      get_catalogues (scdf_with_catalogues, c);
-    }
-}
-
-static void
-scdf_with_catalogues (xexp *catalogues, void *data)
-{
-  scdf_clos *c = (scdf_clos *)data;
-
-  c->catalogues = catalogues;
-  show_catalogue_dialog (catalogues, false,
-			 scdf_dialog_done, c);
-}
-
-static void
-scdf_dialog_done (bool changed, void *data)
-{
-  scdf_clos *c = (scdf_clos *)data;
-
-  if (changed)
-    set_catalogues_and_refresh (c->catalogues,
-				NULL, APTSTATE_DEFAULT,
-				scdf_end, c);
-  else
-    scdf_end (true, c);
-}
-
-static void
-scdf_end (bool keep_going, void *data)
-{
-  scdf_clos *c = (scdf_clos *)data;
-
-  xexp_free (c->catalogues);
-  delete c;
-
-  end_interaction_flow ();
-}
-
 
 /* Adding catalogues 
  */

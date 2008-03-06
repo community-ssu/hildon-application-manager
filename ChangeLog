@@ -1,3 +1,33 @@
+2008-03-06  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	Filled an 'interaction flow' gap which always happened when
+	opening the 'Application catalogues...' dialog.
+
+	* src/repo.cc (show_catalogue_dialog_flow): Don't call to
+	get_catalogues before showing the dialog. Just call to
+	show_catalogue_dialog and let it to call to get_catalogues once
+	the information was retrieved. Moved up in this file.
+	(scdf_with_catalogues): Removed, since it's not needed anymore
+	after changes described above. Moved up in this file.
+	(scdf_dialog_done): Moved up in this file.
+	(scdf_end): Likewise.
+	(struct catcache): Added a new field 'showing_catalogues' to keep
+	track whether the catalogues information is already being shown in
+	the dialog or not.
+	(current_cat_dialog_clos): New global variable to keep track of
+	the currently data being shown in the catalogues dialog. Useful to
+	check out-of-sync replies from the AW while the dialog is open.
+	(set_cat_list): Don't accept NULL as a catalogues xexp, which
+	would mean 'there're no catalogues to be set'.
+	(cat_response): Take care of setting current_cat_dialog_clos to
+	NULL when the dialog is closed.
+	(scd_get_catalogues_reply): New function which handles the reply
+	of the AW to refresh the catalogues dialog with the information
+	retrieved. It also set the new 'showing_catalogues' field to TRUE.
+	(show_catalogue_dialog): Allow to manage a NULL value as the
+	'catalogues' parameter and call to get_catalogues once the dialog
+	is created and shown.
+
 2008-03-06  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc (set_global_package_list): Don't filter for
