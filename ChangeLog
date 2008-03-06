@@ -1,5 +1,23 @@
 2008-03-06  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
+	* src/update-notifier.c (create_new_updates_menu) : NULL check.
+	(update_state) : g_return_if_fail (upno != NULL).
+	(setup_dbus) : use osso_rpc_set_cb_f, because the data field doesn't
+	need to be freed by libosso.
+	(check_for_notifications_thread) : 
+	g_return_val_if_fail (userdata != NULL, NULL).
+	(check_for_notifications) : g_return_if_fail (upno != NULL).
+
+	* src/xexp.c (xexp_read_1) : NULL check.
+	(xexp_read) : NULL check.
+	(xexp_read_file) : NULL check.
+	(xexp_fprintf_escaped) : NULL check.
+	(write_blanks) : NULL check.
+	(xexp_write_1) : NULL check.
+	(xexp_write) : NULL check (NB81838).
+
+2008-03-06  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
 	* src/update-notifier.c (cleanup_menu) : set the toggle button
 	inactive whenever the menu is destroyed,
 	(update_state) : if a menu shouldn't be shown, call cleanup_menu

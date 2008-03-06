@@ -646,6 +646,9 @@ xexp_read_1 (FILE *f, GError **error, int fuzzy)
   size_t n;
   gboolean parse_failed = FALSE;
 
+  if (f == NULL)
+    return NULL;
+
   xp.stack = NULL;
   xp.result = NULL;
   ctxt = g_markup_parse_context_new (&xexp_markup_parser, 0, &xp, NULL);
@@ -686,14 +689,17 @@ xexp_read_1 (FILE *f, GError **error, int fuzzy)
 xexp *
 xexp_read (FILE *f, GError **error)
 {
-  return xexp_read_1 (f, error, FALSE);
+  if (f == NULL)
+    return NULL;
+  else
+    return xexp_read_1 (f, error, FALSE);
 }
 
 xexp *
 xexp_read_file (const char *filename)
 {
   FILE *f = fopen (filename, "r");
-  if (f)
+  if (f != NULL)
     {
       GError *error = NULL;
       xexp *x = xexp_read_1 (f, &error, TRUE);
@@ -717,6 +723,8 @@ xexp_fprintf_escaped (FILE *f, const char *fmt, ...)
   va_list args;
   char *str;
 
+  if (f == NULL) return;
+
   va_start (args, fmt);
   str = g_markup_vprintf_escaped (fmt, args);
   va_end (args);
@@ -728,6 +736,8 @@ static void
 write_blanks (FILE *f, int level)
 {
   static const char blanks[] = "                ";
+  if (f == NULL) return;
+
   if (level > sizeof(blanks)-1)
     level = sizeof(blanks)-1;
   fputs (blanks + sizeof(blanks)-1 - level, f);
@@ -737,6 +747,8 @@ static void
 xexp_write_1 (FILE *f, xexp *x, int level)
 {
   xexp *y;
+
+  if (f == NULL) return;
 
   write_blanks (f, level);
 
@@ -759,7 +771,10 @@ xexp_write_1 (FILE *f, xexp *x, int level)
 void
 xexp_write (FILE *f, xexp *x)
 {
-  xexp_write_1 (f, x, 0);
+  if (f == NULL)
+    return;
+  else
+    xexp_write_1 (f, x, 0);
 }
 
 int

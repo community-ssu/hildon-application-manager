@@ -663,7 +663,7 @@ create_new_updates_menu (UpdateNotifier *upno)
   if (seen_updates == NULL)
     seen_updates = xexp_list_new ("updates");
 
-  if (available_updates)
+  if (available_updates != NULL)
     {
       xexp *x, *y;
 
@@ -847,6 +847,8 @@ create_new_notifications_menu (UpdateNotifier *upno)
 static void
 update_state (UpdateNotifier *upno)
 {
+  g_return_if_fail (upno != NULL);
+
   if (!create_new_updates_menu (upno) && !create_new_notifications_menu (upno))
     {
       cleanup_menu (upno);
@@ -925,13 +927,12 @@ setup_dbus (UpdateNotifier *upno)
   if (!priv->osso_ctxt)
     return FALSE;
 
-  result = osso_rpc_set_cb_f_with_free (priv->osso_ctxt,
+  result = osso_rpc_set_cb_f (priv->osso_ctxt,
 					UPDATE_NOTIFIER_SERVICE,
 					UPDATE_NOTIFIER_OBJECT_PATH,
 					UPDATE_NOTIFIER_INTERFACE,
 					osso_rpc_handler,
-					upno,
-					osso_rpc_free_val);
+					upno);
 
   return (result == OSSO_OK);
 }
@@ -1096,12 +1097,16 @@ check_for_updates (UpdateNotifier *upno)
 static gpointer
 check_for_notifications_thread (gpointer userdata)
 {
-  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (userdata);
+  UpdateNotifierPrivate *priv = NULL;
   GConfClient *conf = NULL;
   FILE *tmp_file = NULL;
   gchar *proxy = NULL;
   gchar *gconf_uri = NULL;
   gchar *uri = NULL;
+
+  g_return_val_if_fail (userdata != NULL, NULL);
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (userdata);
 
   /* only one thread is allowed to download stuff at any given moment */
   if (!g_mutex_trylock (priv->notifications_thread_mutex))
@@ -1161,6 +1166,7 @@ check_for_notifications_thread (gpointer userdata)
 static void
 check_for_notifications (UpdateNotifier *upno)
 {
+  g_return_if_fail (upno != NULL);
   g_thread_create ((GThreadFunc)check_for_notifications_thread, upno, FALSE, NULL);
 }
 
