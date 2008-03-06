@@ -1778,29 +1778,6 @@ make_global_package_list (GList *packages,
   return scroller;
 }
 
-static bool
-is_user_section (const char *section)
-{
-  if (section == NULL)
-    return false;
-
-  if (!strncmp (section, "maemo/", 6))
-    return true;
-
-  return !strncmp (section, "user/", 5);
-}
-
-static bool
-package_visible (package_info *pi, bool installed)
-{
-  if (red_pill_mode && red_pill_show_all)
-    return true;
-
-  return is_user_section (installed
-			  ? pi->installed_section
-			  : pi->available_section);
-}
-
 static void
 set_global_package_list (GList *packages,
 			 bool installed,
@@ -1827,15 +1804,12 @@ set_global_package_list (GList *packages,
     {
       package_info *pi = (package_info *)p->data;
 
-      if (package_visible (pi, installed))
-	{
-	  pi->model = GTK_TREE_MODEL (global_list_store);
-	  gtk_list_store_insert_with_values (global_list_store, &pi->iter,
-					     pos,
-					     0, pi,
-					     -1);
-	  pos++;
-	}
+      pi->model = GTK_TREE_MODEL (global_list_store);
+      gtk_list_store_insert_with_values (global_list_store, &pi->iter,
+					 pos,
+					 0, pi,
+					 -1);
+      pos++;
     }
 }
 

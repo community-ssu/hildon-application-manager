@@ -1,10 +1,19 @@
+2008-03-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (set_global_package_list): Don't filter for
+	visibility here.
+	* src/main.cc (get_package_list_reply_default): Do it here when
+	creating the lists so that the lists reliably contain the packages
+	that are shown in the UI.  This is important when writing the
+	"seen-updates" file and for the "Update All" operation (N81874).
+
 2008-03-06  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/update-notifier.c (create_new_updates_menu) : NULL check.
 	(update_state) : g_return_if_fail (upno != NULL).
 	(setup_dbus) : use osso_rpc_set_cb_f, because the data field doesn't
 	need to be freed by libosso.
-	(check_for_notifications_thread) : 
+	(check_for_notifications_thread) :
 	g_return_val_if_fail (userdata != NULL, NULL).
 	(check_for_notifications) : g_return_if_fail (upno != NULL).
 

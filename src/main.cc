@@ -894,6 +894,29 @@ get_package_list_entry (apt_proto_decoder *dec)
   return info;
 }
 
+static bool
+is_user_section (const char *section)
+{
+  if (section == NULL)
+    return false;
+
+  if (!strncmp (section, "maemo/", 6))
+    return true;
+
+  return !strncmp (section, "user/", 5);
+}
+
+static bool
+package_visible (package_info *pi, bool installed)
+{
+  if (red_pill_mode && red_pill_show_all)
+    return true;
+
+  return is_user_section (installed
+			  ? pi->installed_section
+			  : pi->available_section);
+}
+
 static void
 get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
 {
@@ -917,26 +940,31 @@ get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
 
 	  info = get_package_list_entry (dec);
 
-	  if (info->installed_version && info->available_version)
+	  if (info->available_version
+	      && package_visible (info, false))
 	    {
-	      info->ref ();
-	      upgradeable_packages = g_list_prepend (upgradeable_packages,
-						     info);
-	    }
-	  else if (info->available_version)
-	    {
-	      section_info *sec = find_section_info (&install_sections,
-						     info->available_section,
-						     true, false);
-	      info->ref ();
-	      sec->packages = g_list_prepend (sec->packages, info);
+	      if (info->installed_version)
+		{
+		  info->ref ();
+		  upgradeable_packages = g_list_prepend (upgradeable_packages,
+							 info);
+		}
+	      else
+		{
+		  section_info *sec =
+		    find_section_info (&install_sections,
+				       info->available_section,
+				       true, false);
+		  info->ref ();
+		  sec->packages = g_list_prepend (sec->packages, info);
 
-	      info->ref ();
-	      all_si->packages = g_list_prepend (all_si->packages, info);
-
+		  info->ref ();
+		  all_si->packages = g_list_prepend (all_si->packages, info);
+		}
 	    }
 	  
-	  if (info->installed_version)
+	  if (info->installed_version
+	      && package_visible (info, true))
 	    {
 	      info->ref ();
 	      installed_packages = g_list_prepend (installed_packages,
