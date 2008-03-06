@@ -1654,7 +1654,6 @@ struct up_clos {
   void *data;
 };
 
-static void up_confirm (package_info *pi, void *data, bool changed);
 static void up_checkrm_start (bool res, void *data);
 static void up_checkrm_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void up_checkrm_loop (up_clos *c);
@@ -1668,23 +1667,12 @@ uninstall_package (package_info *pi,
 		   void (*cont) (void *data), void *data)
 {
   up_clos *c = new up_clos;
+  GString *text = g_string_new ("");
+  char size_buf[20];
 
   c->pi = pi;
   c->cont = cont;
   c->data = data;
-  
-  get_package_info (c->pi, true,
-		    up_confirm, c,
-		    APTSTATE_DEFAULT);
-}
-
-static void
-up_confirm (package_info *pi, void *data, bool changed)
-{
-  up_clos *c = (up_clos *)data;
-
-  GString *text = g_string_new ("");
-  char size_buf[20];
   
   size_string_general (size_buf, 20, c->pi->installed_size);
   g_string_printf (text, _("ai_nc_uninstall"),

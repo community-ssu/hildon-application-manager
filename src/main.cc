@@ -1090,7 +1090,7 @@ get_package_info (package_info *pi,
 		  void *data,
 		  int state)
 {
-  if (pi->have_info || only_basic_info)
+  if (pi->have_info && only_basic_info)
     cont (pi, data, false);
   else
     {
