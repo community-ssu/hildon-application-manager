@@ -1673,7 +1673,7 @@ uninstall_package (package_info *pi,
   c->cont = cont;
   c->data = data;
   
-  get_package_info (c->pi, false,
+  get_package_info (c->pi, true,
 		    up_confirm, c,
 		    APTSTATE_DEFAULT);
 }

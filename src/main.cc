@@ -1085,14 +1085,12 @@ static void gpi_reply  (int cmd, apt_proto_decoder *dec, void *clos);
 
 void
 get_package_info (package_info *pi,
-		  bool only_installable_info,
+		  bool only_basic_info,
 		  void (*cont) (package_info *, void *, bool),
 		  void *data,
 		  int state)
 {
-  if (pi->have_info
-      && (only_installable_info
-	  || pi->info.removable_status != status_unknown))
+  if (pi->have_info || only_basic_info)
     cont (pi, data, false);
   else
     {
@@ -1101,7 +1099,7 @@ get_package_info (package_info *pi,
       c->data = data;
       c->pi = pi;
       pi->ref ();
-      apt_worker_get_package_info (state, pi->name, only_installable_info,
+      apt_worker_get_package_info (state, pi->name, only_basic_info,
 				   gpi_reply, c);
     }
 }
@@ -1137,7 +1135,7 @@ struct gpis_closure
 {
   GList *package_list;
   GList *current_node;
-  bool only_installable_info;
+  bool only_basic_info;
   void (*cont) (void *);
   void *data;
   int state;
@@ -1147,7 +1145,7 @@ static void gpis_loop (package_info *pi, void *data, bool unused);
 
 void
 get_package_infos (GList *package_list,
-		   bool only_installable_info,
+		   bool only_basic_info,
 		   void (*cont) (void *),
 		   void *data,
 		   int state)
@@ -1155,7 +1153,7 @@ get_package_infos (GList *package_list,
   gpis_closure *clos = new gpis_closure;
   clos->package_list = package_list;
   clos->current_node = package_list;
-  clos->only_installable_info = only_installable_info;
+  clos->only_basic_info = only_basic_info;
   clos->cont = cont;
   clos->data = data;
   clos->state = state;
@@ -1178,7 +1176,7 @@ gpis_loop (package_info *pi, void *data, bool unused)
       GList *current_package_node = clos->current_node;
       clos->current_node = g_list_next (clos->current_node);
       get_package_info ((package_info *) current_package_node->data,
-			clos->only_installable_info,
+			clos->only_basic_info,
 			gpis_loop, clos,
 			clos->state);
     }

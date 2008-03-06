@@ -3,6 +3,18 @@
 	* src/details.cc (spd_set_page_widget): Don't use g_return_if_fail
 	as if it were an "if (...) return" statement.
 
+	* src/main.h (get_package_info): Changed the name of a param, to
+	be more coherent with its new meaning: only_basic_info.
+
+	* src/main.cc (get_package_info): Don't call to the apt-worker when
+	the info was already retrieved or when only_basic_info is TRUE.
+	(struct gpis_closure): Changed the name of only_installable_info
+	to only_basic_info, to keep everything coherent.
+	(get_package_infos): Likewise.
+
+	* src/operations.cc (uninstall_package): Call to get_package_info
+	with TRUE in the only_basic_info parameter.
+
 2008-03-05  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Finished changes to finally fix the 'flickering' effect with the
