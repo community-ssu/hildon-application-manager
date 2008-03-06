@@ -1,3 +1,10 @@
+2008-03-06  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/update-notifier.c (cleanup_menu) : set the toggle button
+	inactive whenever the menu is destroyed,
+	(update_state) : if a menu shouldn't be shown, call cleanup_menu
+	just in case (NB81724).
+
 2008-03-06  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/details.cc (spd_set_page_widget): Don't use g_return_if_fail

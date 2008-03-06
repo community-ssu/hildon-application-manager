@@ -630,6 +630,8 @@ cleanup_menu (UpdateNotifier *upno)
   
   if (priv->menu)
     {
+      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->button), FALSE);
+      
       safe_signal_disconnect (priv->menu,
                               priv->menu_selection_done_handler_id);
       safe_signal_disconnect (priv->open_ham_item,
@@ -846,7 +848,10 @@ static void
 update_state (UpdateNotifier *upno)
 {
   if (!create_new_updates_menu (upno) && !create_new_notifications_menu (upno))
+    {
+      cleanup_menu (upno);
       set_icon_visibility (upno, UPNO_ICON_INVISIBLE);
+    }
 }
 
 static void
