@@ -1,3 +1,8 @@
+2008-03-06  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/details.cc (spd_set_page_widget): Don't use g_return_if_fail
+	as if it were an "if (...) return" statement.
+
 2008-03-05  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Finished changes to finally fix the 'flickering' effect with the

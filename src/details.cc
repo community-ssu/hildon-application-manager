@@ -664,12 +664,13 @@ static void
 spd_set_page_widget (void *data, gint page_number, GtkWidget *widget)
 {
   g_return_if_fail (0 <= page_number && page_number < SPD_NUM_PAGES);
-  g_return_if_fail (data != NULL);
 
   spd_clos *c = (spd_clos *)data;
   GtkWidget **spd_nb_widgets = c->spd_nb_widgets;
 
-  g_return_if_fail (spd_nb_widgets[page_number] != NULL);
+  /* Just return if data is invalid */
+  if (c == NULL || spd_nb_widgets == NULL)
+    return;
 
   GList *children =
     gtk_container_get_children (GTK_CONTAINER (spd_nb_widgets[page_number]));
