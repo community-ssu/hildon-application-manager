@@ -802,3 +802,13 @@ apt_worker_get_system_update_packages (int state,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
+
+void
+apt_worker_flash_and_reboot (apt_worker_callback *callback,
+			     void *data)
+{
+  request.reset ();
+  call_apt_worker (APTCMD_FLASH_AND_REBOOT, APTSTATE_DEFAULT,
+		   request.get_buf (), request.get_len (),
+		   callback, data);
+}

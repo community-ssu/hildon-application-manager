@@ -292,7 +292,8 @@ static void ip_end (void *data);
 static void ip_reboot (void *data);
 static void ip_reboot_delayed (void *data);
 static gboolean ip_reboot_now (void *data);
-static void ip_flash_and_reboot_done (int status, void *data);
+static void ip_flash_and_reboot_reply (int cmd, apt_proto_decoder *dec,
+				       void *data);
 
 void
 install_package (package_info *pi,
@@ -1609,10 +1610,7 @@ ip_reboot_now (void *data)
   package_info *pi = (package_info *)(c->cur->data);
 
   if (pi->info.install_flags & pkgflag_flash_and_reboot)
-    {
-      char *argv[] = { "/usr/bin/flash-and-reboot", "--yes", NULL };
-      run_cmd (argv, false, ip_flash_and_reboot_done, c);
-    }
+    apt_worker_flash_and_reboot (ip_flash_and_reboot_reply, c);
   else 
     {
       /* Reboot the device */
@@ -1623,7 +1621,7 @@ ip_reboot_now (void *data)
 }
 
 static void
-ip_flash_and_reboot_done (int status, void *data)
+ip_flash_and_reboot_reply (int cmd, apt_proto_decoder *dec, void *data)
 { 
   /* The /usr/bin/flash-and-reboot program did not actually reboot,
      let's do it ourselves.

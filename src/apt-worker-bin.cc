@@ -742,6 +742,7 @@ void cmd_get_file_details ();
 void cmd_install_file ();
 void cmd_save_backup_data ();
 void cmd_get_system_update_packages ();
+void cmd_flash_and_reboot ();
 
 int cmdline_check_updates (char **argv);
 
@@ -827,7 +828,8 @@ static char *cmd_names[] = {
   "INSTALL_FILE",
   "CLEAN",
   "SAVE_BACKUP_DATA",
-  "GET_SYSTEM_UPDATE_PACKAGES"
+  "GET_SYSTEM_UPDATE_PACKAGES",
+  "FLASH_AND_REBOOT"
 };
 #endif
 
@@ -932,6 +934,10 @@ handle_request ()
 
     case APTCMD_GET_SYSTEM_UPDATE_PACKAGES:
       cmd_get_system_update_packages ();
+      break;
+
+    case APTCMD_FLASH_AND_REBOOT:
+      cmd_flash_and_reboot ();
       break;
 
     default:
@@ -1604,7 +1610,8 @@ void cache_reset ();
  */
 static char *current_cache_package = NULL;
 static bool current_cache_is_install;
-static int cache_reset_broken_count = 0;
+static unsigned int cache_reset_broken_count = 0;
+static unsigned int cache_reset_bad_count = 0;
 
 static bool
 check_cache_state (const char *package, bool is_install)
@@ -1623,10 +1630,10 @@ check_cache_state (const char *package, bool is_install)
 }
 
 
-/* Initialize libapt-pkg if this has not been already and (re-)create
-   PACKAGE_CACHE.  If the cache can not be created, PACKAGE_CACHE is
-   set to NULL and an appropriate message is output.
-*/
+/* Initialize libapt-pkg if this has not been done already and
+   (re-)create PACKAGE_CACHE.  If the cache can not be created,
+   PACKAGE_CACHE is set to NULL and an appropriate message is output.
+   */
 void
 cache_init (bool with_status)
 {
@@ -1735,9 +1742,11 @@ is_related (pkgCache::PkgIterator &pkg)
 }
 
 void
-mark_related (pkgCache::PkgIterator &pkg)
+mark_related (const pkgCache::VerIterator &ver)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
+  const pkgCache::PkgIterator &pkg = ver.ParentPkg();
+
   if (state->extra_info[pkg->ID].related)
     return;
 
@@ -1747,6 +1756,25 @@ mark_related (pkgCache::PkgIterator &pkg)
 
   if (pkg.State() == pkgCache::PkgIterator::NeedsUnpack)
     cache.SetReInstall (pkg, true);
+
+  /* When there are some packages that might need configuring or
+     unpacking, we also mark all dependencies of this package as
+     related so that we try to unpack/configure them as well.
+  */
+  if (cache_reset_bad_count > 0)
+    {
+      for (pkgCache::DepIterator D = ver.DependsList(); D.end() == false;
+	   D++)
+	{
+	  const pkgCache::PkgIterator &dep_pkg = D.TargetPkg ();
+	  const pkgCache::VerIterator &dep_ver = dep_pkg.CurrentVer ();
+	  if (!dep_ver.end())
+	    {
+	      // fprintf (stderr, "RECURSE RELATED: %s\n", dep_pkg.Name());
+	      mark_related (dep_ver);
+	    }
+	}
+    }
 }
 
 /* Revert the cache to its initial state.  More concretely, all
@@ -1786,6 +1814,7 @@ cache_reset ()
   g_free (current_cache_package);
   current_cache_package = NULL;
   cache_reset_broken_count = cache.BrokenCount();
+  cache_reset_bad_count = cache.BadCount();
 }
 
 /* Try to fix packages that have been broken by undoing soft changes.
@@ -1950,7 +1979,7 @@ mark_for_install_1 (pkgCache::PkgIterator &pkg, int level)
   if (level > 100)
     return;
 
-  mark_related (pkg);
+  mark_related (cache.GetCandidateVer(pkg));
 
   /* Avoid recursion if package is already marked for installation.
    */
@@ -5035,4 +5064,10 @@ map_catalogue_error_details (xexp *x)
 
   /* Return the mapped xexp */
   return mapped_x;
+}
+
+void
+cmd_flash_and_reboot ()
+{
+  system ("/usr/bin/flash-and-reboot --yes");
 }

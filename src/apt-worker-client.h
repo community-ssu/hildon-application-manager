@@ -139,4 +139,7 @@ void apt_worker_get_system_update_packages (int state,
 					    apt_worker_callback *callback,
 					    void *data);
 
+void apt_worker_flash_and_reboot (apt_worker_callback *callback,
+				  void *data);
+
 #endif /* !APT_WORKER_CLIENT_H */
