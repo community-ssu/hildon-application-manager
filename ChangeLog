@@ -1,3 +1,8 @@
+2008-03-07  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* main.cc : removed the static variable record_seen_updates,
+	(NB81739).
+
 2008-03-07  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Added the 'Updating' banner to be shown when the operation

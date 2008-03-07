@@ -396,8 +396,6 @@ static gboolean package_list_ready = false;
 
 static char *cur_section_name;
 
-static bool record_seen_updates = false;
-
 package_info::package_info ()
 {
   ref_count = 1;
@@ -986,7 +984,6 @@ get_package_list_reply_default (int cmd, apt_proto_decoder *dec, void *data)
     }
 
   package_list_ready = true;
-  record_seen_updates = true;
 
   sort_all_packages ();
 
@@ -1716,7 +1713,6 @@ make_upgrade_applications_view (view *v)
   set_current_help_topic (AI_TOPIC ("updateview"));
 
   if (package_list_ready
-      && record_seen_updates
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
       FILE *file = NULL;
@@ -1734,8 +1730,6 @@ make_upgrade_applications_view (view *v)
 	  fclose (file);
 	}
       xexp_free (seen_updates);
-
-      record_seen_updates = false;
     }
 
   maybe_refresh_package_cache_without_user ();
