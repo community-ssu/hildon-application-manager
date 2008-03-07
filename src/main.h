@@ -92,7 +92,7 @@ struct package_info {
 view_id get_current_view_id ();
 
 void get_package_info (package_info *pi,
-		       bool only_basic_info,
+		       bool only_installable_info,
 		       void (*cont) (package_info *pi, void *data,
 				     bool changed),
 		       void *data,

@@ -1657,6 +1657,7 @@ static void up_checkrm_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void up_checkrm_loop (up_clos *c);
 static void up_checkrm_cmd_done (int status, void *data);
 static void up_remove (up_clos *c);
+static void up_remove_with_info (package_info *pi, void *data, bool changed);
 static void up_remove_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void up_end (void *data);
 
@@ -1755,6 +1756,15 @@ up_checkrm_cmd_done (int status, void *data)
 static void
 up_remove (up_clos *c)
 {
+  get_package_info (c->pi, false, up_remove_with_info, c,
+		    APTSTATE_DEFAULT);
+}
+
+static void
+up_remove_with_info (package_info *pi, void *data, bool changed)
+{
+  up_clos *c = (up_clos *)data;
+
   if (c->pi->info.removable_status == status_able)
     {
       add_log ("-----\n");
