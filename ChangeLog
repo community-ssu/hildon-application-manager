@@ -11,6 +11,9 @@
 	(show_catalogue_dialog): Call to show_updating right after
 	creating and showing the dialog.
 
+	* src/details.cc (add_table_field): Also allow to set only a
+	'value' field text when no 'field' field text is specified.
+
 2008-03-06  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Filled an 'interaction flow' gap which always happened when

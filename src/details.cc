@@ -201,7 +201,7 @@ add_table_field (GtkWidget *table, int row,
 			GTK_FILL, GTK_FILL, 0, 0);
     }
 
-  if (field && value && !all_whitespace (value))
+  if (value && !all_whitespace (value))
     {
       label = make_small_label (value);
       gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.0);
