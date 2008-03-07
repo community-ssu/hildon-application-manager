@@ -1,3 +1,16 @@
+2008-03-07  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	Added the 'Updating' banner to be shown when the operation
+	APTCMD_GET_CATALOGUES takes too much time before filling the
+	dialog (not likely, but possible).
+
+	* src/repo.cc (cat_response): Call to hide_updating when the
+	dialog is closed.
+	(scd_get_catalogues_reply): Call to prevent_updating to avoid
+	showing the banner once the information was already retrieved.
+	(show_catalogue_dialog): Call to show_updating right after
+	creating and showing the dialog.
+
 2008-03-06  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	Filled an 'interaction flow' gap which always happened when

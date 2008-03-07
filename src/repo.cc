@@ -984,6 +984,7 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
 
       c->cont (c->dirty, c->data);
       current_cat_dialog_clos = NULL;
+      hide_updating ();
 
       delete c;
     }
@@ -1017,6 +1018,9 @@ scd_get_catalogues_reply (xexp *catalogues, void *data)
 
   c->showing_catalogues = true;
   refresh_cat_list (c);
+
+  /* Prevent the 'Updating' banner from being shown */
+  prevent_updating ();
 }
 
 void
@@ -1026,6 +1030,8 @@ show_catalogue_dialog (xexp *catalogues,
 		       void *data)
 {
   cat_dialog_closure *c = new cat_dialog_closure;
+  GtkWidget *dialog = NULL;
+
   c->caches = NULL;
   c->catalogues_xexp = catalogues;
   c->dirty = false;
@@ -1037,7 +1043,9 @@ show_catalogue_dialog (xexp *catalogues,
 
   current_cat_dialog_clos = c;
 
-  GtkWidget *dialog = gtk_dialog_new ();
+  allow_updating ();
+
+  dialog = gtk_dialog_new ();
 
   if (show_only_errors)
     gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_failed_repositories"));
@@ -1084,6 +1092,9 @@ show_catalogue_dialog (xexp *catalogues,
   gtk_widget_set_usize (dialog, 600, 300);
   
   gtk_widget_show_all (dialog);
+
+  /* Show the 'Updating' banner */
+  show_updating ();
 
   /* Retrieve the catalogues information */
   get_catalogues (scd_get_catalogues_reply, c);
