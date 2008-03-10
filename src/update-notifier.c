@@ -923,16 +923,16 @@ setup_dbus (UpdateNotifier *upno)
   osso_return_t result;
 
   priv->osso_ctxt = osso_initialize ("hildon_update_notifier",
-					PACKAGE_VERSION, TRUE, NULL);
+				     PACKAGE_VERSION, TRUE, NULL);
   if (!priv->osso_ctxt)
     return FALSE;
 
   result = osso_rpc_set_cb_f (priv->osso_ctxt,
-					UPDATE_NOTIFIER_SERVICE,
-					UPDATE_NOTIFIER_OBJECT_PATH,
-					UPDATE_NOTIFIER_INTERFACE,
-					osso_rpc_handler,
-					upno);
+			      UPDATE_NOTIFIER_SERVICE,
+			      UPDATE_NOTIFIER_OBJECT_PATH,
+			      UPDATE_NOTIFIER_INTERFACE,
+			      osso_rpc_handler,
+			      upno);
 
   return (result == OSSO_OK);
 }
@@ -1120,8 +1120,9 @@ check_for_notifications_thread (gpointer userdata)
   if (uri != NULL && tmp_file != NULL)
     {
       CURL *handle = curl_easy_init ();
-      CURLcode result;
       xexp *tmp_data = NULL;
+      int success;
+      long response;
 
       proxy = get_http_proxy ();
 
@@ -1131,21 +1132,32 @@ check_for_notifications_thread (gpointer userdata)
       if (proxy != NULL)
 	curl_easy_setopt (handle, CURLOPT_PROXY, proxy);
 
-      result = curl_easy_perform (handle);
+      success = 0;
+      if (curl_easy_perform (handle) == 0
+	  && curl_easy_getinfo (handle, CURLINFO_RESPONSE_CODE, &response) == 0)
+	success = (response == 200);
+
+      curl_easy_cleanup (handle);
 
       fclose (tmp_file);
 
       /* Validate data */
-      tmp_data = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
+      if (success)
+	tmp_data = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
+      else
+	tmp_data = NULL;
 
-      if (tmp_data != NULL && xexp_is_list (tmp_data) && xexp_is (tmp_data, "info"))
+      if (tmp_data != NULL 
+	  && xexp_is_list (tmp_data)
+	  && xexp_is (tmp_data, "info"))
         {
           /* Copy data to the final file if validated */
           user_file_write_xexp (UFILE_AVAILABLE_NOTIFICATIONS, tmp_data);
-        }
 
-      /* Delete temp file */
-      user_file_remove (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
+	  /* Delete temp file only on success.  It is useful for
+	     debugging. */
+	  user_file_remove (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
+        }
     }
   else if (tmp_file != NULL)
     {
