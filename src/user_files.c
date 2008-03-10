@@ -79,7 +79,7 @@ user_file_open_for_read (const gchar *name)
 	 the right place before removing it */
       FILE *f_old = NULL;
       FILE *f_new = NULL;
-      gchar *buf = NULL;
+      gchar *str = NULL;
       size_t len = 0;
       ssize_t n;
 
@@ -88,15 +88,18 @@ user_file_open_for_read (const gchar *name)
 
       if (f_old != NULL && f_new != NULL)
 	{
-	  while ((n = getline (&buf, &len, f_old)) != -1)
+	  n = getline (&str, &len, f_old);
+	  while (n && n != -1)
 	    {
-	      fputs (buf, f_new);
-	      free (buf);
+	      fputs (str, f_new);
+	      n = getline (&str, &len, f_old);
 	    }
 
 	  fclose (f_old);
 	  fclose (f_new);
 	}
+
+      free (str);
     }
 
   /* Remove the old file if it was found */

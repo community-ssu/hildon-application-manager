@@ -1,3 +1,8 @@
+2008-03-10  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/user_files.c (user_file_open_for_read): Don't free the
+	buffered string every time a line is read (N82048).
+
 2008-03-10  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/update-notifier.c (check_for_notifications_thread): Check
