@@ -1,3 +1,11 @@
+2008-03-10  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/update-notifier.c (check_for_notifications_thread): Check
+	response code of HTTP request to determine whether we really got
+	the file.  Leave the downloaded text on disk in case of failure
+	for easier trouble shooting.  Call curl_easy_cleanup for
+	correctness.
+
 2008-03-07  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc (up_remove, up_remove_with_info): Call
