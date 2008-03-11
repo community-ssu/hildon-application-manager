@@ -1,3 +1,17 @@
+2008-03-11  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* main.cc (search_packages_reply) : small code correction
+
+	* update-notifier.c (xexp_is_tag_and_not_empty) : checks whether
+	a xexp is not NULL, has the given tag and isn't empty
+	(compare_xexp_text) : gets the children with the given tag in two
+	xexp and compares their texts
+	(create_new_notifications_menu) : use xexp_is_tag_and_not_empty
+	and compare_xexp_text for a cleaner code
+	(handle_inotify) : if there are new notifications available, an empty
+	SEEN_NOTIFICATIONS file is written; writing to this file will cause
+	another call to handle_inotify() that will show the icon (NB82179).
+
 2008-03-11  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/operation.cc (ip_ensure_network): Use the

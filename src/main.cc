@@ -1924,11 +1924,7 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
       else if (parent == &uninstall_applications_view)
 	find_in_package_list (&result,
 			      installed_packages, name);
-      if (info != NULL)
-        {
-          info->unref();
-          info = NULL;
-        }
+      info->unref();
     }
 
   if (result)

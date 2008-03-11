@@ -269,6 +269,30 @@ update_notifier_finalize (GObject *object)
 
 /* Private functions */
 
+static gboolean
+xexp_is_tag_and_not_empty (xexp *x, const char *tag)
+{
+ return (x != NULL && xexp_is (x, tag) && !xexp_is_empty (x));
+}
+
+static gboolean
+compare_xexp_text (xexp *x_a, xexp *x_b, const char *tag)
+{
+  const char *text_a = NULL;
+  const char *text_b = NULL;
+
+  if ((x_a == NULL) || (x_b == NULL))
+    return ((x_a == NULL) && (x_b == NULL));
+
+  text_a = xexp_aref_text(x_a, tag);
+  text_b = xexp_aref_text(x_b, tag);
+
+  if ((text_a == NULL) || (text_b == NULL))
+    return ((text_a == NULL) && (text_b == NULL));
+  else
+    return (strcmp (text_a, text_b) == 0);
+}
+
 static void
 menu_position_func (GtkMenu   *menu, 
 		    gint      *x, 
@@ -750,30 +774,21 @@ create_new_notifications_menu (UpdateNotifier *upno)
   available_nots = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
   seen_notifications = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
 
-  if (available_nots != NULL)
-    {
-      if (xexp_is (available_nots, "info") && !xexp_is_empty (available_nots))
-        {
-          available_title = xexp_aref_text(available_nots, "title");
-          available_text = xexp_aref_text(available_nots, "text");
-          available_uri = xexp_aref_text(available_nots, "uri");
-        }
-    }
+  if (xexp_is_tag_and_not_empty (available_nots, "info"))
+      {
+        available_title = xexp_aref_text(available_nots, "title");
+        available_text = xexp_aref_text(available_nots, "text");
+        available_uri = xexp_aref_text(available_nots, "uri");
+      }
 
   new_notifications = (available_title!=NULL) && (available_uri!=NULL) && (available_text!=NULL);  
 
-  if (new_notifications && (seen_notifications != NULL))
+  if (new_notifications && xexp_is_tag_and_not_empty (seen_notifications, "info"))
     {
-      if (xexp_is (seen_notifications, "info") && !xexp_is_empty (seen_notifications))
-        {
-          seen_title = xexp_aref_text (seen_notifications, "title");
-          seen_text = xexp_aref_text (seen_notifications, "text");
-          seen_uri = xexp_aref_text (seen_notifications, "uri");
-          new_notifications = new_notifications &&
-          ((!seen_title || (strcmp (available_title, seen_title) != 0)) ||
-              (!seen_uri   || (strcmp (available_uri,   seen_uri)   != 0)) ||
-              (!seen_text  || (strcmp (available_text,  seen_text)  != 0)));
-        }
+      new_notifications = new_notifications
+        && !compare_xexp_text (available_nots, seen_notifications, "title")
+        && !compare_xexp_text (available_nots, seen_notifications, "text")
+        && !compare_xexp_text (available_nots, seen_notifications, "uri")))
     }
 
   /* Create the menu */
@@ -1287,17 +1302,42 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
 
           event = (struct inotify_event *) &buf[i];
 
-          if ((priv->varlibham_watch != -1
+          if (priv->varlibham_watch != -1
               && is_file_modified_event (event, priv->varlibham_watch,"available-updates"))
-              || (priv->home_watch != -1 &&
-                  ( is_file_modified_event (event, priv->home_watch, UFILE_SEEN_UPDATES)
-		    || is_file_modified_event (event, priv->home_watch, UFILE_SEEN_NOTIFICATIONS)
-		    || is_file_modified_event (event, priv->home_watch, UFILE_AVAILABLE_NOTIFICATIONS)
-		    )
-		  )
-	      )
             {
               update_state (upno);
+            }
+          else if (priv->home_watch != -1)
+            {
+              if (is_file_modified_event (event, priv->home_watch, UFILE_AVAILABLE_NOTIFICATIONS))
+                {
+                  xexp *available_nots = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
+                  xexp *seen_notifications = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
+
+                  if (xexp_is_tag_and_not_empty (available_nots, "info"))
+                      {
+                        if (!xexp_is_tag_and_not_empty (seen_notifications, "info")
+                            || (xexp_is_tag_and_not_empty (seen_notifications, "info")
+                                && !compare_xexp_text (available_nots, seen_notifications, "title")
+                                && !compare_xexp_text (available_nots, seen_notifications, "text")
+                                && !compare_xexp_text (available_nots, seen_notifications, "uri")))
+                          {
+                            /* as we have new notifications, we no longer need the old seen ones;
+                             * the writing of UFILE_SEEN_NOTIFICATIONS will trigger an inotify */
+                            xexp* empty_seen_notifications = NULL;
+                            empty_seen_notifications = xexp_list_new ("info");
+                            user_file_write_xexp (UFILE_SEEN_NOTIFICATIONS, empty_seen_notifications);
+                            xexp_free (empty_seen_notifications);
+                          }
+                        xexp_free (available_nots);
+                        xexp_free (seen_notifications);
+                      }
+                }
+              else if (is_file_modified_event (event, priv->home_watch, UFILE_SEEN_UPDATES)
+                  || is_file_modified_event (event, priv->home_watch, UFILE_SEEN_NOTIFICATIONS))
+                {
+                  update_state (upno);
+                }
             }
 
           i += sizeof (struct inotify_event) + event->len;
