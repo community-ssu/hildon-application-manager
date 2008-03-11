@@ -529,7 +529,7 @@ ip_ensure_network (ip_clos *c)
    */
 
   set_entertainment_cancel (NULL, NULL);
-  set_entertainment_main_title ("");
+  set_entertainment_main_title (_("ai_nw_preparing_installation"));
   set_entertainment_sub_title ("");
   set_entertainment_fun (NULL, -1, -1, 0);
   start_entertaining_user ();

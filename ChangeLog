@@ -1,3 +1,9 @@
+2008-03-11  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/operation.cc (ip_ensure_network): Use the
+	ai_nw_preparing_installation l10n string when initializing the
+	"entertaining user" progress bar dialog (N81445).
+
 2008-03-10  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/user_files.c (user_file_open_for_read): Don't free the
