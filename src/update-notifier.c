@@ -767,7 +767,6 @@ create_new_notifications_menu (UpdateNotifier *upno)
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   xexp *seen_notifications = NULL, *available_nots = NULL;
   const gchar *available_title = NULL, *available_text = NULL, *available_uri = NULL;
-  const gchar *seen_title = NULL, *seen_text = NULL, *seen_uri = NULL;
   gboolean new_notifications = FALSE, result = FALSE;
   GtkWidget *item = NULL;
 
@@ -788,7 +787,7 @@ create_new_notifications_menu (UpdateNotifier *upno)
       new_notifications = new_notifications
         && !compare_xexp_text (available_nots, seen_notifications, "title")
         && !compare_xexp_text (available_nots, seen_notifications, "text")
-        && !compare_xexp_text (available_nots, seen_notifications, "uri")))
+        && !compare_xexp_text (available_nots, seen_notifications, "uri");
     }
 
   /* Create the menu */
