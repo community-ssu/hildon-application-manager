@@ -435,6 +435,7 @@ gchar *
 run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
 {
   GtkWidget *box, *scroller, *treeview, *dialog;
+  GdkGeometry geom;
   GtkTreeSelection *selection;
   GtkTreeModel *sel_model;
   GtkTreeIter sel_iter;
@@ -467,6 +468,14 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
 
   parent_window = GTK_WIDGET (parent);
   push_dialog (dialog);
+
+  /* Set size */
+  geom.min_width = 350;
+  geom.min_height = -1;
+  gtk_window_set_geometry_hints (GTK_WINDOW (dialog),
+				 NULL,
+				 &geom,
+				 GDK_HINT_MIN_SIZE);
 
   gtk_widget_show_all (dialog);
   gtk_dialog_run (GTK_DIALOG (dialog));

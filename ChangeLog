@@ -1,3 +1,9 @@
+2008-03-12  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* utils/maemo-select-menu-location-main.c (run_move_to_dialog):
+	Set a minimum size for the 'Change folder' dialog so it looks at
+	least as wide as if it had the three buttons (N80831).
+
 2008-03-12  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* main.cc (view_section) : NULL check
