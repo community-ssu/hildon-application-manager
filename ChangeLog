@@ -1,3 +1,12 @@
+2008-03-12  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* main.cc (view_section) : NULL check
+	* util.cc (unref_section_info) : unrefs a section_info element
+	(make_global_section_list) : refs section_info elements before
+	setting them as the data of the buttons' callbacks; uses
+	unref_section_info to unref them once the buttons are destroyed
+	(NB82316).
+
 2008-03-11  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* main.cc (search_packages_reply) : small code correction

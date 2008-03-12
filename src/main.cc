@@ -1601,6 +1601,8 @@ make_install_section_view (view *v)
 static void
 view_section (section_info *si)
 {
+  if (si->symbolic_name == NULL)
+    return;
   g_free (cur_section_name);
   cur_section_name = g_strdup (si->symbolic_name);
 

@@ -1832,6 +1832,9 @@ static section_activated *global_section_activated;
 static void
 section_clicked (GtkWidget *widget, gpointer data)
 {
+  if (!GTK_IS_WIDGET (widget) || (data == NULL))
+    return;
+
   section_info *si = (section_info *)data;
   if (global_section_activated)
     global_section_activated (si);
@@ -1851,6 +1854,15 @@ scroll_to_widget (GtkWidget *w, GdkEvent *, gpointer data)
 			     w->allocation.y + w->allocation.height);
 
   return FALSE;
+}
+
+static void
+unref_section_info (gpointer data, GClosure *closure)
+{
+  if (data == NULL)
+    return;
+  section_info *si = (section_info *)data;
+  si->unref();
 }
 
 GtkWidget *
@@ -1883,8 +1895,12 @@ make_global_section_list (GList *sections, section_activated *act)
       GtkWidget *btn = gtk_button_new ();
       gtk_container_add (GTK_CONTAINER (btn), label);
       gtk_box_pack_start (GTK_BOX (vbox), btn, FALSE, FALSE, 0);
-      g_signal_connect (btn, "clicked",
-			G_CALLBACK (section_clicked), si);
+      
+      si->ref(); 
+      g_signal_connect_data (btn, "clicked",
+                             G_CALLBACK (section_clicked), si,
+                             unref_section_info, G_CONNECT_AFTER);
+      
       if (first_button)
 	grab_focus_on_map (btn);
       first_button = false;
