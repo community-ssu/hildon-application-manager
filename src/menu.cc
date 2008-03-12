@@ -198,6 +198,7 @@ create_menu (HildonWindow *window)
   GtkAccelGroup *accel_group;
   FILE *restore_file = NULL;
   GError *error = NULL;
+  xexp *restore_backup = NULL;
 
   accel_group = gtk_accel_group_new ();
   gtk_window_add_accel_group (GTK_WINDOW (window), accel_group);
@@ -275,13 +276,8 @@ create_menu (HildonWindow *window)
 			  accel_group, 'q');
 
   /* Set sensitiveness for restore_packages menu item */
-  restore_file = user_file_open_for_read (UFILE_RESTORE_BACKUP);
-
-  if (restore_file != NULL)
-    {
-      gtk_widget_set_sensitive (restore_item, (xexp_read (restore_file, &error) != NULL));
-      fclose (restore_file);
-    }
+  restore_backup = user_file_read_xexp (UFILE_RESTORE_BACKUP);
+  gtk_widget_set_sensitive (restore_item, (restore_backup != NULL));
 
   gtk_widget_show_all (GTK_WIDGET (main));
 }

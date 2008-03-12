@@ -12,6 +12,9 @@
 	(main): Make the dialog modal. Removed the handler connection for
 	the 'exposed' signal (N81462).
 
+	* src/menu.cc (create_menu): Fixed a memory leak regarding to the
+	dimming rule for the 'restore backup' menu item.
+
 2008-03-12  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* main.cc (view_section) : NULL check
