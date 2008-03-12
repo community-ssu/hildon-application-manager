@@ -178,34 +178,16 @@ find_application_manager_window ()
   return find_window ("hildon-application-manager", 2);
 }
 
-static void
-dialog_exposed (GtkWidget *widget, GdkEventExpose *event, gpointer data)
-{
-  GdkWindow *win  = widget->window;
-  GtkWidget *child = NULL;
-
-  /* Raise this window to the top of the X stack */
-  gdk_window_set_keep_above (win, TRUE);
-
-  /* Progate expose event to children */
-  child = gtk_bin_get_child (GTK_BIN (widget));
-  if (child)
-    {
-      gtk_container_propagate_expose (GTK_CONTAINER (widget),
-				      child,
-				      event);
-    }
-}
-
 void
 dialog_realized (GtkWidget *widget, gpointer data)
 {
   GdkWindow *win = widget->window;
   Window ai_win = find_application_manager_window ();
-  
+
+  /* Make the dialog system modal */
   if (ai_win)
     XSetTransientForHint (GDK_WINDOW_XDISPLAY (win), GDK_WINDOW_XID (win),
-			  ai_win);
+			  NULL);
 }
 
 int
@@ -234,16 +216,13 @@ main (int argc, char **argv)
 
   dialog = gtk_dialog_new_with_buttons
     (title,
-     NULL, 0,
+     NULL, GTK_DIALOG_MODAL,
      _("ai_bd_license_ok"), GTK_RESPONSE_OK,
      _("ai_bd_license_cancel"), GTK_RESPONSE_CANCEL,
      NULL);
 
   g_signal_connect (dialog, "realize",
 		    G_CALLBACK (dialog_realized), NULL);
-
-  g_signal_connect (dialog, "expose-event",
-		    G_CALLBACK (dialog_exposed), NULL);
 
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
 		     make_small_text_view (file));

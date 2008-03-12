@@ -4,6 +4,14 @@
 	Set a minimum size for the 'Change folder' dialog so it looks at
 	least as wide as if it had the three buttons (N80831).
 
+	* utils/maemo-confirm-text-user.c (dialog_exposed): Removed, since
+	it won't be needed from now on as the dialog will be system modal,
+	so no 'weird' visual effects could happen because of interacting
+	with other applications while the dialog is not closed (N81462).
+	(dialog_realized): Make the dialog 'system modal' (N81462).
+	(main): Make the dialog modal. Removed the handler connection for
+	the 'exposed' signal (N81462).
+
 2008-03-12  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* main.cc (view_section) : NULL check
