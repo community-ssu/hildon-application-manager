@@ -196,7 +196,6 @@ create_menu (HildonWindow *window)
   GtkWidget *item;
   GtkWidget *restore_item;
   GtkAccelGroup *accel_group;
-  FILE *restore_file = NULL;
   GError *error = NULL;
   xexp *restore_backup = NULL;
 
@@ -278,6 +277,9 @@ create_menu (HildonWindow *window)
   /* Set sensitiveness for restore_packages menu item */
   restore_backup = user_file_read_xexp (UFILE_RESTORE_BACKUP);
   gtk_widget_set_sensitive (restore_item, (restore_backup != NULL));
+
+  if (restore_backup != NULL)
+    xexp_free (restore_backup);
 
   gtk_widget_show_all (GTK_WIDGET (main));
 }
