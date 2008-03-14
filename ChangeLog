@@ -1,3 +1,8 @@
+2008-03-11  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* apt-worker-bin.cc (get_apt_worker_lock) : try to get the lock
+	five times before giving up and exiting (N82152).
+
 2008-03-12  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* utils/maemo-select-menu-location-main.c (run_move_to_dialog):
@@ -24,7 +29,7 @@
 	(make_global_section_list) : refs section_info elements before
 	setting them as the data of the buttons' callbacks; uses
 	unref_section_info to unref them once the buttons are destroyed
-	(NB82316).
+	(N82316).
 
 2008-03-11  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
@@ -38,7 +43,7 @@
 	and compare_xexp_text for a cleaner code
 	(handle_inotify) : if there are new notifications available, an empty
 	SEEN_NOTIFICATIONS file is written; writing to this file will cause
-	another call to handle_inotify() that will show the icon (NB82179).
+	another call to handle_inotify() that will show the icon (N82179).
 
 2008-03-11  Mario Sanchez Prada  <msanchez@maemo.org>
 
@@ -71,7 +76,7 @@
 2008-03-07  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* main.cc : removed the static variable record_seen_updates,
-	(NB81739).
+	(N81739).
 
 2008-03-07  Mario Sanchez Prada  <msanchez@maemo.org>
 
@@ -159,14 +164,14 @@
 	(xexp_fprintf_escaped) : NULL check.
 	(write_blanks) : NULL check.
 	(xexp_write_1) : NULL check.
-	(xexp_write) : NULL check (NB81838).
+	(xexp_write) : NULL check (N81838).
 
 2008-03-06  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/update-notifier.c (cleanup_menu) : set the toggle button
 	inactive whenever the menu is destroyed,
 	(update_state) : if a menu shouldn't be shown, call cleanup_menu
-	just in case (NB81724).
+	just in case (N81724).
 
 2008-03-06  Mario Sanchez Prada  <msanchez@maemo.org>
 
@@ -223,7 +228,7 @@
 
 	* src/update-notifier.c (menu_position_func) : to avoid overlapping
 	the left bar, the horizontal position of the widget will be equal
-	or greater than AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING (NB81835).
+	or greater than AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING (N81835).
 
 2008-03-04  Mario Sanchez Prada  <msanchez@maemo.org>
 
@@ -261,12 +266,12 @@
 	* src/repo.cc (add_entry) : Use a GtkTextView instead of the custom
 	widget HamLongLabel.
 	(show_cat_edit_dialog) : Put the contents of the dialog inside a
-	GtkScrolledWindow (NB80685).
+	GtkScrolledWindow (N80685).
 
 2008-03-04  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/main.cc (search_packages_reply): Use get_package_list_entry()
-	to decode the information that comes from the apt-worker (NB81329).
+	to decode the information that comes from the apt-worker (N81329).
 
 2008-03-04  Mario Sanchez Prada  <msanchez@maemo.org>
 

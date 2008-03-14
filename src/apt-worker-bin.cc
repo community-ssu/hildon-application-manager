@@ -1055,6 +1055,7 @@ get_apt_worker_lock (bool weak)
   char *mine = g_strdup_printf ("%c %d\n", weak? 'w' : 's', getpid ());
   char *his = NULL;
   int termination_attempts = 0;
+  int lock_attempts = 0;
 
   while (true)
     {
@@ -1074,8 +1075,17 @@ get_apt_worker_lock (bool weak)
 
 	  if (weak || his_type != 'w')
 	    {
-	      log_stderr ("too weak to get lock from %d.", his_pid);
-	      exit (1);
+	      if (lock_attempts < 5)
+	        {
+	          lock_attempts++;
+	          sleep (1);
+	          continue;
+	        }
+	      else
+	        {
+	          log_stderr ("too weak to get lock from %d.", his_pid);
+	          exit (1);
+	        }
 	    }
 	  else if (termination_attempts < 5)
 	    {
