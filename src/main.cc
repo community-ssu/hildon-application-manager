@@ -2778,24 +2778,6 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
       tb_struct->update_all_button = update_all_button;
     }
 
-  /* Details button */
-  image = gtk_image_new_from_icon_name ("qgn_toolb_gene_detailsbutton",
-					HILDON_ICON_SIZE_TOOLBAR);
-  details_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
-  gtk_tool_item_set_expand (GTK_TOOL_ITEM (details_button), TRUE);
-  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (details_button), TRUE);
-  g_signal_connect (details_button, "clicked",
-		    G_CALLBACK (show_current_details),
-		    NULL);
-  g_signal_connect (G_OBJECT (details_button), "insensitive_press",
-		    G_CALLBACK (insensitive_press),
-		    _("ai_ib_nothing_to_view"));
-
-  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
-		      GTK_TOOL_ITEM (details_button),
-		      -1);
-  tb_struct->details_button = details_button;
-
   if (show_search_button)
     {
       /* Search button */
@@ -2815,6 +2797,24 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
 			  -1);
       tb_struct->search_button = search_button;
     }
+
+  /* Details button */
+  image = gtk_image_new_from_icon_name ("qgn_toolb_gene_detailsbutton",
+					HILDON_ICON_SIZE_TOOLBAR);
+  details_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
+  gtk_tool_item_set_expand (GTK_TOOL_ITEM (details_button), TRUE);
+  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (details_button), TRUE);
+  g_signal_connect (details_button, "clicked",
+		    G_CALLBACK (show_current_details),
+		    NULL);
+  g_signal_connect (G_OBJECT (details_button), "insensitive_press",
+		    G_CALLBACK (insensitive_press),
+		    _("ai_ib_nothing_to_view"));
+
+  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+		      GTK_TOOL_ITEM (details_button),
+		      -1);
+  tb_struct->details_button = details_button;
 
   /* Refresh all packages button */
   if (red_pill_mode)

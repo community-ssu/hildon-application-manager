@@ -1,3 +1,8 @@
+2008-03-24  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* main.cc (create_toolbar) : put the "Search" button before the
+	"Details" button (N82785).
+
 2008-03-11  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* apt-worker-bin.cc (get_apt_worker_lock) : try to get the lock
