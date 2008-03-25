@@ -884,14 +884,20 @@ entertainment_update_cancel ()
 			      entertainment.cancel_callback != NULL);
 }
 
+/* XXX - We always show the old style until there is time to
+         polish the new style for real.  Otherwise, the old
+         style doesn't get enough testing exposure.
+*/
+static bool entertainment_subtitles = false;
+
 static void
 entertainment_update_title ()
 {
   if (entertainment.dialog)
     {
-      if (!red_pill_mode)
+      if (!entertainment_subtitles)
 	{
-	  /* Show the progress bar dialog in the old (not diablo) style */
+	  /* Show the progress bar dialog in the old style */
 	  if (entertainment.sub_title && !entertainment.strong_main_title)
 	    gtk_label_set_text (GTK_LABEL (entertainment.main_label),
 				entertainment.sub_title);
@@ -901,8 +907,8 @@ entertainment_update_title ()
 	}
       else
 	{
-	  /* In red-pill mode, show the main title and the subtitle
-	     at the same time, over and below the progress bar */
+	  /* Show the main title and the subtitle at the same time,
+             over and below the progress bar */
 
 	  /* Set the main title */
 	  if (entertainment.main_title)
@@ -1029,8 +1035,8 @@ start_entertaining_user ()
       entertainment.bar = gtk_progress_bar_new ();
       gtk_box_pack_start (GTK_BOX (box), entertainment.bar, FALSE, FALSE, 0);
 
-      /* Add the subtitle label (only in red-pill mode) */
-      if (red_pill_mode)
+      /* Add the subtitle label if requested. */
+      if (entertainment_subtitles)
 	{
 	  entertainment.sub_label = gtk_label_new (entertainment.sub_title);
 	  gtk_label_set_text (GTK_LABEL (entertainment.sub_label), entertainment.sub_title);
