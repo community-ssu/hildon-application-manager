@@ -196,7 +196,6 @@ create_menu (HildonWindow *window)
   GtkWidget *item;
   GtkWidget *restore_item;
   GtkAccelGroup *accel_group;
-  GError *error = NULL;
   xexp *restore_backup = NULL;
 
   accel_group = gtk_accel_group_new ();
