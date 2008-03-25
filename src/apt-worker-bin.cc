@@ -5374,7 +5374,11 @@ do_rescue (const char *package, const char *download_root)
 
   fprintf (stderr, "Rescuing %s\n", package);
 
-  run_system (true, "dpkg --configure -a");
+  /* This is just to clean the dpkg journal.  We let libapt-pkg
+     configure the rest of the packages since we will get better
+     progress reporting that way.
+   */
+  run_system (true, "dpkg --configure dpkg");
 
   misc_init ();
 
