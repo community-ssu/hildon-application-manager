@@ -1583,7 +1583,7 @@ ip_reboot (void *data)
 {
   ip_clos *c = (ip_clos *)data;
 
-  annoy_user (_("ai_cb_restarting_device"), NULL, NULL);
+  irritate_user (_("ai_cb_restarting_device"));
 
   /* We need to get the package list before rebooting so that the
      "seen updates" state is stored correctly.
