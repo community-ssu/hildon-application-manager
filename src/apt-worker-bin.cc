@@ -100,6 +100,11 @@
 
 using namespace std;
 
+static void save_operation_record (const char *package,
+				   const char *download_root);
+static void erase_operation_record ();
+static xexp *read_operation_record ();
+
 /* Table of contents.
  
    COMPILE-TIME CONFIGURATION
@@ -151,6 +156,10 @@ using namespace std;
 /* Domain names associated with "OS" and "Nokia" updates */
 #define OS_UPDATES_DOMAIN_NAME "nokia-system"
 #define NOKIA_UPDATES_DOMAIN_NAME "nokia-certified"
+
+/* Where we keep a journal of the current operation
+ */
+#define CURRENT_OPERATION_FILE "/var/lib/hildon-application-manager/current-operation"
 
 /* You know what this means.
  */
@@ -681,6 +690,7 @@ send_response_raw (int cmd, int seq, void *response, size_t len)
    decreased, it has increased by more than MIN_CHANGE, it is equal to
    -1, LAST_TOTAL has changed, or OP has changed.
 */
+
 void
 send_status (int op, int already, int total, int min_change)
 {
@@ -745,6 +755,7 @@ void cmd_get_system_update_packages ();
 void cmd_flash_and_reboot ();
 
 int cmdline_check_updates (char **argv);
+int cmdline_rescue (char **argv);
 
 /** MANAGEMENT FOR FAILED CATALOGUES LOG FILE
  */
@@ -973,6 +984,7 @@ static void
 usage ()
 {
   fprintf (stderr, "Usage: apt-worker check-for-updates [http_proxy]\n");
+  fprintf (stderr, "       apt-worker rescue [package] [archives]\n");
   exit (1);
 }
 
@@ -1204,6 +1216,10 @@ main (int argc, char **argv)
       get_apt_worker_lock (true);
       misc_init ();
       return cmdline_check_updates (argv);
+    }
+  else if (!strcmp (argv[0], "rescue"))
+    {
+      return cmdline_rescue (argv);
     }
   else if (!strcmp (argv[0], "sleep"))
     {
@@ -1779,10 +1795,7 @@ mark_related (const pkgCache::VerIterator &ver)
 	  const pkgCache::PkgIterator &dep_pkg = D.TargetPkg ();
 	  const pkgCache::VerIterator &dep_ver = dep_pkg.CurrentVer ();
 	  if (!dep_ver.end())
-	    {
-	      // fprintf (stderr, "RECURSE RELATED: %s\n", dep_pkg.Name());
-	      mark_related (dep_ver);
-	    }
+	    mark_related (dep_ver);
 	}
     }
 }
@@ -3583,7 +3596,9 @@ cmd_set_catalogues ()
 static bool set_dir_cache_archives (const char *alt_download_root);
 static int operation (bool check_only,
 		      const char *alt_download_root,
-		      bool download_only);
+		      bool download_only,
+		      bool allow_download = true,
+		      bool with_status = true);
 
 /* APTCMD_INSTALL_CHECK
  *
@@ -3680,7 +3695,11 @@ cmd_install_package ()
   if (ensure_cache (true))
     {
       if (mark_named_package_for_install (package))
-	result_code = operation (false, alt_download_root, false);
+	{
+	  save_operation_record (package, alt_download_root);
+	  result_code = operation (false, alt_download_root, false);
+	  erase_operation_record ();
+	}
       else
 	result_code = rescode_packages_not_found;
     }
@@ -4156,7 +4175,11 @@ set_dir_cache_archives (const char *alt_download_root)
  */
 
 static int
-operation (bool check_only, const char *alt_download_root, bool download_only)
+operation (bool check_only,
+	   const char *alt_download_root,
+	   bool download_only,
+	   bool allow_download,
+	   bool with_status)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   pkgCacheFile &Cache = *(state->cache);
@@ -4190,21 +4213,12 @@ operation (bool check_only, const char *alt_download_root, bool download_only)
   if (_error->PendingError() == true)
     return rescode_failure;
 
-  /* If alt_download_root is set, then use that path if possible */
-  if (alt_download_root != NULL && !state->using_alt_archives_dir)
+  if (!set_dir_cache_archives (alt_download_root))
     {
-      /* Set alternative location if it's not previously set */
-      if (!set_dir_cache_archives (alt_download_root))
-	{
-	  /* Log error, but keep working with default value */
-	  fprintf (stderr,
-		   "Failed using a MMC to download packages. Using default.\n");
-	}
-    }
-  else if (alt_download_root == NULL && state->using_alt_archives_dir)
-    {
-      /* Restore default location if requested */
-      set_dir_cache_archives (NULL);
+      /* Log error, but keep working with default value */
+      fprintf (stderr,
+	       "Failed using %s to download packages. Using default.\n",
+	       alt_download_root);
     }
 
   // Lock the archive directory
@@ -4221,7 +4235,7 @@ operation (bool check_only, const char *alt_download_root, bool download_only)
 
   // Create the download object
   DownloadStatus Stat;
-  pkgAcquire Fetcher (&Stat);
+  pkgAcquire Fetcher (with_status? &Stat : NULL);
 
   // Read the source list
   pkgSourceList List;
@@ -4265,14 +4279,33 @@ operation (bool check_only, const char *alt_download_root, bool download_only)
 
   collect_new_domains ();
 
-  /* Send a status report now if we are going to download
-     something.  This makes sure that the progress dialog is
-     shown even if the first pulse of the fetcher takes a long
-     time to arrive.
-  */
-
   if ((int)(FetchBytes - FetchPBytes) > 0)
-    send_status (op_downloading, 0, (int)(FetchBytes - FetchPBytes), 0);
+    {
+      if (!allow_download)
+	{
+	  log_stderr ("would need to download, but it's not allowed");
+
+#ifdef DEBUG
+	  for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
+	       I != Fetcher.ItemsEnd(); I++)
+	    {
+	      fprintf (stderr, "Would download %s\n",
+		       (*I)->DescURI().c_str());
+	    }
+#endif
+
+	  return rescode_packages_not_found;
+	}
+
+      /* Send a status report now if we are going to download
+	 something.  This makes sure that the progress dialog is
+	 shown even if the first pulse of the fetcher takes a long
+	 time to arrive.
+      */
+
+      if (with_status)
+	send_status (op_downloading, 0, (int)(FetchBytes - FetchPBytes), 0);
+    }
 
   if (Fetcher.Run() == pkgAcquire::Failed)
     return rescode_failure;
@@ -4315,11 +4348,22 @@ operation (bool check_only, const char *alt_download_root, bool download_only)
   if (result != rescode_success)
     return (result == rescode_failure)?rescode_download_failed:result;
 
-  send_status (op_general, -1, 0, 0); 
+  /* Make sure that all the packages are written to disk before
+     proceeding.  This helps with retrying the operation in case it is
+     interrupted.
+  */
+
+  if (with_status)
+    send_status (op_downloading, -1, 0, 0); 
+  
+  sync ();
 
   /* Install packages if not just downloading */
   if (!download_only)
     {
+      if (with_status)
+	send_status (op_general, -1, 0, 0); 
+
       /* Do install */
       _system->UnLock();
       pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
@@ -5080,4 +5124,315 @@ void
 cmd_flash_and_reboot ()
 {
   system ("/usr/bin/flash-and-reboot --yes");
+}
+
+/* Rescue
+ */
+
+static void
+save_operation_record (const char *package, const char *download_root)
+{
+  xexp *record = xexp_list_new ("install");
+  xexp_aset_text (record, "package", package);
+  xexp_aset_text (record, "download-root", download_root);
+  xexp_write_file (CURRENT_OPERATION_FILE, record);
+  xexp_free (record);
+}
+
+static void
+erase_operation_record ()
+{
+  unlink (CURRENT_OPERATION_FILE);
+}
+
+static xexp *
+read_operation_record ()
+{
+  struct stat buf;
+
+  /* This check is not strictly necessary but it avoid a distracting
+     complaint from xexp_read_file in the common case that the file
+     doesn't exist.
+  */
+  if (stat (CURRENT_OPERATION_FILE, &buf))
+    return NULL;
+
+  return xexp_read_file (CURRENT_OPERATION_FILE);
+}
+
+static int
+run_system (bool verbose, const char *fmt, ...)
+{
+  va_list ap;
+  va_start (ap, fmt);
+  char *cmd = g_strdup_vprintf (fmt, ap);
+  va_end (ap);
+
+  if (verbose)
+    fprintf (stderr, "+ %s\n", cmd);
+  int result = system (cmd);
+  free (cmd);
+
+  return result;
+}
+
+static int
+rescue_operation_with_dir (const char *dir)
+{
+  int result;
+
+  fprintf (stderr, "Rescuing from %s\n", dir);
+  result = operation (false, dir, false, false, false);
+  fprintf (stderr, "Result code %d\n", result);
+  return result;
+}
+
+static int
+rescue_operation_with_dev (const char *dev)
+{
+  const char *dir = "/rescue";
+  
+  fprintf (stderr, "Rescuing from %s\n", dev);
+
+  if (mkdir (dir, 0777) < 0
+      && errno != EEXIST)
+    log_stderr ("%s: %m", dir);
+
+  run_system (true, "mount -t vfat '%s' '%s'", dev, dir);
+  int result = rescue_operation_with_dir (dir);
+  run_system (true, "umount '%s'", dir);
+
+  if (rmdir (dir) < 0)
+    log_stderr ("%s: %m", dir);
+
+  return result;
+}
+
+static int
+rescue_operation_with_devnode (int major, int minor)
+{
+  const char *node = "/dev.rescue";
+
+  if (mknod (node, S_IFBLK | 0600, major << 8 | minor) < 0)
+    log_stderr ("%s: %m", node);
+
+  fprintf (stderr, "Rescuing from %d:%d\n", major, minor);
+
+  int result = rescue_operation_with_dev (node);
+
+  unlink (node);
+
+  return result;
+}
+
+static const char* rescue_devs[] = {
+  "/dev/mmcblk0p1",
+  "/dev/mmcblk1p1",
+  "/dev/mmcblk0",
+  "/dev/mmcblk1",
+  NULL
+};
+
+static int
+rescue_with_all_devs ()
+{
+  int result = rescode_packages_not_found;
+
+  for (int i = 0;
+       (result == rescode_packages_not_found
+	&& rescue_devs[i] != NULL);
+       i++)
+    {
+      result = rescue_operation_with_dev (rescue_devs[i]);
+    }
+
+  return result;
+}
+
+static struct {
+  int major, minor;
+} rescue_devnodes[] = {
+  { 254, 9 },
+  { 254, 1 },
+  { 254, 8 },
+  { 254, 0 },
+  -1
+};
+
+static int
+rescue_with_all_devnodes ()
+{
+  int result = rescode_packages_not_found;
+
+  for (int i = 0;
+       (result == rescode_packages_not_found
+	&& rescue_devnodes[i].major != -1);
+       i++)
+    {
+      result = rescue_operation_with_devnode (rescue_devnodes[i].major,
+					      rescue_devnodes[i].minor);
+    }
+
+  return result;
+}
+
+static void
+show_fb_text (int line, const char *text)
+{
+  run_system (false,
+	      "chroot /mnt/initfs/ text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%s'",
+	      400 + 20*line, text);
+}
+
+static void
+show_fb_status (int percent)
+{
+  run_system (false,
+	      "chroot /mnt/initfs/ text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%3d%%'",
+	      440, percent);
+}
+
+static void
+interpret_pmstatus (char *str)
+{
+  float percentage;
+  char *title;
+
+  if (!strncmp (str, "pmstatus:", 9))
+    {
+      str += 9;
+      str = strchr (str, ':');
+      if (str == NULL)
+	return;
+      str += 1;
+      percentage = atof (str);
+      str = strchr (str, ':');
+      if (str == NULL)
+	title = "Working";
+      else
+	{
+	  str += 1;
+	  title = str;
+	}
+
+      show_fb_status ((int)percentage);
+      // show_fb_text (2, title);
+    }
+}
+
+static void
+fork_progress_process ()
+{
+  int fds[2], child_pid;
+
+  if (pipe (fds) < 0)
+    {
+      perror ("pipe");
+      return;
+    }
+
+  if ((child_pid = fork ()) < 0)
+    {
+      perror ("fork");
+      return;
+    }
+
+  if (child_pid == 0)
+    {
+      close (fds[1]);
+      FILE *f = fdopen (fds[0], "r");
+      if (f)
+	{
+	  char *line = NULL;
+	  size_t len = 0;
+	  ssize_t n;
+
+	  while ((n = getline (&line, &len, f)) != -1)
+	    {
+	      if (n > 0 && line[n-1] == '\n')
+		line[n-1] = '\0';
+
+	      interpret_pmstatus (line);
+	    }
+	}
+      exit (0);
+    }
+  else
+    {
+      close (fds[0]);
+      status_fd = fds[1];
+    }
+}
+
+static void
+do_rescue (const char *package, const char *download_root)
+{
+  show_fb_text (0, "Rescuing software update.");
+  show_fb_text (1, "Please do not interrupt.");
+
+  fork_progress_process ();
+
+  fprintf (stderr, "Rescuing %s\n", package);
+
+  run_system (true, "dpkg --configure -a");
+
+  misc_init ();
+
+  ensure_state (APTSTATE_DEFAULT);
+  if (ensure_cache (false))
+    {
+      if (mark_named_package_for_install (package))
+	{
+	  int result = rescue_operation_with_dir (download_root);
+
+	  if (result == rescode_packages_not_found)
+	    result = rescue_with_all_devs ();
+
+	  if (result == rescode_packages_not_found)
+	    result = rescue_with_all_devnodes ();
+
+	  if (result == rescode_packages_not_found)
+	    return;
+
+	  if (result != rescode_success)
+	    {
+	      _system->UnLock();
+	      run_system (true, "dpkg --configure -a --force-all");
+	      _system->Lock();
+	    }
+
+	  run_system (true, "/usr/bin/flash-and-reboot --yes");
+	  run_system (true, "/sbin/reboot");
+	}
+      else
+	fprintf (stderr, "Package %s not found\n", package);
+    }
+  else
+    fprintf (stderr, "Failed to initialize package cache\n");
+}
+
+int
+cmdline_rescue (char **argv)
+{
+  if (argv[1] == NULL)
+    {
+      xexp *record = read_operation_record ();
+
+      if (record == NULL)
+	{
+	  fprintf (stderr, "Nothing to rescue.\n");
+	  return 0;
+	}
+      
+      erase_operation_record ();
+      
+      const char *package = xexp_aref_text (record, "package");
+      const char *download_root = xexp_aref_text (record, "download-root");
+      
+      do_rescue (package, download_root);
+    }
+  else
+    do_rescue (argv[1], argv[2]);
+      
+  return 0;
 }
