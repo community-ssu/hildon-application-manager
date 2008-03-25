@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.1.8~unreleased) unstable; urgency=low
+
+  * 
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 25 Mar 2008 23:54:37 +0200
+
 hildon-application-manager (1:2.1.7) unstable; urgency=low
 
   * Invoke the new apt-worker rescue command from inittab.
@@ -5,7 +11,7 @@ hildon-application-manager (1:2.1.7) unstable; urgency=low
   * Fixes: NB#81874, NB#81739, NB#82048, NB#81445, NB#82179, NB#82316.
   * Fixes: NB#80831, NB#81462, NB#81709, NB#82152, NB#82785, NB#82556.
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 28 Feb 2008 13:32:24 +0200
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 25 Mar 2008 23:54:37 +0200
 
 hildon-application-manager (1:2.1.6) unstable; urgency=low
 
