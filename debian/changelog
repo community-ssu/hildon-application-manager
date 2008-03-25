@@ -1,5 +1,7 @@
 hildon-application-manager (1:2.1.7~unreleased) unstable; urgency=low
 
+  * Invoke the new apt-worker rescue command from inittab.
+  
   * Fixes: NB#80835, NB#81329, NB#80685, NB#81835, NB#81724, NB#81838.
   * Fixes: NB#81874, NB#81739, NB#82048, NB#81445, NB#82179, NB#82316.
   * Fixes: NB#80831, NB#81462, NB#81709, NB#82152, NB#82785, NB#82556.

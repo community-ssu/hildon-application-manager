@@ -1,5 +1,24 @@
 2008-03-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Added the apt-worker "rescue" command.
+
+	* src/apt-worker-bin.cc (save_operation_record)
+	(erase_operation_record, read_operation_record)
+	(CURRENT_OPERATION_FILE): New, for keeping a journal of the
+	current operation.
+	(cmd_install_package): Use them.
+	(operation): Added optional "allow_download" and "with_status"
+	parameter.  Call set_dir_cache_archives unconditionally.  Call
+	sync() after downloading so that we have a better chance of
+	finding all packages when rescuing this operation.
+	(run_system, rescue_operation_with_dir, rescue_operation_with_dev)
+	(rescue_operation_with_devnode, rescue_with_all_devs)
+	(rescue_with_all_devnodes, show_fb_text, show_fb_status)
+	(interpret_pmstatus, fork_progress_process, do_rescue)
+	(cmdline_rescue): New.
+	(usage, main): Recognize "rescue" command and call cmdline_rescue
+	for it.
+
 	* src/util.cc (entertainment_subtitles): New, to control which
 	variant of the entertainment dialog is used.
 	(entertainment_update_title, start_entertaining_users): Use it
