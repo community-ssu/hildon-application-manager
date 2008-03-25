@@ -1,5 +1,10 @@
 2008-03-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.cc (entertainment_subtitles): New, to control which
+	variant of the entertainment dialog is used.
+	(entertainment_update_title, start_entertaining_users): Use it
+	instead of red_pill_mode.
+
 	* src/menu.cc (create_menu): Remove unused GError variable.
 
 	* src/operations.cc (ip_reboot): Use a information banner instead
