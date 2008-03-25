@@ -1,5 +1,7 @@
 2008-03-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.7
+
 	Added the apt-worker "rescue" command.
 
 	* src/apt-worker-bin.cc (save_operation_record)
