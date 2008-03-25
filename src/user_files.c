@@ -58,6 +58,9 @@ user_file_open_for_read (const gchar *name)
   gchar *new_path = NULL;
   gchar *full_state_dir = NULL;
 
+  if (name == NULL)
+    return NULL;
+  
   full_state_dir = user_file_get_state_dir_path ();
   if (full_state_dir == NULL)
     return NULL;
@@ -73,38 +76,19 @@ user_file_open_for_read (const gchar *name)
   new_path = g_strdup_printf ("%s/%s", full_state_dir, name);
   stat_result = stat (new_path, &buf);
 
-  if (stat_result && old_file)
-    {
-      /* If new file was not found, but an old one was, copy it into
-	 the right place before removing it */
-      FILE *f_old = NULL;
-      FILE *f_new = NULL;
-      gchar *str = NULL;
-      size_t len = 0;
-      ssize_t n;
-
-      f_old = fopen (old_path, "r");
-      f_new = fopen (new_path, "w");
-
-      if (f_old != NULL && f_new != NULL)
-	{
-	  n = getline (&str, &len, f_old);
-	  while (n && n != -1)
-	    {
-	      fputs (str, f_new);
-	      n = getline (&str, &len, f_old);
-	    }
-
-	  fclose (f_old);
-	  fclose (f_new);
-	}
-
-      free (str);
-    }
-
-  /* Remove the old file if it was found */
   if (old_file)
-    unlink (old_path);
+    {
+      if (stat_result) 
+        {
+          /* If new file was not found, but an old one was, move the old one */
+          rename (old_path, new_path);
+        }
+      else
+        {
+          /* Remove the old file if it was found */
+          unlink (old_path);
+        }
+    }
 
   f = fopen (new_path, "r");
 

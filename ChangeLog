@@ -1,3 +1,9 @@
+2008-03-25  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* user_files.c (user_file_open_for_read) : substitute problematic
+	piece of code to copy two files with a single call to rename()
+	(N82556).
+
 2008-03-24  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* main.cc (create_toolbar) : put the "Search" button before the
