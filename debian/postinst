@@ -19,16 +19,16 @@ else
   rm -f /tmp/sources.list-preinst-backup || true
 fi
 
-add_sudoer ()
+add_inittab ()
 {
     line="$1"
-    if ! grep -F -q "$line" /etc/sudoers; then
+    if ! grep -F -q "$line" /etc/inittab; then
 	echo "+$line"
-	chmod u+w /etc/sudoers # *cough*
-	echo "$line" >>/etc/sudoers
-	chmod u-w /etc/sudoers
+	echo "$line" >>/etc/inittab
     fi
 }
+
+add_inittab "resc::bootwait:/usr/libexec/apt-worker.bin rescue"
 
 ## Migrate some files to their new names.
 
