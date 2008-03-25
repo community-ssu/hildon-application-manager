@@ -1,3 +1,10 @@
+2008-03-25  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/menu.cc (create_menu): Remove unused GError variable.
+
+	* src/operations.cc (ip_reboot): Use a information banner instead
+	of a information note to announce the imminent restart.
+
 2008-03-25  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* user_files.c (user_file_open_for_read) : substitute problematic
