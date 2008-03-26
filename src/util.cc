@@ -1575,6 +1575,8 @@ global_package_list_key_pressed (GtkWidget * widget,
 				 GdkEventKey * event)
 {
   GtkTreePath *cursor_path = NULL;
+  GtkTreeIter iter;
+  bool result = FALSE;
 
   switch (event->keyval)
     {
@@ -1610,8 +1612,7 @@ global_package_list_key_pressed (GtkWidget * widget,
                     gtk_widget_grab_focus (GTK_WIDGET (last_child->data));
 
                   g_list_free (children);
-                  gtk_tree_path_free(cursor_path);
-                  return TRUE;
+		  result = TRUE;
                 }
             }
 
@@ -1619,9 +1620,23 @@ global_package_list_key_pressed (GtkWidget * widget,
         }
 
       break;
+    case HILDON_HARDKEY_DOWN:
+      /* Avoid to jump to the trail when pressing down while in the last item */
+      gtk_tree_view_get_cursor (GTK_TREE_VIEW (widget), &cursor_path, NULL);
+      if (cursor_path)
+	{
+	  gtk_tree_model_get_iter (GTK_TREE_MODEL (global_list_store),
+				   &iter,
+				   cursor_path);
+
+	  result = !gtk_tree_model_iter_next (GTK_TREE_MODEL (global_list_store),
+					      &iter);
+
+	  gtk_tree_path_free(cursor_path);
+	}
     }
 
-  return FALSE;
+  return result;
 }
 
 GtkWidget *

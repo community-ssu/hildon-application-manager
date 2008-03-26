@@ -1,3 +1,9 @@
+2008-03-26  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (global_package_list_key_pressed): Avoid jumping to
+	the breadcrumb trail when pressing the down hardkey while in the last
+	item of the packages list (N80270).
+
 2008-03-25  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.7
