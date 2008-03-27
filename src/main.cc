@@ -678,17 +678,9 @@ compare_package_installed_names (gconstpointer a, gconstpointer b)
   package_info *pi_a = (package_info *)a;
   package_info *pi_b = (package_info *)b;
 
-  gint result =
-    compare_system_updates (pi_a, pi_b);
-
-  if (!result)
-    {
-      result = package_sort_sign *
-	g_ascii_strcasecmp (pi_a->get_display_name (true),
-			    pi_b->get_display_name (true));
-    }
-
-  return result;
+  return package_sort_sign *
+    g_ascii_strcasecmp (pi_a->get_display_name (true),
+			pi_b->get_display_name (true));
 }
 
 static gint
@@ -723,16 +715,7 @@ compare_package_installed_versions (gconstpointer a, gconstpointer b)
   package_info *pi_a = (package_info *)a;
   package_info *pi_b = (package_info *)b;
 
-  gint result =
-    compare_system_updates (pi_a, pi_b);
-
-  if (!result)
-    {
-      result =
-	compare_versions (pi_a->installed_version, pi_b->installed_version);
-    }
-
-  return result;
+  return compare_versions (pi_a->installed_version, pi_b->installed_version);
 }
 
 static gint
@@ -759,17 +742,8 @@ compare_package_installed_sizes (gconstpointer a, gconstpointer b)
   package_info *pi_a = (package_info *)a;
   package_info *pi_b = (package_info *)b;
 
-  gint result =
-    compare_system_updates (pi_a, pi_b);
-
-  if (!result)
-    {
-      result =
-	(package_sort_sign *
-	 (pi_a->installed_size - pi_b->installed_size));
-    }
-
-  return result;
+  return (package_sort_sign *
+	  (pi_a->installed_size - pi_b->installed_size));
 }
 
 static gint

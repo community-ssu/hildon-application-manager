@@ -1,3 +1,12 @@
+2008-03-27  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (compare_package_installed_names): Don't call to
+	compare_system_updates in order not to make the OS package to be
+	always on top of a packages list under a view different than
+	"Check for updates" view (83096).
+	(compare_package_installed_versions): Likewise (83096).
+	(compare_package_installed_sizes): Likewise (83096).
+
 2008-03-26  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (global_package_list_key_pressed): Avoid jumping to
