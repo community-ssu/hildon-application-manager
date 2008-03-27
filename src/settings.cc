@@ -255,12 +255,12 @@ show_settings_dialog_flow ()
       GtkWidget *dialog;
       settings_closure *c = new settings_closure;
       
-      dialog = gtk_dialog_new_with_buttons (_("Settings"),
+      dialog = gtk_dialog_new_with_buttons ("Settings",
 					    NULL,
 					    GTK_DIALOG_MODAL,
-					    _("OK"),
+					    "Ok",
 					    GTK_RESPONSE_OK,
-					    _("Cancel"),
+					    "Cancel",
 					    GTK_RESPONSE_CANCEL,
 					    NULL);
       push_dialog (dialog);

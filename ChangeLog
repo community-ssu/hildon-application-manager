@@ -1,3 +1,9 @@
+2008-03-27  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/settings.cc (show_settings_dialog_flow): Do not pass button
+	labels through gettext.  They are not translated and just confuse
+	the l10n checker.
+
 2008-03-27  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (compare_package_installed_names): Don't call to
