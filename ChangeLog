@@ -1,3 +1,8 @@
+2008-03-27  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* main.h (struct package_info) : make installed_size field of type
+	int64_t instead of int (N82350).
+
 2008-03-27  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/settings.cc (show_settings_dialog_flow): Do not pass button

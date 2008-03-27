@@ -61,7 +61,7 @@ struct package_info {
   char *name;
   bool broken;
   char *installed_version;
-  int installed_size;
+  int64_t installed_size;
   char *installed_section;
   char *installed_pretty_name;
   char *available_version;
