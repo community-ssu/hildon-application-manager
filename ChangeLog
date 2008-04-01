@@ -1,5 +1,11 @@
 2008-04-01  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
+	* repo.cc (insensitive_cat_edit_press): show a banner with
+	"ai_ib_unable_edit"
+	(show_catalogue_dialog): on "insensitive_press" on the Edit
+	button, a banner is shown using insensitive_cat_edit_press()
+	(N83422).
+
 	* xexp.c (xexp_rest, xexp_rest, xexp_is_text): NULL ckeck.
 	Partial fix for N83462.
 

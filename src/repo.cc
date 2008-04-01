@@ -1004,6 +1004,19 @@ insensitive_cat_delete_press (GtkButton *button, gpointer data)
 }
 
 static void
+insensitive_cat_edit_press (GtkButton *button, gpointer data)
+{
+  cat_dialog_closure *c = (cat_dialog_closure *)data;
+
+  GtkTreeModel *model;
+  GtkTreeIter iter;
+
+  if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (c->tree),
+                                       &model, &iter))
+    irritate_user (_("ai_ib_unable_edit"));
+}
+
+static void
 scd_get_catalogues_reply (xexp *catalogues, void *data)
 {
   cat_dialog_closure *c = (cat_dialog_closure *)data;
@@ -1079,6 +1092,9 @@ show_catalogue_dialog (xexp *catalogues,
       gtk_widget_set_sensitive (c->delete_button, FALSE);
       g_signal_connect (c->delete_button, "insensitive_press",
 			G_CALLBACK (insensitive_cat_delete_press), c);
+
+      g_signal_connect (c->edit_button, "insensitive_press",
+                        G_CALLBACK (insensitive_cat_edit_press), c);
 
       set_dialog_help (dialog, AI_TOPIC ("repository"));
     }
