@@ -40,6 +40,8 @@ struct xexp {
 xexp *
 xexp_rest (xexp *x)
 {
+  g_return_val_if_fail (x != NULL, NULL);
+
   return x->rest;
 }
 
@@ -244,6 +246,8 @@ xexp_list_map (xexp *x, xexp * (*xexp_map_func) (xexp *x))
 int
 xexp_is_list (xexp *x)
 {
+  g_return_val_if_fail (x != NULL, FALSE);
+
   return x->text == NULL;
 }
 
@@ -390,6 +394,8 @@ xexp_text_newn (const char *tag, const char *text, int len)
 int
 xexp_is_text (xexp *x)
 {
+  g_return_val_if_fail (x != NULL, FALSE);
+
   return x->first == NULL;
 }
 

@@ -1,5 +1,8 @@
 2008-04-01  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
+	* xexp.c (xexp_rest, xexp_rest, xexp_is_text): NULL ckeck.
+	Partial fix for N83462.
+
 	* src/util.cc : defined ENTERTAINMENT_LABEL_MAX_WIDTH, the max. width
 	of the title label in the entertainment dialog.
 	(start_entertaining_user, entertainment_update_title): if the title
