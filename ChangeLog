@@ -1,3 +1,14 @@
+2008-04-01  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/util.cc : defined ENTERTAINMENT_LABEL_MAX_WIDTH, the max. width
+	of the title label in the entertainment dialog.
+	(start_entertaining_user, entertainment_update_title): if the title
+	label is wider than ENTERTAINMENT_LABEL_MAX_WIDTH it will be
+	ellipsized and its required width will be the same as if it hadn't
+	been ellipsized (ellipsized labels only require size for the '...',
+	so by doing this we force the resizing of the dialog). This is an
+	improvement on the fix for N83057.
+
 2008-04-01  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/update-notifier.c (str_substitute): Handle NULL strings

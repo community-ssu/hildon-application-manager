@@ -73,6 +73,7 @@ static void *idle_data = NULL;
 
 #define ENTERTAINMENT_DIALOG_MIN_WIDTH 400
 #define ENTERTAINMENT_DIALOG_MAX_WIDTH 700
+#define ENTERTAINMENT_LABEL_MAX_WIDTH  700 - HILDON_MARGIN_DOUBLE*2
 
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
@@ -940,17 +941,15 @@ entertainment_update_title ()
       /* Set ellipsize for the main_label */
       gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
 			      PANGO_ELLIPSIZE_NONE);
-      /* the following tries to deal with very long strings (> ~700px),
-       * so it shouldn't really be used in practice; anyway, it makes
-       * them require the max. width of the dialog and then ellipsize
-       * at the end */
+      /* very long strings are ellipsized at the end;
+       * we don't do this with shorter strings, to force the resizing of the dialog */
       gtk_widget_size_request (entertainment.main_label, &req);
       if (req.width > ENTERTAINMENT_DIALOG_MAX_WIDTH)
 	{
 	  gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
 				  PANGO_ELLIPSIZE_END);
 	  gtk_widget_set_size_request (entertainment.main_label,
-				       ENTERTAINMENT_DIALOG_MAX_WIDTH, -1);
+	                               req.width, -1);
 	}
     }
 }
@@ -1024,12 +1023,12 @@ start_entertaining_user ()
       gtk_label_set_ellipsize (GTK_LABEL (entertainment.main_label),
 			       PANGO_ELLIPSIZE_NONE);
       gtk_widget_size_request (entertainment.main_label, &req);
-      if (req.width > ENTERTAINMENT_DIALOG_MAX_WIDTH)
+      if (req.width > ENTERTAINMENT_LABEL_MAX_WIDTH)
         {
           gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
                                   PANGO_ELLIPSIZE_END);
           gtk_widget_set_size_request (entertainment.main_label,
-                                       ENTERTAINMENT_DIALOG_MAX_WIDTH, -1);
+                                       req.width, -1);
         }
 
       gtk_box_pack_start (GTK_BOX (box), entertainment.main_label, TRUE, TRUE, 0);
