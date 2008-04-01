@@ -1589,7 +1589,8 @@ str_substitute (const gchar *url, const gchar *code, const gchar *value)
   gint pos = -1;
   gint max_iterations = -1;
 
-  g_return_val_if_fail (url != NULL, NULL);
+  if (url == NULL)
+    return NULL;
 
   max_iterations = strlen (url);
   string = g_string_new (url);
