@@ -1,8 +1,16 @@
 2008-04-01  Mario Sanchez Prada  <msanchez@maemo.org>
 
-	* src/util.cc (entertainment_update_title): Moved code for
+	* src/util.h, src/util.cc (entertainment_update_title): Moved code for
 	ellipsizing the main title text, and better setting the size of
 	dialog to its right place (N83057).
+	(show_file_chooser_for_save): Added a new parameter to allow
+	setting the default folder from the calling fuction (N80933).
+
+	* src/log.cc (gchar *last_save_log_dir): New global variable to
+	store the last accesed path for saving the log (N80933).
+	(save_log): Store the last path used for saving the log (N80933).
+	(log_response): If there's a path available to use as the last
+	path used, use it, otherwise use $HOME/Mydocs/.documents (N80933).
 
 2008-03-27  Felipe Erias Morandeira  <femorandeira@maemo.org>
 

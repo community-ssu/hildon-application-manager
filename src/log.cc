@@ -38,6 +38,7 @@
 #define _(x) gettext (x)
 
 static GString *log_text = NULL;
+static gchar *last_save_log_dir = NULL;
 
 enum {
   RESPONSE_SAVE = 1,
@@ -120,6 +121,12 @@ save_log (char *uri, void *data)
       return;
     }
 
+  /* Store the last path used for saving the log */
+  if (last_save_log_dir == NULL)
+    g_free (last_save_log_dir);
+
+  last_save_log_dir = g_path_get_dirname (uri);
+
   /* XXX - Using gnome_vfs_create with exclusive == true to check for
            file existence doesn't work with obex.  Why am I not
            surprised?
@@ -165,12 +172,22 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
 
   if (response == RESPONSE_SAVE)
     {
+      const char *home = getenv ("HOME");
+      char *folder = NULL;
       char *name = g_strconcat (_("ai_li_save_log_default_name"), ".txt",
 				NULL);
+
+      if (last_save_log_dir)
+	folder = g_strdup (last_save_log_dir);
+      else if (home)
+	folder = g_strdup_printf ("%s/MyDocs/.documents", home);
+
       show_file_chooser_for_save (_("ai_ti_save_log"),
 				  GTK_WINDOW (dialog),
+				  folder,
 				  name,
 				  save_log, NULL);
+      g_free (folder);
       g_free (name);
     }
 

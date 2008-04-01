@@ -2439,6 +2439,7 @@ show_deb_file_chooser (void (*cont) (char *uri, void *data),
 void
 show_file_chooser_for_save (const char *title,
 			    GtkWindow *parent,
+			    const char *default_folder,
 			    const char *default_filename,
 			    void (*cont) (char *uri, void *data),
 			    void *data)
@@ -2458,13 +2459,9 @@ show_file_chooser_for_save (const char *title,
   gtk_window_set_modal (GTK_WINDOW (fcd), TRUE);
 
   gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (fcd), default_filename);
-  const char *home = getenv ("HOME");
-  if (home)
-    {
-      char *folder = g_strdup_printf ("%s/MyDocs/.documents", home);
-      gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (fcd), folder);
-      g_free (folder);
-    }
+
+  if (default_folder)
+    gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (fcd), default_folder);
 
   g_signal_connect (fcd, "response",
 		    G_CALLBACK (fcd_response), c);

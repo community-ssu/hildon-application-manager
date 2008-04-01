@@ -444,6 +444,7 @@ void show_deb_file_chooser (void (*cont) (char *uri, void *data),
 */
 void show_file_chooser_for_save (const char *title,
 				 GtkWindow *parent,
+				 const char *default_folder,
 				 const char *default_filename,
 				 void (*cont) (char *uri, void *data),
 				 void *data);
