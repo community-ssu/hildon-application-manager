@@ -271,6 +271,7 @@ struct cat_dialog_closure {
 
   GtkTreeView *tree;
   GtkListStore *store;
+  GtkWidget *new_button;
   GtkWidget *edit_button;
   GtkWidget *delete_button;
 
@@ -850,6 +851,8 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
   *catptr = NULL;
 
   gtk_tree_path_free (path_to_select);
+  
+  /* TODO set sensitive the "New" button */
 }
 
 static void
@@ -1032,6 +1035,8 @@ scd_get_catalogues_reply (xexp *catalogues, void *data)
   c->showing_catalogues = true;
   refresh_cat_list (c);
 
+  gtk_widget_set_sensitive (c->new_button, TRUE);
+
   /* Prevent the 'Updating' banner from being shown */
   prevent_updating ();
 }
@@ -1070,8 +1075,9 @@ show_catalogue_dialog (xexp *catalogues,
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
   if (!show_only_errors)
-    gtk_dialog_add_button (GTK_DIALOG (dialog), 
-			   _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
+    c->new_button = 
+      gtk_dialog_add_button (GTK_DIALOG (dialog), 
+                             _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
 
   c->edit_button = 
     gtk_dialog_add_button (GTK_DIALOG (dialog), 
@@ -1086,6 +1092,7 @@ show_catalogue_dialog (xexp *catalogues,
 			 _("ai_bd_repository_close"), GTK_RESPONSE_CLOSE);
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
   
+  gtk_widget_set_sensitive (c->new_button, FALSE);
   gtk_widget_set_sensitive (c->edit_button, FALSE); 
   if (!show_only_errors)
     {

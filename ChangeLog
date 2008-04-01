@@ -1,5 +1,11 @@
 2008-04-01  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
+	* repo.cc (cat_dialog_closure): added a pointer to the "New" button
+	(show_catalogue_dialog): when the dialog is created, the "New" button
+	is insensitive
+	(scd_get_catalogues_reply): set the "New" button sensitive after the
+	repositories have been set. Partial fix for N83462.
+
 	* repo.cc (insensitive_cat_edit_press): show a banner with
 	"ai_ib_unable_edit"
 	(show_catalogue_dialog): on "insensitive_press" on the Edit
