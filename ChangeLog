@@ -1,3 +1,9 @@
+2008-04-01  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (entertainment_update_title): Moved code for
+	ellipsizing the main title text, and better setting the size of
+	dialog to its right place (N83057).
+
 2008-03-27  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* main.h (struct package_info) : make installed_size field of type

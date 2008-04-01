@@ -895,6 +895,8 @@ entertainment_update_title ()
 {
   if (entertainment.dialog)
     {
+      GtkRequisition req;
+
       if (!entertainment_subtitles)
 	{
 	  /* Show the progress bar dialog in the old style */
@@ -913,23 +915,8 @@ entertainment_update_title ()
 	  /* Set the main title */
 	  if (entertainment.main_title)
 	    {
-	      GtkRequisition req;
 	      gtk_label_set_text (GTK_LABEL (entertainment.main_label),
 				  entertainment.main_title);
-	      gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
-	                              PANGO_ELLIPSIZE_NONE);
-	      /* the following tries to deal with very long strings (> ~700px),
-	       * so it shouldn't really be used in practice; anyway, it makes
-	       * them require the max. width of the dialog and then ellipsize
-	       * at the end */
-	      gtk_widget_size_request (entertainment.main_label, &req);
-	      if (req.width > ENTERTAINMENT_DIALOG_MAX_WIDTH)
-	        {
-	          gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
-	                                  PANGO_ELLIPSIZE_END);
-	          gtk_widget_set_size_request (entertainment.main_label,
-	                                       ENTERTAINMENT_DIALOG_MAX_WIDTH, -1);
-	        }
 	    }
 	  else
 	    {
@@ -948,6 +935,22 @@ entertainment_update_title ()
 	      /* Reset the subtitle to an empty string */
 	      gtk_label_set_text (GTK_LABEL (entertainment.sub_label), "");
 	    }
+	}
+
+      /* Set ellipsize for the main_label */
+      gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
+			      PANGO_ELLIPSIZE_NONE);
+      /* the following tries to deal with very long strings (> ~700px),
+       * so it shouldn't really be used in practice; anyway, it makes
+       * them require the max. width of the dialog and then ellipsize
+       * at the end */
+      gtk_widget_size_request (entertainment.main_label, &req);
+      if (req.width > ENTERTAINMENT_DIALOG_MAX_WIDTH)
+	{
+	  gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
+				  PANGO_ELLIPSIZE_END);
+	  gtk_widget_set_size_request (entertainment.main_label,
+				       ENTERTAINMENT_DIALOG_MAX_WIDTH, -1);
 	}
     }
 }
