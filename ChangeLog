@@ -1,5 +1,16 @@
 2008-04-02  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.h, src/util.cc (set_entertainment_main_title): Added
+	'strong' argument for setting the strong_main_title attribute
+	explicitly.
+	(set_entertainment_main_title): Do not set the strong_main_title
+	attribute to false, that would defeat its purpose.
+	(ensure_network_cont): Reset subtitle since we are done.
+	* src/main.cc (refresh_package_cache_without_user): Make the main
+	title strong (N82724).
+
+	* src/dbus.cc (receive_battery_status_update): Initialize msg.
+
 	Do not store the update-notifier state in GConf (N83578).
 
 	* src/user_files.h (UFILE_UPDATE_NOTIFIER, UFILE_LAST_UPDATE):

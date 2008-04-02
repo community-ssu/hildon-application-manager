@@ -1116,7 +1116,7 @@ cancel_entertainment ()
 }
 
 void
-set_entertainment_main_title (const char *main_title)
+set_entertainment_main_title (const char *main_title, bool strong)
 {
   /* Free memory if needed */
   if (entertainment.main_title)
@@ -1125,7 +1125,7 @@ set_entertainment_main_title (const char *main_title)
       entertainment.main_title = NULL;
     }
 
-  entertainment.strong_main_title = true;
+  entertainment.strong_main_title = strong;
   entertainment.main_title = g_strdup (main_title);
   entertainment_update_title ();
 }
@@ -1140,7 +1140,6 @@ set_entertainment_sub_title (const char *sub_title)
       entertainment.sub_title = NULL;
     }
 
-  entertainment.strong_main_title = false;
   entertainment.sub_title = g_strdup (sub_title);
   entertainment_update_title ();
 }
@@ -3015,6 +3014,8 @@ ensure_network_cont (bool success)
 {
   void (*callback) (bool success, void *data) = en_callback;
   void *data = en_data;
+
+  set_entertainment_fun (NULL, -1, -1, 0);
 
   en_callback = NULL;
   en_data = NULL;

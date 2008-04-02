@@ -1252,7 +1252,7 @@ static void rpcwu_end (void *data);
 
 static entertainment_game rpcwu_games[] = {
   { op_downloading, 0.5 },
-  { op_general, 0.5 }
+  { op_general,     0.5 }
 };
 
 void
@@ -1267,9 +1267,9 @@ refresh_package_cache_without_user (const char *title,
   c->data = data;
   
   if (title)
-    set_entertainment_main_title (title);
+    set_entertainment_main_title (title, true);
   else
-    set_entertainment_main_title (_("ai_nw_checking_updates"));
+    set_entertainment_main_title (_("ai_nw_checking_updates"), true);
   set_entertainment_games (2, rpcwu_games);
   set_entertainment_fun (NULL, -1, -1, 0);
   start_entertaining_user ();
