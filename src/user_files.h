@@ -38,6 +38,8 @@ extern "C" {
 #define UFILE_AVAILABLE_NOTIFICATIONS "available-notifications"
 #define UFILE_AVAILABLE_NOTIFICATIONS_TMP   UFILE_AVAILABLE_NOTIFICATIONS ".tmp"
 #define UFILE_BOOT "boot"
+#define UFILE_UPDATE_NOTIFIER "update-notifier"
+#define UFILE_LAST_UPDATE "last-update"
 
 gchar *user_file_get_state_dir_path ();
 FILE *user_file_open_for_read (const gchar *name);

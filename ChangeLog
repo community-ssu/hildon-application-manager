@@ -1,5 +1,28 @@
 2008-04-02  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Do not store the update-notifier state in GConf (N83578).
+
+	* src/user_files.h (UFILE_UPDATE_NOTIFIER, UFILE_LAST_UPDATE):
+	New.
+	* src/update-notifier-conf.h (UPNO_GCONF_STATE,
+	(UPNO_GCONF_ALARM_COOKIE, UPNO_GCONF_LAST_UPDATE): Removed.
+	* src/main.cc (save_last_update_time, load_last_update_time): New.
+	(rpcwu_reply, maybe_refresh_package_cache_without_user): Use them
+	instead of the UPNO_GCONF_LAST_UPDATE key.
+	* src/update-notifier.c: Define _GNU_SOURCE to get the prototype
+	of getline.
+	(upno_state): New type.
+	(UpdateNotifierPrivate): Use it instead of just icon_state.
+	(load_state, save_state): New.
+	(set_icon_visibility): Don't store into GConf, call save_state
+	instead.
+	(update_icon_visibility): Don't look into GConf.
+	(setup_alarm): Likewise.
+	(gconf_state_changed): Removed.
+	(setup_gconf): Don't listen for UPNO_GCONF_STATE anymore.
+	(check_for_updates_done): Call save_last_update_time instead of
+	storing into GConf.
+
 	New program ham-after-boot that displays a information note when
 	the Application manager has restarted the device after a system
 	update. (N79211)

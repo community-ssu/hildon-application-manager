@@ -1219,6 +1219,27 @@ gpiib_done (package_info *pi, void *data, bool changed)
 /* REFRESH_PACKAGE_CACHE_WITHOUT_USER
  */
 
+static void
+save_last_update_time (time_t t)
+{
+  char *text = g_strdup_printf ("%d", t);
+  xexp *x = xexp_text_new ("time", text);
+  g_free (text);
+  user_file_write_xexp (UFILE_LAST_UPDATE, x);
+  xexp_free (x);
+}
+
+static int
+load_last_update_time ()
+{
+  int t = 0;
+  xexp *x = user_file_read_xexp (UFILE_LAST_UPDATE);
+  if (x && xexp_is_text (x) && xexp_is (x, "time"))
+    t = xexp_text_as_int (x);
+  xexp_free (x);
+  return t;
+}
+
 struct rcpwu_clos {
   int state;
   void (*cont) (bool keep_going, void *data);
@@ -1260,16 +1281,11 @@ static void
 rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   rcpwu_clos *c = (rcpwu_clos *)data;
-  GConfClient *conf;
 
   c->keep_going = !entertainment_was_cancelled ();
   stop_entertaining_user ();
 
-  conf = gconf_client_get_default ();
-
-  gconf_client_set_int (conf,
-			UPNO_GCONF_LAST_UPDATE, time (NULL),
-			NULL);
+  save_last_update_time (time (NULL));
 
   get_package_list_with_cont (c->state, rpcwu_end, c);
 }
@@ -1317,9 +1333,7 @@ maybe_refresh_package_cache_without_user ()
 
   conf = gconf_client_get_default ();
 
-  last_update = gconf_client_get_int (conf,
-				      UPNO_GCONF_LAST_UPDATE,
-				      NULL);
+  last_update = load_last_update_time ();
 
   interval = gconf_client_get_int (conf,
 				   UPNO_GCONF_CHECK_INTERVAL,

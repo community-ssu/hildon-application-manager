@@ -26,6 +26,8 @@
    - Plug all the leaks
 */
 
+#define _GNU_SOURCE
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -64,6 +66,14 @@
 
 #define UPDATE_NOTIFIER_GET_PRIVATE(object)(G_TYPE_INSTANCE_GET_PRIVATE ((object), UPDATE_NOTIFIER_TYPE, UpdateNotifierPrivate))
 
+/* The persistent state of the update notifier.  It is stored in
+   UFILE_UPDATE_NOTIFIER.
+*/
+typedef struct {
+  int icon_state;
+  int alarm_cookie;
+} upno_state;
+
 typedef struct _UpdateNotifierPrivate UpdateNotifierPrivate;
 struct _UpdateNotifierPrivate
 {
@@ -92,7 +102,7 @@ struct _UpdateNotifierPrivate
   int home_watch;
   int varlibham_watch;
 
-  int icon_state;
+  upno_state state;
   
   GMutex* notifications_thread_mutex;
 };
@@ -125,7 +135,7 @@ static gchar *get_http_proxy ();
 static void setup_inotify (UpdateNotifier *upno);
 static gboolean setup_alarm (UpdateNotifier *upno);
 
-static void update_icon_visibility (UpdateNotifier *upno, GConfValue *value);
+static void update_icon_visibility (UpdateNotifier *upno);
 static void update_state (UpdateNotifier *upno);
 
 static void show_check_for_updates_view (UpdateNotifier *upno);
@@ -142,6 +152,11 @@ static char *url_eval (const char *url);
 static gint str_find_pos (const gchar *haystack, const gchar *needle);
 static gchar *str_substitute (const gchar *url, const gchar *code, const gchar *value);
 static const char *get_osso_product_hardware ();
+
+static void load_state (UpdateNotifier *upno);
+static void save_state (UpdateNotifier *upno);
+
+static void save_last_update_time (time_t t);
 
 /* Initialization/destruction functions */
 
@@ -214,11 +229,11 @@ update_notifier_init (UpdateNotifier *upno)
 	g_signal_connect (priv->button, "toggled",
 			  G_CALLBACK (button_toggled), upno);
 
+      load_state (upno);
+
       setup_inotify (upno);
 
-      update_icon_visibility (upno, gconf_client_get (priv->gconf,
-						      UPNO_GCONF_STATE,
-						      NULL));
+      update_icon_visibility (upno);
       update_state (upno);
 
       /* We only setup the alarm after a one minute pause since the alarm
@@ -460,7 +475,7 @@ display_event_cb (osso_display_state_t state, gpointer data)
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
-  if (priv->icon_state == UPNO_ICON_BLINKING)
+  if (priv->state.icon_state == UPNO_ICON_BLINKING)
     {
 #if USE_BLINKIFIER
       if (state == OSSO_DISPLAY_OFF)
@@ -492,15 +507,6 @@ display_event_cb (osso_display_state_t state, gpointer data)
 }
 
 static void
-gconf_state_changed (GConfClient *client, guint cnxn_id,
-		     GConfEntry *entry, gpointer data)
-{
-  UpdateNotifier *upno = UPDATE_NOTIFIER (data);
-
-  update_icon_visibility (upno, entry->value);
-}
-
-static void
 gconf_interval_changed (GConfClient *client, guint cnxn_id,
 			GConfEntry *entry, gpointer data)
 {
@@ -521,20 +527,15 @@ setup_gconf (UpdateNotifier *upno)
 			NULL);
 
   /* Add gconf notifications and store connection IDs */
-  priv->gconf_notifications = g_new0 (guint, 3);
+  priv->gconf_notifications = g_new0 (guint, 2);
   priv->gconf_notifications[0] =
-    gconf_client_notify_add (priv->gconf,
-			     UPNO_GCONF_STATE,
-			     gconf_state_changed, upno,
-			     NULL, NULL);
-  priv->gconf_notifications[1] =
     gconf_client_notify_add (priv->gconf,
 			     UPNO_GCONF_CHECK_INTERVAL,
 			     gconf_interval_changed, upno,
 			     NULL, NULL);
 
   /* Finish the list of connection IDs */
-  priv->gconf_notifications[2] = -1;
+  priv->gconf_notifications[1] = -1;
 }
 
 static void
@@ -553,15 +554,10 @@ set_condition_carefully (UpdateNotifier *upno, gboolean condition)
 }
 
 static void
-update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
+update_icon_visibility (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  int state = UPNO_ICON_INVISIBLE;
-
-  if (value && value->type == GCONF_VALUE_INT)
-    state = gconf_value_get_int (value);
-
-  priv->icon_state = state;
+  int state = priv->state.icon_state;
 
   set_condition_carefully (upno, (state == UPNO_ICON_STATIC
 				  || state == UPNO_ICON_BLINKING));
@@ -590,7 +586,8 @@ update_icon_visibility (UpdateNotifier *upno, GConfValue *value)
 }
 
 static void
-menu_add_readonly_item (GtkWidget *menu, gboolean is_markup, const char *fmt, ...)
+menu_add_readonly_item (GtkWidget *menu, gboolean is_markup,
+			const char *fmt, ...)
 {
   GtkWidget *label, *item;
   va_list ap;
@@ -755,7 +752,7 @@ create_new_updates_menu (UpdateNotifier *upno)
         g_signal_connect (item, "activate",
                           G_CALLBACK (open_ham_menu_item_activated), upno);
 
-      if (priv->icon_state == UPNO_ICON_INVISIBLE)
+      if (priv->state.icon_state == UPNO_ICON_INVISIBLE)
         set_icon_visibility (upno, UPNO_ICON_BLINKING);
 
       return TRUE;
@@ -857,7 +854,7 @@ create_new_notifications_menu (UpdateNotifier *upno)
                           G_CALLBACK (show_notification_menu_item_activated),
                           c);
       
-      if (priv->icon_state == UPNO_ICON_INVISIBLE)
+      if (priv->state.icon_state == UPNO_ICON_INVISIBLE)
         set_icon_visibility (upno, UPNO_ICON_BLINKING);
       
       result = TRUE;
@@ -889,15 +886,15 @@ static void
 set_icon_visibility (UpdateNotifier *upno, int state)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  int old_state = gconf_client_get_int (priv->gconf, UPNO_GCONF_STATE, NULL);
-
-  gconf_client_set_int (priv->gconf,
-			UPNO_GCONF_STATE,
-			state,
-			NULL);
+  int old_state = priv->state.icon_state;
 
   if (state != old_state && state != UPNO_ICON_STATIC)
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->button), FALSE);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(priv->button), FALSE);
+
+  priv->state.icon_state = state;
+  save_state (upno);
+
+  update_icon_visibility (upno);
 }
 
 static gint
@@ -1053,9 +1050,7 @@ check_for_updates_done (GPid pid, int status, gpointer data)
 
   if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
     {
-      gconf_client_set_int (priv->gconf,
-			    UPNO_GCONF_LAST_UPDATE, time (NULL),
-			    NULL);
+      save_last_update_time (time (NULL));
       update_state (upno);
     }
   else
@@ -1444,9 +1439,7 @@ setup_alarm (UpdateNotifier *upno)
   if (interval <= 0)
     interval = UPNO_DEFAULT_CHECK_INTERVAL;
 
-  alarm_cookie = gconf_client_get_int (priv->gconf,
-				       UPNO_GCONF_ALARM_COOKIE,
-				       NULL);
+  alarm_cookie = priv->state.alarm_cookie;
 
   if (alarm_cookie > 0)
     old_alarm = alarm_event_get (alarm_cookie);
@@ -1503,10 +1496,8 @@ setup_alarm (UpdateNotifier *upno)
 
   alarm_cookie = alarm_event_add (&new_alarm);
 
-  gconf_client_set_int (priv->gconf,
-			UPNO_GCONF_ALARM_COOKIE,
-			alarm_cookie,
-			NULL);
+  priv->state.alarm_cookie = alarm_cookie;
+  save_state (upno);
 
   return alarm_cookie > 0;
 }
@@ -1563,9 +1554,7 @@ cleanup_alarm (UpdateNotifier *upno)
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   cookie_t alarm_cookie;
 
-  alarm_cookie = gconf_client_get_int (priv->gconf,
-				       UPNO_GCONF_ALARM_COOKIE,
-				       NULL);
+  alarm_cookie = priv->state.alarm_cookie;
   alarm_event_del (alarm_cookie);
 }
 
@@ -1675,4 +1664,66 @@ get_osso_product_hardware ()
     }
 
   return product_hardware;
+}
+
+/* These keys used to be used to store some state of the
+   update-notifier, but that was of course a bad idea.  We rescue the
+   alarm cookie and then delete the lot.
+ */
+#define UPNO_GCONF_OLD_STATE          UPNO_GCONF_DIR "/state"
+#define UPNO_GCONF_OLD_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
+#define UPNO_GCONF_OLD_LAST_UPDATE    UPNO_GCONF_DIR "/last_update"
+
+static void
+load_state (UpdateNotifier *upno)
+{
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+  xexp *x_state = user_file_read_xexp (UFILE_UPDATE_NOTIFIER);
+
+  cookie_t old_cookie = gconf_client_get_int (priv->gconf,
+					      UPNO_GCONF_OLD_ALARM_COOKIE,
+					      NULL);
+
+  gconf_client_unset (priv->gconf,
+		      UPNO_GCONF_OLD_ALARM_COOKIE,
+		      NULL);
+
+  gconf_client_unset (priv->gconf,
+		      UPNO_GCONF_OLD_STATE,
+		      NULL);
+
+  gconf_client_unset (priv->gconf,
+		      UPNO_GCONF_OLD_LAST_UPDATE,
+		      NULL);
+
+  if (x_state)
+    {
+      priv->state.icon_state = xexp_aref_int (x_state, "icon-state",
+					      UPNO_ICON_INVISIBLE);
+      priv->state.alarm_cookie = xexp_aref_int (x_state, "alarm-cookie",
+						old_cookie);
+      xexp_free (x_state);
+    }
+}
+
+static void
+save_state (UpdateNotifier *upno)
+{
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  xexp *x_state = xexp_list_new ("state");
+  xexp_aset_int (x_state, "icon-state", priv->state.icon_state);
+  xexp_aset_int (x_state, "alarm-cookie", priv->state.alarm_cookie);
+  user_file_write_xexp (UFILE_UPDATE_NOTIFIER, x_state);
+  xexp_free (x_state);
+}
+
+static void
+save_last_update_time (time_t t)
+{
+  char *text = g_strdup_printf ("%d", t);
+  xexp *x = xexp_text_new ("time", text);
+  g_free (text);
+  user_file_write_xexp (UFILE_LAST_UPDATE, x);
+  xexp_free (x);
 }

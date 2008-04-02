@@ -25,10 +25,7 @@
 #define UPDATE_NOTIFIER_CONF_H
 
 #define UPNO_GCONF_DIR            "/apps/hildon/update-notifier"
-#define UPNO_GCONF_STATE          UPNO_GCONF_DIR "/state"
-#define UPNO_GCONF_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
 #define UPNO_GCONF_CHECK_INTERVAL UPNO_GCONF_DIR "/check_interval"
-#define UPNO_GCONF_LAST_UPDATE    UPNO_GCONF_DIR "/last_update"
 #define UPNO_GCONF_URI            UPNO_GCONF_DIR "/uri"
 
 #define UPNO_DEFAULT_CHECK_INTERVAL (24*60)
