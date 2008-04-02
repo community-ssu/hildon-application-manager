@@ -1,5 +1,7 @@
 2008-04-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.8
+	
 	* src/operations.cc (ip_install_with_info): Only show packages
 	that are not installed at all for a restore operation (N83477).
 
