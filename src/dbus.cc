@@ -715,7 +715,7 @@ static inline void send_battery_status_request (void)
 static battery_info *
 receive_battery_status_update (void)
 {
-  DBusMessage* msg;
+  DBusMessage* msg = NULL;
   DBusMessageIter args;
   DBusConnection* conn;
   DBusError err;
