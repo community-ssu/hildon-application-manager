@@ -2,7 +2,9 @@
 
 	* hildon-application-manager.sudoers, src/Makefile.am,
 	src/apt-worker-bin.cc, src/apt-worker.cc, src/main.cc (main):
-	Renamed "apt-worker.bin" back to "apt-worker".
+	Renamed "apt-worker.bin" back to "apt-worker".  This also fixes
+	the bug in update-notifier.c that was still using the "apt-worker"
+	name (N81017).
 
 2008-04-02  Mario Sanchez Prada  <msanchez@maemo.org>
 

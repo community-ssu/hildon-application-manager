@@ -3,12 +3,3 @@
 set -e
 
 update-sudoers || true
-
-rem_inittab ()
-{
-    line="$1"
-    grep -v -F "$line" /etc/inittab >/etc/inittab.tmp || true
-    mv /etc/inittab.tmp /etc/inittab
-}
-
-rem_inittab "resc::bootwait:/usr/libexec/apt-worker.bin rescue"
