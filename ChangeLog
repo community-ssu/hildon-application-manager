@@ -1,5 +1,21 @@
 2008-04-02  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	New program ham-after-boot that displays a information note when
+	the Application manager has restarted the device after a system
+	update. (N79211)
+
+	* src/ham-after-boot.c: New.
+	* src/hildon-application-manager-util: Handle "start" and "stop"
+	commands.
+	* src/Makefile.am: Add ham-after-boot as a maemo-launched
+	application.
+	* src/user_files.h (UFILE_BOOT): New.
+	* src/operations.cc (ip_reboot_now): Write the boot reason into
+	UFILE_BOOT so that ham-after-boot can find it.
+
+	* src/operations.cc (ip_reboot, ip_reboot_delayed): Show the
+	"Restarting" banner after getting the package list.
+
 	* src/apt-worker.cc (do_rescue): Call erase_operation_record here
 	after trying all rescue options.
 	(cmdline_rescue): Don't call it here before starting the rescue.
