@@ -24,6 +24,9 @@
 	(create_new_notifications_menu): Likewise (N83127).
 	(handle_inotify): Likewise (N83127).
 
+	* src/repo.cc (show_cat_edit_dialog): Don't set a 6px padding for
+	the internal vbox.
+
 2008-04-01  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* repo.cc (cat_dialog_closure): added a pointer to the "New" button
