@@ -27,6 +27,10 @@
 	* src/repo.cc (show_cat_edit_dialog): Don't set a 6px padding for
 	the internal vbox.
 
+	* utils/maemo-select-menu-location-main.c (run_move_to_dialog):
+	Wide the dialog to behave always as if it had three buttons
+	instead of one, so the title fix in every language (N83429).
+
 2008-04-01  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* repo.cc (cat_dialog_closure): added a pointer to the "New" button

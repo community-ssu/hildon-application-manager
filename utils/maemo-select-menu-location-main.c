@@ -459,7 +459,7 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(scroller),
 				  GTK_POLICY_AUTOMATIC,
 				  GTK_POLICY_AUTOMATIC);
-  gtk_widget_set_size_request (scroller, 240, 200);
+  gtk_widget_set_size_request (scroller, 340, 200);
 
 
   gtk_container_add (GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), box);
