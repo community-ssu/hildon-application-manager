@@ -1,0 +1,20 @@
+#! /bin/sh
+
+PROG=/usr/bin/hildon-application-manager-util
+SU=`which su`
+
+if [ ! -x "$PROG" ]; then
+    exit 0
+fi
+
+if [ -e /etc/osso-af-init/af-defines.sh ]
+then
+    source /etc/osso-af-init/af-defines.sh
+fi
+
+if [ "x${SU}" != "x" ]
+then
+    SUUSER="${SU} - user"
+fi
+
+$SUUSER $PROG $1
