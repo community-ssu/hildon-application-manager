@@ -2,7 +2,7 @@ bin_PROGRAMS = hildon-application-manager.launch \
                hildon-application-manager-config
 dist_bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server test-app-killer
-libexec_PROGRAMS = apt-worker
+libexec_PROGRAMS = apt-worker ham-after-boot.launch
 hildonstatusbarplugin_LTLIBRARIES = libhildon-update-notifier.la
 
 
@@ -94,6 +94,13 @@ libhildon_update_notifier_la_LIBADD = $(NOTIFIER_DEPS_LIBS)
 
 hildonstatusbardesktop_DATA = hildon-update-notifier.desktop
 
+ham_after_boot_launch_SOURCES = ham-after-boot.c \
+				user_files.c \
+	 			xexp.c
+ham_after_boot_launch_CFLAGS = $(HAM_DEPS_CFLAGS) -shared
+ham_after_boot_launch_LDFLAGS = -shared -Wl,--version-script=$(srcdir)/export.map
+ham_after_boot_launch_LDADD = $(HAM_DEPS_LIBS)
+
 mime_open_SOURCES = mime-open.c
 mime_open_CFLAGS =   $(HAM_DEPS_CFLAGS)
 mime_open_CXXFLAGS = $(HAM_DEPS_CFLAGS)
@@ -111,6 +118,8 @@ test_app_killer_LDADD = $(HAM_DEPS_LIBS)
 
 EXTRA_DIST = export.map
 
-install-exec-local:
+install-exec-local: installdirs
 	rm -f $(DESTDIR)$(bindir)/hildon-application-manager
 	ln -s /usr/bin/maemo-invoker $(DESTDIR)$(bindir)/hildon-application-manager
+	rm -f $(DESTDIR)$(libexecdir)/ham-after-boot
+	ln -s /usr/bin/maemo-invoker $(DESTDIR)$(libexecdir)/ham-after-boot

@@ -37,6 +37,7 @@ extern "C" {
 #define UFILE_SEEN_NOTIFICATIONS "seen-notifications"
 #define UFILE_AVAILABLE_NOTIFICATIONS "available-notifications"
 #define UFILE_AVAILABLE_NOTIFICATIONS_TMP   UFILE_AVAILABLE_NOTIFICATIONS ".tmp"
+#define UFILE_BOOT "boot"
 
 gchar *user_file_get_state_dir_path ();
 FILE *user_file_open_for_read (const gchar *name);

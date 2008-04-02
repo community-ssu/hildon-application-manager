@@ -40,6 +40,7 @@
 #include "settings.h"
 #include "details.h"
 #include "dbus.h"
+#include "user_files.h"
 
 #define _(x) gettext (x)
 
@@ -1583,8 +1584,6 @@ ip_reboot (void *data)
 {
   ip_clos *c = (ip_clos *)data;
 
-  irritate_user (_("ai_cb_restarting_device"));
-
   /* We need to get the package list before rebooting so that the
      "seen updates" state is stored correctly.
    */
@@ -1594,6 +1593,8 @@ ip_reboot (void *data)
 static void
 ip_reboot_delayed (void *data)
 {
+  irritate_user (_("ai_cb_restarting_device"));
+
   g_timeout_add (2000, ip_reboot_now, data);
 }
 
@@ -1606,6 +1607,10 @@ ip_reboot_now (void *data)
      to do it for us.  If that fails, we inform the user and then
      reboot normally if requested.
   */
+
+  xexp *boot = xexp_list_new ("system-update");
+  user_file_write_xexp (UFILE_BOOT, boot);
+  xexp_free (boot);
 
   package_info *pi = (package_info *)(c->cur->data);
 
