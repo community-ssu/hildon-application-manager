@@ -1416,6 +1416,15 @@ emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
 }
 
 static void
+size_string_general_or_empty (char *buf, size_t n, int64_t bytes)
+{
+  if (bytes == 0)
+    buf[0] = '\0';
+  else
+    size_string_general (buf, n, bytes);
+}
+
+static void
 global_size_func (GtkTreeViewColumn *column,
 		  GtkCellRenderer *cell,
 		  GtkTreeModel *model,
@@ -1430,9 +1439,9 @@ global_size_func (GtkTreeViewColumn *column,
     return;
 
   if (global_installed)
-    size_string_general (buf, 20, pi->installed_size);
+    size_string_general_or_empty (buf, 20, pi->installed_size);
   else if (pi->have_info)
-    size_string_general (buf, 20, pi->info.download_size);
+    size_string_general_or_empty (buf, 20, pi->info.download_size);
   else
     strcpy (buf, "-");
   g_object_set (cell, "text", buf, NULL);
@@ -1474,7 +1483,6 @@ package_info_func (GtkTreeViewColumn *column,
       const gchar *desc;
       gchar *markup;
 
-      g_object_set (desc_rend, "visible", TRUE, NULL);
       if (global_installed)
         desc = pi->installed_short_description;
       else
@@ -1483,10 +1491,16 @@ package_info_func (GtkTreeViewColumn *column,
           if (desc == NULL)
             desc = pi->installed_short_description;
         }
-      markup = g_markup_printf_escaped ("<small>%s</small>", desc);
-      g_object_set (desc_rend, "markup", markup, NULL);
-      
-      g_free (markup);
+
+      if (all_whitespace (desc))
+	g_object_set (desc_rend, "visible", FALSE, NULL);
+      else
+	{
+	  markup = g_markup_printf_escaped ("<small>%s</small>", desc);
+	  g_object_set (desc_rend, "markup", markup, NULL);
+	  g_object_set (desc_rend, "visible", TRUE, NULL);
+	  g_free (markup);
+	}
     }
   else
     g_object_set (desc_rend, "visible", FALSE, NULL);

@@ -1,5 +1,11 @@
 2008-04-02  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.cc (size_string_general_or_empty): New.
+	(global_size_func): Use it to show an empty string instead of "0
+	kB".
+	(package_info_func): Do not show the "description-renderer" when
+	the description is empty.
+
 	* hildon-application-manager.sudoers, src/Makefile.am,
 	src/apt-worker-bin.cc, src/apt-worker.cc, src/main.cc (main):
 	Renamed "apt-worker.bin" back to "apt-worker".  This also fixes
