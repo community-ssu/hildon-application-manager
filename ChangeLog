@@ -1,5 +1,9 @@
 2008-04-02  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker.cc (do_rescue): Call erase_operation_record here
+	after trying all rescue options.
+	(cmdline_rescue): Don't call it here before starting the rescue.
+
 	* src/util.cc (size_string_general_or_empty): New.
 	(global_size_func): Use it to show an empty string instead of "0
 	kB".

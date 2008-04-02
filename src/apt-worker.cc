@@ -5365,7 +5365,8 @@ fork_progress_process ()
 }
 
 static void
-do_rescue (const char *package, const char *download_root)
+do_rescue (const char *package, const char *download_root,
+	   bool erase_record)
 {
   show_fb_text (0, "Rescuing software update.");
   show_fb_text (1, "Please do not interrupt.");
@@ -5395,6 +5396,15 @@ do_rescue (const char *package, const char *download_root)
 	  if (result == rescode_packages_not_found)
 	    result = rescue_with_all_devnodes ();
 
+	  /* If we get this far, we have done everything we can.  If
+	     the rescue operation is interrupted before getting here,
+	     we try again on the next boot.  This might lead to a
+	     reboot loop, but the device is borked anyway and the user
+	     should reflash it.
+	   */
+	  if (erase_record)
+	    erase_operation_record ();
+      
 	  if (result == rescode_packages_not_found)
 	    return;
 
@@ -5428,15 +5438,13 @@ cmdline_rescue (char **argv)
 	  return 0;
 	}
       
-      erase_operation_record ();
-      
       const char *package = xexp_aref_text (record, "package");
       const char *download_root = xexp_aref_text (record, "download-root");
       
-      do_rescue (package, download_root);
+      do_rescue (package, download_root, true);
     }
   else
-    do_rescue (argv[1], argv[2]);
+    do_rescue (argv[1], argv[2], false);
       
   return 0;
 }
