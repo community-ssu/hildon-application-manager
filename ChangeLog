@@ -1,3 +1,11 @@
+2008-04-02  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/update-notifier.c (create_new_updates_menu): Added some
+	extra checks to avoid risky situations that could lead to invalid
+	memory reads (N83127).
+	(create_new_notifications_menu): Likewise (N83127).
+	(handle_inotify): Likewise (N83127).
+
 2008-04-01  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* repo.cc (cat_dialog_closure): added a pointer to the "New" button

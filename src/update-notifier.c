@@ -689,34 +689,39 @@ create_new_updates_menu (UpdateNotifier *upno)
 
   if (available_updates != NULL)
     {
-      xexp *x, *y;
+      xexp *x = NULL, *y = NULL;
 
       for (x = xexp_first (available_updates); x; x = xexp_rest (x))
         {
           if (xexp_is_text (x))
             {
-              const char *pkg = xexp_text (x);
+	      if ((seen_updates != NULL) && xexp_is_list (seen_updates))
+		{
+		  const char *pkg = xexp_text (x);
 
-              for (y = xexp_first (seen_updates); y; y = xexp_rest (y))
-                if (xexp_is_text (y)
-                    && strcmp (pkg, xexp_text (y)) == 0)
-                  break;
+		  for (y = xexp_first (seen_updates); y; y = xexp_rest (y))
+		    if (xexp_is_text (y)
+			&& strcmp (pkg, xexp_text (y)) == 0)
+		      break;
+		}
 
-              if (y == NULL)
-                n_new++;
+	      if (y == NULL)
+		n_new++;
 
-              if (xexp_is (x, "os"))
-                n_os++;
-              else if (xexp_is (x, "certified"))
-                n_certified++;
-              else
-                n_other++;
+	      if (xexp_is (x, "os"))
+		n_os++;
+	      else if (xexp_is (x, "certified"))
+		n_certified++;
+	      else
+		n_other++;
             }
         }
-    }
 
-  xexp_free (available_updates);
-  xexp_free (seen_updates);
+      xexp_free (available_updates);
+
+      if (seen_updates != NULL)
+	xexp_free (seen_updates);
+    }
 
   if (n_new > 0 && !showing_check_for_updates_view (upno))
     {
@@ -765,15 +770,19 @@ gboolean
 create_new_notifications_menu (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  xexp *seen_notifications = NULL, *available_nots = NULL;
-  const gchar *available_title = NULL, *available_text = NULL, *available_uri = NULL;
-  gboolean new_notifications = FALSE, result = FALSE;
+  xexp *seen_notifications = NULL;
+  xexp *available_nots = NULL;
+  const gchar *available_title = NULL;
+  const gchar *available_text = NULL;
+  const gchar *available_uri = NULL;
+  gboolean new_notifications = FALSE;
+  gboolean result = FALSE;
   GtkWidget *item = NULL;
 
   available_nots = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
   seen_notifications = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
 
-  if (xexp_is_tag_and_not_empty (available_nots, "info"))
+  if (available_nots && xexp_is_tag_and_not_empty (available_nots, "info"))
       {
         available_title = xexp_aref_text(available_nots, "title");
         available_text = xexp_aref_text(available_nots, "text");
@@ -782,13 +791,17 @@ create_new_notifications_menu (UpdateNotifier *upno)
 
   new_notifications = (available_title!=NULL) && (available_uri!=NULL) && (available_text!=NULL);  
 
-  if (new_notifications && xexp_is_tag_and_not_empty (seen_notifications, "info"))
+  if (new_notifications && seen_notifications &&
+      xexp_is_tag_and_not_empty (seen_notifications, "info"))
     {
       new_notifications = new_notifications
         && !compare_xexp_text (available_nots, seen_notifications, "title")
         && !compare_xexp_text (available_nots, seen_notifications, "text")
         && !compare_xexp_text (available_nots, seen_notifications, "uri");
     }
+
+  if (seen_notifications)
+    xexp_free (seen_notifications);
 
   /* Create the menu */
   if (new_notifications)
@@ -853,8 +866,10 @@ create_new_notifications_menu (UpdateNotifier *upno)
     {
       result = FALSE;
     }
-  xexp_free (available_nots);
-  xexp_free (seen_notifications);
+
+  if (available_nots)
+    xexp_free (available_nots);
+
   return result;
 }
 
@@ -1313,24 +1328,26 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
                   xexp *available_nots = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
                   xexp *seen_notifications = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
 
-                  if (xexp_is_tag_and_not_empty (available_nots, "info"))
-                      {
-                        if (!xexp_is_tag_and_not_empty (seen_notifications, "info")
-                            || (xexp_is_tag_and_not_empty (seen_notifications, "info")
-                                && !compare_xexp_text (available_nots, seen_notifications, "title")
-                                && !compare_xexp_text (available_nots, seen_notifications, "text")
-                                && !compare_xexp_text (available_nots, seen_notifications, "uri")))
-                          {
-                            /* as we have new notifications, we no longer need the old seen ones;
-                             * the writing of UFILE_SEEN_NOTIFICATIONS will trigger an inotify */
-                            xexp* empty_seen_notifications = NULL;
-                            empty_seen_notifications = xexp_list_new ("info");
-                            user_file_write_xexp (UFILE_SEEN_NOTIFICATIONS, empty_seen_notifications);
-                            xexp_free (empty_seen_notifications);
-                          }
-                        xexp_free (available_nots);
-                        xexp_free (seen_notifications);
-                      }
+                  if (available_nots && seen_notifications
+		      && xexp_is_tag_and_not_empty (available_nots, "info")
+		      && (!xexp_is_tag_and_not_empty (seen_notifications, "info")
+			  || (xexp_is_tag_and_not_empty (seen_notifications, "info")
+			      && !compare_xexp_text (available_nots, seen_notifications, "title")
+			      && !compare_xexp_text (available_nots, seen_notifications, "text")
+			      && !compare_xexp_text (available_nots, seen_notifications, "uri"))))
+		    {
+		      /* as we have new notifications, we no longer need the old seen ones;
+		       * the writing of UFILE_SEEN_NOTIFICATIONS will trigger an inotify */
+		      xexp* empty_seen_notifications = xexp_list_new ("info");
+		      user_file_write_xexp (UFILE_SEEN_NOTIFICATIONS, empty_seen_notifications);
+		      xexp_free (empty_seen_notifications);
+		    }
+
+		  if (available_nots)
+		    xexp_free (available_nots);
+
+		  if (seen_notifications)
+		    xexp_free (seen_notifications);
                 }
               else if (is_file_modified_event (event, priv->home_watch, UFILE_SEEN_UPDATES)
                   || is_file_modified_event (event, priv->home_watch, UFILE_SEEN_NOTIFICATIONS))
