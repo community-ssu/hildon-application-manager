@@ -420,7 +420,7 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   if (isnew)
     set_dialog_help (dialog, AI_TOPIC ("newrepository"));
 
-  vbox = gtk_vbox_new (FALSE, 6);
+  vbox = gtk_vbox_new (FALSE, 0);
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
   
   const char *current_name = catalogue_name (catalogue);
@@ -851,8 +851,6 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
   *catptr = NULL;
 
   gtk_tree_path_free (path_to_select);
-  
-  /* TODO set sensitive the "New" button */
 }
 
 static void
