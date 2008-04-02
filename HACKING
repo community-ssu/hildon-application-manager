@@ -17,13 +17,13 @@ When building the AM, it will also create a
 hildon-application-manager.run executable.  This executable doesn't
 use maemo-launcher and is thus easier to use for debugging.
 
-If you have changed apt-worker.bin and you want to test it without
+If you have changed apt-worker and you want to test it without
 installing it, you can give its location as a parameter to
 hildon-application-manager.
 
 I usually run it like this from .../src/ in Scratchbox:
 
-    run-standalone.sh ./hildon-application-manager.run ./apt-worker.bin
+    run-standalone.sh ./hildon-application-manager.run ./apt-worker
 
 Releases
 ........

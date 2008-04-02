@@ -1,3 +1,9 @@
+2008-04-02  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* hildon-application-manager.sudoers, src/Makefile.am,
+	src/apt-worker-bin.cc, src/apt-worker.cc, src/main.cc (main):
+	Renamed "apt-worker.bin" back to "apt-worker".
+
 2008-04-02  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.c (create_new_updates_menu): Added some
