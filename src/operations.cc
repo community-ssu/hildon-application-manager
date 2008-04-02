@@ -359,8 +359,16 @@ ip_install_with_info (void *data)
 
   for (GList *p = c->all_packages; p; p = p->next)
     {
+      /* When restoring a backup, we only show packages that are not
+	 installed at all.  Otherwise, we show packages that are not
+	 installed or have a newer version available.
+      */
+
       package_info *pi = (package_info *)p->data;
-      if (pi->available_version != NULL)
+      if ((c->install_type == INSTALL_TYPE_BACKUP
+	   && pi->installed_version == NULL)
+	  || (c->install_type != INSTALL_TYPE_BACKUP
+	      && pi->available_version != NULL))
 	{
 	  if (package_needs_reboot (pi))
 	    rebooting_packages = g_list_append (rebooting_packages, pi);
