@@ -420,9 +420,24 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   if (isnew)
     set_dialog_help (dialog, AI_TOPIC ("newrepository"));
 
-  vbox = gtk_vbox_new (FALSE, 0);
+  if (!c->readonly)
+    vbox = GTK_DIALOG (dialog)->vbox;
+  else
+    {
+      /* Use an scrollbar for the read-only version, and use a vbox
+	 with a 3px padding to make it look like to the other one */
+      vbox = gtk_vbox_new (FALSE, 3);
+
+      scrolledw = gtk_scrolled_window_new (NULL, NULL);
+      gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledw),
+				      GTK_POLICY_AUTOMATIC,
+				      GTK_POLICY_NEVER);
+      gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolledw), vbox);
+      gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox), scrolledw);
+    }
+
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
-  
+
   const char *current_name = catalogue_name (catalogue);
   c->name_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_name"),
@@ -452,13 +467,6 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 				NULL, HILDON_CAPTION_OPTIONAL);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
   gtk_widget_set_sensitive (c->disabled_button, !c->readonly);
-
-  scrolledw = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledw),
-                                  GTK_POLICY_AUTOMATIC,
-                                  GTK_POLICY_NEVER);
-  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolledw), vbox);
-  gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox), scrolledw);
 
   gtk_widget_set_usize (dialog, 650, -1);
 

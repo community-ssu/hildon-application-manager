@@ -24,8 +24,9 @@
 	(create_new_notifications_menu): Likewise (N83127).
 	(handle_inotify): Likewise (N83127).
 
-	* src/repo.cc (show_cat_edit_dialog): Don't set a 6px padding for
-	the internal vbox.
+	* src/repo.cc (show_cat_edit_dialog): Don't use an scrolled window
+	for both the read-only and the read-write version of the dialog,
+	just for the read-only version only.
 
 	* utils/maemo-select-menu-location-main.c (run_move_to_dialog):
 	Wide the dialog to behave always as if it had three buttons
