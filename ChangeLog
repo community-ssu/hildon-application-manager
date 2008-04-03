@@ -1,3 +1,9 @@
+2008-04-03  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/operations.cc (ip_download_cur_retry_confirm): Do not ask
+	whether to retry, we don't have the UI strings for that.  (Shame
+	on me.)
+
 2008-04-03  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/repo.cc (show_catalogue_dialog): call to allow_updating()
@@ -12,7 +18,7 @@
 2008-04-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.8
-	
+
 	* src/operations.cc (ip_install_with_info): Only show packages
 	that are not installed at all for a restore operation (N83477).
 

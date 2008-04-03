@@ -267,6 +267,7 @@ static void ip_check_upgrade_loop (ip_clos *c);
 static void ip_check_upgrade_cmd_done (int status, void *data);
 static void ip_download_cur (void *data);
 static void ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
+static void ip_download_cur_fail (void *data);
 static void ip_download_cur_retry_confirm (apt_proto_result_code result_code, void *data);
 static void ip_download_cur_retry_confirm_response (bool result, void *data);
 static void ip_install_cur (void *data);
@@ -1227,17 +1228,26 @@ ip_download_cur_retry_confirm (apt_proto_result_code result_code, void *data)
         : _("ai_ni_error_installation_failed")),
         pi->get_display_name (false));
   
-  char *message = NULL;
-  /* TODO : use an internationalized string */
-  message = g_strdup_printf ("%s\n%s", msg, "!!Retry?");
-
   clos->result_code = result_code;
   clos->c = c;
-  
-  ask_yes_no (message, ip_download_cur_retry_confirm_response, clos);
-  
-  g_free (message);
+
+  /* XXX - the code allows the retry of failed downloads, but I (mvo)
+           forgot to get the needed localized UI strings, so we have
+           to disable that functionality for now.
+  */
+#if 0
+  ask_yes_no (msg, ip_download_cur_retry_confirm_response, clos);
+#else
+  annoy_user (msg, ip_download_cur_fail, clos);
+#endif
+
   g_free (msg);
+}
+
+static void
+ip_download_cur_fail (void *data)
+{
+  ip_download_cur_retry_confirm_response (false, data);
 }
 
 static void
