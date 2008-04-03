@@ -1067,8 +1067,6 @@ show_catalogue_dialog (xexp *catalogues,
 
   current_cat_dialog_clos = c;
 
-  allow_updating ();
-
   dialog = gtk_dialog_new ();
 
   if (show_only_errors)
@@ -1123,6 +1121,7 @@ show_catalogue_dialog (xexp *catalogues,
   gtk_widget_show_all (dialog);
 
   /* Show the 'Updating' banner */
+  allow_updating ();
   show_updating ();
 
   /* Retrieve the catalogues information */
