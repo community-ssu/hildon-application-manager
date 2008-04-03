@@ -1,3 +1,8 @@
+2008-04-03  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (get_package_list_reply_temp): Set the global
+	variable package_list_ready to its correct value (N83547).
+
 2008-04-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.8

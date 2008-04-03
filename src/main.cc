@@ -1007,8 +1007,9 @@ get_package_list_reply_temp (int cmd, apt_proto_decoder *dec, void *data)
 					  info);
 	  info->unref ();
 	}
-      
     }
+
+  package_list_ready = true;
 
   if (c->cont)
     c->cont (c->data);
