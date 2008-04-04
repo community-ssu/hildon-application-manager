@@ -978,7 +978,7 @@ static entertainment_game default_entertainment_game = {
 };
 
 void
-start_entertaining_user ()
+start_entertaining_user (gboolean with_button)
 {
   entertainment.depth++;
 
@@ -1048,22 +1048,26 @@ start_entertaining_user ()
 	  gtk_box_pack_start (GTK_BOX (box), entertainment.sub_label, TRUE, TRUE, 0);
 	}
 
-      /* Cancel button: add to action area and set default response */
-      entertainment.cancel_button =
-	gtk_dialog_add_button (GTK_DIALOG (entertainment.dialog),
-			       dgettext("hildon-libs",
-					"ecdg_bd_confirmation_note_cancel"),
-			       GTK_RESPONSE_CANCEL);
- 
       gtk_dialog_set_default_response (GTK_DIALOG (entertainment.dialog),
 				       GTK_RESPONSE_CANCEL);
 
-      /* Connect signals */
-      g_signal_connect (entertainment.cancel_button,
-			"insensitive-press",
-			G_CALLBACK (entertainment_insensitive_press),
-			&entertainment);
+      entertainment.cancel_button = NULL;
+      if (with_button)
+	{
+	  /* Cancel button: add to action area and set default response */
+	  entertainment.cancel_button =
+	    gtk_dialog_add_button (GTK_DIALOG (entertainment.dialog),
+				   dgettext("hildon-libs",
+					    "ecdg_bd_confirmation_note_cancel"),
+				   GTK_RESPONSE_CANCEL);
 
+	  g_signal_connect (entertainment.cancel_button,
+			    "insensitive-press",
+			    G_CALLBACK (entertainment_insensitive_press),
+			    &entertainment);
+	}
+
+      /* Connect signals */
       g_signal_connect (entertainment.dialog, "realize",
 		    G_CALLBACK (progressbar_dialog_realized), NULL);
 
@@ -1075,7 +1079,9 @@ start_entertaining_user ()
 
       /* Update info */
       entertainment_update_progress ();
-      entertainment_update_cancel ();
+
+      if (with_button)
+	entertainment_update_cancel ();
 
       /* Show the dialog */
       push_dialog (entertainment.dialog);
@@ -2738,7 +2744,7 @@ do_copy (const char *source, GnomeVFSURI *source_uri,
   set_entertainment_main_title (dgettext ("hildon-fm",
 					  "docm_nw_opening_file"));
 
-  start_entertaining_user ();
+  start_entertaining_user (TRUE);
 
   result = gnome_vfs_async_xfer (&handle,
 				 source_uri_list,

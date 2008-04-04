@@ -1,3 +1,19 @@
+2008-04-04  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.h, src/util.h (start_entertaining_user): Added a new
+	parameter, with_button, to allow creating an entertaining dialog
+	without cancel button when needed. Updated callers (N75393).
+
+	* src/operations.cc (ip_ensure_network): Updated so it now calls
+	to start_entertaining_user with TRUE (N75393).
+	(ip_abort_response): Likewise (N75393).
+	(if_install): Likewise (N75393).
+	(up_remove_with_info): Updated so it now calls to
+	start_entertaining_user with FALSE (N75393).
+
+	* src/main.cc (refresh_package_cache_without_user): Updated so it
+	now calls to start_entertaining_user with TRUE (N75393).
+
 2008-04-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc (ip_download_cur_retry_confirm): Do not ask

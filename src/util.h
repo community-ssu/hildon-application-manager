@@ -270,7 +270,7 @@ void scare_user_with_legalese (bool sure,
    first passed to set_entertainment_fun.  Games might be skipped.
  */
 
-void start_entertaining_user ();
+void start_entertaining_user (gboolean with_button);
 void stop_entertaining_user ();
 
 void set_entertainment_main_title (const char *main_title,

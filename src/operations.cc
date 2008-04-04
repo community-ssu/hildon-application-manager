@@ -542,7 +542,7 @@ ip_ensure_network (ip_clos *c)
   set_entertainment_main_title (_("ai_nw_preparing_installation"));
   set_entertainment_sub_title ("");
   set_entertainment_fun (NULL, -1, -1, 0);
-  start_entertaining_user ();
+  start_entertaining_user (TRUE);
   
   c->entertaining = true;
 
@@ -1564,7 +1564,7 @@ ip_abort_response (GtkDialog *dialog, gint response, gpointer data)
 	     to install.  Thus, we start the entertainment here again
 	     since we know that some action will happen.
 	  */
-	  start_entertaining_user ();
+	  start_entertaining_user (TRUE);
 	  c->entertaining = true;
 
 	  ip_install_next (c);
@@ -1800,7 +1800,7 @@ up_remove_with_info (package_info *pi, void *data, bool changed)
       set_entertainment_main_title (title);
       g_free (title);
 
-      start_entertaining_user ();
+      start_entertaining_user (FALSE);
 
       apt_worker_remove_package (c->pi->name, up_remove_reply, c);
     }
@@ -2086,7 +2086,7 @@ if_install (bool res, void *data)
       set_entertainment_main_title (title);
       g_free (title);
 
-      start_entertaining_user ();
+      start_entertaining_user (TRUE);
 
       set_log_start ();
       apt_worker_install_file (c->filename,

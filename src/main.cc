@@ -1273,7 +1273,7 @@ refresh_package_cache_without_user (const char *title,
     set_entertainment_main_title (_("ai_nw_checking_updates"), true);
   set_entertainment_games (2, rpcwu_games);
   set_entertainment_fun (NULL, -1, -1, 0);
-  start_entertaining_user ();
+  start_entertaining_user (TRUE);
 
   apt_worker_update_cache (state, rpcwu_reply, c);
 }
