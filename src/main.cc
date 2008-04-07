@@ -702,49 +702,182 @@ compare_package_available_names (gconstpointer a, gconstpointer b)
   return result;
 }
 
+/* This is lifted from apt-pkg.
+ */
+
+// debVS::CmpFragment - Compare versions			        /*{{{*/
+// ---------------------------------------------------------------------
+/* This compares a fragment of the version. This is a slightly adapted 
+   version of what dpkg uses. */
+#define order(x) ((x) == '~' ? -1    \
+		: isdigit((x)) ? 0   \
+		: !(x) ? 0           \
+		: isalpha((x)) ? (x) \
+		: (x) + 256)
+static int CmpFragment(const char *A,const char *AEnd,
+		       const char *B,const char *BEnd)
+{
+   if (A >= AEnd && B >= BEnd)
+      return 0;
+   if (A >= AEnd)
+   {
+      if (*B == '~') return 1;
+      return -1;
+   }
+   if (B >= BEnd)
+   {
+      if (*A == '~') return -1;
+      return 1;
+   }
+
+   /* Iterate over the whole string
+      What this does is to split the whole string into groups of
+      numeric and non numeric portions. For instance:
+         a67bhgs89
+      Has 4 portions 'a', '67', 'bhgs', '89'. A more normal:
+         2.7.2-linux-1
+      Has '2', '.', '7', '.' ,'-linux-','1' */
+   const char *lhs = A;
+   const char *rhs = B;
+   while (lhs != AEnd && rhs != BEnd)
+   {
+      int first_diff = 0;
+
+      while (lhs != AEnd && rhs != BEnd &&
+	     (!isdigit(*lhs) || !isdigit(*rhs)))
+      {
+	 int vc = order(*lhs);
+	 int rc = order(*rhs);
+	 if (vc != rc)
+	    return vc - rc;
+	 lhs++; rhs++;
+      }
+
+      while (*lhs == '0')
+	 lhs++;
+      while (*rhs == '0')
+	 rhs++;
+      while (isdigit(*lhs) && isdigit(*rhs))
+      {
+	 if (!first_diff)
+	    first_diff = *lhs - *rhs;
+	 lhs++;
+	 rhs++;
+      }
+
+      if (isdigit(*lhs))
+	 return 1;
+      if (isdigit(*rhs))
+	 return -1;
+      if (first_diff)
+	 return first_diff;
+   }
+
+   // The strings must be equal
+   if (lhs == AEnd && rhs == BEnd)
+      return 0;
+
+   // lhs is shorter
+   if (lhs == AEnd)
+   {
+      if (*rhs == '~') return 1;
+      return -1;
+   }
+
+   // rhs is shorter
+   if (rhs == BEnd)
+   {
+      if (*lhs == '~') return -1;
+      return 1;
+   }
+
+   // Shouldnt happen
+   return 1;
+}
+									/*}}}*/
+// debVS::CmpVersion - Comparison for versions				/*{{{*/
+// ---------------------------------------------------------------------
+/* This fragments the version into E:V-R triples and compares each 
+   portion separately. */
+static int DoCmpVersion(const char *A,const char *AEnd,
+			const char *B,const char *BEnd)
+{
+   // Strip off the epoch and compare it 
+   const char *lhs = A;
+   const char *rhs = B;
+   for (;lhs != AEnd && *lhs != ':'; lhs++);
+   for (;rhs != BEnd && *rhs != ':'; rhs++);
+   if (lhs == AEnd)
+      lhs = A;
+   if (rhs == BEnd)
+      rhs = B;
+   
+   // Special case: a zero epoch is the same as no epoch,
+   // so remove it.
+   if (lhs != A)
+   {
+      for (; *A == '0'; ++A);
+      if (A == lhs)
+      {
+	 ++A;
+	 ++lhs;
+      }
+   }
+   if (rhs != B)
+   {
+      for (; *B == '0'; ++B);
+      if (B == rhs)
+      {
+	 ++B;
+	 ++rhs;
+      }
+   }
+
+   // Compare the epoch
+   int Res = CmpFragment(A,lhs,B,rhs);
+   if (Res != 0)
+      return Res;
+
+   // Skip the :
+   if (lhs != A)
+      lhs++;
+   if (rhs != B)
+      rhs++;
+   
+   // Find the last - 
+   const char *dlhs = AEnd-1;
+   const char *drhs = BEnd-1;
+   for (;dlhs > lhs && *dlhs != '-'; dlhs--);
+   for (;drhs > rhs && *drhs != '-'; drhs--);
+
+   if (dlhs == lhs)
+      dlhs = AEnd;
+   if (drhs == rhs)
+      drhs = BEnd;
+   
+   // Compare the main version
+   Res = CmpFragment(lhs,dlhs,rhs,drhs);
+   if (Res != 0)
+      return Res;
+   
+   // Skip the -
+   if (dlhs != lhs)
+      dlhs++;
+   if (drhs != rhs)
+      drhs++;
+   
+   return CmpFragment(dlhs,AEnd,drhs,BEnd);
+}
+
 static gint
 compare_versions (const gchar *a, const gchar *b)
 {
-  gint result = 0;
-  gint i = 0;
-  char **tk1, **tk2;
-  const char *separators = ".:;+-,";
+  if (a == NULL)
+    return 1;
+  if (b == NULL)
+    return -1;
 
-  tk1 = g_strsplit_set (a, separators, -1);
-  tk2 = g_strsplit_set (b, separators, -1);
-
-  while (tk1[i] != NULL && tk2[i] != NULL)
-    {
-      gdouble value_a, value_b;
-
-      value_a = g_ascii_strtod (tk1[i], NULL);
-      value_b = g_ascii_strtod (tk2[i], NULL);
-
-      if (value_a == value_b)
-        result = g_ascii_strcasecmp (tk1[i], tk2[i]);
-      else
-        result = ((value_a > value_b) ? 1 : -1);
-
-      if (result != 0)
-        break;
-      i++;
-    }
-
-  if (result == 0)
-    {
-      if (tk1[i] == NULL)
-        if (tk2[i] == NULL)
-          return g_ascii_strcasecmp (a, b);
-        else
-          return -1;
-      else if (tk2[i] == NULL)
-        return 1;
-    }
-
-  g_strfreev (tk1);
-  g_strfreev (tk2);
-
-  return package_sort_sign * result;
+  return package_sort_sign * DoCmpVersion (a, a+strlen(a), b, b+strlen(b));
 }
 
 static gint

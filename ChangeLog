@@ -1,3 +1,8 @@
+2008-04-07  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (CmpFragment, DoCmpVersion): New, from libapt-pkg.
+	(compare_versions): Use them instead of doing it ourselves.
+
 2008-04-07  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/main.cc (compare_versions) : instead of simply using
