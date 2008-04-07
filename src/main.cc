@@ -705,8 +705,46 @@ compare_package_available_names (gconstpointer a, gconstpointer b)
 static gint
 compare_versions (const gchar *a, const gchar *b)
 {
-  // XXX - wrong, of course
-  return package_sort_sign * g_ascii_strcasecmp (a, b);
+  gint result = 0;
+  gint i = 0;
+  char **tk1, **tk2;
+  const char *separators = ".:;+-,";
+
+  tk1 = g_strsplit_set (a, separators, -1);
+  tk2 = g_strsplit_set (b, separators, -1);
+
+  while (tk1[i] != NULL && tk2[i] != NULL)
+    {
+      gdouble value_a, value_b;
+
+      value_a = g_ascii_strtod (tk1[i], NULL);
+      value_b = g_ascii_strtod (tk2[i], NULL);
+
+      if (value_a == value_b)
+        result = g_ascii_strcasecmp (tk1[i], tk2[i]);
+      else
+        result = ((value_a > value_b) ? 1 : -1);
+
+      if (result != 0)
+        break;
+      i++;
+    }
+
+  if (result == 0)
+    {
+      if (tk1[i] == NULL)
+        if (tk2[i] == NULL)
+          return g_ascii_strcasecmp (a, b);
+        else
+          return -1;
+      else if (tk2[i] == NULL)
+        return 1;
+    }
+
+  g_strfreev (tk1);
+  g_strfreev (tk2);
+
+  return package_sort_sign * result;
 }
 
 static gint

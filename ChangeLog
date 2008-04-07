@@ -1,3 +1,9 @@
+2008-04-07  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/main.cc (compare_versions) : instead of simply using
+	g_ascii_strcasecmp, now we split the version strings and
+	compare them token by token (N83764).
+
 2008-04-04  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.h, src/util.h (start_entertaining_user): Added a new
