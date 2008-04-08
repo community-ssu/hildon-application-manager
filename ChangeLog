@@ -1,3 +1,12 @@
+2008-04-08  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-utils.h, src/apt-utils.cc: New.
+	* src/Makefile.am: Use them for the hildon-application-manager.
+	Link it with libapt-pkg.
+	* src/main (CmpFragment, DoCmpVersion): Removed.
+	(compare_versions): Use the new compare_deb_versions from
+	apt-utils.h instead.
+
 2008-04-07  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.cc (CmpFragment, DoCmpVersion): New, from libapt-pkg.
