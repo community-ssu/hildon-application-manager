@@ -31,6 +31,8 @@
    libapt-pkg for real package management operations.
 */
 
+#define APT_METHOD_PATH "/usr/lib/apt/methods/"
+
 gint compare_deb_versions (const gchar *a, const gchar *b);
 
 #endif /* !APT_UTILS_H */

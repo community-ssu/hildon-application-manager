@@ -1,3 +1,14 @@
+2008-04-09  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/apt-utils.h (APT_METHOD_PATH): Location of the methods that APT can
+	use to retrieve lists of packages.
+	* src/repo.cc (repository_uri_is_valid): This function checks that the
+	given repository location can be used by APT; basically, its format must be
+	<valid APT method>:<address>
+	(cat_edit_response): Updated so it uses the previous function to validate
+	the repository address entered by the user; it also removes leading and
+	trailing whitespaces from it (N83553). 
+
 2008-04-08  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-utils.h, src/apt-utils.cc: New.

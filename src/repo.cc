@@ -39,8 +39,40 @@
 #include "util.h"
 #include "log.h"
 #include "confutils.h"
+#include "apt-utils.h"
 
 #define _(x)       gettext (x)
+
+static gboolean
+repository_uri_is_valid (const gchar* uri)
+{
+  const gchar *delimiter = ":";
+  gchar **tokens;
+  gchar *tmp, *repo_uri;
+  gboolean result = TRUE;
+
+  if (uri == NULL || strlen (uri) == 0 || !g_utf8_validate (uri, -1, NULL))
+    return FALSE;
+
+  repo_uri = g_strdup (uri);
+  g_strstrip (repo_uri);
+
+  tokens = g_strsplit (repo_uri, delimiter, 2);
+
+  if (tokens == NULL || tokens[1] == NULL || strlen (tokens[0]) == 0 || strlen (tokens[1]) == 0)
+    {
+      result = FALSE;
+    }
+  else
+    {
+      tmp = g_strdup_printf ("%s%s", APT_METHOD_PATH, tokens[0]);
+      result = g_file_test (tmp, G_FILE_TEST_EXISTS);
+      g_free (tmp);
+    }
+
+  g_strfreev(tokens);
+  return result;
+}
 
 static GtkWidget *
 add_entry (GtkWidget *box, GtkSizeGroup *group,
@@ -309,9 +341,9 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
   else if (response == GTK_RESPONSE_OK)
     {
       const char *name = gtk_entry_get_text (GTK_ENTRY (c->name_entry));
-      const char *uri = gtk_entry_get_text (GTK_ENTRY (c->uri_entry));
-      const char *dist = gtk_entry_get_text (GTK_ENTRY (c->dist_entry));
-      const char *comps = gtk_entry_get_text (GTK_ENTRY (c->components_entry));
+      char *uri = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c->uri_entry))));
+      char *dist = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c->dist_entry))));
+      char *comps = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c->components_entry))));
       bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
 						    (c->disabled_button));
 
@@ -321,8 +353,10 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 	  gtk_widget_grab_focus (c->name_entry);
 	  return;
 	}
-
-      if (all_whitespace (uri) || tokens_equal (uri, "http://"))
+      /* validate repository location                                         */ 
+      /* TODO we need a more general text, like "Invalid repository location" */
+      /* TODO encode URI to scape special characters?                         */
+      if (all_whitespace (uri) || tokens_equal (uri, "http://") || !repository_uri_is_valid (uri))
 	{
 	  irritate_user (_("ai_ib_enter_web_address"));
 	  gtk_widget_grab_focus (c->uri_entry);
@@ -342,6 +376,10 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       xexp_aset_text (c->catalogue, "uri", uri);
       set_cat_list (c->cat_dialog, &c->cat_dialog->selected_iter);
       c->cat_dialog->dirty = true;
+
+      g_free (uri);
+      g_free (dist);
+      g_free (comps);
     }
   else if (c->isnew)
     {
