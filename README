@@ -214,7 +214,6 @@ documented in the header files.
 BUGS
 ----
 
-- Remove "Cancel" button from "Uninstalling" progress note.
 - Make interaction flow system modal after showing the "system update"
   dialog.
 
