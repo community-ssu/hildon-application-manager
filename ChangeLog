@@ -1,3 +1,11 @@
+2008-04-10  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* README: Removed the "Remove "Cancel" button from 'Uninstalling'
+	progress note", since it's an already fixed bug.
+
+	* hildon-application-manager.sh: Always copy the packages.backup
+	file from /var/lib/hildon-application-manager (N83585).
+
 2008-04-09  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/apt-utils.h (APT_METHOD_PATH): Location of the methods that APT can
