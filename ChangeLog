@@ -1,3 +1,8 @@
+2008-04-11  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/log.cc (save_log): Remove the "file://" prefix, if present,
+	before storing the last_save_log_dir variable (N80933).
+
 2008-04-10  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* README: Removed the "Remove "Cancel" button from 'Uninstalling'

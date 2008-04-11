@@ -227,9 +227,10 @@ void scare_user_with_legalese (bool sure,
 
 /* Progress dialog.
    
-   START_ENTERTAINING_USER shows a progress bar dialog with a cancel
-   button and STOP_ENTERTAINING_USER removes it.  These two functions
-   must be called in pairs and must be properly nested with respect to
+   START_ENTERTAINING_USER shows a progress bar dialog with or without
+   a cancel button (depending on the value for its only parameter) and
+   STOP_ENTERTAINING_USER removes it.  These two functions must be
+   called in pairs and must be properly nested with respect to
    push_dialog_parent and pop_dialog_parent.  There will only be at
    most one progress bar dialog active at any given time, and nesting
    start_entertaining_user/stop_entertaining_user will just maintain a
