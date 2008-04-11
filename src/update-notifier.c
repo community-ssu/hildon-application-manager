@@ -1072,6 +1072,34 @@ check_for_updates_done (GPid pid, int status, gpointer data)
     }
 }
 
+static gboolean
+expensive_connection (UpdateNotifier *upno)
+{
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  /* XXX - only the WLAN_INFRA and the WLAN_ADHOC bearers are
+           considered cheap.  There should be a general platform
+           feature that tells us whether we need to be careful with
+           network access or not.  Also, peeking into GConf is not the
+           best thing, but the ConIc API doesn't seem to have an easy
+           way to query the currently active connection.
+  */
+
+  gboolean cheap;
+
+  char *last_used_type =
+    gconf_client_get_string (priv->gconf,
+			     "/system/osso/connectivity/IAP/last_used_type",
+			     NULL);
+
+  cheap = (last_used_type != NULL
+	   && (strcmp (last_used_type, "WLAN_ADHOC") == 0
+	       || strcmp (last_used_type, "WLAN_INFRA") == 0));
+
+  g_free (last_used_type);
+  return !cheap;
+}
+
 static void
 check_for_updates (UpdateNotifier *upno)
 {
@@ -1080,6 +1108,9 @@ check_for_updates (UpdateNotifier *upno)
   gchar *gainroot_cmd = NULL;
   gchar *proxy = get_http_proxy ();
   struct stat info;
+
+  if (expensive_connection (upno))
+    return;
 
   /* Choose the right gainroot command */
   if (!stat ("/targets/links/scratchbox.config", &info))
