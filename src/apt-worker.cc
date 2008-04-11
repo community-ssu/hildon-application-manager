@@ -5150,7 +5150,7 @@ read_operation_record ()
 {
   struct stat buf;
 
-  /* This check is not strictly necessary but it avoid a distracting
+  /* This check is not strictly necessary but it avoids a distracting
      complaint from xexp_read_file in the common case that the file
      doesn't exist.
   */
