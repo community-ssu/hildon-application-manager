@@ -79,6 +79,7 @@ bool prepend = false;
 
 xexp *catalogues;
 xexp *domains;
+xexp *notifier;
 
 void
 read_conf ()
@@ -90,6 +91,10 @@ read_conf ()
   domains = xexp_read_file (DOMAIN_CONF);
   if (domains == NULL)
     exit (1);
+
+  notifier = xexp_read_file (NOTIFIER_CONF);
+  if (notifier == NULL)
+    exit (1);
 }
 
 void
@@ -97,11 +102,15 @@ reset_conf ()
 {
   catalogues = xexp_list_new ("catalogues");
   domains = xexp_list_new ("domains");
+  notifier = xexp_list_new ("notifier");
 }
 
 void
 write_conf ()
 {
+  if (!xexp_write_file (NOTIFIER_CONF, notifier))
+    exit (1);
+
   if (!xexp_write_file (DOMAIN_CONF, domains))
     exit (1);
 
@@ -183,6 +192,11 @@ handle_element (xexp *element, bool add)
     {
       conf = domains;
       equal = domain_equal;
+    }
+  else if (xexp_is (element, "notifier"))
+    {
+      conf = notifier;
+      equal = notifier_equal;
     }
   else
     {
@@ -300,6 +314,7 @@ main (int argc, char **argv)
       xexp *conf = xexp_list_new ("config");
       xexp_append (conf, catalogues);
       xexp_append (conf, domains);
+      xexp_append (conf, notifier);
       xexp_write (stdout, conf);
     }
   else

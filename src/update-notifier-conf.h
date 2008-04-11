@@ -26,9 +26,9 @@
 
 #define UPNO_GCONF_DIR            "/apps/hildon/update-notifier"
 #define UPNO_GCONF_CHECK_INTERVAL UPNO_GCONF_DIR "/check_interval"
-#define UPNO_GCONF_URI            UPNO_GCONF_DIR "/uri"
-
 #define UPNO_DEFAULT_CHECK_INTERVAL (24*60)
+
+#define UPNO_NOTIFIER_CONF "/etc/hildon-application-manager/notifier"
 
 #define UPDATE_NOTIFIER_SERVICE "com.nokia.hildon_update_notifier"
 #define UPDATE_NOTIFIER_OBJECT_PATH "/com/nokia/hildon_update_notifier"

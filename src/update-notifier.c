@@ -1118,17 +1118,40 @@ check_for_updates (UpdateNotifier *upno)
   g_free (proxy);
 }
 
+static char *
+get_notifier_uri (void)
+{
+  char *uri = NULL;
+  xexp *notifier_conf = xexp_read_file (UPNO_NOTIFIER_CONF);
+
+  if (notifier_conf != NULL)
+    {
+      const char *tmp_uri = xexp_aref_text (notifier_conf, "uri");
+
+      if (tmp_uri != NULL)
+	uri = g_strdup (tmp_uri);
+
+      xexp_free (notifier_conf);
+    }
+
+  return uri;
+}
+
 static gpointer
 check_for_notifications_thread (gpointer userdata)
 {
   UpdateNotifierPrivate *priv = NULL;
-  GConfClient *conf = NULL;
   FILE *tmp_file = NULL;
   gchar *proxy = NULL;
-  gchar *gconf_uri = NULL;
+  gchar *notifier_uri = NULL;
   gchar *uri = NULL;
 
   g_return_val_if_fail (userdata != NULL, NULL);
+
+  /* Return if no notifer URI was found */
+  notifier_uri = get_notifier_uri ();
+  if (notifier_uri == NULL)
+    return NULL;
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (userdata);
 
@@ -1136,9 +1159,7 @@ check_for_notifications_thread (gpointer userdata)
   if (!g_mutex_trylock (priv->notifications_thread_mutex))
     return NULL;
 
-  conf = gconf_client_get_default ();
-  gconf_uri = gconf_client_get_string (conf, UPNO_GCONF_URI, NULL);
-  uri = url_eval (gconf_uri);
+  uri = url_eval (notifier_uri);
   tmp_file  = user_file_open_for_write (UFILE_AVAILABLE_NOTIFICATIONS_TMP);
 
   if (uri != NULL && tmp_file != NULL)
@@ -1190,8 +1211,8 @@ check_for_notifications_thread (gpointer userdata)
     }
 
   g_mutex_unlock (priv->notifications_thread_mutex);
-  if (gconf_uri != NULL)
-    g_free (gconf_uri);
+  if (notifier_uri != NULL)
+    g_free (notifier_uri);
   if (uri != NULL)
     g_free (uri);
   if (proxy != NULL)
@@ -1673,6 +1694,7 @@ get_osso_product_hardware ()
 #define UPNO_GCONF_OLD_STATE          UPNO_GCONF_DIR "/state"
 #define UPNO_GCONF_OLD_ALARM_COOKIE   UPNO_GCONF_DIR "/alarm_cookie"
 #define UPNO_GCONF_OLD_LAST_UPDATE    UPNO_GCONF_DIR "/last_update"
+#define UPNO_GCONF_OLD_URI            UPNO_GCONF_DIR "/uri"
 
 static void
 load_state (UpdateNotifier *upno)
@@ -1694,6 +1716,10 @@ load_state (UpdateNotifier *upno)
 
   gconf_client_unset (priv->gconf,
 		      UPNO_GCONF_OLD_LAST_UPDATE,
+		      NULL);
+
+  gconf_client_unset (priv->gconf,
+		      UPNO_GCONF_OLD_URI,
 		      NULL);
 
   if (x_state)

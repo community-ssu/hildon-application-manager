@@ -3,6 +3,33 @@
 	* src/log.cc (save_log): Remove the "file://" prefix, if present,
 	before storing the last_save_log_dir variable (N80933).
 
+	* src/update-notifier-conf.h (UPNO_GCONF_URI): Removed.
+	(UPNO_NOTIFIER_CONF): New define pointing to the new configuration
+	file at /etc/hildon-application-manager/notifier.
+
+	* src/update-notifier.c (get_notifier_uri): New function to easily
+	retrieve the URI for checking new notifications.
+	(check_for_notifications_thread): Stop using the GConf value for
+	the URI and use the new function instead.
+	(UPNO_GCONF_OLD_URI): New define pointinf to the former GConf path
+	for the URI value.
+	(load_state): Use the new UPNO_GCONF_OLD_URI to unset the variable
+	from GConf if present.
+
+	* src/hildon-application-manager-config.cc (read_conf): Read the
+	new configuration file for the notifier.
+	(reset_conf): Reset the new configuration file..
+	(write_conf): Write the new configuration file.
+	(handle_element): Handle the new configuration file, using a new
+	function defined for comparison.
+	(main): Also dump notifier configuration.
+
+	* src/confutils.h (NOTIFIER_CONF): New define pointing to the new
+	configuration file.
+
+	* src/confutils.h, src/confutils.cc (notifier_equal): New function
+	to be used from handle_element, commented above.
+
 2008-04-10  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* README: Removed the "Remove "Cancel" button from 'Uninstalling'

@@ -40,6 +40,10 @@ extern "C" {
  */
 #define DOMAIN_CONF "/etc/hildon-application-manager/domains"
 
+/* The file were we define parameters for the update notifier status bar icon
+ */
+#define NOTIFIER_CONF "/etc/hildon-application-manager/notifier"
+
 /* The files where we store our backup data.
  *
  * See backup_catalogues for an explanation why we have two backups of
@@ -71,5 +75,10 @@ void backup_catalogues ();
  */
 
 bool domain_equal (xexp *a, xexp *b);
+
+/* Notifier
+ */
+
+bool notifier_equal (xexp *a, xexp *b);
 
 #endif /* !CONFUTILS_H */
