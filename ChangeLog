@@ -1,3 +1,9 @@
+2008-04-14  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* utils/maemo-select-menu-location-main.c (dialog_exposed): Use
+	gdk_window_raise instead of gdk_window_set_keep_above to avoid
+	being on top of everything (no only the HAM) (N84021).
+
 2008-04-11  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/update-notifier.c (expensive_connection): New.
