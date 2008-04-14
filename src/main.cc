@@ -1559,11 +1559,18 @@ installed_package_selected (package_info *pi)
     {
       set_details_callback (installed_package_details, pi);
       set_operation_callback (uninstall_operation_callback, pi);
+      set_operation_label (_("ai_me_package_uninstall"),
+                           _("ai_ni_unable_to_uninstall_system_update"));
+      if (current_tb_struct->operation_button)
+        gtk_widget_set_sensitive (current_tb_struct->operation_button, 
+                                  !(pi->flags & pkgflag_system_update));
     }
   else
     {
       set_details_callback (NULL, NULL);
       set_operation_callback (NULL, NULL);
+      set_operation_label (_("ai_me_package_uninstall"),
+                           _("ai_ib_nothing_to_uninstall"));
     }
 }
 

@@ -4,6 +4,18 @@
 	function returns NULL if the dialog is closed with the ESC key
 	(N84151).
 
+	* src/main.cc (installed_package_selected) : The "Uninstall" button is
+	dimmed if a package with the "system-update" Maemo flag is selected; if
+	the user taps on the button, a banner displaying
+	"ai_ni_unable_to_uninstall_system_update" is shown.
+
+	* src/details.cc (spd_create_common_page) : The empty dimmed table won't be
+	shown any more.
+	(spd_update_common_page) : In the details dialog, if the package has a size
+	of 0 KB the "Size" field won't be shown. Similarly, the fields 
+	"short description", "installed version", "available version" and 
+	download size" won't appear if they are empty (N84073).
+
 2008-04-14  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.cc (refresh_package_cache_without_user): Call

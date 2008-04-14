@@ -414,20 +414,6 @@ spd_create_common_page (void *data)
   gtk_table_set_row_spacings (GTK_TABLE (table), 0);
   c->table = table;
 
-  /* If the full data has not been retrieved yet, just create an
-     insensitive table with the names of the fields */
-  add_table_field (table, 0, _("ai_fi_details_package"), NULL);
-  add_table_field (table, 1, "", NULL);
-  add_table_field (table, 2, _("ai_fi_details_maintainer"), NULL);
-  add_table_field (table, 3, _("ai_fi_details_status"), NULL);
-  add_table_field (table, 4, _("ai_fi_details_category"), NULL);
-  add_table_field (table, 5, _("ai_va_details_installed_version"), NULL);
-  add_table_field (table, 6, _("ai_va_details_size"), NULL);
-  add_table_field (table, 7, _("ai_va_details_available_version"), NULL);
-  add_table_field (table, 8, _("ai_va_details_download_size"), NULL);
-
-  gtk_widget_set_sensitive (GTK_WIDGET (table), FALSE);
-
   common = gtk_scrolled_window_new (NULL, NULL);
   gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (common),
 					 table);
@@ -444,6 +430,7 @@ spd_update_common_page (void *data)
   GtkWidget *table = c->table;
   package_info *pi = c->pi;
   gchar *status;
+  gint last_row = -1;
 
   /* Prevent the 'Updating' banner from being shown */
   prevent_updating ();
@@ -451,33 +438,33 @@ spd_update_common_page (void *data)
   if (pi->installed_version && pi->available_version)
     {
       if (pi->broken)
-	{
-	  if (pi->info.installable_status == status_able)
-	    status = _("ai_va_details_status_broken_updateable");
-	  else
-	    status = _("ai_va_details_status_broken_not_updateable");
-	}
+        {
+          if (pi->info.installable_status == status_able)
+            status = _("ai_va_details_status_broken_updateable");
+          else
+            status = _("ai_va_details_status_broken_not_updateable");
+        }
       else
-	{
-	  if (pi->info.installable_status == status_able)
-	    status = _("ai_va_details_status_updateable");
-	  else
-	    status = _("ai_va_details_status_not_updateable");
-	}
+        {
+          if (pi->info.installable_status == status_able)
+            status = _("ai_va_details_status_updateable");
+          else
+            status = _("ai_va_details_status_not_updateable");
+        }
     }
   else if (pi->installed_version)
     {
       if (pi->broken)
-	status = _("ai_va_details_status_broken");
+        status = _("ai_va_details_status_broken");
       else
-	status = _("ai_va_details_status_installed");
+        status = _("ai_va_details_status_installed");
     }
   else if (pi->available_version)
     {
       if (pi->info.installable_status == status_able)
-	status = _("ai_va_details_status_installable");
+        status = _("ai_va_details_status_installable");
       else
-	status = _("ai_va_details_status_not_installable");
+        status = _("ai_va_details_status_not_installable");
     }
   else
     status = "?";
@@ -485,56 +472,53 @@ spd_update_common_page (void *data)
   {
     const char *display_name =
       pi->get_display_name (pi->have_detail_kind == remove_details);
-  
+
     if (red_pill_mode && strcmp (pi->name, display_name))
       {
-	char *extended_name = g_strdup_printf ("%s (%s)", display_name,
-					       pi->name);
-	add_table_field (table, 0, _("ai_fi_details_package"), extended_name);
-	g_free (extended_name);
+        char *extended_name = g_strdup_printf ("%s (%s)", display_name,
+                                               pi->name);
+        add_table_field (table, ++last_row, _("ai_fi_details_package"), extended_name);
+        g_free (extended_name);
       }
     else
-      add_table_field (table, 0, _("ai_fi_details_package"), display_name);
+      add_table_field (table, ++last_row, _("ai_fi_details_package"), display_name);
   }
 
   gchar *short_description = (pi->have_detail_kind == remove_details
-			      ? pi->installed_short_description
-			      : pi->available_short_description);
-  if (short_description == NULL)
-    short_description = pi->installed_short_description;
-  add_table_field (table, 1, "", short_description);
+      ? pi->installed_short_description
+      : pi->available_short_description);
+  if (short_description != NULL && strlen (short_description) > 0)
+    add_table_field (table, ++last_row, "", short_description);
 
-  add_table_field (table, 2, _("ai_fi_details_maintainer"), pi->maintainer);
+  add_table_field (table, ++last_row, _("ai_fi_details_maintainer"), pi->maintainer);
 
-  add_table_field (table, 3, _("ai_fi_details_status"), status);
+  add_table_field (table, ++last_row, _("ai_fi_details_status"), status);
 
-  add_table_field (table, 4, _("ai_fi_details_category"),
-		   nicify_section_name (pi->have_detail_kind == remove_details
-					? pi->installed_section
-					: pi->available_section));
+  add_table_field (table, ++last_row, _("ai_fi_details_category"),
+                   nicify_section_name (pi->have_detail_kind == remove_details
+                                        ? pi->installed_section
+                                        : pi->available_section));
 
-  add_table_field (table, 5, _("ai_va_details_installed_version"),
-		   (pi->installed_version
-		    ? pi->installed_version
-		    : _("ai_va_details_no_info")));
-
+  /* now, the optional fields */
+  
   if (pi->installed_version)
+    add_table_field (table, ++last_row, _("ai_va_details_installed_version"),
+                     pi->installed_version);
+
+  if (pi->installed_version && pi->installed_size > 0)
     {
       char size_buf[20];
       size_string_detailed (size_buf, 20, pi->installed_size);
-      add_table_field (table, 6, _("ai_va_details_size"), size_buf);
+      add_table_field (table, ++last_row, _("ai_va_details_size"), size_buf);
     }
-
-  add_table_field (table, 7, _("ai_va_details_available_version"),
-		   (pi->available_version 
-		    ? pi->available_version
-		    : _("ai_va_details_no_info")));
 
   if (pi->available_version)
     {
       char size_buf[20];
+      add_table_field (table, ++last_row, _("ai_va_details_available_version"),
+                       pi->available_version);
       size_string_detailed (size_buf, 20, pi->info.download_size);
-      add_table_field (table, 8, _("ai_va_details_download_size"), size_buf);
+      add_table_field (table, ++last_row, _("ai_va_details_download_size"), size_buf);
     }
 
   gtk_widget_set_sensitive (GTK_WIDGET (table), TRUE);
