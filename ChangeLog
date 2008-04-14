@@ -6,13 +6,18 @@
 
 2008-04-14  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/main.cc (refresh_package_cache_without_user): Call
+	ensure_network, stupid (N83308).
+	(rpcwu_with_network): New.
+
 	* Makefile.am (install-data-local, uninstall-local):
 	Install/uninstall "notifier" file.
 
 	* src/main.cc (create_toolbar): Enable refresh button also in blue
 	pill mode (N83308).
 	(enable_refresh): New.  Call it appropriately when constructing
-	views.
+	views: insensitive in the "Main", "Installed applications", and
+	"Search" views, sensitive otherwise.
 
 2008-04-14  Mario Sanchez Prada  <msanchez@maemo.org>
 

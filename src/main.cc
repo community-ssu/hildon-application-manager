@@ -1250,6 +1250,7 @@ struct rcpwu_clos {
   bool keep_going;
 };
 
+static void rpcwu_with_network (bool success, void *data);
 static void rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void rpcwu_end (void *data);
 
@@ -1277,7 +1278,22 @@ refresh_package_cache_without_user (const char *title,
   set_entertainment_fun (NULL, -1, -1, 0);
   start_entertaining_user (TRUE);
 
-  apt_worker_update_cache (state, rpcwu_reply, c);
+  ensure_network (rpcwu_with_network, c);
+}
+
+static void
+rpcwu_with_network (bool success, void *data)
+{
+  rcpwu_clos *c = (rcpwu_clos *)data;
+
+  if (success)
+    apt_worker_update_cache (c->state, rpcwu_reply, c);
+  else
+    {
+      c->keep_going = false;
+      stop_entertaining_user ();
+      rpcwu_end (c);
+    }
 }
 
 static void
@@ -1753,7 +1769,7 @@ make_uninstall_applications_view (view *v)
   gtk_widget_show_all (view);
 
   enable_search (true);
-  enable_refresh (true);
+  enable_refresh (false);
   set_current_help_topic (AI_TOPIC ("uninstallview"));
 
   return view;
