@@ -48,32 +48,32 @@
 	* src/log.cc (save_log): Remove the "file://" prefix, if present,
 	before storing the last_save_log_dir variable (N80933).
 
-	* src/update-notifier-conf.h (UPNO_GCONF_URI): Removed.
+	* src/update-notifier-conf.h (UPNO_GCONF_URI): Removed (N83956).
 	(UPNO_NOTIFIER_CONF): New define pointing to the new configuration
-	file at /etc/hildon-application-manager/notifier.
+	file at /etc/hildon-application-manager/notifier (N83956).
 
 	* src/update-notifier.c (get_notifier_uri): New function to easily
-	retrieve the URI for checking new notifications.
+	retrieve the URI for checking new notifications (N83956).
 	(check_for_notifications_thread): Stop using the GConf value for
-	the URI and use the new function instead.
-	(UPNO_GCONF_OLD_URI): New define pointinf to the former GConf path
-	for the URI value.
+	the URI and use the new function instead (N83956).
+	(UPNO_GCONF_OLD_URI): New define pointing to the former GConf path
+	for the URI value (N83956).
 	(load_state): Use the new UPNO_GCONF_OLD_URI to unset the variable
-	from GConf if present.
+	from GConf if present (N83956).
 
 	* src/hildon-application-manager-config.cc (read_conf): Read the
-	new configuration file for the notifier.
-	(reset_conf): Reset the new configuration file..
-	(write_conf): Write the new configuration file.
+	new configuration file for the notifier (N83956).
+	(reset_conf): Reset the new configuration file (N83956).
+	(write_conf): Write the new configuration file (N83956).
 	(handle_element): Handle the new configuration file, using a new
-	function defined for comparison.
-	(main): Also dump notifier configuration.
+	function defined for comparison (N83956).
+	(main): Also dump notifier configuration (N83956).
 
 	* src/confutils.h (NOTIFIER_CONF): New define pointing to the new
-	configuration file.
+	configuration file (N83956).
 
 	* src/confutils.h, src/confutils.cc (notifier_equal): New function
-	to be used from handle_element, commented above.
+	to be used from handle_element, commented above (N83956).
 
 2008-04-10  Mario Sanchez Prada  <msanchez@maemo.org>
 
