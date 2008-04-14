@@ -440,12 +440,12 @@ enum apt_proto_pkgtrust {
 // - name (string).
 // - pretty_name (string).
 // - installed_version (string).
-// - installed_size (int).
+// - installed_size (int64_t).
 // - available_version (string).
 // - maintainer (string).
 // - available_section (string).
 // - installable_status (int).
-// - install_user_size_delta (int).
+// - install_user_size_delta (int64_t).
 // - description (string).
 // - available_icon (string).
 // - summary (symtype,string)*,(sumtype_end).

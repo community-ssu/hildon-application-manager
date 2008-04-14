@@ -1,3 +1,9 @@
+2008-04-14  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* utils/maemo-select-menu-location-main.c (run_move_to_dialog) : This
+	function returns NULL if the dialog is closed with the ESC key
+	(N84151).
+
 2008-04-14  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* Makefile.am (install-data-local, uninstall-local):

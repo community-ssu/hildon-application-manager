@@ -245,7 +245,7 @@ dialog_exposed (GtkWidget *widget, GdkEventExpose *event, gpointer data)
 
   /* Raise this window to the top of the X stack if it's the topmost one */
   if (dialog_stack == NULL || dialog_stack->data == widget)
-    gdk_window_raise (win);
+    gdk_window_set_keep_above (win, TRUE);
 
   /* Progate expose event to children */
   child = gtk_bin_get_child (GTK_BIN (widget));
@@ -450,8 +450,6 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
 					GTK_RESPONSE_OK,
 					NULL);
 
-  gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
-
   box = gtk_hbox_new (TRUE, 12);
   treeview = make_folder_tree_view (model);
 
@@ -460,7 +458,6 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
 				  GTK_POLICY_AUTOMATIC,
 				  GTK_POLICY_AUTOMATIC);
   gtk_widget_set_size_request (scroller, 340, 200);
-
 
   gtk_container_add (GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), box);
   gtk_box_pack_start (GTK_BOX (box), scroller, FALSE, TRUE, 0);
@@ -478,13 +475,15 @@ run_move_to_dialog (GtkWindow *parent, gchar *title, GtkTreeModel *model)
 				 GDK_HINT_MIN_SIZE);
 
   gtk_widget_show_all (dialog);
-  gtk_dialog_run (GTK_DIALOG (dialog));
 
-  selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (treeview));
-  if (gtk_tree_selection_get_selected (selection, &sel_model, &sel_iter))
-    gtk_tree_model_get (sel_model, &sel_iter,
-			TREE_MODEL_NAME, &dest,
-			-1);
+  if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_OK)
+    {
+      selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (treeview));
+      if (gtk_tree_selection_get_selected (selection, &sel_model, &sel_iter))
+        gtk_tree_model_get (sel_model, &sel_iter,
+                            TREE_MODEL_NAME, &dest,
+                            -1);
+    }
 
   gtk_widget_destroy (dialog);
   pop_dialog (dialog);
