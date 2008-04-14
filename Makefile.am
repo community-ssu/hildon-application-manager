@@ -30,6 +30,9 @@ install-data-local:
 	if [ ! -f $(DESTDIR)$(etcdir)/domains ]; then \
           echo "<domains/>" >$(DESTDIR)$(etcdir)/domains; \
         fi
+	if [ ! -f $(DESTDIR)$(etcdir)/notifier ]; then \
+          echo "<notifier/>" >$(DESTDIR)$(etcdir)/notifier; \
+        fi
 	$(mkinstalldirs) $(vardir)
 	if [ ! -f $(vardir)/available_updates ]; then \
           echo "<updates/>" >$(vardir)/available_updates; \
@@ -41,6 +44,9 @@ uninstall-local:
         fi
 	if [ -f $(DESTDIR)$(etcdir)/domains ]; then \
           rm $(DESTDIR)$(etcdir)/domains; \
+        fi
+	if [ -f $(DESTDIR)$(etcdir)/notifier ]; then \
+          rm $(DESTDIR)$(etcdir)/notifier; \
         fi
 	if [ -f $(vardir)/available_updates ]; then \
           rm $(vardir)/available_updates; \

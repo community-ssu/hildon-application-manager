@@ -1,5 +1,8 @@
 2008-04-14  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* Makefile.am (install-data-local, uninstall-local):
+	Install/uninstall "notifier" file.
+
 	* src/main.cc (create_toolbar): Enable refresh button also in blue
 	pill mode (N83308).
 	(enable_refresh): New.  Call it appropriately when constructing
