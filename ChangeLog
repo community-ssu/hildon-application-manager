@@ -1,3 +1,10 @@
+2008-04-14  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (create_toolbar): Enable refresh button also in blue
+	pill mode (N83308).
+	(enable_refresh): New.  Call it appropriately when constructing
+	views.
+
 2008-04-14  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* utils/maemo-select-menu-location-main.c (dialog_exposed): Use

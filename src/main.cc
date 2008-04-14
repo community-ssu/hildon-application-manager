@@ -71,6 +71,7 @@ static void set_details_callback (void (*func) (gpointer), gpointer data);
 static void set_operation_label (const char *label, const char *insens);
 static void set_operation_callback (void (*func) (gpointer), gpointer data);
 static void enable_search (bool f);
+static void enable_refresh (bool f);
 static void set_current_help_topic (const char *topic);
 
 static void get_package_infos_in_background (GList *packages);
@@ -381,6 +382,7 @@ make_main_view (view *v)
   get_package_infos_in_background (NULL);
 
   enable_search (false);
+  enable_refresh (false);
   set_current_help_topic (AI_TOPIC ("mainview"));
 
   prevent_updating ();
@@ -1582,6 +1584,7 @@ make_install_section_view (view *v)
     get_package_infos_in_background (si->packages);
 
   enable_search (true);
+  enable_refresh (true);
   set_current_help_topic (AI_TOPIC ("packagesview"));
 
   return view;
@@ -1664,6 +1667,7 @@ make_install_applications_view (view *v)
   gtk_widget_show_all (view);
 
   enable_search (true);
+  enable_refresh (true);
 
   maybe_refresh_package_cache_without_user ();
   
@@ -1701,6 +1705,8 @@ make_upgrade_applications_view (view *v)
   get_package_infos_in_background (upgradeable_packages);
 
   enable_search (true);
+  enable_refresh (true);
+
   set_current_help_topic (AI_TOPIC ("updateview"));
 
   if (package_list_ready
@@ -1747,6 +1753,7 @@ make_uninstall_applications_view (view *v)
   gtk_widget_show_all (view);
 
   enable_search (true);
+  enable_refresh (true);
   set_current_help_topic (AI_TOPIC ("uninstallview"));
 
   return view;
@@ -1792,6 +1799,7 @@ make_search_results_view (view *v)
   gtk_widget_show_all (view);
 
   enable_search (true);
+  enable_refresh (true);
   set_current_help_topic (AI_TOPIC ("searchresultsview"));
 
   return view;
@@ -2594,6 +2602,13 @@ enable_search (bool f)
 }
 
 static void
+enable_refresh (bool f)
+{
+  if (current_tb_struct->refresh_button)
+    gtk_widget_set_sensitive (current_tb_struct->refresh_button, f);
+}
+
+static void
 insensitive_press (GtkButton *button, gpointer data)
 {
   char *text = (char *)data;
@@ -2805,23 +2820,20 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
 		      -1);
   tb_struct->details_button = details_button;
 
-  /* Refresh all packages button */
-  if (red_pill_mode)
-    {
-      image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
-					    HILDON_ICON_SIZE_TOOLBAR);
-      GtkWidget *refresh_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
-      gtk_tool_item_set_expand (GTK_TOOL_ITEM (refresh_button), TRUE);
-      gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (refresh_button), TRUE);
-      g_signal_connect (refresh_button, "clicked",
-			G_CALLBACK (call_refresh_package_cache),
-			NULL);
+  /* Check for updates button */
+  image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
+					HILDON_ICON_SIZE_TOOLBAR);
+  GtkWidget *refresh_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
+  gtk_tool_item_set_expand (GTK_TOOL_ITEM (refresh_button), TRUE);
+  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (refresh_button), TRUE);
+  g_signal_connect (refresh_button, "clicked",
+		    G_CALLBACK (call_refresh_package_cache),
+		    NULL);
 
-      gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
-			  GTK_TOOL_ITEM (refresh_button),
-			  -1);
-      tb_struct->refresh_button = refresh_button;
-    }
+  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+		      GTK_TOOL_ITEM (refresh_button),
+		      -1);
+  tb_struct->refresh_button = refresh_button;
 
   return tb_struct;
 }
