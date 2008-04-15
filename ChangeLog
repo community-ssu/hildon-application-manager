@@ -1,3 +1,9 @@
+2008-04-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/main.cc (installed_package_activated) : If the user taps on a
+	system update, a banner "ai_ni_unable_to_uninstall_system_update" is
+	shown. This is for consistency with the changes on 2008-04-14.
+
 2008-04-14  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* utils/maemo-select-menu-location-main.c (run_move_to_dialog) : This

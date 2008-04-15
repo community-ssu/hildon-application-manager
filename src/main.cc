@@ -1577,7 +1577,10 @@ installed_package_selected (package_info *pi)
 static void
 installed_package_activated (package_info *pi)
 {
-  uninstall_package_flow (pi);
+  if (pi->flags & pkgflag_system_update)
+    irritate_user (_("ai_ni_unable_to_uninstall_system_update"));
+  else
+    uninstall_package_flow (pi);
 }
 
 GtkWidget *
