@@ -11,7 +11,7 @@ cats="/var/lib/hildon-application-manager/catalogues.backup"
 cats2="/var/lib/hildon-application-manager/catalogues2.backup"
 
 if [ "$1" = "start" ]; then
-  /usr/libexec/ham-after-boot
+  /usr/libexec/ham-after-boot&
 elif [ "$1" = "stop" ]; then
   true
 elif [ "$1" = "restore-catalogues" ]; then

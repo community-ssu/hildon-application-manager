@@ -16,6 +16,9 @@
 	system update, a banner "ai_ni_unable_to_uninstall_system_update" is
 	shown. This is for consistency with the changes on 2008-04-14.
 
+	* src/hildon-application-manager-util : launch ham-after-boot in the
+	background, so we avoid blocking (N84254).
+
 2008-04-14  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* utils/maemo-select-menu-location-main.c (run_move_to_dialog) : This
