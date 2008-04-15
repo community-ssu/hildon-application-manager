@@ -49,6 +49,7 @@ bool red_pill_show_deps = true;
 bool red_pill_show_all = true;
 bool red_pill_show_magic_sys = true;
 bool red_pill_include_details_in_log = false;
+bool red_pill_check_always = true;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
@@ -105,6 +106,8 @@ load_settings ()
 	    red_pill_include_details_in_log = val;
 	  else if (sscanf (line, "assume-connection %d", &val) == 1)
 	    assume_connection = val;
+	  else if (sscanf (line, "red-pill-check-always %d", &val) == 1)
+	    red_pill_check_always = val;
 	  else
 	    add_log ("Unrecognized configuration line: '%s'\n", line);
 	}
@@ -133,6 +136,7 @@ save_settings ()
       fprintf (f, "red-pill-show-magic-sys %d\n", red_pill_show_magic_sys);
       fprintf (f, "red-pill-include-details-in-log %d\n", 
 	       red_pill_include_details_in_log);
+      fprintf (f, "red-pill-check-always %d\n", red_pill_check_always);
       fprintf (f, "assume-connection %d\n", assume_connection);
       fclose (f);
     }
@@ -147,6 +151,7 @@ enum boolean_options {
   OPT_SHOW_MAGIC_SYS,
   OPT_INCLUDE_DETAILS_IN_LOG,
   OPT_DOWNLOAD_PACKAGES_TO_MMC,
+  OPT_CHECK_ALWAYS,
   NUM_BOOLEAN_OPTIONS
 };
 
@@ -180,10 +185,15 @@ make_boolean_option (settings_closure *c,
 static GtkWidget *
 make_settings_tab (settings_closure *c)
 {
-  GtkWidget *vbox;
+  GtkWidget *scrolled_window, *vbox;
   GtkSizeGroup *group;
 
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
+
+  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+				  GTK_POLICY_NEVER,
+				  GTK_POLICY_AUTOMATIC);
 
   vbox = gtk_vbox_new (FALSE, 0);
 
@@ -206,9 +216,14 @@ make_settings_tab (settings_closure *c)
   make_boolean_option (c, vbox, group, OPT_DOWNLOAD_PACKAGES_TO_MMC,
 		       "Use MMC to download packages",
 		       &download_packages_to_mmc);
+  make_boolean_option (c, vbox, group, OPT_CHECK_ALWAYS,
+		       "Always check for updates",
+		       &red_pill_check_always);
   g_object_unref (group);
 
-  return vbox;
+  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),
+					 vbox);
+  return scrolled_window;
 }
 
 static void
@@ -268,8 +283,9 @@ show_settings_dialog_flow ()
       
       gtk_box_pack_start (GTK_BOX (GTK_DIALOG(dialog)->vbox),
 			  make_settings_tab (c),
-			  FALSE, FALSE, 20);
-      
+			  TRUE, TRUE, 5);
+      gtk_widget_set_usize (dialog, -1, 300);
+
       g_signal_connect (dialog, "response",
 			G_CALLBACK (settings_dialog_response),
 			c);

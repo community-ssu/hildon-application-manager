@@ -1344,25 +1344,16 @@ rpcwuf_end (bool ignore, void *unused)
 void
 maybe_refresh_package_cache_without_user ()
 {
-  GConfClient *conf;
-  int last_update, interval;
-
   if (!is_idle ())
     return;
 
-  conf = gconf_client_get_default ();
-
-  last_update = load_last_update_time ();
-
-  interval = gconf_client_get_int (conf,
-				   UPNO_GCONF_CHECK_INTERVAL,
-				   NULL);
-
-  if (interval <= 0)
-    interval = UPNO_DEFAULT_CHECK_INTERVAL;
-
-  if (last_update + interval*60 < time (NULL))
-    refresh_package_cache_without_user_flow ();
+  if (red_pill_mode)
+    {
+      if (red_pill_check_always)
+	refresh_package_cache_without_user_flow ();
+    }
+  else
+    refresh_package_cache_without_user_flow ();  
 }
 
 /* Set the catalogues and refresh.
@@ -2630,7 +2621,8 @@ enable_search (bool f)
 static void
 enable_refresh (bool f)
 {
-  if (current_tb_struct->refresh_button)
+  if (!red_pill_mode
+      && current_tb_struct->refresh_button)
     gtk_widget_set_sensitive (current_tb_struct->refresh_button, f);
 }
 
@@ -2846,21 +2838,27 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
 		      -1);
   tb_struct->details_button = details_button;
 
-  /* Check for updates button */
-  image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
-					HILDON_ICON_SIZE_TOOLBAR);
-  GtkWidget *refresh_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
-  gtk_tool_item_set_expand (GTK_TOOL_ITEM (refresh_button), TRUE);
-  gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (refresh_button), TRUE);
-  g_signal_connect (refresh_button, "clicked",
-		    G_CALLBACK (call_refresh_package_cache),
-		    NULL);
-
-  gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
-		      GTK_TOOL_ITEM (refresh_button),
-		      -1);
-  tb_struct->refresh_button = refresh_button;
-
+  if (red_pill_mode)
+    {
+      /* Check for updates button */
+      image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
+					    HILDON_ICON_SIZE_TOOLBAR);
+      GtkWidget *refresh_button =
+	GTK_WIDGET (gtk_tool_button_new (image, NULL));
+      gtk_tool_item_set_expand (GTK_TOOL_ITEM (refresh_button), TRUE);
+      gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (refresh_button), TRUE);
+      g_signal_connect (refresh_button, "clicked",
+			G_CALLBACK (call_refresh_package_cache),
+			NULL);
+      
+      gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
+			  GTK_TOOL_ITEM (refresh_button),
+			  -1);
+      tb_struct->refresh_button = refresh_button;
+    }
+  else
+    tb_struct->refresh_button = NULL;
+    
   return tb_struct;
 }
 

@@ -1,3 +1,15 @@
+2008-04-15  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/settings.h, src/settings.cc (red_pill_check_always): New.
+	Handle it in all the right places.
+	(make_settings_tab): Put the settings in a scrolled window.
+	* src/main.cc (maybe_refresh_package_cache_without_user): Always
+	call refresh_package_cache_without_user in blue-pill mode, but use
+	red_pill_check_always in red-pill mode to determine whether to
+	call it (N83308).
+	(create_toolbar): Revert change from 2008-04-14: only include
+	refresh button in red-pill mode (N83308).
+
 2008-04-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/main.cc (installed_package_activated) : If the user taps on a
@@ -15,12 +27,13 @@
 	the user taps on the button, a banner displaying
 	"ai_ni_unable_to_uninstall_system_update" is shown.
 
-	* src/details.cc (spd_create_common_page) : The empty dimmed table won't be
-	shown any more.
-	(spd_update_common_page) : In the details dialog, if the package has a size
-	of 0 KB the "Size" field won't be shown. Similarly, the fields 
-	"short description", "installed version", "available version" and 
-	download size" won't appear if they are empty (N84073).
+	* src/details.cc (spd_create_common_page) : The empty dimmed table
+	won't be shown any more.
+	(spd_update_common_page) : In the details dialog, if the package
+	has a size of 0 KB the "Size" field won't be shown. Similarly, the
+	fields "short description", "installed version", "available
+	version" and download size" won't appear if they are
+	empty (N84073).
 
 2008-04-14  Marius Vollmer  <marius.vollmer@nokia.com>
 
@@ -145,8 +158,8 @@
 2008-04-03  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/repo.cc (show_catalogue_dialog): call to allow_updating()
-	after the dialog has been shown, to avoid possible overlaps.
-	Partially fixes N83505.
+	after the dialog has been shown, to avoid possible
+	overlaps (N83505).
 
 2008-04-03  Mario Sanchez Prada  <msanchez@maemo.org>
 
