@@ -5184,6 +5184,7 @@ rescue_operation_with_dir (const char *dir)
   fprintf (stderr, "Rescuing from %s\n", dir);
   result = operation (false, dir, false, false, false);
   fprintf (stderr, "Result code %d\n", result);
+  _error->DumpErrors ();
   return result;
 }
 

@@ -1,3 +1,8 @@
+2008-04-16  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (rescue_operation_with_dir): Call DumpErrors
+	to prevent pending errors to leak into the next operation.
+
 2008-04-16  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (ENTERTAINMENT_DIALOG_MIN_WIDTH): Removed.
