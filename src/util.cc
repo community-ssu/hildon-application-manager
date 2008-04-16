@@ -986,14 +986,9 @@ start_entertaining_user (gboolean with_button)
       gtk_window_set_position (GTK_WINDOW (entertainment.dialog), GTK_WIN_POS_CENTER_ON_PARENT);
 
       /* Set size */
-      geom.min_height = -1;
-      geom.max_height = -1;
-      geom.min_width = ENTERTAINMENT_DIALOG_WIDTH;
-      geom.max_width = ENTERTAINMENT_DIALOG_WIDTH;
-      gtk_window_set_geometry_hints (GTK_WINDOW (entertainment.dialog), 
-                                     NULL,
-                                     &geom,
-                                     (GdkWindowHints) (GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE));
+      gtk_widget_set_size_request (entertainment.dialog,
+				   ENTERTAINMENT_DIALOG_WIDTH, -1);
+
       /* Add the internal box */
       box = gtk_vbox_new (FALSE, HILDON_MARGIN_DOUBLE);
       gtk_container_add (GTK_CONTAINER (GTK_DIALOG(entertainment.dialog)->vbox), box);
@@ -1001,7 +996,7 @@ start_entertaining_user (gboolean with_button)
       /* Add the main title label (ellipsized) */
       entertainment.main_label = gtk_label_new (entertainment.main_title);
       gtk_label_set_text (GTK_LABEL (entertainment.main_label), entertainment.main_title);
-      g_object_set (entertainment.main_label, "wrap", TRUE, NULL);
+      gtk_label_set_line_wrap (GTK_LABEL (entertainment.main_label), TRUE);
 
       gtk_box_pack_start (GTK_BOX (box), entertainment.main_label, TRUE, TRUE, 0);
 
