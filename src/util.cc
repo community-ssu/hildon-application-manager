@@ -71,9 +71,7 @@ static void *idle_data = NULL;
 
 #define IDLE_TIMEOUT_SECS 60
 
-#define ENTERTAINMENT_DIALOG_MIN_WIDTH 400
-#define ENTERTAINMENT_DIALOG_MAX_WIDTH 700
-#define ENTERTAINMENT_LABEL_MAX_WIDTH  700 - HILDON_MARGIN_DOUBLE*2
+#define ENTERTAINMENT_DIALOG_WIDTH 550
 
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
@@ -896,8 +894,6 @@ entertainment_update_title ()
 {
   if (entertainment.dialog)
     {
-      GtkRequisition req;
-
       if (!entertainment_subtitles)
 	{
 	  /* Show the progress bar dialog in the old style */
@@ -937,20 +933,6 @@ entertainment_update_title ()
 	      gtk_label_set_text (GTK_LABEL (entertainment.sub_label), "");
 	    }
 	}
-
-      /* Set ellipsize for the main_label */
-      gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
-			      PANGO_ELLIPSIZE_NONE);
-      /* very long strings are ellipsized at the end;
-       * we don't do this with shorter strings, to force the resizing of the dialog */
-      gtk_widget_size_request (entertainment.main_label, &req);
-      if (req.width > ENTERTAINMENT_DIALOG_MAX_WIDTH)
-	{
-	  gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
-				  PANGO_ELLIPSIZE_END);
-	  gtk_widget_set_size_request (entertainment.main_label,
-	                               req.width, -1);
-	}
     }
 }
 
@@ -989,7 +971,6 @@ start_entertaining_user (gboolean with_button)
     {
       GtkWidget *box;
       GdkGeometry geom;
-      GtkRequisition req;
 
       /* Build a custom dialog with two labels for main title and
 	 subtitle (only in red-pill mode), a progress bar and a
@@ -1002,17 +983,17 @@ start_entertaining_user (gboolean with_button)
       gtk_window_set_modal (GTK_WINDOW (entertainment.dialog), TRUE);
       gtk_window_set_decorated (GTK_WINDOW (entertainment.dialog), FALSE);
       gtk_dialog_set_has_separator (GTK_DIALOG (entertainment.dialog), FALSE);
+      gtk_window_set_position (GTK_WINDOW (entertainment.dialog), GTK_WIN_POS_CENTER_ON_PARENT);
 
       /* Set size */
       geom.min_height = -1;
       geom.max_height = -1;
-      geom.min_width = ENTERTAINMENT_DIALOG_MIN_WIDTH;
-      geom.max_width = ENTERTAINMENT_DIALOG_MAX_WIDTH;
+      geom.min_width = ENTERTAINMENT_DIALOG_WIDTH;
+      geom.max_width = ENTERTAINMENT_DIALOG_WIDTH;
       gtk_window_set_geometry_hints (GTK_WINDOW (entertainment.dialog), 
                                      NULL,
                                      &geom,
                                      (GdkWindowHints) (GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE));
-      
       /* Add the internal box */
       box = gtk_vbox_new (FALSE, HILDON_MARGIN_DOUBLE);
       gtk_container_add (GTK_CONTAINER (GTK_DIALOG(entertainment.dialog)->vbox), box);
@@ -1020,19 +1001,10 @@ start_entertaining_user (gboolean with_button)
       /* Add the main title label (ellipsized) */
       entertainment.main_label = gtk_label_new (entertainment.main_title);
       gtk_label_set_text (GTK_LABEL (entertainment.main_label), entertainment.main_title);
-      gtk_label_set_ellipsize (GTK_LABEL (entertainment.main_label),
-			       PANGO_ELLIPSIZE_NONE);
-      gtk_widget_size_request (entertainment.main_label, &req);
-      if (req.width > ENTERTAINMENT_LABEL_MAX_WIDTH)
-        {
-          gtk_label_set_ellipsize(GTK_LABEL (entertainment.main_label),
-                                  PANGO_ELLIPSIZE_END);
-          gtk_widget_set_size_request (entertainment.main_label,
-                                       req.width, -1);
-        }
+      g_object_set (entertainment.main_label, "wrap", TRUE, NULL);
 
       gtk_box_pack_start (GTK_BOX (box), entertainment.main_label, TRUE, TRUE, 0);
-      
+
       /* Add the progress bar */
       entertainment.bar = gtk_progress_bar_new ();
       gtk_box_pack_start (GTK_BOX (box), entertainment.bar, FALSE, FALSE, 0);
