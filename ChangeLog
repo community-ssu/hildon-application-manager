@@ -1,3 +1,18 @@
+2008-04-16  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (ENTERTAINMENT_DIALOG_MIN_WIDTH): Removed.
+	(ENTERTAINMENT_DIALOG_MAX_WIDTH): Removed.
+	(ENTERTAINMENT_LABEL_MAX_WIDTH): Removed.
+	(ENTERTAINMENT_DIALOG_WIDTH): New, used to set a fixed size for
+	entertainment dialogs.
+	(entertainment_update_title): Removed code for rezizing the dialog
+	or ellipsizing the text depending on the final length of the text
+	to be shown as the main label.
+	(start_entertaining_user): Removed code for resizing the dialog or
+	ellipsizing the text of the main label, and just set the dialog
+	width to a fixed size (550px), and activated the "line wrap" mode
+	for such that label.
+
 2008-04-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/settings.h, src/settings.cc (red_pill_check_always): New.
