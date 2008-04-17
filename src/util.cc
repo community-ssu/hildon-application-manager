@@ -986,8 +986,14 @@ start_entertaining_user (gboolean with_button)
       gtk_window_set_position (GTK_WINDOW (entertainment.dialog), GTK_WIN_POS_CENTER_ON_PARENT);
 
       /* Set size */
-      gtk_widget_set_size_request (entertainment.dialog,
-				   ENTERTAINMENT_DIALOG_WIDTH, -1);
+      geom.min_height = -1;
+      geom.max_height = -1;
+      geom.min_width = ENTERTAINMENT_DIALOG_WIDTH;
+      geom.max_width = ENTERTAINMENT_DIALOG_WIDTH;
+      gtk_window_set_geometry_hints (GTK_WINDOW (entertainment.dialog), 
+                                     NULL,
+                                     &geom,
+                                     (GdkWindowHints) (GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE));
 
       /* Add the internal box */
       box = gtk_vbox_new (FALSE, HILDON_MARGIN_DOUBLE);

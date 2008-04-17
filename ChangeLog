@@ -1,3 +1,10 @@
+2008-04-17  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/util.cc (start_entertaining_user): Use GDK hints instead of
+	gtk_widget_set_size_request for setting a fixed width for the
+	dialog, since it behaves better when it's needed for the dialog
+	to both grow and shrink as the main label changes. 
+
 2008-04-16  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (rescue_operation_with_dir): Call DumpErrors
