@@ -1,9 +1,17 @@
+2008-04-21  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/apt-worker.cc (find_catalogues_for_item_desc): Return a
+	GList of catalogues matching the item's URI instead of just one
+	element, cause one error could belong to several items (N84465).
+	(update_package_cache): Look for a list of catalogues matching a
+	failing URI to properly add each error to all of them (N84465).
+
 2008-04-17  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.cc (start_entertaining_user): Use GDK hints instead of
 	gtk_widget_set_size_request for setting a fixed width for the
 	dialog, since it behaves better when it's needed for the dialog
-	to both grow and shrink as the main label changes. 
+	to both grow and shrink as the main label changes (N83057)
 
 2008-04-16  Marius Vollmer  <marius.vollmer@nokia.com>
 

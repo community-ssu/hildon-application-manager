@@ -3147,8 +3147,8 @@ cmd_get_package_details ()
 /* APTCMD_CHECK_UPDATES
 */
 
-static xexp *
-find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
+static GList *
+find_catalogues_for_item_desc (xexp *catalogues, string desc_uri)
 {
   /* This is a hack to associate error messages produced during
      downloading with a specific catalogue so that a good error report
@@ -3179,6 +3179,8 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
 
   if (catalogues == NULL)
     return NULL;
+
+  GList *cat_glist = NULL;
 
   const char *match_uri = desc_uri.c_str ();
 
@@ -3247,10 +3249,12 @@ find_catalogue_for_item_desc (xexp *catalogues, string desc_uri)
       g_strfreev (comps);
       g_free (pfx);
       g_free (uri);
-      return cat;
+
+      /* Append found item to the list */
+      cat_glist = g_list_append (cat_glist, cat);
     }
 
-  return NULL;
+  return cat_glist;
 }
 
 int
@@ -3291,30 +3295,39 @@ update_package_cache (xexp *catalogues_for_report,
        I != Fetcher.ItemsEnd(); I++)
     {
       if ((*I)->Status == pkgAcquire::Item::StatDone)
-	continue;
+        continue;
 
       (*I)->Finished();
-      
-      xexp *cat = find_catalogue_for_item_desc (catalogues_for_report,
-						(*I)->DescURI());
-      if (cat)
+
+      GList *cat_glist = find_catalogues_for_item_desc (catalogues_for_report,
+                                                        (*I)->DescURI());
+
+      for (GList *iter = cat_glist; iter; iter = g_list_next (iter))
 	{
-	  xexp *errors = xexp_aref (cat, "errors");
-	  if (errors == NULL)
+	  if (iter->data != NULL)
 	    {
-	      errors = xexp_list_new ("errors");
-	      xexp_append_1 (cat, errors);
+	      xexp *cat = (xexp *) (iter->data);
+
+	      xexp *errors = xexp_aref (cat, "errors");
+	      if (errors == NULL)
+		{
+		  errors = xexp_list_new ("errors");
+		  xexp_append_1 (cat, errors);
+		}
+
+	      xexp *error = xexp_list_new ("error");
+	      xexp_aset_text (error, "uri", (*I)->DescURI().c_str());
+	      xexp_aset_text (error, "msg", (*I)->ErrorText.c_str());
+
+	      xexp_append_1 (errors, error);
 	    }
-
-	  xexp *error = xexp_list_new ("error");
-	  xexp_aset_text (error, "uri", (*I)->DescURI().c_str());
-	  xexp_aset_text (error, "msg", (*I)->ErrorText.c_str());
-
-	  xexp_append_1 (errors, error);
 	}
 
+      if (cat_glist != NULL)
+	g_list_free (cat_glist);
+
       _error->Error ("Failed to fetch %s  %s", (*I)->DescURI().c_str(),
-		     (*I)->ErrorText.c_str());
+                     (*I)->ErrorText.c_str());
       some_failed = true;
     }
 
