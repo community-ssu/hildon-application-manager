@@ -1,5 +1,13 @@
 2008-04-22  Mario Sanchez Prada  <msanchez@maemo.org>
 
+	* src/util.h, src/util.cc set_entertainment_system_modal): New
+	function to convert the entertainment dialog into a system modal
+	dialog.
+
+	* src/operations.cc (ip_warn_about_reboot_response): Call to
+	set_entertainment_system_modal right after starting the
+	installation of a package which requires to reboot.
+
 	* utils/maemo-confirm-text-user.c: Done a cleanup of unused code
 	since changes done to make the dialog system modal.
 	(find_window_1): Removed.

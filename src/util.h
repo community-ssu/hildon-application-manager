@@ -251,6 +251,14 @@ void scare_user_with_legalese (bool sure,
    button in the dialog.  When CALLBACK is NULL, the button is
    insensitive.
 
+   SET_ENTERTAINMENT_CANCEL associates a callback with the "Cancel"
+   button in the dialog.  When CALLBACK is NULL, the button is
+   insensitive.
+
+   SET_ENTERTAINMENT_SYSTEM_MODAL converts the progress bar dialog
+   into a system modal dialog. This operation is not reversible, so
+   the dialog will be system modal until it gets destroyed.
+
    CANCEL_ENTERTAINMENT calls the callback associated with
    set_entertainment_cancel, if there is one.
 
@@ -290,6 +298,9 @@ void set_entertainment_fun (const char *sub_title,
 void set_entertainment_download_fun (int game, int64_t already, int64_t total);
 
 void set_entertainment_cancel (void (*callback)(void *), void *data);
+
+void set_entertainment_system_modal (void);
+
 void cancel_entertainment ();
 bool entertainment_was_cancelled ();
 

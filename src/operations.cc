@@ -865,7 +865,14 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
       
       if (response == GTK_RESPONSE_OK)
 	{
+	  package_info *pi = (package_info *)(c->cur->data);
+
 	  close_apps ();
+
+	  /* Convert the entertainment dialog into system modal if the
+	     package to be installed requires rebooting the system */
+	  if (pi->info.install_flags & pkgflag_reboot)
+	    set_entertainment_system_modal ();
 
 	  /* Make sure we are done before continuing */
 	  while (gtk_events_pending ())

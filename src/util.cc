@@ -1198,6 +1198,20 @@ set_entertainment_cancel (void (*callback) (void *data),
   entertainment_update_cancel ();
 }
 
+void
+set_entertainment_system_modal (void)
+{
+  if (entertainment.dialog != NULL)
+    {
+      gtk_window_set_transient_for (GTK_WINDOW (entertainment.dialog),
+				    NULL);
+
+      /* Force the transient hint to be applied */
+      gtk_widget_hide (entertainment.dialog);
+      gtk_widget_show (entertainment.dialog);
+    }
+}
+
 bool
 entertainment_was_cancelled ()
 {
