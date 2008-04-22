@@ -35,9 +35,9 @@
    The "add" sub-command will merge the configuration elements in the
    files given on the command line with the existing configuration and
    the "delete" sub-command will delete them.  The "set" sub-command
-   will first clear the existing configuration and the add the bits in
-   the files.  Afterwards the new configuration is used to update all
-   the dependend bits, like the APT sources.list configuration.
+   will first clear the existing configuration and then add the bits
+   in the files.  Afterwards the new configuration is used to update
+   all the dependend bits, like the APT sources.list configuration.
 
    The "update" command will just do the updating, without any changes
    to the existing configuration.
@@ -45,8 +45,9 @@
    The "dump" command will dump the current configuration in a form
    that can be used with "set" to restore it.
 
-   The configuration elements in the files can be either catalogues or
-   domains.  XXX - more about them here?
+   The configuration elements in the files can be either catalogues,
+   domains, or settings for the update notifier.
+   XXX - more about them here?
 */
 
 #include <stdio.h>
@@ -75,7 +76,6 @@ DBG (const char *str, xexp *cat)
 #endif
 
 bool verbose = false;
-bool prepend = false;
 
 xexp *catalogues;
 xexp *domains;
@@ -136,19 +136,11 @@ find_element (xexp *conf, xexp *elt,
   return NULL;
 }
 
-const char *
-element_description (xexp *element)
-{
-  xexp *desc = xexp_aref (element, "name");
-  if (xexp_is_text (desc))
-    return xexp_text (desc);
-  return xexp_aref_text (desc, "default");
-}
-
 void
 handle_generic_element (xexp *conf, xexp *element,
 			bool add,
-			bool (*equal) (xexp *a, xexp *b))
+			bool (*equal) (xexp *a, xexp *b),
+			const char *(*element_description ) (xexp *x))
 {
   xexp *old_element = find_element (conf, element, equal);
 
@@ -167,36 +159,64 @@ handle_generic_element (xexp *conf, xexp *element,
   if (old_element)
     xexp_del (conf, old_element);
   if (add)
-    {
-      if (prepend)
-	xexp_cons (conf, element);
-      else
-	xexp_append_1 (conf, element);
-    }
+    xexp_append_1 (conf, element);
   else
     xexp_free (element);
+}
+
+bool
+tag_equal (xexp *a, xexp *b)
+{
+  return xexp_is (a, xexp_tag (b));
+}
+
+const char *
+tag_description (xexp *x)
+{
+  return xexp_tag (x);
+}
+
+void
+handle_alist_element (xexp *conf, xexp *element, bool add)
+{
+  for (xexp *k = xexp_first (element); k; k = xexp_rest (k))
+    handle_generic_element (conf, k, add, tag_equal, tag_description);
+}
+
+const char *
+name_description (xexp *element)
+{
+  xexp *desc = xexp_aref (element, "name");
+  if (xexp_is_text (desc))
+    return xexp_text (desc);
+  return xexp_aref_text (desc, "default");
 }
 
 void
 handle_element (xexp *element, bool add)
 {
   xexp *conf = NULL;
+  bool is_alist = false;
+
   bool (*equal) (xexp *a, xexp *b) = NULL;
+  const char *(*description) (xexp *x) = NULL;
 
   if (xexp_is (element, "catalogue"))
     {
       conf = catalogues;
       equal = catalogue_equal;
+      description = name_description;
     }
   else if (xexp_is (element, "domain"))
     {
       conf = domains;
       equal = domain_equal;
+      description = name_description;
     }
   else if (xexp_is (element, "notifier"))
     {
       conf = notifier;
-      equal = notifier_equal;
+      is_alist = true;
     }
   else
     {
@@ -206,7 +226,11 @@ handle_element (xexp *element, bool add)
       return;
     }
 
-  handle_generic_element (conf, element, add, equal);
+  if (is_alist)
+    handle_alist_element (conf, element, add);
+  else
+    handle_generic_element (conf, element, add,
+			    equal, description);
 }
 
 xexp *
@@ -269,13 +293,6 @@ main (int argc, char **argv)
       argv++;
     }
 
-  if (argc > 1 && strcmp (argv[1], "--prepend") == 0)
-    {
-      prepend = true;
-      argc--;
-      argv++;
-    }
-
   if (argc < 2)
     usage ();
 
@@ -314,7 +331,7 @@ main (int argc, char **argv)
       xexp *conf = xexp_list_new ("config");
       xexp_append (conf, catalogues);
       xexp_append (conf, domains);
-      xexp_append (conf, notifier);
+      xexp_append_1 (conf, notifier);
       xexp_write (stdout, conf);
     }
   else

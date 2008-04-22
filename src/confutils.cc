@@ -191,17 +191,3 @@ domain_equal (xexp *a, xexp *b)
     return false;
   return strcmp (a_name, b_name) == 0;
 }
-
-/* Notifier
- */
-
-bool
-notifier_equal (xexp *a, xexp *b)
-{
-  const char *a_uri = xexp_aref_text (a, "uri");
-  const char *b_uri = xexp_aref_text (b, "uri");
-
-  if (a_uri == NULL || b_uri == NULL)
-    return false;
-  return strcmp (a_uri, b_uri) == 0;
-}

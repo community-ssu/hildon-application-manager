@@ -76,9 +76,4 @@ void backup_catalogues ();
 
 bool domain_equal (xexp *a, xexp *b);
 
-/* Notifier
- */
-
-bool notifier_equal (xexp *a, xexp *b);
-
 #endif /* !CONFUTILS_H */
