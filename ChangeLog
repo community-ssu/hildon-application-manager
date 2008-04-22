@@ -1,5 +1,13 @@
 2008-04-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/update-notifier.c (struct _UpdateNotifierPrivate): Added
+	inotify_io_watch_id and child_watch_id.
+	(setup_inotify): Remember source id for the inotify channel watch.
+	(check_for_updates): Remember source id for the child watch.
+	(check_for_updates_done): Reset it.
+	(update_notifier_finalize, clenaup_inotify): Remove the two
+	sources (N84597).
+
 	Make he "Checking for updates" operation cleanly cancellable.
 
 	* src/main.cc (rpcwu_cancel): New.

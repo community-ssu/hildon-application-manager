@@ -101,6 +101,8 @@ struct _UpdateNotifierPrivate
   gboolean inotify_ready;
   int home_watch;
   int varlibham_watch;
+  guint inotify_io_watch_id;
+  guint child_watch_id;
 
   upno_state state;
   
@@ -265,6 +267,9 @@ update_notifier_finalize (GObject *object)
   if (priv->alarm_init_timeout_id > 0)
     g_source_remove (priv->alarm_init_timeout_id);
 
+  if (priv->child_watch_id > 0)
+    g_source_remove (priv->child_watch_id);
+  
   /* Clean up stuff */
   cleanup_alarm (upno);
   cleanup_inotify (upno);
@@ -1048,6 +1053,8 @@ check_for_updates_done (GPid pid, int status, gpointer data)
   UpdateNotifier *upno = UPDATE_NOTIFIER (data);
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
+  priv->child_watch_id = 0;
+
   if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
     {
       save_last_update_time (time (NULL));
@@ -1143,7 +1150,8 @@ check_for_updates (UpdateNotifier *upno)
       g_error_free (error);
     }
   else
-    g_child_watch_add (child_pid, check_for_updates_done, upno);
+    child_watch_id = 
+      g_child_watch_add (child_pid, check_for_updates_done, upno);
 
   g_free (gainroot_cmd);
   g_free (proxy);
@@ -1421,8 +1429,9 @@ setup_inotify (UpdateNotifier *upno)
   if (ifd >= 0)
     {
       priv->inotify_channel = g_io_channel_unix_new (ifd);
-      g_io_add_watch (priv->inotify_channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
-		      handle_inotify, upno);
+      priv->inotify_io_watch_id =
+	g_io_add_watch (priv->inotify_channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
+			handle_inotify, upno);
 
       state_dir = user_file_get_state_dir_path ();
       priv->home_watch =
@@ -1592,6 +1601,9 @@ cleanup_inotify (UpdateNotifier *upno)
       inotify_rm_watch (ifd, priv->varlibham_watch);
       priv->home_watch = -1;
       priv->varlibham_watch = -1;
+
+      if (priv->inotify_io_watch_id > 0)
+	g_source_remove (priv->inotify_io_watch_id);
 
       g_io_channel_shutdown (priv->inotify_channel, TRUE, NULL);
       g_io_channel_unref (priv->inotify_channel);
