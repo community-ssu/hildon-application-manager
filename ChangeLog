@@ -1,3 +1,16 @@
+2008-04-22  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (rpcwu_cancel): New.
+	(rpcwu_with_network): Call set_entertainment_cancel with it.
+	(rcpwu_clos, rpcwu_clos): Renamed former to latter, changed all
+	users.
+	(maybe_refresh_package_cache_without_user): Partially reverted
+	change from 2008-04-15: only check when the 'check_interval' has
+	passed or red_pill_check_always is true, irrespective of red-pill
+	mode.
+	(create_toolbar): Put refresh button in toolbar when
+	red_pill_check_always is false.
+
 2008-04-22  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/util.h, src/util.cc set_entertainment_system_modal): New

@@ -1243,7 +1243,7 @@ load_last_update_time ()
   return t;
 }
 
-struct rcpwu_clos {
+struct rpcwu_clos {
   int state;
   void (*cont) (bool keep_going, void *data);
   void *data;
@@ -1265,7 +1265,7 @@ refresh_package_cache_without_user (const char *title,
 				    void (*cont) (bool keep_going, void *data),
 				    void *data)
 {
-  rcpwu_clos *c = new rcpwu_clos;
+  rpcwu_clos *c = new rpcwu_clos;
   c->state = state;
   c->cont = cont;
   c->data = data;
@@ -1282,12 +1282,21 @@ refresh_package_cache_without_user (const char *title,
 }
 
 static void
+rpcwu_cancel (void *data)
+{
+  cancel_apt_worker ();
+}
+
+static void
 rpcwu_with_network (bool success, void *data)
 {
-  rcpwu_clos *c = (rcpwu_clos *)data;
+  rpcwu_clos *c = (rpcwu_clos *)data;
 
   if (success)
-    apt_worker_update_cache (c->state, rpcwu_reply, c);
+    {
+      set_entertainment_cancel (rpcwu_cancel, c);
+      apt_worker_update_cache (c->state, rpcwu_reply, c);
+    }
   else
     {
       c->keep_going = false;
@@ -1299,7 +1308,7 @@ rpcwu_with_network (bool success, void *data)
 static void
 rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
-  rcpwu_clos *c = (rcpwu_clos *)data;
+  rpcwu_clos *c = (rpcwu_clos *)data;
 
   c->keep_going = !entertainment_was_cancelled ();
   stop_entertaining_user ();
@@ -1312,7 +1321,7 @@ rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
 static void
 rpcwu_end (void *data)
 {
-  rcpwu_clos *c = (rcpwu_clos *)data;
+  rpcwu_clos *c = (rpcwu_clos *)data;
   
   c->cont (c->keep_going, c->data);
   delete c;
@@ -1344,16 +1353,31 @@ rpcwuf_end (bool ignore, void *unused)
 void
 maybe_refresh_package_cache_without_user ()
 {
+  GConfClient *conf;
+  int last_update, interval;
+
   if (!is_idle ())
     return;
 
-  if (red_pill_mode)
+  if (red_pill_check_always)
     {
-      if (red_pill_check_always)
-	refresh_package_cache_without_user_flow ();
+      refresh_package_cache_without_user_flow ();
+      return;
     }
-  else
-    refresh_package_cache_without_user_flow ();  
+
+  conf = gconf_client_get_default ();
+
+  last_update = load_last_update_time ();
+
+  interval = gconf_client_get_int (conf,
+				   UPNO_GCONF_CHECK_INTERVAL,
+				   NULL);
+
+  if (interval <= 0)
+    interval = UPNO_DEFAULT_CHECK_INTERVAL;
+
+  if (last_update + interval*60 < time (NULL))
+    refresh_package_cache_without_user_flow ();
 }
 
 /* Set the catalogues and refresh.
@@ -2838,7 +2862,7 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
 		      -1);
   tb_struct->details_button = details_button;
 
-  if (red_pill_mode)
+  if (!red_pill_check_always)
     {
       /* Check for updates button */
       image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
