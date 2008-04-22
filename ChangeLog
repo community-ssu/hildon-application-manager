@@ -1,5 +1,7 @@
 2008-04-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.9
+	
 	* src/update-notifier.c (update_notifier_finalize): Do not call
 	gtk_signal_handler_disconnect on priv->button.  See the comment.
 
