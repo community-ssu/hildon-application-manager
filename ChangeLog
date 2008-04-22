@@ -16,7 +16,7 @@
 	(update_notifier_finalize, clenaup_inotify): Remove the two
 	sources (N84597).
 
-	Make he "Checking for updates" operation cleanly cancellable.
+	Make the "Checking for updates" operation cleanly cancellable.
 
 	* src/main.cc (rpcwu_cancel): New.
 	(rpcwu_with_network): Call set_entertainment_cancel with it.
