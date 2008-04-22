@@ -1,5 +1,7 @@
 2008-04-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Make he "Checking for updates" operation cleanly cancellable.
+
 	* src/main.cc (rpcwu_cancel): New.
 	(rpcwu_with_network): Call set_entertainment_cancel with it.
 	(rcpwu_clos, rpcwu_clos): Renamed former to latter, changed all
@@ -10,6 +12,13 @@
 	mode.
 	(create_toolbar): Put refresh button in toolbar when
 	red_pill_check_always is false.
+
+	* src/apt-worker.cc (download_lists, update_package_cache): Split
+	downloading out of update_package_cache.  Fail immediately when
+	the download has been cancelled by checking the return value of
+	Fetcher.Run more carefully.  'Transactionize' index downloading by
+	working in a temporary directory and only replacing the old lists
+	with the new when the downloading has succeeded.
 
 2008-04-22  Mario Sanchez Prada  <msanchez@maemo.org>
 

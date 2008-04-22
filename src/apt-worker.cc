@@ -61,6 +61,7 @@
 #include <errno.h>
 #include <dirent.h>
 #include <signal.h>
+#include <ftw.h>
 
 #include <fstream>
 
@@ -3257,10 +3258,12 @@ find_catalogues_for_item_desc (xexp *catalogues, string desc_uri)
   return cat_glist;
 }
 
-int
-update_package_cache (xexp *catalogues_for_report,
-		      bool with_status)
+static bool
+download_lists (xexp *catalogues_for_report,
+		bool with_status, int *result)
 {
+  *result = rescode_failure;
+
   // Get the source list
   pkgSourceList List;
   if (List.ReadMainList () == false)
@@ -3274,7 +3277,7 @@ update_package_cache (xexp *catalogues_for_report,
       if (_error->PendingError () == true)
 	{
 	  _error->Error ("Unable to lock the list directory");
-	  return rescode_failure;
+	  return false;
 	}
     }
    
@@ -3284,11 +3287,11 @@ update_package_cache (xexp *catalogues_for_report,
 
   // Populate it with the source selection
   if (List.GetIndexes(&Fetcher) == false)
-    return rescode_failure;
+    return false;
    
   // Run it
-  if (Fetcher.Run() == pkgAcquire::Failed)
-    return rescode_failure;
+  if (Fetcher.Run() != pkgAcquire::Continue)
+    return false;
 
   bool some_failed = false;
   for (pkgAcquire::ItemIterator I = Fetcher.ItemsBegin();
@@ -3338,21 +3341,143 @@ update_package_cache (xexp *catalogues_for_report,
       Fetcher.Clean (_config->FindDir("Dir::State::lists") + "partial/");
     }
 
-  /* When errors have been encountered, we init the cache in the
-     background since it looks funny to do it visible and only
-     afterwards display errors that are known before hand.
+  if (some_failed)
+    *result = rescode_partial_success;
+  else
+    *result = rescode_success;
+
+  return true;
+}
+
+/* Duplicate the directory hierarchy at OLD to NEW by creating hard
+   links for all the regular files.
+*/
+
+static int duplink_base;
+static const char *duplink_new;
+
+int
+duplink_callback (const char *name, const struct stat *, int m, struct FTW *f)
+{
+  char *new_name = g_strdup_printf ("%s/%s",
+				    duplink_new, name + duplink_base);
+
+  // fprintf (stderr, "%s -> %s\n", new_name, name);
+
+  if (m == FTW_D)
+    {
+      if (mkdir (new_name, 0777))
+	{
+	  perror (new_name);
+	  g_free (new_name);
+	  return -1;
+	}
+    }
+  else if (m == FTW_F)
+    {
+      if (link (name, new_name))
+	{
+	  perror (new_name);
+	  g_free (new_name);
+	  return -1;
+	}
+    }
+
+  g_free (new_name);
+  return 0;
+}
+
+int
+duplink_file_tree (const char *old_tree, const char *new_tree)
+{
+  duplink_base = strlen (old_tree);
+  duplink_new = new_tree;
+  return nftw (old_tree, duplink_callback, 10, 0);
+}
+
+/* Unlink a directory hirarchy.
+ */
+
+int
+unlink_callback (const char *name, const struct stat *, int m, struct FTW *f)
+{
+  // fprintf (stderr, "- %s\n", name);
+
+  if (m == FTW_DP)
+    {
+      if (rmdir (name))
+	perror (name);
+    }
+  else if (m == FTW_F)
+    {
+      if (unlink (name))
+	perror (name);
+    }
+
+  return 0;
+}
+
+int
+unlink_file_tree (const char *tree)
+{
+  return nftw (tree, unlink_callback, 10, FTW_DEPTH);
+}
+
+int
+update_package_cache (xexp *catalogues_for_report,
+		      bool with_status)
+{
+  /* XXX - We do the downloading in a 'transaction'.  If we get
+           interrupted half-way through, all the old files are kept in
+           place.  Libapt-pkg is careful not to leave partial files on
+           disk, but when more than one file needs to be downloaded
+           for a repository, we can still end up with an inconsistent
+           state.  Worse, the cleanup will remove the "Packages" files
+           when the corresponding "Release" has not been downloaded
+           yet.
+
+     Libapt-pkg should take care of this itself, but I am too much
+     chicken to make that change now.
   */
 
-  if (some_failed)
+  int result = rescode_failure;
+
+  string lists_dir = _config->FindDir("Dir::State::Lists");
+  if (lists_dir.length() > 0 && lists_dir[lists_dir.length()-1] == '/')
+    lists_dir.erase(lists_dir.length()-1, 1);
+
+  string lists_dir_new = lists_dir + ".new";
+  string lists_dir_old = lists_dir + ".old";
+
+  fprintf (stderr, "%s, %s, %s\n",
+	   lists_dir.c_str(),
+	   lists_dir_new.c_str(),
+	   lists_dir_old.c_str());
+
+  unlink_file_tree (lists_dir_new.c_str());
+  duplink_file_tree (lists_dir.c_str(), lists_dir_new.c_str());
+  _config->Set ("Dir::State::Lists", lists_dir_new);
+
+  if (download_lists (catalogues_for_report, 
+		      with_status, &result))
     {
-      need_cache_init ();
-      return rescode_partial_success;
+      /* complete transaction */
+      unlink_file_tree (lists_dir_old.c_str());
+      rename (lists_dir.c_str(), lists_dir_old.c_str());
+      rename (lists_dir_new.c_str(), lists_dir.c_str());
+      unlink_file_tree (lists_dir_old.c_str());
+      _config->Set ("Dir::State::Lists", lists_dir);
+
+      cache_init (with_status);
     }
   else
     {
-      cache_init (with_status);
-      return rescode_success;
+      /* cleanup */
+      _config->Set ("Dir::State::Lists", lists_dir);
+      unlink_file_tree (lists_dir_new.c_str());
     }
+
+  return result;
 }
 
 static void
