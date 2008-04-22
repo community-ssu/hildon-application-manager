@@ -124,72 +124,6 @@ make_small_text_view (const char *file)
   return scroll;
 }
 
-Window
-find_window_1 (Window win, const char *name, int level, int max_level)
-{
-  char *win_name;
-  
-  if (XFetchName (gdk_display, win, &win_name))
-    {
-      if (!strcmp (win_name, name))
-	{
-	  XFree (win_name);
-	  return win;
-	}
-      XFree (win_name);
-    }
-  
-  if (level < max_level)
-    {
-      Window root, parent, *children;
-      unsigned int n_children;
-      
-      if (XQueryTree (gdk_display, win, &root, &parent,
-		      &children, &n_children))
-	{
-	  int i;
-	  Window w;
-
-	  for (i = 0; i < n_children; i++)
-	    {
-	      w = find_window_1 (children[i], name, level+1, max_level);
-	      if (w)
-		{
-		  XFree (children);
-		  return w;
-		}
-	    }
-	  XFree (children);
-	}
-    }
-  
-  return 0;
-}
-
-Window
-find_window (const char *name, int max_level)
-{
-  return find_window_1 (GDK_ROOT_WINDOW (), name, 0, max_level);
-}
-
-Window
-find_application_manager_window ()
-{
-  return find_window ("hildon-application-manager", 2);
-}
-
-void
-dialog_realized (GtkWidget *widget, gpointer data)
-{
-  GdkWindow *win = widget->window;
-  Window ai_win = find_application_manager_window ();
-
-  /* Make the dialog system modal */
-  if (ai_win)
-    XSetTransientForHint (GDK_WINDOW_XDISPLAY (win), GDK_WINDOW_XID (win),
-			  NULL);
-}
-
 int
 main (int argc, char **argv)
 {
@@ -214,15 +148,13 @@ main (int argc, char **argv)
       return 2;
     }
 
+  /* NULL parent => system modal dialog */
   dialog = gtk_dialog_new_with_buttons
     (title,
      NULL, GTK_DIALOG_MODAL,
      _("ai_bd_license_ok"), GTK_RESPONSE_OK,
      _("ai_bd_license_cancel"), GTK_RESPONSE_CANCEL,
      NULL);
-
-  g_signal_connect (dialog, "realize",
-		    G_CALLBACK (dialog_realized), NULL);
 
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
 		     make_small_text_view (file));

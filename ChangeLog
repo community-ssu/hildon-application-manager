@@ -1,3 +1,13 @@
+2008-04-22  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* utils/maemo-confirm-text-user.c: Done a cleanup of unused code
+	since changes done to make the dialog system modal.
+	(find_window_1): Removed.
+	(find_window): Removed.
+	(find_application_manager_window): Removed.
+	(dialog_realized): Removed.
+	(main): Removed connection to signal "realize" for the dialog.
+
 2008-04-21  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/apt-worker.cc (find_catalogues_for_item_desc): Return a
