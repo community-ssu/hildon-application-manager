@@ -207,7 +207,7 @@ update_notifier_init (UpdateNotifier *upno)
       setup_gconf (upno);
 
       priv->button = gtk_toggle_button_new ();
-
+      
       icon_theme = gtk_icon_theme_get_default ();
       icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
 					      "qgn_stat_new_updates",
@@ -279,9 +279,13 @@ update_notifier_finalize (GObject *object)
   if (priv->notifications_thread_mutex)
     g_mutex_free (priv->notifications_thread_mutex);
   
-  /* Unregister signal handlers */
-  g_signal_handler_disconnect (priv->button,
-			       priv->button_toggled_handler_id);
+#if 0
+  /* XXX - this doesn't work for some reason, priv->button seems to be
+           corrupted.  Keeping it alive with a refcount didn't help...
+  */
+  gtk_signal_handler_disconnect (priv->button,
+				 priv->button_toggled_handler_id);
+#endif
 
   G_OBJECT_CLASS (g_type_class_peek_parent
 		  (G_OBJECT_GET_CLASS(object)))->finalize(object);
