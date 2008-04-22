@@ -214,9 +214,6 @@ documented in the header files.
 BUGS
 ----
 
-- Make interaction flow system modal after showing the "system update"
-  dialog.
-
 - Make reboot decision more flexible.  (from maintainer scripts?)
 - Reenable apt-transport-https by using nss.
 - Take update-notifier menu contents into account for the blinking state.
