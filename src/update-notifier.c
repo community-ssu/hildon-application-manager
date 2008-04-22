@@ -1110,6 +1110,7 @@ expensive_connection (UpdateNotifier *upno)
 static void
 check_for_updates (UpdateNotifier *upno)
 {
+  UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   GError *error = NULL;
   GPid child_pid;
   gchar *gainroot_cmd = NULL;
@@ -1150,7 +1151,7 @@ check_for_updates (UpdateNotifier *upno)
       g_error_free (error);
     }
   else
-    child_watch_id = 
+    priv->child_watch_id = 
       g_child_watch_add (child_pid, check_for_updates_done, upno);
 
   g_free (gainroot_cmd);
