@@ -1,5 +1,8 @@
 2008-04-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/settings.cc (red_pill_check_always): Set to false as
+	default.
+
 	* src/confutils.cc, src/confutils.h (notifier_equal): Removed.
 	* src/hildon-application-manager-config.cc (handle_generic_element):
 	Make element_description a parameter.

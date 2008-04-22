@@ -49,7 +49,7 @@ bool red_pill_show_deps = true;
 bool red_pill_show_all = true;
 bool red_pill_show_magic_sys = true;
 bool red_pill_include_details_in_log = false;
-bool red_pill_check_always = true;
+bool red_pill_check_always = false;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
