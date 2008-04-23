@@ -12,6 +12,10 @@
 	(package_info_cell_renderer_render) : Entries without a 'description'
 	field won't be expanded.
 
+	* main.cc (install_from_file_flow) : Fix a CRITICAL warning because we
+	called gnome_vfs_get_uri_from_local_path with an URI instead of an 
+	absolute path.
+
 2008-04-23  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/package-info-cell-renderer.h,
