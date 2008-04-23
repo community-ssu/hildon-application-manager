@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.1.10~unreleased) unstable; urgency=low
+
+  * 
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 23 Apr 2008 13:38:07 +0300
+
 hildon-application-manager (1:2.1.9) unstable; urgency=low
 
   * Fixes: NB#83547, NB#75393, NB#83764, NB#83553, NB#83585, NB#80933.
