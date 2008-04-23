@@ -14,6 +14,8 @@ hildon_application_manager_launch_SOURCES = main.h			\
 					    modest-hbox-cell-renderer.c	\
 					    modest-vbox-cell-renderer.h	\
 					    modest-vbox-cell-renderer.c	\
+					    package-info-cell-renderer.h \
+					    package-info-cell-renderer.c \
 					    ham-long-label.h		\
 					    ham-long-label.c		\
 					    util.h			\
