@@ -1,11 +1,12 @@
 2008-04-23  Marius Vollmer  <marius.vollmer@nokia.com>
 
-	* src/util.cc [CAIRO_CELL_RENDERER]: Use the new
-	PackageInfoCellRenderer instead of .
-
 	* src/package-info-cell-renderer.h,
 	src/package-info-cell-renderer.c: New.
 	* src/Makefile.am: Compile them.
+
+	* src/util.cc [CAIRO_CELL_RENDERER]: Use the new
+	PackageInfoCellRenderer instead of the nested cell renderers from
+	Modest.  This gives much better performance (N84324).
 
 2008-04-22  Marius Vollmer  <marius.vollmer@nokia.com>
 

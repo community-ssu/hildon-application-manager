@@ -1454,82 +1454,41 @@ package_info_func (GtkTreeViewColumn *column,
                    GtkTreeIter *iter,
                    gpointer data)
 {
+#ifdef CAIRO_CELL_RENDERER
+
   GtkTreeView *tree = (GtkTreeView *)data;
   GtkTreeSelection *selection = gtk_tree_view_get_selection (tree);
   package_info *pi;
-
-#ifndef CAIRO_CELL_RENDERER
-  const gchar *name;
-  const gchar *version;
-  GtkCellRendererText *name_rend, *version_rend, *desc_rend;
-  name_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "name-renderer");
-  version_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "version-renderer");
-  desc_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "desc-renderer");
-#else
   const gchar *package_name = NULL;
   const gchar *package_version = NULL;
   const gchar *package_description = NULL;
-#endif
-
+  
   gtk_tree_model_get (model, iter, 0, &pi, -1);
   if (!pi)
     return;
   
-#ifndef CAIRO_CELL_RENDERER
-  name = pi->get_display_name (global_installed);
-  g_object_set (name_rend, "text", 
-                name,
-                NULL);
-#else
   package_name = pi->get_display_name (global_installed);
-#endif
 
-#ifndef CAIRO_CELL_RENDERER
-  version = (global_installed? pi->installed_version: pi->available_version);
-  g_object_set (version_rend, "text", 
-                version,
-                NULL);
-#else
-  package_version = (global_installed? pi->installed_version: pi->available_version);
-#endif
+  package_version = (global_installed
+		     ? pi->installed_version
+		     : pi->available_version);
 
   if (gtk_tree_selection_iter_is_selected (selection, iter))
     {
-#ifndef CAIRO_CELL_RENDERER
-      const gchar *desc;
-      gchar *markup;
-
-#endif
       if (global_installed)
-#ifndef CAIRO_CELL_RENDERER
-        desc = pi->installed_short_description;
-#else
         package_description = pi->installed_short_description;
-#endif
       else
         {
-#ifndef CAIRO_CELL_RENDERER
-          desc = pi->available_short_description;
-          if (desc == NULL)
-            desc = pi->installed_short_description;
-#else
           package_description = pi->available_short_description;
           if (package_description == NULL)
             package_description = pi->installed_short_description;
-#endif
         }
-#ifdef CAIRO_CELL_RENDERER
     }
   
   if (default_icon == NULL)
     {
       GtkIconTheme *icon_theme;
-#endif
 
-#ifndef CAIRO_CELL_RENDERER
-      if (all_whitespace (desc))
-	g_object_set (desc_rend, "visible", FALSE, NULL);
-#else
       icon_theme = gtk_icon_theme_get_default ();
       default_icon = gtk_icon_theme_load_icon (icon_theme,
                                                "qgn_list_gene_default_app",
@@ -1555,29 +1514,71 @@ package_info_func (GtkTreeViewColumn *column,
     {
       if (pi->broken)
         icon = broken_icon;
-#endif
       else
-#ifndef CAIRO_CELL_RENDERER
+        icon = pi->installed_icon;
+    }
+  else
+    icon = pi->available_icon;
+
+  g_object_set (cell,
+		"package-name", package_name,
+                "package-version", package_version,
+                "package-description", package_description,
+                "pixbuf", icon? icon : default_icon,
+		NULL);
+
+#else  /* !CAIRO_CELL_RENDERER */
+
+  GtkTreeView *tree = (GtkTreeView *)data;
+  GtkTreeSelection *selection = gtk_tree_view_get_selection (tree);
+  package_info *pi;
+  const gchar *name;
+  const gchar *version;
+  GtkCellRendererText *name_rend, *version_rend, *desc_rend;
+  name_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "name-renderer");
+  version_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "version-renderer");
+  desc_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "desc-renderer");
+
+  gtk_tree_model_get (model, iter, 0, &pi, -1);
+  if (!pi)
+    return;
+  
+  name = pi->get_display_name (global_installed);
+  g_object_set (name_rend, "text", 
+                name,
+                NULL);
+
+  version = (global_installed? pi->installed_version: pi->available_version);
+  g_object_set (version_rend, "text", 
+                version,
+                NULL);
+
+  if (gtk_tree_selection_iter_is_selected (selection, iter))
+    {
+      const gchar *desc;
+      gchar *markup;
+
+      if (global_installed)
+        desc = pi->installed_short_description;
+      else
+        {
+          desc = pi->available_short_description;
+          if (desc == NULL)
+            desc = pi->installed_short_description;
+        }
+
+      if (all_whitespace (desc))
+	g_object_set (desc_rend, "visible", FALSE, NULL);
+      else
 	{
 	  markup = g_markup_printf_escaped ("<small>%s</small>", desc);
 	  g_object_set (desc_rend, "markup", markup, NULL);
 	  g_object_set (desc_rend, "visible", TRUE, NULL);
 	  g_free (markup);
 	}
-#else
-        icon = pi->installed_icon;
-#endif
     }
   else
-#ifndef CAIRO_CELL_RENDERER
     g_object_set (desc_rend, "visible", FALSE, NULL);
-#else
-    icon = pi->available_icon;
-
-  g_object_set (cell, "package-name", package_name,
-                "package-version", package_version,
-                "package-description", package_description,
-                "pixbuf", icon? icon : default_icon, NULL);
 #endif
 }
 
