@@ -1,5 +1,8 @@
 2008-04-23  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.cc [CAIRO_CELL_RENDERER]: Use the new
+	PackageInfoCellRenderer instead of .
+
 	* src/package-info-cell-renderer.h,
 	src/package-info-cell-renderer.c: New.
 	* src/Makefile.am: Compile them.
@@ -7,7 +10,7 @@
 2008-04-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.9
-	
+
 	* src/update-notifier.c (update_notifier_finalize): Do not call
 	gtk_signal_handler_disconnect on priv->button.  See the comment.
 

@@ -21,6 +21,8 @@
  *
  */
 
+#define CAIRO_CELL_RENDERER
+
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
@@ -51,8 +53,12 @@
 #include "operations.h"
 #include "apt-worker-client.h"
 #include "update-notifier.h"
+#ifndef CAIRO_CELL_RENDERER
 #include "modest-hbox-cell-renderer.h"
 #include "modest-vbox-cell-renderer.h"
+#else
+#include "package-info-cell-renderer.h"
+#endif
 
 extern "C" {
 #include <libhildonwm/hd-wm.h>
@@ -1346,6 +1352,7 @@ static bool global_installed;
 static GdkPixbuf *default_icon = NULL;
 static GdkPixbuf *broken_icon = NULL;
 
+#ifndef CAIRO_CELL_RENDERER
 static void
 global_icon_func (GtkTreeViewColumn *column,
 		  GtkCellRenderer *cell,
@@ -1395,6 +1402,7 @@ global_icon_func (GtkTreeViewColumn *column,
 
   g_object_set (cell, "pixbuf", icon? icon : default_icon, NULL);
 }
+#endif
 
 static void
 emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
@@ -1449,53 +1457,128 @@ package_info_func (GtkTreeViewColumn *column,
   GtkTreeView *tree = (GtkTreeView *)data;
   GtkTreeSelection *selection = gtk_tree_view_get_selection (tree);
   package_info *pi;
+
+#ifndef CAIRO_CELL_RENDERER
   const gchar *name;
   const gchar *version;
   GtkCellRendererText *name_rend, *version_rend, *desc_rend;
   name_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "name-renderer");
   version_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "version-renderer");
   desc_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "desc-renderer");
+#else
+  const gchar *package_name = NULL;
+  const gchar *package_version = NULL;
+  const gchar *package_description = NULL;
+#endif
 
   gtk_tree_model_get (model, iter, 0, &pi, -1);
   if (!pi)
     return;
   
+#ifndef CAIRO_CELL_RENDERER
   name = pi->get_display_name (global_installed);
   g_object_set (name_rend, "text", 
                 name,
                 NULL);
+#else
+  package_name = pi->get_display_name (global_installed);
+#endif
 
+#ifndef CAIRO_CELL_RENDERER
   version = (global_installed? pi->installed_version: pi->available_version);
   g_object_set (version_rend, "text", 
                 version,
                 NULL);
+#else
+  package_version = (global_installed? pi->installed_version: pi->available_version);
+#endif
 
   if (gtk_tree_selection_iter_is_selected (selection, iter))
     {
+#ifndef CAIRO_CELL_RENDERER
       const gchar *desc;
       gchar *markup;
 
+#endif
       if (global_installed)
+#ifndef CAIRO_CELL_RENDERER
         desc = pi->installed_short_description;
+#else
+        package_description = pi->installed_short_description;
+#endif
       else
         {
+#ifndef CAIRO_CELL_RENDERER
           desc = pi->available_short_description;
           if (desc == NULL)
             desc = pi->installed_short_description;
+#else
+          package_description = pi->available_short_description;
+          if (package_description == NULL)
+            package_description = pi->installed_short_description;
+#endif
         }
+#ifdef CAIRO_CELL_RENDERER
+    }
+  
+  if (default_icon == NULL)
+    {
+      GtkIconTheme *icon_theme;
+#endif
 
+#ifndef CAIRO_CELL_RENDERER
       if (all_whitespace (desc))
 	g_object_set (desc_rend, "visible", FALSE, NULL);
+#else
+      icon_theme = gtk_icon_theme_get_default ();
+      default_icon = gtk_icon_theme_load_icon (icon_theme,
+                                               "qgn_list_gene_default_app",
+                                               26,
+                                               GtkIconLookupFlags(0),
+                                               NULL);
+    }
+
+  if (broken_icon == NULL)
+    {
+      GtkIconTheme *icon_theme;
+
+      icon_theme = gtk_icon_theme_get_default ();
+      broken_icon = gtk_icon_theme_load_icon (icon_theme,
+                                              "qgn_list_app_broken",
+                                              26,
+                                              GtkIconLookupFlags(0),
+                                              NULL);
+    }
+
+  GdkPixbuf *icon;
+  if (global_installed)
+    {
+      if (pi->broken)
+        icon = broken_icon;
+#endif
       else
+#ifndef CAIRO_CELL_RENDERER
 	{
 	  markup = g_markup_printf_escaped ("<small>%s</small>", desc);
 	  g_object_set (desc_rend, "markup", markup, NULL);
 	  g_object_set (desc_rend, "visible", TRUE, NULL);
 	  g_free (markup);
 	}
+#else
+        icon = pi->installed_icon;
+#endif
     }
   else
+#ifndef CAIRO_CELL_RENDERER
     g_object_set (desc_rend, "visible", FALSE, NULL);
+#else
+    icon = pi->available_icon;
+
+  g_object_set (cell, "package-name", package_name,
+                "package-version", package_version,
+                "package-description", package_description,
+                "pixbuf", icon? icon : default_icon, NULL);
+#endif
 }
 
 static bool global_have_last_selection;
@@ -1668,8 +1751,12 @@ make_global_package_list (GList *packages,
       return label;
     }
 
+#ifndef CAIRO_CELL_RENDERER
   GtkCellRenderer *renderer, *v_renderer, *h_renderer, *name_renderer; 
   GtkCellRenderer *version_renderer, *desc_renderer;
+#else
+  GtkCellRenderer *renderer; 
+#endif
   GtkTreeViewColumn *column;
   GtkWidget *tree, *scroller;
 
@@ -1681,6 +1768,7 @@ make_global_package_list (GList *packages,
   gtk_tree_view_column_set_title (column, _("ai_li_version"));
   gtk_tree_view_column_set_alignment (column, 1.0);
 
+#ifndef CAIRO_CELL_RENDERER
   renderer = gtk_cell_renderer_pixbuf_new ();
   g_object_set (renderer, "yalign", 0.0, NULL);
   gtk_cell_renderer_set_fixed_size (renderer, 30, -1);
@@ -1689,9 +1777,22 @@ make_global_package_list (GList *packages,
 
   v_renderer = modest_vbox_cell_renderer_new ();
   h_renderer = modest_hbox_cell_renderer_new ();
+#else
+  renderer = package_info_cell_renderer_new ();
+#endif
   
+#ifndef CAIRO_CELL_RENDERER
   g_object_set (h_renderer, "xpad", 0, NULL);
+#else
+  g_object_set (renderer,
+                "xpad", 0, 
+                "xalign", 0.0,
+                "ypad", 0,
+                "yalign", 0.0,
+                "visible", TRUE, NULL);
+#endif
   
+#ifndef CAIRO_CELL_RENDERER
   name_renderer = gtk_cell_renderer_text_new ();
   g_object_set (name_renderer, "yalign", 0.0, 
                 "ellipsize-set", FALSE, 
@@ -1721,6 +1822,10 @@ make_global_package_list (GList *packages,
   
   gtk_tree_view_column_pack_end (column, v_renderer, TRUE);
   gtk_tree_view_column_set_cell_data_func (column, v_renderer, package_info_func, tree, NULL);
+#else
+  gtk_tree_view_column_pack_end (column, renderer, TRUE);
+  gtk_tree_view_column_set_cell_data_func (column, renderer, package_info_func, tree, NULL);
+#endif
 
   /* Set odd/even rows in different colors */
   gtk_tree_view_set_rules_hint(GTK_TREE_VIEW (tree), TRUE);
