@@ -1,3 +1,9 @@
+2008-04-23  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/package-info-cell-renderer.h,
+	src/package-info-cell-renderer.c: New.
+	* src/Makefile.am: Compile them.
+
 2008-04-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.9
