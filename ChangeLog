@@ -1,3 +1,17 @@
+2008-04-23  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* util.cc (make_global_package_list) : Code cleanup.
+	(package_selected_toggled_callback) : Deleted two lines that
+	caused warnings.
+
+	* package_info_cell_renderer.c 
+	(package_info_cell_renderer_set_property) : Use g_strstrip() on the
+	'description' string.
+	(package_info_cell_renderer_get_size) : Entries without a 'description'
+	field won't be expanded.
+	(package_info_cell_renderer_render) : Entries without a 'description'
+	field won't be expanded.
+
 2008-04-23  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/package-info-cell-renderer.h,

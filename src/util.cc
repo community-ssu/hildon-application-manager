@@ -1739,6 +1739,14 @@ make_global_package_list (GList *packages,
 			  package_info_callback *selected,
 			  package_info_callback *activated)
 {
+  GtkCellRenderer *renderer; 
+  GtkTreeViewColumn *column;
+  GtkWidget *tree, *scroller;
+#ifndef CAIRO_CELL_RENDERER
+  GtkCellRenderer *v_renderer, *h_renderer, *name_renderer; 
+  GtkCellRenderer *version_renderer, *desc_renderer;
+#endif
+
   if (global_list_store == NULL)
     {
       global_list_store = gtk_list_store_new (1, GTK_TYPE_POINTER);
@@ -1751,15 +1759,6 @@ make_global_package_list (GList *packages,
       gtk_misc_set_alignment (GTK_MISC (label), 0.5, 0.0);
       return label;
     }
-
-#ifndef CAIRO_CELL_RENDERER
-  GtkCellRenderer *renderer, *v_renderer, *h_renderer, *name_renderer; 
-  GtkCellRenderer *version_renderer, *desc_renderer;
-#else
-  GtkCellRenderer *renderer; 
-#endif
-  GtkTreeViewColumn *column;
-  GtkWidget *tree, *scroller;
 
   tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL (global_list_store));
 
@@ -1778,22 +1777,7 @@ make_global_package_list (GList *packages,
 
   v_renderer = modest_vbox_cell_renderer_new ();
   h_renderer = modest_hbox_cell_renderer_new ();
-#else
-  renderer = package_info_cell_renderer_new ();
-#endif
-  
-#ifndef CAIRO_CELL_RENDERER
   g_object_set (h_renderer, "xpad", 0, NULL);
-#else
-  g_object_set (renderer,
-                "xpad", 0, 
-                "xalign", 0.0,
-                "ypad", 0,
-                "yalign", 0.0,
-                "visible", TRUE, NULL);
-#endif
-  
-#ifndef CAIRO_CELL_RENDERER
   name_renderer = gtk_cell_renderer_text_new ();
   g_object_set (name_renderer, "yalign", 0.0, 
                 "ellipsize-set", FALSE, 
@@ -1824,6 +1808,13 @@ make_global_package_list (GList *packages,
   gtk_tree_view_column_pack_end (column, v_renderer, TRUE);
   gtk_tree_view_column_set_cell_data_func (column, v_renderer, package_info_func, tree, NULL);
 #else
+  renderer = package_info_cell_renderer_new ();
+  g_object_set (renderer,
+                "xpad", 0, 
+                "xalign", 0.0,
+                "ypad", 0,
+                "yalign", 0.0,
+                "visible", TRUE, NULL);
   gtk_tree_view_column_pack_end (column, renderer, TRUE);
   gtk_tree_view_column_set_cell_data_func (column, renderer, package_info_func, tree, NULL);
 #endif
@@ -2291,7 +2282,6 @@ select_package_list_with_info (void *data)
   dialog = gtk_dialog_new ();
   gtk_window_set_title (GTK_WINDOW (dialog), c->title);
   gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
-  gtk_widget_set_parent (GTK_WIDGET (dialog), NULL);
   ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_bd_ok"), GTK_RESPONSE_OK);
   gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_bd_cancel"), GTK_RESPONSE_CANCEL);
 
@@ -2313,7 +2303,6 @@ select_package_list_with_info (void *data)
 
   /* Set up treeview */
   tree_view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (list_store));
-  g_object_set (G_OBJECT(tree_view), "allow-checkbox-mode", FALSE, NULL);
   renderer = gtk_cell_renderer_toggle_new ();
   gtk_cell_renderer_toggle_set_radio (GTK_CELL_RENDERER_TOGGLE (renderer), FALSE);
   g_signal_connect (G_OBJECT (renderer), "toggled",

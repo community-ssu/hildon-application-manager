@@ -302,6 +302,8 @@ package_info_cell_renderer_set_property (GObject              *object,
       break;
     case PROP_PKG_DESCRIPTION:
       priv->pkg_description = g_value_dup_string (value);
+      if (priv->pkg_description != NULL)
+        g_strstrip (priv->pkg_description); 
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -378,7 +380,7 @@ package_info_cell_renderer_get_size     (GtkCellRenderer      *cell,
           priv->single_line_height = 2*cell->ypad + MAX (PANGO_PIXELS (row_height), priv->pixbuf_size);
         }
 
-      if (priv->pkg_description == NULL)
+      if ((priv->pkg_description == NULL) || (priv->pkg_description[0] == '\0'))
         {
           *height = priv->single_line_height;
           return;
@@ -487,7 +489,9 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
       cairo_stroke (cr);
     }
 
-  if (priv->pkg_description && (flags & GTK_CELL_RENDERER_SELECTED) != 0) 
+  if (priv->pkg_description != NULL && 
+      priv->pkg_description[0] != '\0' && 
+      (flags & GTK_CELL_RENDERER_SELECTED) != 0) 
     {
       description_layout = gtk_widget_create_pango_layout (widget, NULL);
       pango_layout_set_text (description_layout, priv->pkg_description, -1);
