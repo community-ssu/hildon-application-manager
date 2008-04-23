@@ -24,7 +24,7 @@
 #include <gtk/gtkwidget.h>
 #include <gtk/gtkcellrenderertext.h>
 
-#include <package-info-cell-renderer.h>
+#include "package-info-cell-renderer.h"
 
 #define DEFAULT_ICON_SIZE 30
 #define DEFAULT_MARGIN 6
@@ -288,7 +288,8 @@ package_info_cell_renderer_set_property (GObject              *object,
         }
       else
         {
-          priv->pixbuf = (GdkPixbuf*) g_value_dup_object (value);
+          priv->pixbuf = (GdkPixbuf*) g_value_get_object (value);
+          g_object_ref (priv->pixbuf);
         }
       break;
     case PROP_PIXBUF_SIZE:

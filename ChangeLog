@@ -6,7 +6,7 @@
 
 	* package_info_cell_renderer.c 
 	(package_info_cell_renderer_set_property) : Use g_strstrip() on the
-	'description' string.
+	'description' string. Use g_object_ref instead of duplicating the pixbuf.
 	(package_info_cell_renderer_get_size) : Entries without a 'description'
 	field won't be expanded.
 	(package_info_cell_renderer_render) : Entries without a 'description'
