@@ -1972,6 +1972,7 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
       clear_global_package_list ();
       free_packages (search_result_packages);
       search_result_packages = result;
+      sort_all_packages ();
       show_view (&search_results_view);
       irritate_user (_("ai_ib_search_complete"));
     }

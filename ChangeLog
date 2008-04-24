@@ -1,20 +1,26 @@
+2008-04-24  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (search_packages_reply): Call sort_all_packages so
+	that the search results are sorted as well (N83776).
+
 2008-04-23  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* util.cc (make_global_package_list) : Code cleanup.
 	(package_selected_toggled_callback) : Deleted two lines that
 	caused warnings.
 
-	* package_info_cell_renderer.c 
-	(package_info_cell_renderer_set_property) : Use g_strstrip() on the
-	'description' string. Use g_object_ref instead of duplicating the pixbuf.
-	(package_info_cell_renderer_get_size) : Entries without a 'description'
-	field won't be expanded.
-	(package_info_cell_renderer_render) : Entries without a 'description'
-	field won't be expanded.
+	* package_info_cell_renderer.c
+	(package_info_cell_renderer_set_property) : Use g_strstrip() on
+	the 'description' string. Use g_object_ref instead of duplicating
+	the pixbuf.
+	(package_info_cell_renderer_get_size) : Entries without a
+	'description' field won't be expanded.
+	(package_info_cell_renderer_render) : Entries without a
+	'description' field won't be expanded.
 
-	* main.cc (install_from_file_flow) : Fix a CRITICAL warning because we
-	called gnome_vfs_get_uri_from_local_path with an URI instead of an 
-	absolute path.
+	* main.cc (install_from_file_flow) : Fix a CRITICAL warning
+	because we called gnome_vfs_get_uri_from_local_path with an URI
+	instead of an absolute path.
 
 2008-04-23  Marius Vollmer  <marius.vollmer@nokia.com>
 
