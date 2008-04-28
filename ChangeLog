@@ -1,5 +1,7 @@
 2008-04-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.10
+
 	* src/hildon-application-manager-config.cc (read_conf): Do not
 	abort when a file can not be read.  Just reset the corresponding
 	configuration.
