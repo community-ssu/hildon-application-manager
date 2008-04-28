@@ -86,15 +86,15 @@ read_conf ()
 {
   catalogues = xexp_read_file (CATALOGUE_CONF);
   if (catalogues == NULL)
-    exit (1);
+    catalogues = xexp_list_new ("catalogues");
 
   domains = xexp_read_file (DOMAIN_CONF);
   if (domains == NULL)
-    exit (1);
+    domains = xexp_list_new ("domains");
 
   notifier = xexp_read_file (NOTIFIER_CONF);
   if (notifier == NULL)
-    exit (1);
+    notifier = xexp_list_new ("notifier");
 }
 
 void

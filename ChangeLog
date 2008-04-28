@@ -1,3 +1,9 @@
+2008-04-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/hildon-application-manager-config.cc (read_conf): Do not
+	abort when a file can not be read.  Just reset the corresponding
+	configuration.
+
 2008-04-24  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.cc (search_packages_reply): Call sort_all_packages so
