@@ -113,6 +113,7 @@ save_log (char *uri, void *data)
 {
   GnomeVFSFileInfo info;
   GnomeVFSResult result;
+  gchar *unescaped_dir = NULL;
   gchar *tmp_dir = NULL;
 
   if (uri == NULL)
@@ -126,13 +127,19 @@ save_log (char *uri, void *data)
   if (last_save_log_dir != NULL)
     g_free (last_save_log_dir);
 
+  /* Remove the file at the end and just get the dir path */
   tmp_dir = g_path_get_dirname (uri);
-  if (g_str_has_prefix (tmp_dir, "file://"))
-      last_save_log_dir = g_strdup (tmp_dir + 7);
-  else
-    last_save_log_dir = g_strdup (tmp_dir);
 
+  /* Unescape the Gnome vfs dir path */
+  unescaped_dir = gnome_vfs_unescape_string (tmp_dir, "\0");
   g_free (tmp_dir);
+
+  if (g_str_has_prefix (unescaped_dir, "file://"))
+      last_save_log_dir = g_strdup (unescaped_dir + 7);
+  else
+    last_save_log_dir = g_strdup (unescaped_dir);
+
+  g_free (unescaped_dir);
 
   /* XXX - Using gnome_vfs_create with exclusive == true to check for
            file existence doesn't work with obex.  Why am I not
