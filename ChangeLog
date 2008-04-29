@@ -3,6 +3,10 @@
 	* src/log.cc (save_log): Unescape the Gnome VFS uri before storing
 	it in the global variable last_save_log_dir (N80933).
 
+	* src/log.cc (cat_edit_response): Automatically remove or add a
+	trailing "/" to the 'dist' field depending on the 'components'
+	field, which could be empty or not.
+
 	* utils/maemo-select-menu-location-main.c (dialog_exposed):
 	Restore the gdk_window_raise statement, which was removed by
 	mistake with revision 1109 (N84021).

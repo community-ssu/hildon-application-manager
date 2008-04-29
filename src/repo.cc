@@ -363,6 +363,29 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 	  return;
 	}
 
+      if (all_whitespace (comps))
+	{
+	  /* Ensure there's a trailing '/' at the end of dist */
+	  char *tmp_dist = dist;
+
+	  /* Append the '/' character when needed */
+	  if (all_whitespace (dist))
+	    dist = g_strdup ("/");
+	  else if (!g_str_has_suffix (dist, "/"))
+	    dist = g_strconcat (tmp_dist, "/", NULL);
+
+	  /* Free tmp_dist if new memory was allocated for dist */
+	  if (dist != tmp_dist)
+	    g_free (tmp_dist);
+	}
+      else if (!all_whitespace (dist))
+	{
+	  /* Remove the trailing '/' at the end of dist, if present */
+	  char *suffix = NULL;
+	  if (g_str_has_suffix (dist, "/") && (suffix = g_strrstr (dist, "/")))
+	    *suffix = '\0';
+	}
+
       if (all_whitespace (dist))
 	dist = NULL;
 
