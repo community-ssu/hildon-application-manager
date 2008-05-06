@@ -1,7 +1,25 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Ignoring packages that violate domain boundaries [mvo]
+
+The Application manager remembers for each package the 'domain' where
+it was installed from originally.  Updates to a package that come from
+another domain are rejected.
+
+Right now, the Application manager fails installations that have one
+or more of these domain violations.  Instead, it should just ignore
+packages from a wrong domain.  This will get rid of the most hard core
+error message of the AM.
+
+There is already a hook into libapt-pkg to deal with the domain
+system.  This hook might be good enough, it might have to be changed.
+Some thoughts should be spent on whether to move the whole domain
+concept into libapt-pkg.
+
 * Avoiding invisible interaction flows [mario]
+
+[ needs second pass ]
 
 Currently, it is possible to start an interaction flow (using
 start_interaction_flow, say) without immediatly popping up a dialog
@@ -45,6 +63,95 @@ the eventual reply should be safely ignored, of course.
 
 Maybe some apt-worker requests need to split in two so that the first
 half can finish quickly.
+
+* Better handling and reporting of dependency and conflict issues. [mvo]
+
+We need to get better at explaining the reasons why a given operation
+can not be performed so that the user has a chance of taking
+corrective actions.
+
+Also, since we now have a visible package that represents the
+operating system, we can be more agressive with making changes to
+invisible packages: the operating system package will make sure (via
+its dependencies) that we don't kill the device by accidentally
+uninstalling or upgrading important packages.
+
+The general principle that this feature aims to implement is that the
+user-visible packages are managed completely manually by the user, and
+the user-invisible packages are managed completely automatically.
+
+Thus, the general behavior of the Application Manager should be the
+following:
+
+ 1 When the user requests to install or remove a package, the AM will
+   plan to do any necessary (and possible) changes to all the packages
+   to satisfy the request of the user.  These changes can include
+   installing additional packages, removing already installed
+   packages, or upgrading installed packages to a newer version.
+
+   The AM should try at least as hard as apt-get to find a solution,
+   but it should favor upgrading over removing.
+
+   For example, instead of removing the OS meta package in order to
+   upgrade some invisible packages, it should prefer to upgrade the OS
+   meta package (and pull in the complete OS update).
+
+ 2 Once a solution has been found, and it requires changes to user
+   visible packages, the user has to confirm these changes.
+
+ 3 When no solution has been found, the only reasons for this can be
+   that the OS package would need to be removed, or that packages are
+   needed that are not available from any repository.  This can be
+   explained easily, I'd assume.  We should probably not even list the
+   individual packages that are missing, but just say that the
+   catalogues are broken.
+
+The following steps might be appropriate:
+
+- Investigate which algorithms apt-get and aptitude use for "install
+  <pkg>" and "remove <pkg>" and make them available in the apt-worker
+  (preferably aptitudes).  Don't remove the existing algorithms.
+
+- Add a red-pill setting that makes the apt-worker use those
+  algorithms.
+
+- Tune the algorithms to favor upgrading over removal, as explained
+  under point 1 above.
+
+- Add suitable problem detection and reporting algorithms that
+  implement points 1 and 2 from above.  But instead of letting the
+  user confirm the planned changes to visible packages, we just report
+  these changes as errors, or do them automatically:
+
+  - If a visible package A would be removed and the user is doing a
+    "uninstall B" operation, we report "B is needed by A."
+
+  - If a visible package A would be removed and the user is doing a 
+    "install B" operation, we report "B conflicts with A."
+
+  - If a visible package A would be newly installed or upgraded and
+    the user is doing a "install B" operation, and package A is not
+    the OS, we just do the upgrade.
+
+  - If package A from the last paragraph is the OS, we report "B needs
+    A to be installed first".
+
+  - If a visible package A would be newly installed or upgraded and
+    the user is doing a "uninstall B" operation, we report "B is
+    needed by A".
+
+  The reports should always include the respective versions of the
+  packages.
+
+- Experiment!  Make a decision whether we can ship with these
+  algorithms enabled by default or whether we can get the next step
+  done as well:
+
+- Show the thing to the UI people so that we can come up with the
+  right way to do it: letting users confirm the changes to the visible
+  packages.
+
+#########################################################################
 
 * Speeding up preparation of large operations [mvo]
 
@@ -141,93 +248,6 @@ This should yield a menu like this:
 
 It is important that checking the URI does not block the process.  If
 needed, a separate process should be spawned (no threads, please).
-
-
-* Better handling and reporting of dependency and conflict issues. [--]
-
-We need to get better at explaining the reasons why a given operation
-can not be performed so that the user has a chance of taking
-corrective actions.
-
-Also, since we now have a visible package that represents the
-operating system, we can be more agressive with making changes to
-invisible packages: the operating system package will make sure (via
-its dependencies) that we don't kill the device by accidentally
-uninstalling or upgrading important packages.
-
-The general principle that this feature aims to implement is that the
-user-visible packages are managed completely manually by the user, and
-the user-invisible packages are managed completely automatically.
-
-Thus, the general behavior of the Application Manager should be the
-following:
-
- 1 When the user requests to install or remove a package, the AM will
-   plan to do any necessary (and possible) changes to all the packages
-   to satisfy the request of the user.  These changes can include
-   installing additional packages, removing already installed
-   packages, or upgrading installed packages to a newer version.
-
-   The AM should try at least as hard as apt-get to find a solution,
-   but it should favor upgrading over removing.
-
-   For example, instead of removing the OS meta package in order to
-   upgrade some invisible packages, it should prefer to upgrade the OS
-   meta package (and pull in the complete OS update).
-
- 2 Once a solution has been found, and it requires changes to user
-   visible packages, the user has to confirm these changes.
-
- 3 When no solution has been found, the only reasons for this can be
-   that the OS package would need to be removed, or that packages are
-   needed that are not available from any repository.  This can be
-   explained easily, I'd assume.
-
-The following steps might be appropriate:
-
-- Investigate which algorithms apt-get and aptitude use for "install
-  <pkg>" and "remove <pkg>" and make them available in the apt-worker
-  (preferably aptitudes).  Don't remove the existing algorithms.
-
-- Add a red-pill setting that makes the apt-worker use those
-  algorithms.
-
-- Tune the algorithms to favor upgrading over removal, as explained
-  under point 1 above.
-
-- Add suitable problem detection and reporting algorithms that
-  implement points 1 and 2 from above.  But instead of letting the
-  user confirm the planned changes to visible packages, we just report
-  these changes as errors, or do them automatically:
-
-  - If a visible package A would be removed and the user is doing a
-    "uninstall B" operation, we report "B is needed by A."
-
-  - If a visible package A would be removed and the user is doing a 
-    "install B" operation, we report "B conflicts with A."
-
-  - If a visible package A would be newly installed or upgraded and
-    the user is doing a "install B" operation, and package A is not
-    the OS, we just do the upgrade.
-
-  - If package A from the last paragraph is the OS, we report "B needs
-    A to be installed first".
-
-  - If a visible package A would be newly installed or upgraded and
-    the user is doing a "uninstall B" operation, we report "B is
-    needed by A".
-
-  The reports should always include the respective versions of the
-  packages.
-
-- Experiment!  Make a decision whether we can ship with these
-  algorithms enabled by default or whether we can get the next step
-  done as well:
-
-- Show the thing to the UI people so that we can come up with the
-  right way to do it: letting users confirm the changes to the visible
-  packages.
-
 
 * Automatic checking for updates in the background
 
