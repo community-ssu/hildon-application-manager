@@ -15,7 +15,8 @@ error message of the AM.
 There is already a hook into libapt-pkg to deal with the domain
 system.  This hook might be good enough, it might have to be changed.
 Some thoughts should be spent on whether to move the whole domain
-concept into libapt-pkg.
+concept into libapt-pkg.  Maybe writing a custom DepCache::Policy is
+the way to go.
 
 * Avoiding invisible interaction flows [mario]
 
