@@ -1,6 +1,22 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Repairing broken packages
+
+If a visible package is in a broken state, it should also be shown in
+the "Check for Updates" view and updating it should try to unbreak the
+package.
+
+Just using mark_for_install might be good enough for unbreaking a
+package.
+
+Right now, packages that need to be reinstalled are shown in the
+"Installable applications" view.  This shouldn't be done anymore.
+
+Open issue: what about broken invisible packages?  Their brokenness
+could be charged to the visible parents, but that will charge a broken
+libgtk, say, on all visible packages.
+
 * Ignoring packages that violate domain boundaries [mvo]
 
 The Application manager remembers for each package the 'domain' where
