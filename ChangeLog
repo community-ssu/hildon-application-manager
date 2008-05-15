@@ -1,3 +1,9 @@
+2008-05-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/main.cc (make_install_applications_view) : Use the Help topic
+	"packagesview" instead of "sectionsview" for the "Browse installable apps."
+	view that displays the list of sections (N85521).
+
 2008-04-29  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/log.cc (save_log): Unescape the Gnome VFS uri before storing

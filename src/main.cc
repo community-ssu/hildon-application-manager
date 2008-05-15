@@ -1697,13 +1697,13 @@ make_install_applications_view (view *v)
 				  available_package_selected, 
 				  available_package_activated);
       get_package_infos_in_background (si->packages);
-      set_current_help_topic (AI_TOPIC ("packagesview"));
     }
   else
     {
       view = make_global_section_list (install_sections, view_section);
-      set_current_help_topic (AI_TOPIC ("sectionsview"));
     }
+
+  set_current_help_topic (AI_TOPIC ("packagesview"));
 
   gtk_widget_show_all (view);
 
