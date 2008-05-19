@@ -29,6 +29,8 @@
 	(make_global_package_list): Create the CSM specifying a
 	insensitive text and connecting the "tap_and_hold" signal when
 	needed, that is, when creating the "uninstall apps" view (N85191).
+	(start_entertaining_user): Force a size_request for the main label
+	in order to get the line wrapping working properly (N85387).
 
 2008-05-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
 

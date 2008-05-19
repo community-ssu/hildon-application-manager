@@ -1005,10 +1005,14 @@ start_entertaining_user (gboolean with_button)
       box = gtk_vbox_new (FALSE, HILDON_MARGIN_DOUBLE);
       gtk_container_add (GTK_CONTAINER (GTK_DIALOG(entertainment.dialog)->vbox), box);
 
-      /* Add the main title label (ellipsized) */
+      /* Add the main title label */
       entertainment.main_label = gtk_label_new (entertainment.main_title);
       gtk_label_set_text (GTK_LABEL (entertainment.main_label), entertainment.main_title);
       gtk_label_set_line_wrap (GTK_LABEL (entertainment.main_label), TRUE);
+      gtk_label_set_justify (GTK_LABEL (entertainment.main_label), GTK_JUSTIFY_CENTER);
+      gtk_widget_set_size_request (entertainment.main_label,
+                                   ENTERTAINMENT_DIALOG_WIDTH - HILDON_MARGIN_DEFAULT,
+                                   -1);
 
       gtk_box_pack_start (GTK_BOX (box), entertainment.main_label, TRUE, TRUE, 0);
 
