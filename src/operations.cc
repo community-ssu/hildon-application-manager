@@ -1372,6 +1372,9 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
     { 
       c->n_successful += 1;
 
+      /* Save the backup data right after installing the package */
+      save_backup_data ();
+
       if (package_needs_reboot (pi))
 	ip_reboot (c);
       else
@@ -1591,8 +1594,6 @@ ip_end (void *data)
 
   if (c->refresh_needed)
     get_package_list (APTSTATE_DEFAULT);
-
-  save_backup_data ();
 
   if (c->packages != NULL)
     g_list_free (c->packages);

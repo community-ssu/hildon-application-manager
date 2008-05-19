@@ -32,6 +32,11 @@
 	(start_entertaining_user): Force a size_request for the main label
 	in order to get the line wrapping working properly (N85387).
 
+	* src/operations.cc (ip_install_cur_reply): Call save_backup_data
+	right after successfully installing a package (N85447).
+	(ip_end): Don't call to save_backup_data here, it's not needed
+	anymore since it's called in ip_install_cur_reply (N85447).
+
 2008-05-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/main.cc (make_install_applications_view) : Use the Help topic
