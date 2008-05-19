@@ -1586,6 +1586,7 @@ static bool global_have_last_selection;
 static GtkTreeIter global_last_selection;
 static GtkTreePath *global_target_path = NULL;
 static package_info_callback *global_selection_callback;
+static package_info *current_package_info = NULL;
 
 void
 reset_global_target_path ()
@@ -1600,6 +1601,7 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
 {
   GtkTreeModel *model;
   GtkTreeIter iter;
+  package_info *pi = NULL;
 
   if (global_have_last_selection)
     emit_row_changed (GTK_TREE_MODEL (global_list_store),
@@ -1607,8 +1609,6 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
 
   if (gtk_tree_selection_get_selected (selection, &model, &iter))
     {
-      package_info *pi;
-
       assert (model == GTK_TREE_MODEL (global_list_store));
 
       emit_row_changed (model, &iter);
@@ -1619,17 +1619,15 @@ global_selection_changed (GtkTreeSelection *selection, gpointer data)
       global_target_path = gtk_tree_model_get_path (model, &iter);
 
       if (global_selection_callback)
-	{
-	  gtk_tree_model_get (model, &iter, 0, &pi, -1);
-	  if (pi)
-	    global_selection_callback (pi);
-	}
+        gtk_tree_model_get (model, &iter, 0, &pi, -1);
     }
-  else
-    {
-      if (global_selection_callback)
-	global_selection_callback (NULL);
-    }
+
+  /* Update the global variable */
+  current_package_info = pi;
+
+  /* Use the callback, if present */
+  if (global_selection_callback)
+    global_selection_callback (pi);
 }
 
 static package_info_callback *global_activation_callback;
@@ -1731,6 +1729,32 @@ global_package_list_key_pressed (GtkWidget * widget,
   return result;
 }
 
+static void
+tap_and_hold_cb (GtkWidget *treeview, gpointer data)
+{
+  g_return_if_fail (treeview != NULL && GTK_IS_TREE_VIEW (treeview));
+  g_return_if_fail (data != NULL && GTK_IS_MENU (data));
+
+  GtkWidget *menu = GTK_WIDGET (data);
+  package_info *pi = current_package_info;
+
+  if (pi != NULL)
+    {
+      /* Set sensitiveness for the first item of the CSM: the operation item */
+      GList *items = gtk_container_get_children (GTK_CONTAINER (menu));
+      if (items != NULL)
+        {
+          if (items->data != NULL && GTK_IS_WIDGET (items->data))
+            {
+              /* Sensitiveness depending on the system_update flag */
+              gtk_widget_set_sensitive (GTK_WIDGET (items->data),
+                                        !(pi->flags & pkgflag_system_update));
+            }
+          g_list_free (items);
+        }
+    }
+}
+
 GtkWidget *
 make_global_package_list (GList *packages,
 			  bool installed,
@@ -1742,6 +1766,7 @@ make_global_package_list (GList *packages,
   GtkCellRenderer *renderer; 
   GtkTreeViewColumn *column;
   GtkWidget *tree, *scroller;
+  GtkWidget *menu = NULL;
 #ifndef CAIRO_CELL_RENDERER
   GtkCellRenderer *v_renderer, *h_renderer, *name_renderer; 
   GtkCellRenderer *version_renderer, *desc_renderer;
@@ -1870,8 +1895,25 @@ make_global_package_list (GList *packages,
   g_signal_connect (tree, "key-press-event",
                     G_CALLBACK (global_package_list_key_pressed), NULL);
 
-  GtkWidget *menu = create_package_menu (op_label);
+  /* Create the contextual menu */
+  if (installed)
+    {
+      menu = create_package_menu (op_label,
+                                  _("ai_ni_unable_to_uninstall_system_update"));
+
+      /* Connect the tap_and_hold signal to change the sensitiveness of
+         the first CSM item when it's not uninstallable */
+      g_signal_connect (tree, "tap_and_hold",
+                        G_CALLBACK (tap_and_hold_cb), menu);
+    }
+  else
+    {
+      /* If not in uninstall view, don't set an insensitive text */
+      menu = create_package_menu (op_label, NULL);
+    }
+
   gtk_widget_show_all (menu);
+
   gtk_widget_tap_and_hold_setup (tree, menu, NULL,
 				 GtkWidgetTapAndHoldFlags (0));
 

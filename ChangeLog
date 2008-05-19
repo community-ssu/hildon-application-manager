@@ -3,10 +3,24 @@
 	* src/menu.h, src/menu.cc (set_operation_menu_item_sensitiveness):
 	New function to set the sensitiveness for the menu item used to
 	perform the current available operation (N85121).
+	(create_package_menu): Added a new parameter to set a text to be
+	printed when on the item while it's dimmed (N85191).
 
 	* src/main.cc (installed_package_selected): Set the sensitiveness
 	for the operation application menu item depending on the
 	pkg_system_update flag (N85121).
+
+	* src/util.cc (package_info *current_package_info): New global
+	variable to keep track of the currently selected package on a
+	packages list (N85191).
+	(global_selection_changed): Update the new global variable
+	current_package_info whenever the global selection has changed,
+	and done some code cleanup (N85191).
+	(tap_and_hold_cb): New function to properly set the sensitiviness
+	of the operation item in the CSM (N85191).
+	(make_global_package_list): Create the CSM specifying a
+	insensitive text and connecting the "tap_and_hold" signal when
+	needed, that is, when creating the "uninstall apps" view (N85191).
 
 2008-05-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
 

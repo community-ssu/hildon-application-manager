@@ -290,15 +290,18 @@ create_menu (HildonWindow *window)
 }
 
 GtkWidget *
-create_package_menu (const char *op_label)
+create_package_menu (const char *op_label,
+                     const char *insensitive_op_press_label)
 {
   GtkWidget *menu = gtk_menu_new ();
 
   add_item (GTK_MENU (menu),
-	    op_label, NULL,
-	    do_current_operation);
+            op_label,
+            insensitive_op_press_label,
+            do_current_operation);
   add_item (GTK_MENU (menu),
-	    _("ai_me_cs_details"), NULL,
+	    _("ai_me_cs_details"),
+            NULL,
 	    show_current_details);
 
   return menu;

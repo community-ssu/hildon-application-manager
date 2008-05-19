@@ -36,7 +36,8 @@ void set_operation_menu_item_sensitiveness (bool sensitive);
 
 void set_fullscreen_menu_check (bool f);
 
-GtkWidget *create_package_menu (const char *op_label);
+GtkWidget *create_package_menu (const char *op_label,
+                                const char *insensitive_op_press_label);
 
 void menu_close ();
 
