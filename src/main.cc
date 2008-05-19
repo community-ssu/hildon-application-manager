@@ -33,6 +33,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <gconf/gconf-client.h>
 
+#include <hildon/hildon-window.h>
+
 #include "apt-worker-client.h"
 #include "apt-worker-proto.h"
 
@@ -1723,6 +1725,23 @@ show_check_for_updates_view ()
   show_view (&upgrade_applications_view);
 }
 
+static void
+update_seen_updates_file (void)
+{
+  FILE *file = NULL;
+
+  /* Build the list of seen updates */
+  xexp *seen_updates = xexp_list_new ("updates");
+  for (GList *pkg = upgradeable_packages; pkg; pkg = pkg->next)
+    xexp_cons (seen_updates,
+               xexp_text_new ("pkg",
+                              ((package_info *)pkg->data)->name));
+
+  /* Write it to disk */
+  user_file_write_xexp (UFILE_SEEN_UPDATES, seen_updates);
+  xexp_free (seen_updates);
+}
+
 GtkWidget *
 make_upgrade_applications_view (view *v)
 {
@@ -1755,21 +1774,7 @@ make_upgrade_applications_view (view *v)
   if (package_list_ready
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
-      FILE *file = NULL;
-      xexp *seen_updates = xexp_list_new ("updates");
-      for (GList *pkg = upgradeable_packages; pkg; pkg = pkg->next)
-	xexp_cons (seen_updates,
-		   xexp_text_new ("pkg", 
-				  ((package_info *)pkg->data)->name));
-
-      file = user_file_open_for_write (UFILE_SEEN_UPDATES);
-
-      if (file != NULL)
-	{
-	  xexp_write (file, seen_updates);
-	  fclose (file);
-	}
-      xexp_free (seen_updates);
+      update_seen_updates_file ();
     }
 
   maybe_refresh_package_cache_without_user ();
@@ -2599,6 +2604,22 @@ window_state_event (GtkWidget *widget, GdkEventWindowState *event,
   return FALSE;
 }
 
+static void
+is_topmost_cb(GtkWidget *widget, GParamSpec *arg, gpointer unused)
+{
+  g_return_if_fail(widget != NULL && HILDON_IS_WINDOW(widget));
+
+  HildonWindow *window = HILDON_WINDOW(widget);
+
+  /* Update the seen-updates file if the window is top most again and
+     the "Check for updates" view is currently selected */
+  if (package_list_ready && hildon_window_get_is_topmost(window) &&
+      (cur_view_struct == &upgrade_applications_view))
+    {
+      update_seen_updates_file ();
+    }
+}
+
 static gboolean
 key_event (GtkWidget *widget,
 	   GdkEventKey *event,
@@ -2955,6 +2976,8 @@ main (int argc, char **argv)
 
   g_signal_connect (window, "window_state_event",
 		    G_CALLBACK (window_state_event), NULL);
+  g_signal_connect(G_OBJECT(window), "notify::is-topmost",
+                   G_CALLBACK(is_topmost_cb), NULL);
   g_signal_connect (window, "key_press_event",
 		    G_CALLBACK (key_event), NULL);
   g_signal_connect (window, "key_release_event",

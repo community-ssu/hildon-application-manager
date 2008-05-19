@@ -9,6 +9,14 @@
 	* src/main.cc (installed_package_selected): Set the sensitiveness
 	for the operation application menu item depending on the
 	pkg_system_update flag (N85121).
+	(update_seen_updates_file): New function to be used both from
+	make_upgrade_applications_view, as usual, and from the new
+	callback function is_topmost_cb (N85196).
+	(make_upgrade_applications_view): Use the new function
+	update_seen_updates_file (N85196).
+	(is_topmost_cb): Update the seen-updates file if the window is top
+	most again and the "Check for updates" view is selected (N85196).
+	(main): Connect to the "notify::is-topmost" signal (N85196).
 
 	* src/util.cc (package_info *current_package_info): New global
 	variable to keep track of the currently selected package on a
