@@ -32,6 +32,7 @@ void set_details_menu_sensitive (bool);
 void set_search_menu_sensitive (bool);
 void set_operation_menu_label (const gchar *label, bool sensitive,
 			       const gchar *insens);
+void set_operation_menu_item_sensitiveness (bool sensitive);
 
 void set_fullscreen_menu_check (bool f);
 

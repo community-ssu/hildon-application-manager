@@ -1576,6 +1576,8 @@ installed_package_selected (package_info *pi)
       set_operation_callback (uninstall_operation_callback, pi);
       set_operation_label (_("ai_me_package_uninstall"),
                            _("ai_ni_unable_to_uninstall_system_update"));
+      set_operation_menu_item_sensitiveness (!(pi->flags & pkgflag_system_update));
+
       if (current_tb_struct->operation_button)
         gtk_widget_set_sensitive (current_tb_struct->operation_button, 
                                   !(pi->flags & pkgflag_system_update));

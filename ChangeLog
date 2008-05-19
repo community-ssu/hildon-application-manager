@@ -1,3 +1,13 @@
+2008-05-19  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/menu.h, src/menu.cc (set_operation_menu_item_sensitiveness):
+	New function to set the sensitiveness for the menu item used to
+	perform the current available operation (N85121).
+
+	* src/main.cc (installed_package_selected): Set the sensitiveness
+	for the operation application menu item depending on the
+	pkg_system_update flag (N85121).
+
 2008-05-15  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/main.cc (make_install_applications_view) : Use the Help topic

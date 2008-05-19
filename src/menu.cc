@@ -151,6 +151,12 @@ set_operation_menu_label (const char *label, bool sensitive,
     }
 }
 
+void
+set_operation_menu_item_sensitiveness (bool sensitive)
+{
+  gtk_widget_set_sensitive (operation_menu_item, sensitive);
+}
+
 static void
 fullscreen_activated (GtkWidget *item)
 {
