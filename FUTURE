@@ -1,7 +1,7 @@
 New features for the Hildon Application Manager
 ===============================================
 
-* Repairing broken packages
+* Repairing broken packages [mario]
 
 If a visible package is in a broken state, it should also be shown in
 the "Check for Updates" view and updating it should try to unbreak the
