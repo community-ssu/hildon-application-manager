@@ -17,24 +17,7 @@ Open issue: what about broken invisible packages?  Their brokenness
 could be charged to the visible parents, but that will charge a broken
 libgtk, say, on all visible packages.
 
-* Ignoring packages that violate domain boundaries [mvo]
-
-The Application manager remembers for each package the 'domain' where
-it was installed from originally.  Updates to a package that come from
-another domain are rejected.
-
-Right now, the Application manager fails installations that have one
-or more of these domain violations.  Instead, it should just ignore
-packages from a wrong domain.  This will get rid of the most hard core
-error message of the AM.
-
-There is already a hook into libapt-pkg to deal with the domain
-system.  This hook might be good enough, it might have to be changed.
-Some thoughts should be spent on whether to move the whole domain
-concept into libapt-pkg.  Maybe writing a custom DepCache::Policy is
-the way to go.
-
-* Avoiding invisible interaction flows [mario]
+* Avoiding invisible interaction flows [mvo]
 
 [ needs second pass ]
 
@@ -170,9 +153,24 @@ The following steps might be appropriate:
 
 #########################################################################
 
-* Speeding up preparation of large operations [mvo]
+* Ignoring packages that violate domain boundaries [mvo]
 
-[ Also see the previous feature. ]
+The Application manager remembers for each package the 'domain' where
+it was installed from originally.  Updates to a package that come from
+another domain are rejected.
+
+Right now, the Application manager fails installations that have one
+or more of these domain violations.  Instead, it should just ignore
+packages from a wrong domain.  This will get rid of the most hard core
+error message of the AM.
+
+There is already a hook into libapt-pkg to deal with the domain
+system.  This hook might be good enough, it might have to be changed.
+Some thoughts should be spent on whether to move the whole domain
+concept into libapt-pkg.  Maybe writing a custom DepCache::Policy is
+the way to go.
+
+* Speeding up preparation of large operations [mvo]
 
 Computing an update (calling mark_install in the apt-worker, etc) used
 to be quick enough, but now it can be quite slow since we have large
