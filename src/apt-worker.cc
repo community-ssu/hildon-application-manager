@@ -85,6 +85,7 @@
 #include <apt-pkg/algorithms.h>
 #include <apt-pkg/metaindex.h>
 #include <apt-pkg/debmetaindex.h>
+#include <apt-pkg/policy.h>
 
 #include <glib/glist.h>
 #include <glib/gstring.h>
@@ -166,6 +167,12 @@ static xexp *read_operation_record ();
  */
 /*#define DEBUG*/
 /*#define DEBUG_COMMANDS*/
+
+#ifdef DEBUG
+#define DBG log_stderr
+#else
+#define DBG(...)
+#endif
 
 /** RUN-TIME CONFIGURATION
  */
@@ -324,6 +331,8 @@ typedef struct extra_info_struct
   domain_t cur_domain, new_domain;
 };
 
+class myCacheFile;
+
 /* This class implements state and cache switching of apt-worker. With
  * this we can switch between the standard apt configuration and a
  * temporary one, used to install a specific set of packages
@@ -344,7 +353,7 @@ public:
   string dir_state;
   string source_list;
   string source_parts;
-  pkgCacheFile *cache;
+  myCacheFile *cache;
   pkgDepCache::ActionGroup *action_group;
   unsigned int package_count;
   bool cache_generate;
@@ -478,6 +487,175 @@ void AptWorkerState::SetAsCurrent ()
       current_state = this;
     }
 }
+
+class myPolicy : public pkgPolicy {
+
+protected:
+  int *PFDomain;
+
+public:
+  myPolicy (pkgCache *Owner)
+    : pkgPolicy (Owner)
+  {
+    PFDomain = new int[Owner->Head().PackageFileCount];
+  }
+
+  void InitDomains ();
+
+  virtual pkgCache::VerIterator GetCandidateVer(pkgCache::PkgIterator Pkg);
+};
+
+static void set_sources_for_get_domain (pkgSourceList *sources);
+static int get_domain (pkgIndexFile*);
+
+void
+myPolicy::InitDomains ()
+{
+  for (pkgCache::PkgFileIterator I = Cache->FileBegin();
+       I != Cache->FileEnd(); I++)
+    PFDomain[I->ID] = DOMAIN_UNSIGNED;
+
+  pkgSourceList List;
+  if (!List.ReadMainList ())
+    {
+      _error->DumpErrors();
+      return;
+    }
+
+  set_sources_for_get_domain (&List);
+
+  for (pkgCache::PkgFileIterator I = Cache->FileBegin();
+       I != Cache->FileEnd(); I++)
+    {
+      // Locate the associated index files so we can find its domain
+      pkgIndexFile *Indx;
+      if (List.FindIndex(I,Indx) || _system->FindIndex(I,Indx))
+	{
+	  PFDomain[I->ID] = get_domain (Indx);
+	  DBG ("%s: %s\n", Indx->Describe(true).c_str(),
+	       domains[PFDomain[I->ID]].name);
+	}
+    }
+  
+  set_sources_for_get_domain (NULL);
+}
+
+static bool domain_dominates_or_is_equal (int a, int b);
+void ensure_extra_info ();
+
+pkgCache::VerIterator 
+myPolicy::GetCandidateVer (pkgCache::PkgIterator Pkg)
+{
+  AptWorkerState * state = AptWorkerState::GetCurrent ();
+
+  ensure_extra_info ();
+
+  // Look for a package pin and evaluate it.
+  signed Max = GetPriority(Pkg);
+  pkgCache::VerIterator Pref = GetMatch(Pkg);
+  
+  /* Falling through to the default version.. Setting Max to zero
+     effectively excludes everything <= 0 which are the non-automatic
+     priorities.. The status file is given a prio of 100 which will exclude
+     not-automatic sources, except in a single shot not-installed mode.
+     The second pseduo-status file is at prio 1000, above which will permit
+     the user to force-downgrade things.
+     
+     The user pin is subject to the same priority rules as default 
+     selections. Thus there are two ways to create a pin - a pin that
+     tracks the default when the default is taken away, and a permanent
+     pin that stays at that setting.
+  */
+  for (pkgCache::VerIterator Ver = Pkg.VersionList(); Ver.end() == false; Ver++)
+    {
+      for (pkgCache::VerFileIterator VF = Ver.FileList(); VF.end() == false;
+	   VF++)
+	{
+	  /* If this is the status file, and the current version is not the
+	     version in the status file (ie it is not installed, or somesuch)
+	     then it is not a candidate for installation, ever. This weeds
+	     out bogus entries that may be due to config-file states, or
+	     other. */
+	  if ((VF.File()->Flags & pkgCache::Flag::NotSource) == pkgCache::Flag::NotSource &&
+	      Pkg.CurrentVer() != Ver)
+	    continue;
+
+	  /* Skip versions from the wrong domain, but only for sources.
+	   */
+
+	  if ((VF.File()->Flags & pkgCache::Flag::NotSource)
+	      != pkgCache::Flag::NotSource)
+	    {
+	      if (!domain_dominates_or_is_equal
+		  (PFDomain[VF.File()->ID],
+		   state->extra_info[Pkg->ID].cur_domain))
+		{
+		  log_stderr ("Ignoring version from wrong domain: %s %s",
+			      Pkg.Name(), Ver.VerStr());
+		  log_stderr ("  %s", VF.File().FileName());
+		  continue;
+		}
+	    }
+	  
+	  signed Prio = PFPriority[VF.File()->ID];
+	  if (Prio > Max)
+	    {
+	      Pref = Ver;
+	      Max = Prio;
+	    }	 
+	}      
+      
+      if (Pkg.CurrentVer() == Ver && Max < 1000)
+	{
+	  /* Elevate our current selection (or the status file itself)
+	     to the Pseudo-status priority. */
+	  if (Pref.end() == true)
+	    Pref = Ver;
+	  Max = 1000;
+	  
+	  // Fast path optimize.
+	  if (StatusOverride == false)
+	    break;
+	}       
+    }
+  return Pref;
+}
+
+/* XXX - we should move the extra_info functionality into myCacheFile.
+ */
+
+class myCacheFile : public pkgCacheFile {
+
+public:
+  bool Open(OpProgress &Progress,bool WithLock = true)
+  {
+    if (BuildCaches(Progress,WithLock) == false)
+      return false;
+    
+    // The policy engine
+    myPolicy *pol = new myPolicy(Cache);
+    Policy = pol;
+    if (_error->PendingError() == true)
+      return false;
+    if (ReadPinFile(*Policy) == false)
+      return false;
+    
+    pol->InitDomains ();
+
+    // Create the dependency cache
+    DCache = new pkgDepCache(Cache,Policy);
+    if (_error->PendingError() == true)
+      return false;
+    
+    DCache->Init(&Progress);
+    Progress.Done();
+    if (_error->PendingError() == true)
+      return false;
+    
+    return true;
+  }
+
+};
 
 /* ALLOC_BUF and FREE_BUF can be used to manage a temporary buffer of
    arbitrary size without having to allocate memory from the heap when
@@ -627,12 +805,6 @@ ForceLock (string File, bool Errors = true)
 */
 
 int input_fd, output_fd, status_fd, cancel_fd;
-
-#ifdef DEBUG
-#define DBG log_stderr
-#else
-#define DBG(...)
-#endif
 
 /* MUST_READ and MUST_WRITE read and write blocks of raw bytes from
    INPUT_FD and to OUTPUT_FD.  If they return, they have succeeded and
@@ -1429,12 +1601,11 @@ save_extra_info ()
     }
 }
 
-/* Load the 'extra_info'.  You need to call CACHE_RESET to transfer
-   the auto flag into the actual cache.
-*/
+/* Load the 'extra_info', if needed.  You need to call CACHE_RESET to
+   transfer the auto flag into the actual cache.  */
 
 void
-load_extra_info ()
+ensure_extra_info ()
 {
   // XXX - log errors.
   AptWorkerState *state = NULL;
@@ -1442,6 +1613,14 @@ load_extra_info ()
   state = AptWorkerState::GetCurrent ();
   if ((state == NULL)||(state->cache == NULL))
     return;
+
+  if (state->extra_info)
+    return;
+
+  pkgDepCache &cache = *(state->cache);
+  
+  state->package_count = cache.Head ().PackageCount;
+  state->extra_info = new extra_info_struct[state->package_count];
 
   for (unsigned int i = 0; i < state->package_count; i++)
     {
@@ -1452,8 +1631,6 @@ load_extra_info ()
   FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "r");
   if (f)
     {
-      pkgDepCache &cache = *(state->cache);
-
       char *line = NULL;
       size_t len = 0;
       ssize_t n;
@@ -1656,7 +1833,6 @@ check_cache_state (const char *package, bool is_install)
   return false;
 }
 
-
 /* Initialize libapt-pkg if this has not been done already and
    (re-)create PACKAGE_CACHE.  If the cache can not be created,
    PACKAGE_CACHE is set to NULL and an appropriate message is output.
@@ -1702,9 +1878,9 @@ cache_init (bool with_status)
   /* Clear out the dpkg journal before construction the cache.
    */
   clear_dpkg_updates ();
-	  
+
   UpdateProgress progress (with_status);
-  state->cache = new pkgCacheFile;
+  state->cache = new myCacheFile;
 
   DBG ("init.");
   if (!state->cache->Open (progress))
@@ -1724,11 +1900,9 @@ cache_init (bool with_status)
       */
       pkgDepCache &cache = *state->cache;
       state->action_group = new pkgDepCache::ActionGroup (cache);
-      state->package_count = cache.Head ().PackageCount;
-      state->extra_info = new extra_info_struct[state->package_count];
+      ensure_extra_info ();
     }
 
-  load_extra_info ();
   cache_reset ();
 
   if (!AptWorkerState::IsTemp () && state->cache != NULL)
@@ -2003,7 +2177,7 @@ mark_for_install_1 (pkgCache::PkgIterator &pkg, int level)
   if (level > 100)
     return;
 
-  mark_related (cache.GetCandidateVer(pkg));
+  mark_related (cache[pkg].CandidateVerIter(cache));
 
   /* Avoid recursion if package is already marked for installation.
    */
@@ -2528,7 +2702,7 @@ cmd_get_package_list ()
 
       /* Get installed and candidate iterators for current package */
       pkgCache::VerIterator installed = pkg.CurrentVer ();
-      pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+      pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
 
       // skip non user packages if requested.  Both the installed and
       // candidate versions must be non-user packages for a package to
@@ -2661,7 +2835,7 @@ cmd_get_system_update_packages ()
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
       pkgCache::VerIterator installed = pkg.CurrentVer ();
-      pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+      pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
 
       if (installed.end () || candidate.end ())
 	continue;
@@ -2798,7 +2972,7 @@ cmd_get_package_info ()
 	{
 	  if (cache[pkg].Upgrade())
 	    {
-	      pkgCache::VerIterator ver = cache.GetCandidateVer (pkg);
+	      pkgCache::VerIterator ver = cache[pkg].CandidateVerIter(cache);
 	      package_record rec (ver);
 	      info.install_flags |= get_flags (rec);
 	      info.required_free_space += get_required_free_space (rec);
@@ -3436,8 +3610,8 @@ update_package_cache (xexp *catalogues_for_report,
            when the corresponding "Release" has not been downloaded
            yet.
 
-     Libapt-pkg should take care of this itself, but I am too much
-     chicken to make that change now.
+     Libapt-pkg should take care of this itself, but I am too much of
+     a chicken to make that change now.
   */
 
   int result = rescode_failure;
@@ -3448,11 +3622,6 @@ update_package_cache (xexp *catalogues_for_report,
 
   string lists_dir_new = lists_dir + ".new";
   string lists_dir_old = lists_dir + ".old";
-
-  fprintf (stderr, "%s, %s, %s\n",
-	   lists_dir.c_str(),
-	   lists_dir_new.c_str(),
-	   lists_dir_old.c_str());
 
   unlink_file_tree (lists_dir_new.c_str());
   duplink_file_tree (lists_dir.c_str(), lists_dir_new.c_str());
@@ -3954,7 +4123,13 @@ cmd_remove_package ()
    default domain, which they usually are.
 */
 
-static pkgSourceList *cur_sources = NULL;
+static pkgSourceList *cur_sources;
+
+static void
+set_sources_for_get_domain (pkgSourceList *sources)
+{
+  cur_sources = sources;
+}
 
 static debReleaseIndex *
 find_deb_meta_index (pkgIndexFile *index)
@@ -4034,6 +4209,7 @@ get_domain (pkgIndexFile *index)
 	      return d;
 	    }
 	}
+
       return DOMAIN_SIGNED;
     }
   else
@@ -4402,7 +4578,7 @@ operation (bool check_only,
       return rescode_failure;
     }
 
-  cur_sources = &List;
+  set_sources_for_get_domain (&List);
 
   // Create the package manager
   //
@@ -5171,7 +5347,7 @@ write_available_updates_file ()
       */
 
       pkgCache::VerIterator installed = pkg.CurrentVer ();
-      pkgCache::VerIterator candidate = cache.GetCandidateVer (pkg);
+      pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
 
       if (!candidate.end ()
 	  && !installed.end()

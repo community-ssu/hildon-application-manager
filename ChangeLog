@@ -1,3 +1,22 @@
+2008-05-21  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Ignore packages from the wrong domain. (N85300)
+
+	* src/apt-worker.cc: Use CandidateVerIter instead of
+	GetCandidateVer throughout to get the candidate version.  The
+	latter will recompute the candidate on every call, which is not
+	needed.
+	(myPolicy): New, for implementing a custom version of
+	GetCandidateVer.
+	(myCacheFile): New, for installing a myPolicy object as the policy
+	engine.
+	(load_extra_info, ensure_extra_info): Renamed former to latter and
+	changed so that it can be called at any time and more than once
+	without harm.  This is needed because GetCandidateVer needs to
+	load the domain information on demand.
+	(set_sources_for_get_domain): New, use it instead of setting
+	cur_sources directly.
+
 2008-05-21  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/repo.cc (show_catalogue_dialog): Make sure that the packages
