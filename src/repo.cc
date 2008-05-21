@@ -30,6 +30,7 @@
 #include <locale.h>
 
 #include <gtk/gtk.h>
+#include <gconf/gconf-client.h>
 #include <hildon/hildon-note.h>
 #include <hildon/hildon-caption.h>
 
@@ -1108,6 +1109,39 @@ scd_get_catalogues_reply (xexp *catalogues, void *data)
   prevent_updating ();
 }
 
+
+static void
+ecu_reply (bool ignore, void *data)
+{
+  g_return_if_fail (data != NULL);
+
+  /* Show the 'Updating' banner */
+  allow_updating ();
+  show_updating ();
+
+  get_catalogues (scd_get_catalogues_reply, data);
+}
+
+static void
+ensure_cache_updated (cat_dialog_closure *c)
+{
+  if (!is_package_cache_updated ())
+    {
+      /* Force a refresh if package cache is not up-to-date */
+      refresh_package_cache_without_user (NULL, APTSTATE_DEFAULT,
+                                          ecu_reply, c);
+    }
+  else
+    {
+      /* Show the 'Updating' banner */
+      allow_updating ();
+      show_updating ();
+
+      /* Retrieve the catalogues information */
+      get_catalogues (scd_get_catalogues_reply, c);
+    }
+}
+
 void
 show_catalogue_dialog (xexp *catalogues,
 		       bool show_only_errors,
@@ -1181,12 +1215,8 @@ show_catalogue_dialog (xexp *catalogues,
   
   gtk_widget_show_all (dialog);
 
-  /* Show the 'Updating' banner */
-  allow_updating ();
-  show_updating ();
-
-  /* Retrieve the catalogues information */
-  get_catalogues (scd_get_catalogues_reply, c);
+  /* Make sure the cache is up-to-date first */
+  ensure_cache_updated (c);
 }
 
 /* Adding catalogues 

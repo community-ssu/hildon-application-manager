@@ -1,3 +1,31 @@
+2008-05-21  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/repo.cc (show_catalogue_dialog): Make sure that the packages
+	cache is updated before showing the catalogues dialog (N85122).
+	(ensure_cache_updated): Find out when the packages cache needs to
+	be refreshed or not before showing the catalogues dialog (N85122).
+	(ecu_reply): Shows the catalogues dialog as usual after a forced
+	refreshing of the packages cache (N85122).
+
+	* src/util.h, src/util.cc (load_last_update_time): New, moved from
+	main.cc to be also used from util.cc (N85122).
+	(save_last_update_time): New, moved from main.cc (N85122).
+	(is_package_cache_updated): New function to find out whether the
+	packages cache is up to date or not (N85122).
+
+	* src/main.h, src/main.cc (load_last_update_time): Moved to
+	util.cc (N85122).
+	(save_last_update_time): Removed to util.cc (N85122).
+	(maybe_refresh_package_cache_without_user): Use the new function
+	is_package_cache_updated instead of the old code (N85122).
+	(update_seen_updates_file): Removed an unused variable.
+
+	* src/apt-worker.cc (update_sources_list): New function to write
+	the sources.list file based on the 'catalogues' file (N85122).
+	(cmd_check_updates): Make sure that the source.list and
+	'catalogues' files are synchronized before refreshing (N85122).
+	(cmd_set_catalogues): Use function update_sources_list (N85122).
+
 2008-05-19  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/menu.h, src/menu.cc (set_operation_menu_item_sensitiveness):

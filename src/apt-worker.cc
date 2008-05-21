@@ -3493,6 +3493,28 @@ reset_catalogue_errors (xexp *catalogues)
     xexp_adel (c, "errors");
 }
 
+static gboolean
+update_sources_list (xexp *catalogues)
+{
+  gboolean success = FALSE;
+
+  if (AptWorkerState::IsTemp ())
+    {
+      success =
+	(xexp_write_file (TEMP_CATALOGUE_CONF, catalogues)
+	 && write_sources_list (TEMP_APT_SOURCE_LIST, catalogues));
+    }
+  else
+    {
+      /* Write the new sources list to disk */
+      success =
+	(xexp_write_file (CATALOGUE_CONF, catalogues)
+	 && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
+    }
+
+  return success;
+}
+
 int
 cmd_check_updates (bool with_status)
 {
@@ -3518,6 +3540,9 @@ cmd_check_updates (bool with_status)
     catalogues = xexp_read_file (CATALOGUE_CONF);
 
   reset_catalogue_errors (catalogues);
+
+  /* Update sources.list file before refreshing */
+  update_sources_list (catalogues);
 
   int result_code = update_package_cache (catalogues, with_status);
 
@@ -3703,29 +3728,23 @@ cmd_set_catalogues ()
   xexp *catalogues = request.decode_xexp ();
   xexp_adel (catalogues, "source");
 
-  if (AptWorkerState::IsTemp ())
-    {
-      success =
-	(xexp_write_file (TEMP_CATALOGUE_CONF, catalogues)
-	 && write_sources_list (TEMP_APT_SOURCE_LIST, catalogues));
-    }
-  else
+  if (!AptWorkerState::IsTemp ())
     {
       /* Map the catalogue report to delete error reports from it */
       xexp *mapped_catalogues =
 	xexp_list_map (catalogues, map_catalogue_error_details);
 
-      /* Write the new sources list to disk */
-      success =
-	(xexp_write_file (CATALOGUE_CONF, mapped_catalogues)
-	 && write_sources_list (CATALOGUE_APT_SOURCE, mapped_catalogues));
-
       /* Update failed catalogues file */
       save_failed_catalogues (catalogues);
 
-      /* Free memory */
-      xexp_free (mapped_catalogues);
+      /* Prepare mapped_catalogues to be used for updating the
+         sources.list file later, freeing catalogues first */
+      xexp_free (catalogues);
+      catalogues = mapped_catalogues;
     }
+
+  /* Update sources.list file */
+  update_sources_list (catalogues);
 
   xexp_free (catalogues);
   response.encode_int (success);

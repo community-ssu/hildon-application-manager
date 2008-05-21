@@ -1224,27 +1224,6 @@ gpiib_done (package_info *pi, void *data, bool changed)
 /* REFRESH_PACKAGE_CACHE_WITHOUT_USER
  */
 
-static void
-save_last_update_time (time_t t)
-{
-  char *text = g_strdup_printf ("%d", t);
-  xexp *x = xexp_text_new ("time", text);
-  g_free (text);
-  user_file_write_xexp (UFILE_LAST_UPDATE, x);
-  xexp_free (x);
-}
-
-static int
-load_last_update_time ()
-{
-  int t = 0;
-  xexp *x = user_file_read_xexp (UFILE_LAST_UPDATE);
-  if (x && xexp_is_text (x) && xexp_is (x, "time"))
-    t = xexp_text_as_int (x);
-  xexp_free (x);
-  return t;
-}
-
 struct rpcwu_clos {
   int state;
   void (*cont) (bool keep_going, void *data);
@@ -1355,9 +1334,6 @@ rpcwuf_end (bool ignore, void *unused)
 void
 maybe_refresh_package_cache_without_user ()
 {
-  GConfClient *conf;
-  int last_update, interval;
-
   if (!is_idle ())
     return;
 
@@ -1367,18 +1343,7 @@ maybe_refresh_package_cache_without_user ()
       return;
     }
 
-  conf = gconf_client_get_default ();
-
-  last_update = load_last_update_time ();
-
-  interval = gconf_client_get_int (conf,
-				   UPNO_GCONF_CHECK_INTERVAL,
-				   NULL);
-
-  if (interval <= 0)
-    interval = UPNO_DEFAULT_CHECK_INTERVAL;
-
-  if (last_update + interval*60 < time (NULL))
+  if (!is_package_cache_updated ())
     refresh_package_cache_without_user_flow ();
 }
 
@@ -1728,8 +1693,6 @@ show_check_for_updates_view ()
 static void
 update_seen_updates_file (void)
 {
-  FILE *file = NULL;
-
   /* Build the list of seen updates */
   xexp *seen_updates = xexp_list_new ("updates");
   for (GList *pkg = upgradeable_packages; pkg; pkg = pkg->next)

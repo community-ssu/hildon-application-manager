@@ -52,7 +52,9 @@
 #include "menu.h"
 #include "operations.h"
 #include "apt-worker-client.h"
+#include "user_files.h"
 #include "update-notifier.h"
+#include "update-notifier-conf.h"
 #ifndef CAIRO_CELL_RENDERER
 #include "modest-hbox-cell-renderer.h"
 #include "modest-vbox-cell-renderer.h"
@@ -3440,4 +3442,47 @@ volume_path_is_mounted (const gchar *path)
   g_list_free (list);
   g_free (path_as_uri);
   return result;
+}
+
+void
+save_last_update_time (time_t t)
+{
+  char *text = g_strdup_printf ("%d", t);
+  xexp *x = xexp_text_new ("time", text);
+  g_free (text);
+  user_file_write_xexp (UFILE_LAST_UPDATE, x);
+  xexp_free (x);
+}
+
+int
+load_last_update_time ()
+{
+  int t = 0;
+  xexp *x = user_file_read_xexp (UFILE_LAST_UPDATE);
+  if (x && xexp_is_text (x) && xexp_is (x, "time"))
+    t = xexp_text_as_int (x);
+  xexp_free (x);
+  return t;
+}
+
+gboolean
+is_package_cache_updated ()
+{
+  GConfClient *conf;
+  int last_update, interval;
+
+  /* Check the LAST_UPDATE timstamp */
+  conf = gconf_client_get_default ();
+  last_update = load_last_update_time ();
+  interval = gconf_client_get_int (conf,
+				   UPNO_GCONF_CHECK_INTERVAL,
+				   NULL);
+
+  if (interval <= 0)
+    interval = UPNO_DEFAULT_CHECK_INTERVAL;
+
+  if (last_update + interval*60 < time (NULL))
+    return FALSE;
+
+  return TRUE;
 }

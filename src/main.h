@@ -148,6 +148,8 @@ void refresh_package_cache_without_user (const char *title,
 						       void *data),
 					 void *data);
 
+void maybe_refresh_package_cache_without_user ();
+
 void set_catalogues_and_refresh (xexp *catalogues,
 				 const char *title,
 				 int state,

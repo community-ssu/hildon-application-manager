@@ -589,5 +589,14 @@ gboolean volume_path_is_mounted (const gchar *path);
 /* Set a DBUS message to reboot the device */
 void send_reboot_message (void);
 
+/* Save the LAST_UPDATE timstamp from disk */
+void save_last_update_time (time_t t);
+
+/* Load the LAST_UPDATE timstamp from disk */
+int load_last_update_time ();
+
+/* Check whether the package cache is up-to-date or not */
+gboolean is_package_cache_updated ();
+
 #endif /* !UTIL_H */
 
