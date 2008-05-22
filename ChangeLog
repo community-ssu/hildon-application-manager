@@ -1,3 +1,9 @@
+2008-05-22  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (CheckDownloadedPkgs): Use CandidateVer
+	instead of GetCandidateVer to avoid recomputing the candidate
+	version.
+
 2008-05-22  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs): this function

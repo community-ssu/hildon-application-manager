@@ -4434,7 +4434,7 @@ myDPkgPM::CheckDownloadedPkgs ()
     {
       PkgIterator Pkg(Cache,*I);
       string File = FileNames[Pkg->ID];
-      pkgCache::VerIterator cand_ver = Cache.GetCandidateVer (Pkg);
+      pkgCache::VerIterator cand_ver = Cache[Pkg].CandidateVerIter(Cache);
       package_record rec (cand_ver);
       string ExpectedMD5 = rec.get_string("MD5sum");
       
