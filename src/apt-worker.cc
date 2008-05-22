@@ -87,6 +87,8 @@
 #include <apt-pkg/debmetaindex.h>
 #include <apt-pkg/policy.h>
 #include <apt-pkg/md5.h>
+#include <apt-pkg/sha1.h>
+#include <apt-pkg/sha256.h>
 
 #include <glib/glist.h>
 #include <glib/gstring.h>
@@ -4427,27 +4429,73 @@ myDPkgPM::CreateOrderList ()
 bool
 myDPkgPM::CheckDownloadedPkgs ()
 {
-  bool result = true;
-  
   for (pkgOrderList::iterator I = pkgPackageManager::List->begin(); 
        I != pkgPackageManager::List->end(); I++)
     {
       PkgIterator Pkg(Cache,*I);
-      string File = FileNames[Pkg->ID];
       pkgCache::VerIterator cand_ver = Cache[Pkg].CandidateVerIter(Cache);
       package_record rec (cand_ver);
-      string ExpectedMD5 = rec.get_string("MD5sum");
-      
-      MD5Summation sum;
+      string File = FileNames[Pkg->ID];
+      if (File.empty())
+        continue;
       FileFd Fd (File, FileFd::ReadOnly);
-      sum.AddFD (Fd.Fd(), Fd.Size());
-      Fd.Close();
-      string MD5 = (string)sum.Result();
+      if (_error->PendingError() == true) // return false?
+        continue;
 
-      if (!ExpectedMD5.empty() && MD5 != ExpectedMD5)
+      string ExpectedSHA256 = rec.get_string("SHA256");
+
+      if (!ExpectedSHA256.empty())
         {
-          log_stderr ("File %s is corrupted.", File.c_str());
-          return false;
+          SHA256Summation SHA256;
+          SHA256.AddFD(Fd.Fd(), Fd.Size());
+          Fd.Close();
+          string file_sha256 = string(SHA256.Result());
+
+          if (file_sha256 != ExpectedSHA256)
+            {
+              log_stderr ("File %s is corrupted (SHA256).", File.c_str());
+              return false;
+            }
+        }
+      else
+        {
+          string ExpectedSHA1 = rec.get_string("SHA1");
+
+          if (!ExpectedSHA1.empty())
+            {
+              SHA1Summation SHA1;
+              SHA1.AddFD(Fd.Fd(), Fd.Size());
+              Fd.Close();
+              string file_sha1 = string(SHA1.Result());
+
+              if (file_sha1 != ExpectedSHA1)
+                {
+                  log_stderr ("File %s is corrupted (SHA1).", File.c_str());
+                  return false;
+                }
+            }
+          else
+            {
+              string ExpectedMD5 = rec.get_string("MD5sum");
+
+              if (!ExpectedMD5.empty())
+                {
+                  MD5Summation sum;
+                  sum.AddFD (Fd.Fd(), Fd.Size());
+                  Fd.Close();
+                  string MD5 = (string)sum.Result();
+
+                  if (MD5 != ExpectedMD5)
+                    {
+                      log_stderr ("File %s is corrupted (MD5sum).", File.c_str());
+                      return false;
+                    }
+                }
+              else
+                {
+                  Fd.Close();
+                }
+            }
         }
     }
   return true;
