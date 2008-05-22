@@ -1,3 +1,9 @@
+2008-05-22  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc: Move extra_info array and related functions
+	from AptWorkerState to myCacheFile so that it is available more
+	cleanly for myPolicy.  Updated all users.
+
 2008-05-21  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Ignore packages from the wrong domain. (N85300)

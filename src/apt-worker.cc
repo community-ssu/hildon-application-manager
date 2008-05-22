@@ -319,18 +319,6 @@ find_domain_by_uri (const char *uri)
   return find_domain_by_tag ("uri", uri);
 }
 
-/* This struct describes some status flags for specific packages.
- * AptWorkerState includes an array of these, with an entry per
- * package.
- */
-typedef struct extra_info_struct
-{
-  bool autoinst : 1;
-  bool related : 1;
-  bool soft : 1;
-  domain_t cur_domain, new_domain;
-};
-
 class myCacheFile;
 
 /* This class implements state and cache switching of apt-worker. With
@@ -355,11 +343,9 @@ public:
   string source_parts;
   myCacheFile *cache;
   pkgDepCache::ActionGroup *action_group;
-  unsigned int package_count;
   bool cache_generate;
   bool init_cache_after_request;
   bool using_alt_archives_dir;
-  extra_info_struct *extra_info;
   void InitializeValues ();
   static AptWorkerState *current_state;
   static AptWorkerState *default_state;
@@ -420,7 +406,6 @@ AptWorkerState::InitializeValues (void)
   this->cache = NULL;
   this->using_alt_archives_dir = false;
   this->init_cache_after_request = false;
-  this->package_count = 0;
 }
 
 void 
@@ -488,21 +473,55 @@ void AptWorkerState::SetAsCurrent ()
     }
 }
 
+/* This struct describes some status flags for specific packages.
+ * myCacheFile includes an array of these, with an entry per
+ * package.
+ */
+typedef struct extra_info_struct
+{
+  bool autoinst : 1;
+  bool related : 1;
+  bool soft : 1;
+  domain_t cur_domain, new_domain;
+};
+
 class myPolicy : public pkgPolicy {
 
 protected:
-  int *PFDomain;
+  myCacheFile *my_cache_file;
+  int *pf_domain;
 
 public:
-  myPolicy (pkgCache *Owner)
-    : pkgPolicy (Owner)
+  myPolicy (pkgCache *Owner, myCacheFile *cache_file)
+    : pkgPolicy (Owner), my_cache_file (cache_file)
   {
-    PFDomain = new int[Owner->Head().PackageFileCount];
+    pf_domain = new int[Owner->Head().PackageFileCount];
   }
 
   void InitDomains ();
 
   virtual pkgCache::VerIterator GetCandidateVer(pkgCache::PkgIterator Pkg);
+};
+
+class myCacheFile : public pkgCacheFile {
+
+public:
+  bool Open (OpProgress &Progress, bool WithLock = true);
+
+  void load_extra_info ();
+  void save_extra_info ();
+
+  extra_info_struct *extra_info;
+
+  myCacheFile ()
+  {
+    extra_info = NULL;
+  }
+
+  ~myCacheFile ()
+  {
+    delete[] extra_info;
+  }
 };
 
 static void set_sources_for_get_domain (pkgSourceList *sources);
@@ -513,7 +532,7 @@ myPolicy::InitDomains ()
 {
   for (pkgCache::PkgFileIterator I = Cache->FileBegin();
        I != Cache->FileEnd(); I++)
-    PFDomain[I->ID] = DOMAIN_UNSIGNED;
+    pf_domain[I->ID] = DOMAIN_UNSIGNED;
 
   pkgSourceList List;
   if (!List.ReadMainList ())
@@ -531,9 +550,9 @@ myPolicy::InitDomains ()
       pkgIndexFile *Indx;
       if (List.FindIndex(I,Indx) || _system->FindIndex(I,Indx))
 	{
-	  PFDomain[I->ID] = get_domain (Indx);
-	  DBG ("%s: %s\n", Indx->Describe(true).c_str(),
-	       domains[PFDomain[I->ID]].name);
+	  pf_domain[I->ID] = get_domain (Indx);
+	  DBG ("%s: %s", Indx->Describe(true).c_str(),
+	       domains[pf_domain[I->ID]].name);
 	}
     }
   
@@ -541,15 +560,10 @@ myPolicy::InitDomains ()
 }
 
 static bool domain_dominates_or_is_equal (int a, int b);
-void ensure_extra_info ();
 
 pkgCache::VerIterator 
 myPolicy::GetCandidateVer (pkgCache::PkgIterator Pkg)
 {
-  AptWorkerState * state = AptWorkerState::GetCurrent ();
-
-  ensure_extra_info ();
-
   // Look for a package pin and evaluate it.
   signed Max = GetPriority(Pkg);
   pkgCache::VerIterator Pref = GetMatch(Pkg);
@@ -587,8 +601,8 @@ myPolicy::GetCandidateVer (pkgCache::PkgIterator Pkg)
 	      != pkgCache::Flag::NotSource)
 	    {
 	      if (!domain_dominates_or_is_equal
-		  (PFDomain[VF.File()->ID],
-		   state->extra_info[Pkg->ID].cur_domain))
+		  (pf_domain[VF.File()->ID],
+		   my_cache_file->extra_info[Pkg->ID].cur_domain))
 		{
 		  log_stderr ("Ignoring version from wrong domain: %s %s",
 			      Pkg.Name(), Ver.VerStr());
@@ -621,41 +635,166 @@ myPolicy::GetCandidateVer (pkgCache::PkgIterator Pkg)
   return Pref;
 }
 
-/* XXX - we should move the extra_info functionality into myCacheFile.
- */
+bool
+myCacheFile::Open (OpProgress &Progress, bool WithLock)
+{
+  if (BuildCaches(Progress,WithLock) == false)
+    return false;
+  
+  // The policy engine
+  myPolicy *pol = new myPolicy (Cache, this);
+  Policy = pol;
+  if (_error->PendingError() == true)
+    return false;
+  if (ReadPinFile(*Policy) == false)
+    return false;
+  
+  pol->InitDomains ();
+  
+  load_extra_info ();
 
-class myCacheFile : public pkgCacheFile {
+  // Create the dependency cache
+  DCache = new pkgDepCache(Cache,Policy);
+  if (_error->PendingError() == true)
+    return false;
+  
+  DCache->Init(&Progress);
+  Progress.Done();
+  if (_error->PendingError() == true)
+    return false;
+  
+  return true;
+}
 
-public:
-  bool Open(OpProgress &Progress,bool WithLock = true)
-  {
-    if (BuildCaches(Progress,WithLock) == false)
-      return false;
-    
-    // The policy engine
-    myPolicy *pol = new myPolicy(Cache);
-    Policy = pol;
-    if (_error->PendingError() == true)
-      return false;
-    if (ReadPinFile(*Policy) == false)
-      return false;
-    
-    pol->InitDomains ();
+/* Save the 'extra_info' of the cache.  We first make a copy of the
+   Auto flags in our own extra_info storage so that CACHE_RESET
+   will reset the Auto flags to the state last saved with this
+   function.
+*/
 
-    // Create the dependency cache
-    DCache = new pkgDepCache(Cache,Policy);
-    if (_error->PendingError() == true)
-      return false;
-    
-    DCache->Init(&Progress);
-    Progress.Done();
-    if (_error->PendingError() == true)
-      return false;
-    
-    return true;
-  }
+void
+myCacheFile::save_extra_info ()
+{
+  if (mkdir ("/var/lib/hildon-application-manager", 0777) < 0
+      && errno != EEXIST)
+    {
+      log_stderr ("/var/lib/hildon-application-manager: %m");
+      return;
+    }
 
-};
+  FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "w");
+  if (f)
+    {
+      pkgDepCache &cache = *DCache;
+
+      for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+	{
+	  if (cache[pkg].Flags & pkgCache::Flag::Auto)
+	    {
+	      extra_info[pkg->ID].autoinst = true;
+	      fprintf (f, "%s\n", pkg.Name ());
+	    }
+	  else
+	    extra_info[pkg->ID].autoinst = false;
+	}
+      fclose (f);
+    }
+
+  for (domain_t i = 0; i < domains_number; i++)
+    {
+      char *name =
+	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
+			 domains[i].name);
+      
+      FILE *f = fopen (name, "w");
+      if (f)
+	{
+	  pkgDepCache &cache = *DCache;
+
+	  for (pkgCache::PkgIterator pkg = cache.PkgBegin();
+	       !pkg.end (); pkg++)
+	    {
+	      if (extra_info[pkg->ID].cur_domain == i)
+		fprintf (f, "%s\n", pkg.Name ());
+	    }
+	  fclose (f);
+	}
+    }
+}
+
+/* Load the 'extra_info'.  You need to call CACHE_RESET to
+   transfer the auto flag into the actual cache.  */
+
+void
+myCacheFile::load_extra_info ()
+{
+  pkgCache &cache = *Cache;
+
+  int package_count = cache.Head().PackageCount;
+
+  extra_info = new extra_info_struct[package_count];
+
+  for (int i = 0; i < package_count; i++)
+    {
+      extra_info[i].autoinst = false;
+      extra_info[i].cur_domain = DOMAIN_DEFAULT;
+    }
+
+  FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "r");
+  if (f)
+    {
+      char *line = NULL;
+      size_t len = 0;
+      ssize_t n;
+
+      while ((n = getline (&line, &len, f)) != -1)
+	{
+	  if (n > 0 && line[n-1] == '\n')
+	    line[n-1] = '\0';
+
+	  pkgCache::PkgIterator pkg = cache.FindPkg (line);
+	  if (!pkg.end ())
+	    {
+	      DBG ("auto: %s", pkg.Name ());
+	      extra_info[pkg->ID].autoinst = true;
+	    }
+	}
+
+      free (line);
+      fclose (f);
+    }
+
+  for (domain_t i = 0; i < domains_number; i++)
+    {
+      char *name =
+	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
+			 domains[i].name);
+      
+      FILE *f = fopen (name, "r");
+      if (f)
+	{
+	  char *line = NULL;
+	  size_t len = 0;
+	  ssize_t n;
+	  
+	  while ((n = getline (&line, &len, f)) != -1)
+	    {
+	      if (n > 0 && line[n-1] == '\n')
+		line[n-1] = '\0';
+
+	      pkgCache::PkgIterator pkg = cache.FindPkg (line);
+	      if (!pkg.end ())
+		{
+		  DBG ("%s: %s (%d)", domains[i].name, pkg.Name (), pkg->ID);
+		  extra_info[pkg->ID].cur_domain = i;
+		}
+	    }
+
+	  free (line);
+	  fclose (f);
+	}
+    }
+}
 
 /* ALLOC_BUF and FREE_BUF can be used to manage a temporary buffer of
    arbitrary size without having to allocate memory from the heap when
@@ -1542,150 +1681,6 @@ is_user_package (const pkgCache::VerIterator &ver)
   return is_user_section (section, section + strlen (section));
 }
 
-/* Save the 'extra_info' of the cache.  We first make a copy of the
-   Auto flags in our own extra_info storage so that CACHE_RESET
-   will reset the Auto flags to the state last saved with this
-   function.
-*/
-
-void
-save_extra_info ()
-{
-  AptWorkerState * state = AptWorkerState::GetCurrent ();
-  if (state == NULL)
-    return;
-
-  if (mkdir ("/var/lib/hildon-application-manager", 0777) < 0 && errno != EEXIST)
-    {
-      log_stderr ("/var/lib/hildon-application-manager: %m");
-      return;
-    }
-
-  FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "w");
-  if (f)
-    {
-      pkgDepCache &cache = *(state->cache);
-
-      for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
-	{
-	  if (cache[pkg].Flags & pkgCache::Flag::Auto)
-	    {
-	      state->extra_info[pkg->ID].autoinst = true;
-	      fprintf (f, "%s\n", pkg.Name ());
-	    }
-	  else
-	    state->extra_info[pkg->ID].autoinst = false;
-	}
-      fclose (f);
-    }
-
-  for (domain_t i = 0; i < domains_number; i++)
-    {
-      char *name =
-	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
-			 domains[i].name);
-      
-      FILE *f = fopen (name, "w");
-      if (f)
-	{
-	  pkgDepCache &cache = *(state->cache);
-
-	  for (pkgCache::PkgIterator pkg = cache.PkgBegin();
-	       !pkg.end (); pkg++)
-	    {
-	      if (state->extra_info[pkg->ID].cur_domain == i)
-		fprintf (f, "%s\n", pkg.Name ());
-	    }
-	  fclose (f);
-	}
-    }
-}
-
-/* Load the 'extra_info', if needed.  You need to call CACHE_RESET to
-   transfer the auto flag into the actual cache.  */
-
-void
-ensure_extra_info ()
-{
-  // XXX - log errors.
-  AptWorkerState *state = NULL;
-
-  state = AptWorkerState::GetCurrent ();
-  if ((state == NULL)||(state->cache == NULL))
-    return;
-
-  if (state->extra_info)
-    return;
-
-  pkgDepCache &cache = *(state->cache);
-  
-  state->package_count = cache.Head ().PackageCount;
-  state->extra_info = new extra_info_struct[state->package_count];
-
-  for (unsigned int i = 0; i < state->package_count; i++)
-    {
-      state->extra_info[i].autoinst = false;
-      state->extra_info[i].cur_domain = DOMAIN_DEFAULT;
-    }
-
-  FILE *f = fopen ("/var/lib/hildon-application-manager/autoinst", "r");
-  if (f)
-    {
-      char *line = NULL;
-      size_t len = 0;
-      ssize_t n;
-
-      while ((n = getline (&line, &len, f)) != -1)
-	{
-	  if (n > 0 && line[n-1] == '\n')
-	    line[n-1] = '\0';
-
-	  pkgCache::PkgIterator pkg = cache.FindPkg (line);
-	  if (!pkg.end ())
-	    {
-	      DBG ("auto: %s", pkg.Name ());
-	      state->extra_info[pkg->ID].autoinst = true;
-	    }
-	}
-
-      free (line);
-      fclose (f);
-    }
-
-  for (domain_t i = 0; i < domains_number; i++)
-    {
-      char *name =
-	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
-			 domains[i].name);
-      
-      FILE *f = fopen (name, "r");
-      if (f)
-	{
-	  pkgDepCache &cache = *(state->cache);
-
-	  char *line = NULL;
-	  size_t len = 0;
-	  ssize_t n;
-	  
-	  while ((n = getline (&line, &len, f)) != -1)
-	    {
-	      if (n > 0 && line[n-1] == '\n')
-		line[n-1] = '\0';
-
-	      pkgCache::PkgIterator pkg = cache.FindPkg (line);
-	      if (!pkg.end ())
-		{
-		  // DBG ("%s: %s", domains[i].name, pkg.Name ());
-		  state->extra_info[pkg->ID].cur_domain = i;
-		}
-	    }
-
-	  free (line);
-	  fclose (f);
-	}
-    }
-}
-
 /* Our own version of debSystem.  We override the Lock member function
    to be able to break locks and to avoid failing when dpkg has left a
    journal.
@@ -1852,9 +1847,7 @@ cache_init (bool with_status)
       delete AptWorkerState::default_state->action_group;
       AptWorkerState::default_state->cache->Close ();
       delete AptWorkerState::default_state->cache;
-      delete[] AptWorkerState::default_state->extra_info;
       AptWorkerState::default_state->cache = NULL;
-      AptWorkerState::default_state->extra_info = NULL;
       DBG ("done");
     }
 
@@ -1864,9 +1857,7 @@ cache_init (bool with_status)
       delete AptWorkerState::temp_state->action_group;
       AptWorkerState::temp_state->cache->Close ();
       delete AptWorkerState::temp_state->cache;
-      delete[] AptWorkerState::temp_state->extra_info;
       AptWorkerState::temp_state->cache = NULL;
-      AptWorkerState::temp_state->extra_info = NULL;
       DBG ("done");
     }
 
@@ -1900,7 +1891,6 @@ cache_init (bool with_status)
       */
       pkgDepCache &cache = *state->cache;
       state->action_group = new pkgDepCache::ActionGroup (cache);
-      ensure_extra_info ();
     }
 
   cache_reset ();
@@ -1939,7 +1929,7 @@ bool
 is_related (pkgCache::PkgIterator &pkg)
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
-  return state->extra_info[pkg->ID].related;
+  return state->cache->extra_info[pkg->ID].related;
 }
 
 void
@@ -1948,10 +1938,10 @@ mark_related (const pkgCache::VerIterator &ver)
   AptWorkerState *state = AptWorkerState::GetCurrent ();
   const pkgCache::PkgIterator &pkg = ver.ParentPkg();
 
-  if (state->extra_info[pkg->ID].related)
+  if (state->cache->extra_info[pkg->ID].related)
     return;
 
-  state->extra_info[pkg->ID].related = true;
+  state->cache->extra_info[pkg->ID].related = true;
 
   pkgDepCache &cache = *state->cache;
 
@@ -1988,13 +1978,13 @@ cache_reset_package (pkgCache::PkgIterator &pkg)
 
   cache.MarkKeep (pkg);
 
-  if (state->extra_info[pkg->ID].autoinst)
+  if (state->cache->extra_info[pkg->ID].autoinst)
     cache[pkg].Flags |= pkgCache::Flag::Auto;
   else
     cache[pkg].Flags &= ~pkgCache::Flag::Auto;
   
-  state->extra_info[pkg->ID].related = false;
-  state->extra_info[pkg->ID].soft = false;
+  state->cache->extra_info[pkg->ID].related = false;
+  state->cache->extra_info[pkg->ID].soft = false;
 }
 
 void
@@ -2084,7 +2074,7 @@ fix_soft_packages ()
 			   != pkgDepCache::DepInstall)
 			  && !Pkg.end()
 			  && cache[Pkg].Delete()
-			  && state->extra_info[Pkg->ID].soft)
+			  && state->cache->extra_info[Pkg->ID].soft)
 			{
 			  DBG ("= %s", Pkg.Name());
 			  cache_reset_package (Pkg);
@@ -2382,7 +2372,7 @@ mark_for_remove_1 (pkgCache::PkgIterator &pkg, bool soft)
 
   cache.MarkDelete (pkg);
   cache[pkg].Flags &= ~pkgCache::Flag::Auto;
-  state->extra_info[pkg->ID].soft = soft;
+  state->cache->extra_info[pkg->ID].soft = soft;
 
   if (!cache[pkg].Delete ())
     return;
@@ -3892,7 +3882,7 @@ cmd_get_catalogues ()
 void
 cmd_set_catalogues ()
 {
-  int success;
+  int success = true;
 
   xexp *catalogues = request.decode_xexp ();
   xexp_adel (catalogues, "source");
@@ -4227,8 +4217,11 @@ reset_new_domains ()
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
 
-  for (unsigned int i = 0; i < state->package_count; i++)
-    state->extra_info[i].new_domain = DOMAIN_UNSIGNED;
+  pkgDepCache &cache = *(state->cache);
+  int package_count = cache.Head().PackageCount;
+
+  for (int i = 0; i < package_count; i++)
+    state->cache->extra_info[i].new_domain = DOMAIN_UNSIGNED;
 }
 
 static void
@@ -4236,9 +4229,13 @@ collect_new_domains ()
 {
   AptWorkerState *state = AptWorkerState::GetCurrent ();
 
-  for (unsigned int i = 0; i < state->package_count; i++)
-    if (state->extra_info[i].related)
-      state->extra_info[i].cur_domain = state->extra_info[i].new_domain;
+  pkgDepCache &cache = *(state->cache);
+  int package_count = cache.Head().PackageCount;
+
+  for (int i = 0; i < package_count; i++)
+    if (state->cache->extra_info[i].related)
+      state->cache->extra_info[i].cur_domain
+	= state->cache->extra_info[i].new_domain;
 }
 
 static int
@@ -4249,7 +4246,8 @@ index_trust_level_for_package (pkgIndexFile *index,
   pkgDepCache &cache = *(state->cache);
   pkgCache::PkgIterator pkg = ver.ParentPkg();
 
-  int cur_level = domains[state->extra_info[pkg->ID].cur_domain].trust_level;
+  int cur_level =
+    domains[state->cache->extra_info[pkg->ID].cur_domain].trust_level;
 
   int index_domain = get_domain (index);
   int index_level = domains[index_domain].trust_level;
@@ -4260,15 +4258,15 @@ index_trust_level_for_package (pkgIndexFile *index,
   /* If we have already found a good domain, accept this one only if
      it is the same domain, or strictly better.
    */
-  if (state->extra_info[pkg->ID].new_domain != DOMAIN_UNSIGNED)
+  if (state->cache->extra_info[pkg->ID].new_domain != DOMAIN_UNSIGNED)
     {
       int new_level =
-	domains[state->extra_info[pkg->ID].new_domain].trust_level;
+	domains[state->cache->extra_info[pkg->ID].new_domain].trust_level;
 
-      if (index_domain == state->extra_info[pkg->ID].new_domain
+      if (index_domain == state->cache->extra_info[pkg->ID].new_domain
 	  || index_level > new_level)
 	{
-	  state->extra_info[pkg->ID].new_domain = index_domain;
+	  state->cache->extra_info[pkg->ID].new_domain = index_domain;
 	  return index_level;
 	}
       else
@@ -4281,7 +4279,7 @@ index_trust_level_for_package (pkgIndexFile *index,
   if (cache[pkg].NewInstall())
     {
       DBG ("new: accept index");
-      state->extra_info[pkg->ID].new_domain = index_domain;
+      state->cache->extra_info[pkg->ID].new_domain = index_domain;
       return index_level;
     }
 
@@ -4291,7 +4289,7 @@ index_trust_level_for_package (pkgIndexFile *index,
   if (index_level >= cur_level)
     {
       DBG ("upgrade: accept better");
-      state->extra_info[pkg->ID].new_domain = index_domain;
+      state->cache->extra_info[pkg->ID].new_domain = index_domain;
       return index_level;
     }
 
@@ -4311,8 +4309,8 @@ encode_trust_summary ()
        pkg.end() != true;
        pkg++)
     {
-      domain_t cur_domain = state->extra_info[pkg->ID].cur_domain;
-      domain_t new_domain = state->extra_info[pkg->ID].new_domain;
+      domain_t cur_domain = state->cache->extra_info[pkg->ID].cur_domain;
+      domain_t new_domain = state->cache->extra_info[pkg->ID].new_domain;
 
       if (cache[pkg].Upgrade() && !domains[new_domain].is_certified)
 	{
@@ -4702,7 +4700,7 @@ operation (bool check_only,
       pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
       _system->Lock();
 
-      save_extra_info ();
+      state->cache->save_extra_info ();
 
       if (Res == pkgPackageManager::Failed || 
 	  _error->PendingError() == true)
@@ -5357,7 +5355,7 @@ write_available_updates_file ()
 	  xexp *x_pkg = NULL;
 	  package_record rec (candidate);
 	  int flags = get_flags (rec);
-	  int domain_index = state->extra_info[pkg->ID].cur_domain;
+	  int domain_index = state->cache->extra_info[pkg->ID].cur_domain;
 	  
 	  if (flags & pkgflag_system_update)
 	    x_pkg = xexp_text_new ("os", pkg.Name());
