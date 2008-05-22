@@ -27,6 +27,8 @@ if [ ! -d $HOME/.hildon-application-manager ]; then
   mkdir $HOME/.hildon-application-manager
 fi
 
-cp "$pkgs" "$upkgs"
+if [ -f $pkgs ]; then
+  cp "$pkgs" "$upkgs"
+fi
 
 exit 0

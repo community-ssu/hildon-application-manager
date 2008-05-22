@@ -1,3 +1,12 @@
+2008-05-22  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/main.cc (restore_packages_flow): Check if there's a
+	packages.backup file nuder /var/lib/hildon-application-manager
+	before trying to restore a backup (N83585).
+
+	* hildon-application-manager.sh: Check if file pointed by $pkgs
+	exists before trying to copy it to /home/user (N83585).
+
 2008-05-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc: Move extra_info array and related functions

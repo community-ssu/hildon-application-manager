@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <iostream>
 #include <libintl.h>
+#include <errno.h>
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
@@ -51,7 +52,7 @@
 #include "dbus.h"
 #include "user_files.h"
 #include "apt-utils.h"
-
+#include "confutils.h"
 #include "update-notifier-conf.h"
 
 #define MAX_PACKAGES_NO_CATEGORIES 7
@@ -2268,6 +2269,14 @@ restore_packages_flow ()
       FILE *file = NULL;
       GError *error = NULL;
       xexp *backup = NULL;
+      struct stat buf;
+
+      /* Check if there is no base packages.backup file yet */
+      if (stat (BACKUP_PACKAGES, &buf) && (errno == ENOENT))
+        {
+          annoy_user (_("ai_ib_nothing_restore"), rp_unsuccessful, NULL);
+          return;
+        }
 
       file = user_file_open_for_read (UFILE_RESTORE_BACKUP);
       if (file != NULL)
