@@ -1,3 +1,14 @@
+2008-05-22  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs) : this function checks
+	the package files that are about to be installed using their MD5 sum. If one
+	of the files is corrupted, it adds a line to the log and returns false.
+	(class myDPkgPM) : added the function myDPkgPM::CheckDownloadedPkgs()
+	(operation) : Uses myDPkgPM::CheckDownloadedPkgs() before performing the 
+	isntallation of the downloaded packages. If one of the files to be installed
+	is corrupted, the error code "rescode_package_corrupted" is returned.
+	Partially fixes N85300.
+
 2008-05-22  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/main.cc (restore_packages_flow): Check if there's a

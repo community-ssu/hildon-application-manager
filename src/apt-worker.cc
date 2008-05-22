@@ -86,6 +86,7 @@
 #include <apt-pkg/metaindex.h>
 #include <apt-pkg/debmetaindex.h>
 #include <apt-pkg/policy.h>
+#include <apt-pkg/md5.h>
 
 #include <glib/glist.h>
 #include <glib/gstring.h>
@@ -4373,6 +4374,8 @@ class myDPkgPM : public pkgDPkgPM
 {
 public:
 
+  bool CheckDownloadedPkgs ();
+
   bool CreateOrderList ();
 
   myDPkgPM(pkgDepCache *Cache);
@@ -4418,6 +4421,35 @@ myDPkgPM::CreateOrderList ()
       pkgPackageManager::List->push_back(I);      
     }
    
+  return true;
+}
+
+bool
+myDPkgPM::CheckDownloadedPkgs ()
+{
+  bool result = true;
+  
+  for (pkgOrderList::iterator I = pkgPackageManager::List->begin(); 
+       I != pkgPackageManager::List->end(); I++)
+    {
+      PkgIterator Pkg(Cache,*I);
+      string File = FileNames[Pkg->ID];
+      pkgCache::VerIterator cand_ver = Cache.GetCandidateVer (Pkg);
+      package_record rec (cand_ver);
+      string ExpectedMD5 = rec.get_string("MD5sum");
+      
+      MD5Summation sum;
+      FileFd Fd (File, FileFd::ReadOnly);
+      sum.AddFD (Fd.Fd(), Fd.Size());
+      Fd.Close();
+      string MD5 = (string)sum.Result();
+
+      if (!ExpectedMD5.empty() && MD5 != ExpectedMD5)
+        {
+          log_stderr ("File %s is corrupted.", File.c_str());
+          return false;
+        }
+    }
   return true;
 }
 
@@ -4694,6 +4726,9 @@ operation (bool check_only,
     {
       if (with_status)
 	send_status (op_general, -1, 0, 0); 
+
+      if (Pm->CheckDownloadedPkgs () == false)
+        return rescode_package_corrupted;
 
       /* Do install */
       _system->UnLock();
