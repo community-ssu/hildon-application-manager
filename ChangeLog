@@ -1,10 +1,14 @@
+2008-05-22  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 2.1.11
+
 2008-05-22  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
-	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs): This function now
-	tries to use first the SHA256 checksum if it is available; if it isn't, it
-	tries to use SHA-1, and if that isn't available either it tries with MD5.
-	I added additional checks for the case when the file path is empty or the
-	file doesn't exist (N85300).
+	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs): This function
+	now tries to use first the SHA256 checksum if it is available; if
+	it isn't, it tries to use SHA-1, and if that isn't available
+	either it tries with MD5.  I added additional checks for the case
+	when the file path is empty or the file doesn't exist (N85300).
 
 2008-05-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
