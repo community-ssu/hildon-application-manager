@@ -92,7 +92,7 @@ binary-arch: build install
 #	dh_installemacsen
 #	dh_installpam
 #	dh_installmime
-	dh_installinit -r -- start 99 2 3 4 . stop 20 0 1 5 6 .
+	dh_installinit -r -- start 52 2 3 4 . stop 20 0 1 5 6 .
 #	dh_installcron
 #	dh_installinfo
 #	dh_installman
