@@ -4376,7 +4376,7 @@ class myDPkgPM : public pkgDPkgPM
 {
 public:
 
-  bool CheckDownloadedPkgs ();
+  bool CheckDownloadedPkgs (bool clear_corrupted);
 
   bool CreateOrderList ();
 
@@ -4427,11 +4427,14 @@ myDPkgPM::CreateOrderList ()
 }
 
 bool
-myDPkgPM::CheckDownloadedPkgs ()
+myDPkgPM::CheckDownloadedPkgs (bool clean_corrupted)
 {
+  bool result = true;
+  
   for (pkgOrderList::iterator I = pkgPackageManager::List->begin(); 
        I != pkgPackageManager::List->end(); I++)
     {
+      bool partial_result = true;
       PkgIterator Pkg(Cache,*I);
       pkgCache::VerIterator cand_ver = Cache[Pkg].CandidateVerIter(Cache);
       package_record rec (cand_ver);
@@ -4454,7 +4457,7 @@ myDPkgPM::CheckDownloadedPkgs ()
           if (file_sha256 != ExpectedSHA256)
             {
               log_stderr ("File %s is corrupted (SHA256).", File.c_str());
-              return false;
+              partial_result = false;
             }
         }
       else
@@ -4471,7 +4474,7 @@ myDPkgPM::CheckDownloadedPkgs ()
               if (file_sha1 != ExpectedSHA1)
                 {
                   log_stderr ("File %s is corrupted (SHA1).", File.c_str());
-                  return false;
+                  partial_result = false;
                 }
             }
           else
@@ -4488,7 +4491,7 @@ myDPkgPM::CheckDownloadedPkgs ()
                   if (MD5 != ExpectedMD5)
                     {
                       log_stderr ("File %s is corrupted (MD5sum).", File.c_str());
-                      return false;
+                      partial_result = false;
                     }
                 }
               else
@@ -4497,8 +4500,11 @@ myDPkgPM::CheckDownloadedPkgs ()
                 }
             }
         }
+      result = result && partial_result;
+      if (clean_corrupted && !partial_result)
+        unlink (File.c_str());
     }
-  return true;
+  return result;
 }
 
 myDPkgPM::myDPkgPM (pkgDepCache *Cache)
@@ -4775,7 +4781,7 @@ operation (bool check_only,
       if (with_status)
 	send_status (op_general, -1, 0, 0); 
 
-      if (Pm->CheckDownloadedPkgs () == false)
+      if (Pm->CheckDownloadedPkgs (true) == false)
         return rescode_package_corrupted;
 
       /* Do install */
