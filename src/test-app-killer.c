@@ -3,7 +3,7 @@
  *
  * Original version is part of osso-backup.
  *
- * Copyright (C) 2007 Nokia Corporation.
+ * Copyright (C) 2007, 2008 Nokia Corporation.
  *
  * Contact: Marius Vollmer <marius.vollmer@nokia.com>
  *

@@ -1,7 +1,7 @@
 /*
  * This file is part of the hildon-application-manager.
  *
- * Copyright (C) 2007 Nokia Corporation.  All Rights reserved.
+ * Copyright (C) 2007, 2008 Nokia Corporation.  All Rights reserved.
  *
  * Contact: Gabriel Schulhof <gabriel.schulhof@nokia.com>
  *
