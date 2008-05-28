@@ -1,5 +1,7 @@
 2008-05-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.12
+
 	* src/settings.h, src/settings.cc (red_pill_ignore_wrong_domains):
 	New.  Do all the right things with it.
 	* src/apt-worker-client.cc (start_apt_worker): Include 'D' in
