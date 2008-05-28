@@ -1396,15 +1396,15 @@ global_icon_func (GtkTreeViewColumn *column,
     }
 
   GdkPixbuf *icon;
-  if (global_installed)
-    {
-        if (pi->broken)
-	  icon = broken_icon;
-	else
-	  icon = pi->installed_icon;
-    }
+  if (pi->broken)
+    icon = broken_icon;
   else
-    icon = pi->available_icon;
+    {
+      if (global_installed)
+	icon = pi->installed_icon;
+      else
+	icon = pI->available_icon;
+    }
 
   g_object_set (cell, "pixbuf", icon? icon : default_icon, NULL);
 }
@@ -1516,15 +1516,15 @@ package_info_func (GtkTreeViewColumn *column,
     }
 
   GdkPixbuf *icon;
-  if (global_installed)
-    {
-      if (pi->broken)
-        icon = broken_icon;
-      else
-        icon = pi->installed_icon;
-    }
+  if (pi->broken)
+    icon = broken_icon;
   else
-    icon = pi->available_icon;
+    {
+      if (global_installed)
+        icon = pi->installed_icon;
+      else
+	icon = pi->available_icon;
+    }
 
   g_object_set (cell,
 		"package-name", package_name,

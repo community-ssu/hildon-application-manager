@@ -1,8 +1,19 @@
+2008-05-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (cmd_get_package_list): Offer an available
+	version for all broken packages, not just for the ones that need
+	re-installation.
+
+	* src/util.cc (package_info_func): Always use the broken icon for
+	brokenly installed packages, not just in the "Installed
+	applications" view.
+
 2008-05-26  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
-	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs): This function checks
-	all of the downloaded packages and optionally deletes the corrupted ones, so
-	they don't stick in the cache and can be downloaded again.
+	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs): This function
+	checks all of the downloaded packages and optionally deletes the
+	corrupted ones, so they don't stick in the cache and can be
+	downloaded again.
 
 2008-05-22  Marius Vollmer  <marius.vollmer@nokia.com>
 

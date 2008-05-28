@@ -2753,8 +2753,8 @@ cmd_get_package_list ()
       // the former kinds of brokenness should be producable with the
       // Application Manager anyway.
       //
-      response.encode_int (pkg.State ()
-			   != pkgCache::PkgIterator::NeedsNothing);
+      bool broken = (pkg.State () != pkgCache::PkgIterator::NeedsNothing);
+      response.encode_int (broken);
 
       // Installed version
       if (!installed.end())
@@ -2766,14 +2766,13 @@ cmd_get_package_list ()
       //
       // We only offer an available version if the package is not
       // installed at all, or if the available version is newer than
-      // the installed one, or if the installed version needs to be
-      // reinstalled and it is actually downloadable.
+      // the installed one, or if the installed version is broken and
+      // it is actually downloadable.
 
       if (!candidate.end ()
 	  && (installed.end ()
 	      || installed.CompareVer (candidate) < 0
-	      || (pkg.State () == pkgCache::PkgIterator::NeedsUnpack
-		  && candidate.Downloadable ())))
+	      || (broken && candidate.Downloadable ())))
 	encode_version_info (1, candidate, false);
       else
 	encode_empty_version_info (false);
