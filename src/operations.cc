@@ -988,14 +988,16 @@ ip_install_one (void *data)
 	  /* Check MMCs first if download to mmc option is enabled */
 	  if (download_packages_to_mmc)
 	    {
-	      if (volume_path_is_mounted (INTERNAL_MMC_MOUNTPOINT) &&
-		  pi->info.download_size < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT))
+	      if (volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT)
+		  && (pi->info.download_size
+		      < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT)))
 		{
 		  c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
 		  keep_installing = true;
 		}
-	      else if (volume_path_is_mounted (REMOVABLE_MMC_MOUNTPOINT) &&
-		       pi->info.download_size < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT))
+	      else if (volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT)
+		       && (pi->info.download_size
+			   < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT)))
 		{
 		  c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
 		  keep_installing = true;
