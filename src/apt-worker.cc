@@ -185,6 +185,11 @@ static xexp *read_operation_record ();
 */
 bool flag_break_locks = false;
 
+/* Setting this to true will not ignore package versions from a wrong
+   domain.
+ */
+bool flag_allow_wrong_domains = false;
+
 /** GENERAL UTILITIES
  */
 
@@ -597,11 +602,13 @@ myPolicy::GetCandidateVer (pkgCache::PkgIterator Pkg)
 	      Pkg.CurrentVer() != Ver)
 	    continue;
 
-	  /* Skip versions from the wrong domain, but only for sources.
+	  /* If requested, skip versions from the wrong domain, but
+	     only for sources.
 	   */
 
-	  if ((VF.File()->Flags & pkgCache::Flag::NotSource)
-	      != pkgCache::Flag::NotSource)
+	  if (!flag_allow_wrong_domains
+	      && ((VF.File()->Flags & pkgCache::Flag::NotSource)
+		  != pkgCache::Flag::NotSource))
 	    {
 	      if (!domain_dominates_or_is_equal
 		  (pf_domain[VF.File()->ID],
@@ -1511,6 +1518,9 @@ main (int argc, char **argv)
 
       if (strchr (options, 'B'))
 	flag_break_locks = true;
+
+      if (strchr (options, 'D'))
+	flag_allow_wrong_domains = true;
 
       /* Don't let our heavy lifting starve the UI.
        */
@@ -2962,7 +2972,9 @@ cmd_get_package_info ()
 	   pkg.end() != true;
 	   pkg++)
 	{
-	  if (cache[pkg].Upgrade())
+	  if (state->cache->extra_info[pkg->ID].related
+	      && (cache[pkg].Upgrade()
+		  || pkg.State() != pkgCache::PkgIterator::NeedsNothing))
 	    {
 	      pkgCache::VerIterator ver = cache[pkg].CandidateVerIter(cache);
 	      package_record rec (ver);
