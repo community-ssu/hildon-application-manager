@@ -2,7 +2,8 @@ hildon-application-manager (1:2.1.12~unreleased) unstable; urgency=low
 
   * debian/rules: Run the init.d script at sequence point 52.
     Fixes: NB#85769.
-
+  * Fixes: NB#85947.
+  
  -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 22 May 2008 20:29:33 +0300
 
 hildon-application-manager (1:2.1.11) unstable; urgency=low

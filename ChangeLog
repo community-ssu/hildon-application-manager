@@ -1,5 +1,23 @@
 2008-05-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/settings.h, src/settings.cc (red_pill_ignore_wrong_domains):
+	New.  Do all the right things with it.
+	* src/apt-worker-client.cc (start_apt_worker): Include 'D' in
+	options according to red_pill_ignore_wrong_domains.
+
+	* src/apt-worker.cc (cmd_get_package_info): Only gather the flags
+	of packages that are related to the current operation, but also
+	include packages that will be reinstalled or configured.
+	(flag_allow_wrong_domains): New.
+	(myPolicy::GetCandidateVer): Use it to control whether versions
+	from a wrong domain get rejected.
+	(main): Set flag_allow_wrong_domains from the new 'D' option.
+
+	* src/util.h, src/util.cc (volume_path_is_mounted)
+	(volume_path_is_mounted_writable): Renamed former to latter,
+	changed all users.  Don't call call_copy_cont, that is just wrong.
+	Return FALSE for volumes that are mounted but read-only (N85947).
+
 	* src/apt-worker.cc (cmd_get_package_list): Offer an available
 	version for all broken packages, not just for the ones that need
 	re-installation.
