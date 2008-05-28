@@ -235,10 +235,14 @@ start_apt_worker (gchar *prog)
   else
     sudo = "/usr/bin/fakeroot";
 
-  gchar *options = "";
+  gchar options[5] = "";
 
+  char *ptr = options;
   if (break_locks)
-    options = "B";
+    *ptr++ = 'B';
+  if (red_pill_mode && !red_pill_ignore_wrong_domains)
+    *ptr++ = 'D';
+  *ptr++ = '\0';
 
   gchar *args[] = {
     sudo,

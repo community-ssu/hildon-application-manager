@@ -50,6 +50,7 @@ bool red_pill_show_all = true;
 bool red_pill_show_magic_sys = true;
 bool red_pill_include_details_in_log = false;
 bool red_pill_check_always = false;
+bool red_pill_ignore_wrong_domains = true;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
@@ -108,6 +109,8 @@ load_settings ()
 	    assume_connection = val;
 	  else if (sscanf (line, "red-pill-check-always %d", &val) == 1)
 	    red_pill_check_always = val;
+	  else if (sscanf (line, "red-pill-ignore-wrong-domains %d", &val) == 1)
+	    red_pill_ignore_wrong_domains = val;
 	  else
 	    add_log ("Unrecognized configuration line: '%s'\n", line);
 	}
@@ -137,6 +140,8 @@ save_settings ()
       fprintf (f, "red-pill-include-details-in-log %d\n", 
 	       red_pill_include_details_in_log);
       fprintf (f, "red-pill-check-always %d\n", red_pill_check_always);
+      fprintf (f, "red-pill-ignore-wrong-domains %d\n",
+	       red_pill_ignore_wrong_domains);
       fprintf (f, "assume-connection %d\n", assume_connection);
       fclose (f);
     }
@@ -152,6 +157,7 @@ enum boolean_options {
   OPT_INCLUDE_DETAILS_IN_LOG,
   OPT_DOWNLOAD_PACKAGES_TO_MMC,
   OPT_CHECK_ALWAYS,
+  OPT_IGNORE_WRONG_DOMAINS,
   NUM_BOOLEAN_OPTIONS
 };
 
@@ -219,6 +225,9 @@ make_settings_tab (settings_closure *c)
   make_boolean_option (c, vbox, group, OPT_CHECK_ALWAYS,
 		       "Always check for updates",
 		       &red_pill_check_always);
+  make_boolean_option (c, vbox, group, OPT_IGNORE_WRONG_DOMAINS,
+		       "Ignore packages from wrong domains",
+		       &red_pill_ignore_wrong_domains);
   g_object_unref (group);
 
   gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),

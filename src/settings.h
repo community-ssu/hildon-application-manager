@@ -44,6 +44,7 @@ extern bool red_pill_show_all;
 extern bool red_pill_show_magic_sys;
 extern bool red_pill_include_details_in_log;
 extern bool red_pill_check_always;
+extern bool red_pill_ignore_wrong_domains;
 
 #define SORT_BY_NAME    0
 #define SORT_BY_VERSION 1
