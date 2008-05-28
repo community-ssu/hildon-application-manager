@@ -3401,19 +3401,16 @@ get_free_space_at_path (const char *path)
 }
 
 gboolean
-volume_path_is_mounted (const gchar *path)
+volume_path_is_mounted_writable (const gchar *path)
 {
-  gboolean result = false;
+  gboolean result = FALSE;
 
   g_return_val_if_fail (path, FALSE);
   gchar *path_as_uri = g_filename_to_uri (path, NULL, NULL);
   g_return_val_if_fail (path_as_uri, FALSE);
 
   if (!gnome_vfs_init ())
-    {
-      call_copy_cont (GNOME_VFS_ERROR_GENERIC);
-      return FALSE;
-    }
+    return FALSE;
 
   /* Get the monitor singleton: */
   GnomeVFSVolumeMonitor *monitor = gnome_vfs_get_volume_monitor();
@@ -3428,14 +3425,16 @@ volume_path_is_mounted (const gchar *path)
 	{
 	  gchar *uri =
 	    gnome_vfs_volume_get_activation_uri (volume);
-	  if (uri && (strcmp (uri, path_as_uri) == 0))
-	    {
-	      result = TRUE;
-	      g_free (uri);
-	      break;
-	    }
+	  bool useable = (uri && (strcmp (uri, path_as_uri) == 0)
+			  && !gnome_vfs_volume_is_read_only (volume));
 	  g_free (uri);
 	  gnome_vfs_volume_unref (volume);
+
+	  if (useable)
+	    {
+	      result = TRUE;
+	      break;
+	    }
 	}
     }
 

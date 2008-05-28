@@ -583,8 +583,10 @@ int64_t get_free_space ();
  */
 int64_t get_free_space_at_path (const char *path);
 
-/* Checks if there's some volume mounted in the specified path */
-gboolean volume_path_is_mounted (const gchar *path);
+/* Checks if there's some volume mounted in the specified path and is
+   writable.
+*/
+gboolean volume_path_is_mounted_writable (const gchar *path);
 
 /* Set a DBUS message to reboot the device */
 void send_reboot_message (void);
