@@ -3990,7 +3990,6 @@ cmd_download_package ()
 	result_code = rescode_packages_not_found;
     }
 
-  need_cache_init ();
   response.encode_int (result_code);
 }
 
@@ -4462,7 +4461,6 @@ myDPkgPM::CheckDownloadedPkgs (bool clean_corrupted)
         {
           SHA256Summation SHA256;
           SHA256.AddFD(Fd.Fd(), Fd.Size());
-          Fd.Close();
           string file_sha256 = string(SHA256.Result());
 
           if (file_sha256 != ExpectedSHA256)
@@ -4479,7 +4477,6 @@ myDPkgPM::CheckDownloadedPkgs (bool clean_corrupted)
             {
               SHA1Summation SHA1;
               SHA1.AddFD(Fd.Fd(), Fd.Size());
-              Fd.Close();
               string file_sha1 = string(SHA1.Result());
 
               if (file_sha1 != ExpectedSHA1)
@@ -4496,7 +4493,6 @@ myDPkgPM::CheckDownloadedPkgs (bool clean_corrupted)
                 {
                   MD5Summation sum;
                   sum.AddFD (Fd.Fd(), Fd.Size());
-                  Fd.Close();
                   string MD5 = (string)sum.Result();
 
                   if (MD5 != ExpectedMD5)
@@ -4505,12 +4501,9 @@ myDPkgPM::CheckDownloadedPkgs (bool clean_corrupted)
                       partial_result = false;
                     }
                 }
-              else
-                {
-                  Fd.Close();
-                }
             }
         }
+      Fd.Close();
       result = result && partial_result;
       if (clean_corrupted && !partial_result)
         unlink (File.c_str());

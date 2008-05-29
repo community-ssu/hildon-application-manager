@@ -1319,6 +1319,9 @@ ip_install_cur (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
+  /* entertain the user while the packages are checked */
+  set_entertainment_fun (NULL, -1, -1, 0);
+
   /* Check battery when doing an upgrade of an OS package */
   if (!pi->installed_version ||
       !(pi->info.install_flags & pkgflag_system_update) ||
