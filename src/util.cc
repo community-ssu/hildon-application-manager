@@ -2609,7 +2609,7 @@ show_file_chooser_for_save (const char *title,
   gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (fcd), default_filename);
 
   if (default_folder)
-    gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (fcd), default_folder);
+    gtk_file_chooser_set_current_folder_uri (GTK_FILE_CHOOSER (fcd), default_folder);
 
   g_signal_connect (fcd, "response",
 		    G_CALLBACK (fcd_response), c);

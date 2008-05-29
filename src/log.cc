@@ -129,17 +129,8 @@ save_log (char *uri, void *data)
 
   /* Remove the file at the end and just get the dir path */
   tmp_dir = g_path_get_dirname (uri);
-
-  /* Unescape the Gnome vfs dir path */
-  unescaped_dir = gnome_vfs_unescape_string (tmp_dir, "\0");
+  last_save_log_dir = g_strdup (tmp_dir);
   g_free (tmp_dir);
-
-  if (g_str_has_prefix (unescaped_dir, "file://"))
-      last_save_log_dir = g_strdup (unescaped_dir + 7);
-  else
-    last_save_log_dir = g_strdup (unescaped_dir);
-
-  g_free (unescaped_dir);
 
   /* XXX - Using gnome_vfs_create with exclusive == true to check for
            file existence doesn't work with obex.  Why am I not
@@ -194,7 +185,7 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
       if (last_save_log_dir)
 	folder = g_strdup (last_save_log_dir);
       else if (home)
-	folder = g_strdup_printf ("%s/MyDocs/.documents", home);
+	folder = g_strdup_printf ("file://%s/MyDocs/.documents", home);
 
       show_file_chooser_for_save (_("ai_ti_save_log"),
 				  GTK_WINDOW (dialog),

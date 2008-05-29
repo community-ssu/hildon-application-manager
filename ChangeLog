@@ -1,3 +1,13 @@
+2008-05-29  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/log.cc (save_log): Don't unescape nor convert the passed URI
+	to a local path, just store it as it is (N80933).
+	(log_response): Add the "file://" prefix when needed (N80933).
+
+	* src/util.cc (show_file_chooser_for_save): Use an URI instead of
+	a local path for setting the current folder for the file chooser,
+	that is, use gtk_file_chooser_set_current_folder_uri (N80933).
+
 2008-05-29  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs) : Code cleaning.
