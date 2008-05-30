@@ -1503,7 +1503,14 @@ setup_alarm (UpdateNotifier *upno)
 				   UPNO_GCONF_CHECK_INTERVAL,
 				   NULL);
   if (interval <= 0)
-    interval = UPNO_DEFAULT_CHECK_INTERVAL;
+    {
+      /* Use default value and set it from now on */
+      interval = UPNO_DEFAULT_CHECK_INTERVAL;
+      gconf_client_set_int (priv->gconf,
+                            UPNO_GCONF_CHECK_INTERVAL,
+                            interval,
+                            NULL);
+    }
 
   alarm_cookie = priv->state.alarm_cookie;
 

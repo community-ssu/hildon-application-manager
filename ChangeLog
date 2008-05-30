@@ -1,5 +1,10 @@
 2008-05-29  Mario Sanchez Prada  <msanchez@maemo.org>
 
+	* src/update-notifier.c (setup_alarm): Set the Gconf value for
+	check_interval to the default value if no key was found (N76679).
+
+2008-05-29  Mario Sanchez Prada  <msanchez@maemo.org>
+
 	* src/log.cc (save_log): Don't unescape nor convert the passed URI
 	to a local path, just store it as it is (N80933).
 	(log_response): Add the "file://" prefix when needed (N80933).
