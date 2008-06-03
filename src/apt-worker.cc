@@ -3620,6 +3620,7 @@ update_package_cache (xexp *catalogues_for_report,
 
   int result = rescode_failure;
 
+  string lists_val = _config->Find("Dir::State::Lists");
   string lists_dir = _config->FindDir("Dir::State::Lists");
   if (lists_dir.length() > 0 && lists_dir[lists_dir.length()-1] == '/')
     lists_dir.erase(lists_dir.length()-1, 1);
@@ -3639,14 +3640,14 @@ update_package_cache (xexp *catalogues_for_report,
       rename (lists_dir.c_str(), lists_dir_old.c_str());
       rename (lists_dir_new.c_str(), lists_dir.c_str());
       unlink_file_tree (lists_dir_old.c_str());
-      _config->Set ("Dir::State::Lists", lists_dir);
+      _config->Set ("Dir::State::Lists", lists_val);
 
       cache_init (with_status);
     }
   else
     {
       /* cleanup */
-      _config->Set ("Dir::State::Lists", lists_dir);
+      _config->Set ("Dir::State::Lists", lists_val);
       unlink_file_tree (lists_dir_new.c_str());
     }
 

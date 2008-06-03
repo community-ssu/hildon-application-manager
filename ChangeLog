@@ -1,3 +1,9 @@
+2008-06-03  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (update_package_cache): Restore
+	"Dir::State::Lists" to the true original value, not the one that
+	FindDir has computed for us (N86181).
+
 2008-05-29  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/update-notifier.c (setup_alarm): Set the Gconf value for
