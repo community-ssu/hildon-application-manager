@@ -1,3 +1,7 @@
+2008-06-03  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 2.1.13
+
 2008-06-03  Mario Sanchez Prada  <msanchez@maemo.org>
 
 	* src/repo.cc (repository_uri_is_valid): Look for blanks in the
