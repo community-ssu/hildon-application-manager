@@ -3445,9 +3445,9 @@ volume_path_is_mounted_writable (const gchar *path)
                 {
                   /* Try to write some data in the file */
                   const char *dummytext = "Dummy text";
-                  bool data_written =
-                    (write (fd, dummytext, sizeof(char)*strlen(dummytext))
-		     && (fsync (fd) != -1));
+		  int n = strlen(dummytext);
+                  bool data_written = (write (fd, dummytext, n) == n
+				       && fsync (fd) != -1);
 
                   /* Close the descriptor and decide the final result */
                   result = (close (fd) != -1) && data_written;
