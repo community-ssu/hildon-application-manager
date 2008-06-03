@@ -1,3 +1,11 @@
+2008-06-03  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/repo.cc (repository_uri_is_valid): Look for blanks in the
+	URI field, which is not going to be allowed from now on. Do
+	exactly the same checks for all the availble methods (N86066).
+	(cat_edit_response): Just call to repository_uri_is_valid when
+	validating the repository URI field (N86066).
+
 2008-06-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (update_package_cache): Restore

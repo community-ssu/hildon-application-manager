@@ -50,9 +50,10 @@ repository_uri_is_valid (const gchar* uri)
   const gchar *delimiter = ":";
   gchar **tokens;
   gchar *tmp, *repo_uri;
-  gboolean result = TRUE;
+  gboolean result = FALSE;
 
-  if (uri == NULL || strlen (uri) == 0 || !g_utf8_validate (uri, -1, NULL))
+  if (uri == NULL || strlen (uri) == 0 ||
+      all_whitespace (uri) || !g_utf8_validate (uri, -1, NULL))
     return FALSE;
 
   repo_uri = g_strdup (uri);
@@ -60,18 +61,26 @@ repository_uri_is_valid (const gchar* uri)
 
   tokens = g_strsplit (repo_uri, delimiter, 2);
 
-  if (tokens == NULL || tokens[1] == NULL || strlen (tokens[0]) == 0 || strlen (tokens[1]) == 0)
+  /* Check APT method */
+  if ((tokens != NULL) && (tokens[1] != NULL) &&
+      (strlen (tokens[0]) > 0) && (strlen (tokens[1]) > 0))
     {
-      result = FALSE;
+      /* Check also that the uri is not just "<aptm-method>://" */
+      gchar *uri_prefix = g_strdup_printf ("%s://", tokens[0]);
+      if (!tokens_equal (uri, uri_prefix))
+        {
+          tmp = g_strdup_printf ("%s%s", APT_METHOD_PATH, tokens[0]);
+          result = g_file_test (tmp, G_FILE_TEST_EXISTS);
+          g_free (tmp);
+        }
+      g_free (uri_prefix);
     }
-  else
-    {
-      tmp = g_strdup_printf ("%s%s", APT_METHOD_PATH, tokens[0]);
-      result = g_file_test (tmp, G_FILE_TEST_EXISTS);
-      g_free (tmp);
-    }
-
   g_strfreev(tokens);
+
+  /* At last, look for blanks in the middle of the uri */
+  if (g_strrstr (uri, " ") != NULL)
+    return FALSE;
+
   return result;
 }
 
@@ -357,7 +366,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       /* validate repository location                                         */ 
       /* TODO we need a more general text, like "Invalid repository location" */
       /* TODO encode URI to scape special characters?                         */
-      if (all_whitespace (uri) || tokens_equal (uri, "http://") || !repository_uri_is_valid (uri))
+      if (!repository_uri_is_valid (uri))
 	{
 	  irritate_user (_("ai_ib_enter_web_address"));
 	  gtk_widget_grab_focus (c->uri_entry);
