@@ -3432,8 +3432,35 @@ volume_path_is_mounted_writable (const gchar *path)
 
 	  if (useable)
 	    {
-	      result = TRUE;
-	      break;
+              /* Try to write a dummy file to be completely sure,
+                 since GnomeVFS is not always up-to-date about the
+                 read-only status of a partition, which would in fact
+                 become read-only only when actually writing to it */
+              gchar *dummyfile = g_strdup_printf("%s/.ham-dummy-file-XXXXXX", path);
+              int fd;
+
+              /* Try to open a temporary file under the selected path */
+              fd = mkstemp (dummyfile);
+              if (fd != -1)
+                {
+                  /* Try to write some data in the file */
+                  const char *dummytext = "Dummy text";
+                  bool data_written =
+                    write (fd, dummytext, sizeof(char)*strlen(dummytext)
+                           && (fsync (fd) != -1));
+
+                  /* Close the descriptor and decide the final result */
+                  result = (close (fd) != -1) && data_written;
+
+                  /* Delete the file on success */
+                  if (result)
+                    unlink (dummyfile);
+                }
+              g_free (dummyfile);
+
+              /* Don't keep on iterating if an usable path was found */
+              if (result)
+                break;
 	    }
 	}
     }

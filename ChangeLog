@@ -6,6 +6,10 @@
 	(cat_edit_response): Just call to repository_uri_is_valid when
 	validating the repository URI field (N86066).
 
+	* src/util.cc (volume_path_is_mounted_writable): Try to write a
+	dummy file to be completely sure, since GnomeVFS is not always
+	up-to-date about the read-only status of a partition (N85947).
+
 2008-06-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (update_package_cache): Restore
