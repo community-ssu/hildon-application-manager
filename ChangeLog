@@ -10,7 +10,7 @@
 
 	* src/apt-worker.cc (update_package_cache): Restore
 	"Dir::State::Lists" to the true original value, not the one that
-	FindDir has computed for us (N86181).
+	FindDir has computed for us (N86181, N86094).
 
 2008-05-29  Mario Sanchez Prada  <msanchez@maemo.org>
 

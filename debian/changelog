@@ -1,6 +1,8 @@
 hildon-application-manager (1:2.1.13~unreleased) unstable; urgency=low
 
-  * Fixes: NB#85962, NB#N80933, NB#76679, NB#86066.
+  * Fixes: NB#85962, NB#80933, NB#76679, NB#86181, NB#86094, NB#86066.
+  * Remove init links explicitly so that they get recreated with their new
+    parameters.  Fixes: NB#85769.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 28 May 2008 19:10:07 +0300
 

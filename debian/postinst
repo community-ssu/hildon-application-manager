@@ -89,6 +89,11 @@ fi
 
 hildon-application-manager-config update || true
 
+# Remove init links so that they get updated.  Yes, this violates
+# policy.
+#
+update-rc.d -f hildon-application-manager remove >/dev/null
+
 #DEBHELPER#
 
 exit 0
