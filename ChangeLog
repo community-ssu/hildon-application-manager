@@ -15,12 +15,14 @@
 
 2008-05-29  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
-	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs) : Code cleaning.
-	(cmd_download_package) : The cache is not reset after downloading packages.
+	* src/apt-worker.cc (myDPkgPM::CheckDownloadedPkgs): Code
+	cleaning.
+	(cmd_download_package): The cache is not reset after downloading
+	packages.
 
-	* src/operations.cc (ip_download_cur_reply) : We show a pulsating progress
-	bar to the user while the packages that are going to be installed
-	are checked (N85962).
+	* src/operations.cc (ip_download_cur_reply): We show a pulsating
+	progress bar to the user while the packages that are going to be
+	installed are checked (N85962).
 
 2008-05-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
