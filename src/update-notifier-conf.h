@@ -44,7 +44,8 @@
 #define HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES "show_check_for_updates_view"
 #define HILDON_APP_MGR_OP_SHOWING_CHECK_FOR_UPDATES "showing_check_for_updates_view"
 
-#define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/available-updates"
+#define AVAILABLE_UPDATES_FILE_NAME "available-updates"
+#define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/" AVAILABLE_UPDATES_FILE_NAME
 #define AVAILABLE_NOTIFICATIONS_MENU_WIDTH 500
 #define AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING 80 + 9
 #define AVAILABLE_NOTIFICATIONS_MENU_TOP_PADDING 9

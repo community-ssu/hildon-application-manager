@@ -1,3 +1,14 @@
+2008-06-04  Felipe Erias Morandeira  <femorandeira@maemo.org>
+
+	* hildon-app-mgr/src/update-notifier-conf.h : Defined the constant
+	AVAILABLE_UPDATES_FILE_NAME.
+
+	* hildon-app-mgr/src/update-notifier.c (osso_rpc_handler) : Don't ignore it
+	the first time that the alarm goes off.
+	(handle_inotify) : Use AVAILABLE_UPDATES_FILE_NAME instead of a hardcoded
+	string (N85812). 
+	
+
 2008-06-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.13

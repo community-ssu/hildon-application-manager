@@ -916,30 +916,10 @@ osso_rpc_handler(const gchar* interface, const gchar* method,
     {
       if (!strcasecmp(method, UPDATE_NOTIFIER_OP_CHECK_UPDATES))
 	{
-	  /* first run? */
-	  gchar *ufiles_base_dir = user_file_get_state_dir_path ();
-	  gchar *seen_name = NULL;
-	  xexp *seen_updates = NULL;
-
-	  seen_name = g_strdup_printf ("%s/%s",
-				       ufiles_base_dir,
-				       UFILE_SEEN_UPDATES);
-	  g_free (ufiles_base_dir);
-
-	  if (!g_file_test (seen_name, G_FILE_TEST_EXISTS))
-	    {
-	      seen_updates = xexp_list_new ("updates");
-	      user_file_write_xexp (UFILE_SEEN_UPDATES, seen_updates);
-	      xexp_free (seen_updates);
-	    }
-	  else
-	    {
-	      /* Search for new available updates */
-	      check_for_updates (upno);
-	      /* Search for notifications */
-	      check_for_notifications (upno);
-	    }
-	  g_free (seen_name);
+	  /* Search for new available updates */
+	  check_for_updates (upno);
+	  /* Search for notifications */
+	  check_for_notifications (upno);
 	}
       else if (!strcasecmp(method, UPDATE_NOTIFIER_OP_CHECK_STATE))
 	{
@@ -1377,7 +1357,7 @@ handle_inotify (GIOChannel *channel, GIOCondition cond, gpointer data)
           event = (struct inotify_event *) &buf[i];
 
           if (priv->varlibham_watch != -1
-              && is_file_modified_event (event, priv->varlibham_watch,"available-updates"))
+              && is_file_modified_event (event, priv->varlibham_watch, AVAILABLE_UPDATES_FILE_NAME))
             {
               update_state (upno);
             }
