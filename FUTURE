@@ -1,25 +1,60 @@
 New features for the Hildon Application Manager
 ===============================================
 
-* Repairing broken packages [mario]
+* Clean up pre-defined catalogues mechanics [victor]
 
-If a visible package is in a broken state, it should also be shown in
-the "Check for Updates" view and updating it should try to unbreak the
-package.
+The pre-defined catalogues of the Application manager should be
+handled according to the new packaging policy (doc/packpol-conf.txt).
 
-Just using mark_for_install might be good enough for unbreaking a
-package.
+** Spec
 
-Right now, packages that need to be reinstalled are shown in the
-"Installable applications" view.  This shouldn't be done anymore.
+Roughly, this means that we need a strict division into catalogue
+entries that are completely 'owned' by packages, and catalogue entries
+that are competely owned by the user.
 
-Open issue: what about broken invisible packages?  Their brokenness
-could be charged to the visible parents, but that will charge a broken
-libgtk, say, on all visible packages.
+All the pre-defined catalogues should be owned by packages and can not
+be edited by the user.  They are not backed up.
+
+However, the enabled/disabled flag for each catalogue entry is owned
+by the user: the user can still disable a pre-defined catalogue.  This
+flag is backed up.
+
+** Implementation hints
+
+Right now, all catalogue information is stored in a single file,
+/etc/h-a-m/catalogues.  This should be changed so that only user
+catalogues are stored there.  Packages should be able to drop files
+into /usr/share/hildon-application-manager/catalogues/.
+
+When reading the catalogue information, the xexps from
+/etc/h-a-m/catalogues and /usr/share/h-a-m/catalogues/ should be
+merged.  Concretely, the /etc/h-a-m/catalogues file contains the
+enabled/disabled flags for the catalogues in
+/usr/share/h-a-m/catalogues directory.  For this, packaged catalogue
+entries need to be identified reliably: a new "id" attribute should be
+used for this.
+
+It is probably a good idea to remember where a catalogue has been read
+from: after reading its xexp from a file
+/usr/share/h-a-m/catalogues/foo, we add a <file>foo</file> element to
+the xexp.  Then catalogues are identified by their "file" plus "id"
+attributes, making it easier to choose unique ids.
+
+User catalogues have no "file" attributes.
+
+When saving the catalogues after the user has edited them, only the
+/etc/h-a-m/catalogues file should be touched.  That is, the xexps for
+a catalogue without a "file" attribute are written to that file, for
+ther xexps, only the "file", "id" and "disabled" attribute are
+written.
+
+These rules should also be followed by the
+hildon-application-manager-config utility.  Changes made with that
+tool count as user edits.
 
 * Avoiding invisible interaction flows [mvo]
 
-[ needs second pass ]
+[ needs second pass to be sure we caught enough cases ]
 
 Currently, it is possible to start an interaction flow (using
 start_interaction_flow, say) without immediatly popping up a dialog
@@ -151,7 +186,23 @@ The following steps might be appropriate:
   right way to do it: letting users confirm the changes to the visible
   packages.
 
-#########################################################################
+DONE ##################################################################
+
+* Repairing broken packages [mario]
+
+If a visible package is in a broken state, it should also be shown in
+the "Check for Updates" view and updating it should try to unbreak the
+package.
+
+Just using mark_for_install might be good enough for unbreaking a
+package.
+
+Right now, packages that need to be reinstalled are shown in the
+"Installable applications" view.  This shouldn't be done anymore.
+
+Open issue: what about broken invisible packages?  Their brokenness
+could be charged to the visible parents, but that will charge a broken
+libgtk, say, on all visible packages.
 
 * Ignoring packages that violate domain boundaries [mvo]
 
