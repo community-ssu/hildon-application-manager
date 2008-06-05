@@ -1,0 +1,384 @@
+
+			   Packaging Policy
+		   CUSTOMIZATION AND CONFIGURATION
+
+			     Second Draft
+
+[ list of changes at the end. ]
+
+The maemo platform offers a formal system for defining variants of it.
+This document lays down the policies that should be followed by
+packages that want to be part of this system.
+
+* Concepts
+
+All data on a device is strictly divided into package data and user
+data.  Package data is owned and controlled by packages; user data
+is owned by the user of the device.
+
+The user is not supposed to change package data, except indirectly via
+the package manager.  Packages must not modify user data, except on
+behalf of the user.
+
+Package data is device independent: it is the same on every device
+that has the package in question installed, and it remains constant
+until a new version of the package is installed.
+
+Package data can be maintained from the outside (by letting the user
+install newer versions of packages), but user data can not.
+
+There is no in-between: a bit is either package data or user data.  If
+need be, the boundary between package and user data can be in the
+middle of a file, and in the middle of a byte.  Of course, this
+complicates things and is best avoided: a given file should be either
+complete package data or completely user data.
+
+If you think you have found a situation where a piece of data that you
+care about is neither purely package data nor purely user data, you
+need to rethink your approach and make your data cleanly classifiable.
+
+Obvious examples of package data are programs, libraries, theme
+graphics, and translations of UI strings.  These files are installed
+into a device as packages, and can be updated via packages as well.
+
+User data can be further divided into system data and user data, if
+that is considered useful.  Typical user data are documents, videos,
+and images in the user's home directory, typical system data are
+caches of various sorts, the current IP address, etc.
+
+Settings (like the theme, the device language, etc) are more
+interesting: the default value of a setting is package data, while the
+current value is user data.
+
+This text deals with customization within the package data.  The only
+degree of freedom there is to select which packages to include in your
+configuration.  The tool for creating configurations can create
+packages on demand, and part of the package maintainers responsibility
+is to provide the necessary templates for this.
+
+Pre-loading a device with user data is also important, but not covered
+here.
+
+(The distinction between package and user data is also useful in
+other contexts.  For example, only user data should be included in a
+backup.)
+
+* Examples
+
+Although the concept of the distinction between package data and
+user data is simple, it pays to take a closer look at some
+examples.
+
+[If you want to see a discussion of something specific here, please
+tell me. -mvo]
+
+** Device language, theme, and other 'simple' settings
+
+Settings like the device language and timezone and the theme have a
+default value that is package data and a current value that is device
+data.
+
+The current value determines the device behavior when it is set.  When
+it is not set, the default value determines the behavior.
+
+The default value is device independent: you can say that the default
+theme of the N810 WiMAX edition is "echo".  The current value is
+device specific: you can say that Olli Pekka's current theme on his
+N810 is "plankton".
+
+A factory reset of the settings will simply unset the current values
+so that the default values from the packages become active again.
+ 
+Since the default value of a setting is package data, it is controlled
+by a package.  The way to have different default values in different
+configurations is thus to include different packages in them.
+
+For example, in addition to the actual theme packages, like
+"hildon-theme-echo", "hildon-theme-alpha", "hildon-theme-plankton",
+that contain the actual theme images, there are also customization
+packages like "hildon-theme-variant-rx44" that make a selected theme
+the default theme.
+
+** Pre-defined address book entries
+
+Address book entries that the user has created (or copied from
+somewhere else, etc) are clearly user data.  It might not be so
+clear for pre-defined address book entries.
+
+They could be considered to be merely a gift for the user, and the
+user is supposed to be able to change and delete them however he
+pleases.  Then these entries are pre-loaded user data and can not be
+contained in a package.
+
+They could be considered to be critical information that needs
+maintenance.  In this case, the entries need to be package data and we
+can not allow the user to edit them (because he would then risk losing
+his changes on the next package update, and because they are 'critical
+information' that should not be changed in any case).
+
+Thus, the address book application would need to distinguish between
+'user data entries' and 'package data entries'.  This distinction
+could bubble up to the UI, or the application could try to hide the
+distinction by, for example, merely hiding package data entries when
+the user deletes them, and performing a copy-on-write.
+
+These are the only two clean alternatives for a given pre-defined
+address book entry: it is either user data and must be pre-loaded
+without the help of packages and can not be maintained externally, or
+it is package data and can be maintained externally but the user must
+not be able to change it.
+
+Compromises between these two alternatives can be devised, but they
+all leave something to be desired.
+
+One possible compromise is to treat the pre-defined entries as user
+data, but still use a package to pre-load it.  The address book would
+be initialized by copying the package data into it before the first
+access.  Afterward, the package data is completely ignored: it can
+still be externally maintained by updating the package, but that has
+no reliable effect since the address book has very likely already been
+initialized.
+
+This compromise is only acceptable when the pre-loaded content in the
+package is small or when no new version of the package that contains
+it is ever released.
+
+** Externally managed application catalogue entries
+
+The application catalogues of the Application manager are very similar
+to address book entries; essentially the same options exist of how to
+classify them as package data or user data.
+
+Unlike pre-defined address book entries, however, a good argument can
+be made that some of them actually are 'critical information' that
+should be maintainable from the outside.  Thus, the Application
+manager should indeed distinguish between package data catalogues and
+user data catalogues.
+
+Package data catalogues are read-only for the user, but the user
+should still have the opportunity to disable them, in case their
+content causes harm.  Therefore, the current value of the
+enabled/disabled flag of each catalogue is user data.  The package
+data for a catalogue contains the default value for this flag.
+
+** Help content and user guides
+
+The text shown in the "Help" dialogs is package data: it is fully
+controlled by the packages and errors in it can be corrected.  The
+user guide documents are user data: they are pre-loaded as a
+convenience and are off-limits to package maintainers.
+
+* Conffiles
+
+The Debian package format has the concept of "conffiles".  These files
+are user data, and packages can provide a 'proposed' content for
+them as package data.  The dpkg package management tool tries to
+carefully merge the proposed content into the user data files.
+
+When a package is installed via the Hildon Application manager,
+"carefully merged" means: the proposed content is thrown away when the
+conffile has been modified by the user.
+
+The alternative -- throwing away the user data by overwriting it with
+the proposed content -- is not done since then the conffiles machinery
+of dpkg could never be used as it is intended to be used.  If you want
+to let the proposed content take priority over the user content,
+simply do not use conffiles.
+
+As a package maintainer, you should accept that you do not control the
+content of conffiles.  In particular, you can not reliably deliver bug
+fixes to them.
+
+However, do not overwrite the default behavior of debhelper: all files
+in /etc that are contained in a package should be conffiles.  This is
+what users expect.  They expect to be able to edit files in /etc and
+not have their modifications overwritten by packages.  Instead, do not
+put package data files in /etc, put them in /usr/share or /usr/lib.
+
+Some settings are system-wide and their current value is stored in
+/etc.  You can implement the "default/current value" model for them
+with conffiles like this: Place a file with the default values into
+/usr/share, and read the current value from a conffile in /etc.  The
+content for the conffile proposed by the package should be so that the
+file in /usr/share determines the value.  The proposed content of the
+conffile in your package should never, ever change.
+
+More concretely, you can have your application read the file in
+/usr/share first, and then read the conffile in /etc, allowing the
+latter to overwrite values from the former.  The proposed content of
+the conffile would be empty except for a comment that refers the user
+to documentation.  Do not include the documentation itself in the
+conffile since you might want to change it.
+
+Or, when you have a 'include' mechanism in your configuration
+machinery, the proposed content of the conffile could include the file
+in /usr/share, and you application would only read the conffile.
+
+* Packages as customization points
+
+A configuration is defined by its list of packages.  When creating a
+custom configuration, the useful variations in that package list
+should be presented in a nice way.  The configuration definition tool
+thus needs extra information about the available packages so that it
+can, for example, offer a list of available themes to choose from.
+
+A package can put itself into a 'customization category'.  The
+configuration creation tool will allow the selection of packages from
+these categories.
+
+To put a binary package into a customization category, use the
+"Maemo-Customization-Category" field in its control file.  Such a
+package is called a "customization package".  Non-customization
+packages are called "functional packages" in this text.
+
+[ TBD: list of categories, how to define new ones. ]
+
+A customization package provides default values for settings and other
+customization points of functional packages.  It can cover all of the
+settings of a functional package, or only a subset of it.  It can also
+cover the settings of more than one package.  The functional packages
+define how their customization packages should be structured.
+
+This definition is either provided in an informal way through
+documentation and examples, or in a formal way by defining templates
+for the customization packages that are automatically instantiated by
+the variant definition tool.
+
+The name of a customization package should be
+
+    FOO-variant-SETTINGS-VARIANT.
+
+Here, FOO is the name of its main (or only) functional package.
+
+The SETTINGS part identifies the subset of the settings that it
+covers.  The possible values for SETTINGS and their meaning are
+defined (informally with documentation or formally with templates) by
+the functional package FOO.
+
+The VARIANT part identifies the specific variant that the
+customization package is part of.
+
+The "-SETTINGS" part can be omitted when there is only one
+customization package for the functional package FOO.
+
+A good way for a functional package to informally document the
+structure of its customization packages is to provide packages for the
+"example" variant.  The VARIANT value "example" is reserved for this
+purpose.
+
+The VARIANT value "template" is reserved for templates.  See the next
+section.
+
+It should be possible to easily modify and create new customization
+packages.  Therefore, customization packages should not be build from
+the same source package as the functional packages that they
+customize.  This allows the customization package to be modified and
+re-build without having to build its functional packages.  Also, a
+stand-alone customization source package is easier to copy and modify
+in order to create a new variant of it.
+
+A customization source package should build all
+"FOO-variant-SETTINGS-VARIANT" binary packages if there is more than
+one.  It should be called "FOO-variant-VARIANT".
+
+Usually, customization packages that control a given customization
+point will conflict with each other.  For example, there can be only
+one default theme in a configuration, and hildon-theme-variant-rx44
+therefore conflicts with hildon-theme-variant-rx34.
+
+To implement conflicts between a unlimited set of packages (a new
+VARIANT can be created at any time), a customization package should
+Provide, Conflict with, and Replace a virtual package called
+"FOO-variant-SETTINGS".  The name of the virtual package is determined
+by removing the "-VARIANT" suffix of the customization package name.
+
+For example, both "hildon-theme-variant-rx44" and
+"hildon-theme-variant-rx34" would Provide, Conflict with, and Replace
+"hildon-theme-variant".
+
+A customization package should not depend on its functional package.
+Having a customization package installed in the system without the
+corresponding functional package should do no harm.  Also, functional
+packages and their customization packages should be installable in any
+order.
+
+A functional package should not depend on its customization packages.
+Having a functional package installed in the system without any
+customization package for it should lead to some useful-if-undesirable
+behavior.  For example, when no default theme has been defined, the
+gray default Gtk+ theme with the ugly small fonts will be used.
+However, a functional package should Recommend its virtual
+"FOO-variant-SETTINGS" customization packages.
+
+If a functional package does in fact depend on having one or more of
+its customization packages installed, it should Depend on the
+appropriate virtual packages.  Do not use the 'or' dependency syntax
+"foo | bar" since APT seems to have problems with it.
+
+Note that you can not use versions with virtual packages: if the
+interface between the functional package and its customization
+packages changes incompatibly, you need to rename the customization
+packages by changing their SETTINGS name part.
+
+* Package templates
+
+Wild brainstorming phase.
+
+- Generalizing "FOO-default-example" to "FOO-default-template".
+
+- Template interface description in debian/template.
+
+  Interface parts: file dropping, string substitution.
+
+    Parameter: theme
+    Description: The name of the default theme
+    Type: string
+    Default: echo
+
+- Injecting external parameters into a "dpkg-buildpackage" run.
+
+  - Files are dropped into places as specified by the template
+    interface description.
+
+  - All files of the source package ending in ".template" are
+    processed for string substitutions and saved without the
+    ".template" suffix.
+
+  - String substitution markers: default is @NAME@, but can be
+    specified in debian/template.
+
+  - There should always be a debian/control.template since the names
+    of the source and binary packages need to be changed.
+
+  - Template instantiation find the old version of the instantiated
+    customization package uses changelog from it.  Changelog entry
+    contains versions of source package template.
+
+- File and string formats.  Mostly driven by UI of the tool.  (I.e.,
+  template instantiation only substitutes strings, but the tool might
+  want to know that the string is a list of vCards and offer a
+  specialized editor widget for it.)  Let's hear it from the tool
+  builders.
+
+- Configuration description format that contains template
+  instantiations.
+
+
+
+ChangeLog
+
+Second draft:
+
+- changed "device data" to "user data"
+
+- push more against mixing package data and user data in one file
+
+- rewritten the pre-define address book entry example
+
+- explain why the Application manager throws away the proposed content
+  of conffiles
+
+- removed "-default-" naming option for customization packages,
+  rearranged naming convention text to be clearer.
+
+- brainstormed wildly about templates.
