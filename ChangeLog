@@ -1,3 +1,11 @@
+2008-06-05  Mario Sanchez Prada  <msanchez@maemo.org>
+
+	* src/log.cc (save_log_cont): Take care of setting the value for
+	last_save_log_dir to the last used one only when the process
+	succeeded, and empty it when it failed (N80933).
+	(save_log): Remove the previously stored dir here too if failed
+	because of a GNOME_VFS_ERROR_NOT_FOUND error (N80933).
+
 2008-06-04  Felipe Erias Morandeira  <femorandeira@maemo.org>
 
 	* src/update-notifier-conf.h : Defined the constant

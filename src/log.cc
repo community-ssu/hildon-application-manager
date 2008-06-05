@@ -57,6 +57,7 @@ static void
 save_log_cont (bool res, void *data)
 {
   char *uri = (char *)data;
+  bool success = true;
 
   if (res)
     {
@@ -73,8 +74,6 @@ save_log_cont (bool res, void *data)
 					  save_log_cont_2, uri);
       else
 	{
-	  bool success = true;
-
 	  if (log_text)
 	    {
 	      result = gnome_vfs_write (handle,
@@ -95,17 +94,34 @@ save_log_cont (bool res, void *data)
 						save_log_cont_2, uri);
 	      success = false;
 	    }
-
-	  if (success)
-	    {
-	      irritate_user (dgettext ("hildon-common-strings",
-				       "sfil_ib_saved"));
-	      save_log_cont_2 (uri);
-	    }
 	}
     }
   else
     save_log_cont_2 (uri);
+
+  /* Store the last path used for saving the log */
+  if (last_save_log_dir != NULL)
+    g_free (last_save_log_dir);
+
+  if (success)
+    {
+      gchar *tmp_dir = NULL;
+
+      /* Remove the file at the end and just get the dir path */
+      tmp_dir = g_path_get_dirname (uri);
+      last_save_log_dir = g_strdup (tmp_dir);
+      g_free (tmp_dir);
+
+      /* Report the successful result to the user */
+      irritate_user (dgettext ("hildon-common-strings",
+                               "sfil_ib_saved"));
+      save_log_cont_2 (uri);
+    }
+  else
+    {
+      /* Remove the previously stored dir if failed */
+      last_save_log_dir = NULL;
+    }
 }
 
 static void
@@ -113,8 +129,6 @@ save_log (char *uri, void *data)
 {
   GnomeVFSFileInfo info;
   GnomeVFSResult result;
-  gchar *unescaped_dir = NULL;
-  gchar *tmp_dir = NULL;
 
   if (uri == NULL)
     {
@@ -122,15 +136,6 @@ save_log (char *uri, void *data)
        */
       return;
     }
-
-  /* Store the last path used for saving the log */
-  if (last_save_log_dir != NULL)
-    g_free (last_save_log_dir);
-
-  /* Remove the file at the end and just get the dir path */
-  tmp_dir = g_path_get_dirname (uri);
-  last_save_log_dir = g_strdup (tmp_dir);
-  g_free (tmp_dir);
 
   /* XXX - Using gnome_vfs_create with exclusive == true to check for
            file existence doesn't work with obex.  Why am I not
@@ -147,6 +152,12 @@ save_log (char *uri, void *data)
     }
   else if (result != GNOME_VFS_ERROR_NOT_FOUND)
     {
+      /* Remove the previously stored dir if failed */
+      if (last_save_log_dir != NULL)
+        g_free (last_save_log_dir);
+      last_save_log_dir = NULL;
+
+      /* Annoy user with error */
       annoy_user_with_gnome_vfs_result (result, uri,
 					save_log_cont_2, uri);
     }
