@@ -1,0 +1,197 @@
+Completed features of the Hildon Application Manager
+====================================================
+
+See FUTURE for planned features.
+
+* Repairing broken packages [mario]
+
+If a visible package is in a broken state, it should also be shown in
+the "Check for Updates" view and updating it should try to unbreak the
+package.
+
+Just using mark_for_install might be good enough for unbreaking a
+package.
+
+Right now, packages that need to be reinstalled are shown in the
+"Installable applications" view.  This shouldn't be done anymore.
+
+Open issue: what about broken invisible packages?  Their brokenness
+could be charged to the visible parents, but that will charge a broken
+libgtk, say, on all visible packages.
+
+* Ignoring packages that violate domain boundaries [mvo]
+
+The Application manager remembers for each package the 'domain' where
+it was installed from originally.  Updates to a package that come from
+another domain are rejected.
+
+Right now, the Application manager fails installations that have one
+or more of these domain violations.  Instead, it should just ignore
+packages from a wrong domain.  This will get rid of the most hard core
+error message of the AM.
+
+There is already a hook into libapt-pkg to deal with the domain
+system.  This hook might be good enough, it might have to be changed.
+Some thoughts should be spent on whether to move the whole domain
+concept into libapt-pkg.  Maybe writing a custom DepCache::Policy is
+the way to go.
+
+* Speeding up preparation of large operations [mvo]
+
+Computing an update (calling mark_install in the apt-worker, etc) used
+to be quick enough, but now it can be quite slow since we have large
+OS updates.  This needs to be sped up.
+
+When performing an installation, the frontend asks the backend to
+compute the same update three times or so.  Either the frontend needs
+to ask less often or the backend should keep the last operation in the
+cache.
+
+* Automatic recovery after an interrupted operation [mvo]
+
+When a package management operation is interrupted abruptly, the
+system might still be able to recover by trying to complete the update
+on the next boot.
+
+To acomplish this, the apt-worker is run in a new "rescue" mode on
+every boot, as early as possible.
+
+The rescue mode will determine whether any repairs are needed, and if
+so, will attempt them.  Determining whether any repairs are needed
+must be fast.
+
+Steps:
+
+- Move flash-and-reboot functionality into apt-worker so that it is
+  available during repairs.
+
+- Have the apt-worker write a journal for each INSTALL_PACKAGE
+  operation.  The journal entry should contain the package name and
+  the location with the packages.
+
+- Add the "rescue" command line command which will look at the
+  journal.  If the journal is non-empty, try to finish it.
+
+Finishing the journal means first running "dpkg --configure -a",
+ignoring any errors, and then redoing the installation described in
+the journal.  Then, "dpkg --configure -a --force-all" is run, for good
+measure.
+
+If any packages would need to be downloaded, the repair is not done.
+
+If the required, the device is rebooted, or flash-and-reboot is run at
+the end, or booting is allowed to continue.
+
+UI of this to be decided.
+
+
+* Pushing of messages into the update notifier plugin [felipe]
+
+Product management wants to be able to notify the user about
+significant new applications that are available for theri internet
+tablets.  They want to use the existing update notifier statusbar
+plugin for that.
+
+The update-notifier plugin should be able to watch a given URI and
+present information from this URL via the statusbar icon.  When the
+contents of the resource behind the URI has changed, the icon should
+start blinking; when the user taps it, the blinking should stop and a
+menu with information from the resource should open; when the user
+selects an action from the menu, the icon should disappear.
+
+The original update notification functionality of the statusbar plugin
+should have priority: the resource watching functionality should only
+control the icon when the update notification functionality would hide
+the icon.
+
+The URI should be checked at the same time as the checking for
+updates.
+
+Final details about the UI and the content of the watched resource are
+upcoming.  The menu should have two action items in it: "Tell me
+more", which opens the web browser with a given URI, and "No thanks",
+which does nothing else than hide the icon.
+
+To get started, the content of the resource should be assumed to be a
+xexp of the form:
+
+  <info>
+   <text>Blah, blah</text>
+   <uri>http://www.example.com/</uri>
+  </info>
+
+This should yield a menu like this:
+
+  Blah, blah                <- insensitive
+  -----------
+  Show me more              <- open browser on http://www.example.com
+  No, thanks.               <- hides icon
+
+It is important that checking the URI does not block the process.  If
+needed, a separate process should be spawned (no threads, please).
+
+* Automatic checking for updates in the background
+
+- APTCMD_UPDATE_PACKAGE_CACHE is renamed to APTCMD_CHECK_UPDATES and
+  made cancellable at every point, not just during downloading.  Also,
+  it should not report errors at the end of the operation but store
+  them away for later retrieval.  It should also collect the
+  information necessary for the notification plugin (number of
+  available updates, classified into "OS", "Nokia", and "Other") and
+  store it away.
+
+- The apt-worker should be able to be invoked from the command-line to
+  perform the APTCMD_CHECK_UPDATES operation.  When invoked in this
+  way, the operation should be cancellable (using SIGINT, say).  Also,
+  it should refuse to run when the apt-worker is already running as
+  the backend for the AM.
+
+- When the apt-worker starts in its usual role as the backend for the
+  Application Manager, it should cancel already running instances of
+  itself that have been started from the command line.
+
+- The Application Manager should have the new "Update All" button in
+  the "Check for Updates" view.
+
+- There is a new component: the notification statusbar plugin.  The
+  notification plugin runs always and is in one of three different
+  states: invisible/visible/blinking.
+
+- The notification plugin invokes the apt-worker in comand-line mode
+  to perform APTCMD_CHECK_UPDATES 'occasionally'.  Such a operation is
+  attempted when the following conditions are all true:
+
+  - The last APTCMD_CHECK_UPDATES has stopped (successfully or not,
+    interrupted or not) 24 hours or more ago.
+
+  - There is a active WLAN connection (no Bluetooth).
+
+  When the APTCMD_CHECK_UPDATES can not be performed because the
+  apt-worker is already running as the backend for the Application
+  Manager, the notification plugin should send a message to the AM
+  that requests it to do the operation instead.
+
+- When the Application Manager receives such a request, it will
+  perform it as early as possible.  It is possible to do it when the
+  AM has been idle for at least one minute.  Idle means: no
+  interaction flow is active.
+
+- The state changes of the plugin are as follows:
+
+  - when the user taps it (to open the menu), it stops blinking.
+
+  - when a APTCMD_CHECK_UPDATES initiated by the plugin itself was
+    sucessful and updates are available and the plugin was invisible
+    before, it starts blinking.
+
+  - when the "Check for updates" view in the Application Manager is
+    opened, or when the user invokes the Application Manager from the
+    plugin menu and the "Check for Updates" view is already open, the
+    plugin becomes invisible.
+
+- The notification plugin should store its visibility state
+  permanently across reboots.
+
+- The notification plugin should be notified by apt-worker whenever
+  the information for it changes, and the plugin should then read that
+  information and reconstruct its menu.
