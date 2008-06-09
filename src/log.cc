@@ -46,11 +46,8 @@ enum {
 };
 
 static void
-save_log_cont_2 (void *data)
+save_log_do_nothing (void *data)
 {
-  char *uri = (char *)data;
-
-  g_free (uri);
 }
 
 static void
@@ -70,8 +67,11 @@ save_log_cont (bool res, void *data)
 				 0644);
 
       if (result != GNOME_VFS_OK)
-	annoy_user_with_gnome_vfs_result (result, uri,
-					  save_log_cont_2, uri);
+	{
+	  annoy_user_with_gnome_vfs_result (result, uri,
+					    save_log_do_nothing, NULL);
+	  success = false;
+	}
       else
 	{
 	  if (log_text)
@@ -82,7 +82,7 @@ save_log_cont (bool res, void *data)
 	      if (result != GNOME_VFS_OK)
 		{
 		  annoy_user_with_gnome_vfs_result (result, uri,
-						    save_log_cont_2, uri);
+						    save_log_do_nothing, NULL);
 		  success = false;
 		}
 	    }
@@ -91,13 +91,11 @@ save_log_cont (bool res, void *data)
 	  if (result != GNOME_VFS_OK)
 	    {
 	      annoy_user_with_gnome_vfs_result (result, uri,
-						save_log_cont_2, uri);
+						save_log_do_nothing, NULL);
 	      success = false;
 	    }
 	}
     }
-  else
-    save_log_cont_2 (uri);
 
   /* Store the last path used for saving the log */
   if (last_save_log_dir != NULL)
@@ -115,13 +113,14 @@ save_log_cont (bool res, void *data)
       /* Report the successful result to the user */
       irritate_user (dgettext ("hildon-common-strings",
                                "sfil_ib_saved"));
-      save_log_cont_2 (uri);
     }
   else
     {
       /* Remove the previously stored dir if failed */
       last_save_log_dir = NULL;
     }
+
+  g_free (uri);
 }
 
 static void
@@ -159,7 +158,8 @@ save_log (char *uri, void *data)
 
       /* Annoy user with error */
       annoy_user_with_gnome_vfs_result (result, uri,
-					save_log_cont_2, uri);
+					save_log_do_nothing, NULL);
+      g_free (uri);
     }
   else
     save_log_cont (true, uri);
