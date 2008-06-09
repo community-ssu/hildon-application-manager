@@ -1,8 +1,10 @@
 2008-06-09  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.15
+
 	* src/log.cc (save_log_do_nothing): New, used as the continuation
 	for all calls to annoy_user_with_gnome_vfs_result so that the URI
-	is not freed prematurely.
+	is not freed prematurely (N80933).
 	(save_log): Set success to false when gnome_vfs_create failed.  Do
 	not use save_log_cont_2, free uri explicitly at then end.
 	(save_log_cont_2): Removed.
