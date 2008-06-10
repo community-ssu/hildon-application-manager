@@ -192,38 +192,35 @@ Most of these flags are intended for system upgrades.
 The value of the Maemo-Flags field should be a comma separated list of
 one or more of the following words:
 
-- close-apps
-
-  Specifying this flag will make the Application Manager close all
-  applications before installing this package.
-
-- suggest-backup
-
-  Specifying this flag will make the Application Manager suggest to
-  the user that a backup should be taken before installing this
-  package.
-
 - reboot
 
   Specifying this flag will reboot the device cleanly after the
-  package has been installed.
+  package has been installed.  Also, all applications will be closed
+  before installation and a suggestion is given to the user to make a
+  backup.
+
+- close-apps
+
+  The same as 'reboot', for compatibility.  Deprecated.  (In the past,
+  a package could control individually whether to close all
+  applications, suggest a backup, or reboot.  In order to simplify the
+  UI, the three individual choices have been reduced to only one: all
+  of the three actions are either done together, or none is done.)
 
 - system-update
 
   Specifying this flag will tell the AM that this is a meta package
   that controls operating system updates.  The AM will adjust some
-  parts of its UI such as the text in the confirmation dialog.
-
-  The AM will also allow the removal of this package and will not
-  offer the installation of this package, only updated to it.
+  parts of its UI.
 
 - flash-and-reboot
 
-  This flag tells the AM that it should run /usr/bin/flash-and-reboot
-  after everything else has been done.  The flash-and-reboot program
-  is run as "user" with a single argument of "--yes".  The idea is
-  that flash-and-reboot would ask the user for permission to proceed
-  in order to prevent surprises, unless given the "--yes" option.
+  The same as 'reboot' but in addition, the AM will run
+  /usr/bin/flash-and-reboot after everything else has been done.  The
+  flash-and-reboot program is run as "user" with a single argument of
+  "--yes".  The idea is that flash-and-reboot would ask the user for
+  permission to proceed in order to prevent surprises, unless given
+  the "--yes" option.
 
 A operation usually involves more than one package and the flags of
 all packages are merged.
@@ -279,7 +276,9 @@ Specifically, the AM will never automatically remove a user package.
 
 If a conflict caused by installing a package could be resolved by
 removing a package, the AM will not do the removal but will refuse the
-installation request instead.
+installation request instead.  If you really want to remove a package,
+Conflict with it, and Replace it.  Then the AM will remove it in favor
+of your package.
 
 When removing a package, all packages that are a direct or indirect
 dependency of the removed package will be considered for removal.
