@@ -75,3 +75,27 @@ are available in "Tools > Settings".
    there's enough free space at the root filesystem to install, but
    not to download plus install/upgrade, so you can use an alternative
    storage just to download such those packages.
+
+ - *Always check for updates*
+
+   Activating this setting removes the refresh button from the toolbar
+   and instead performs a "Checking for updates" operation everytime
+   you switch to the "Browse installable applications" or "Check for
+   updates" view.  This settings was added for some quick UI
+   experiments, but we kept it afterward.
+
+   You need to restart the Application manager for this setting to
+   take effect.
+
+ - *Ignore packages from wrong domain*
+
+   Usually, a package from a wrong domain will be completely ignored
+   by the Application manager.  Deactivating this setting will not
+   ignore these packages.  However, When actually installing a package
+   from a wrong domain, a warning message will still be displayed and
+   you need to confirm that installation should proceed.
+
+   You need to restart the Application manager for this setting to
+   take effect.
+
+
