@@ -459,6 +459,9 @@ AptWorkerState::Initialize (void)
 	  _error->DumpErrors ();
 	  return;
 	}
+
+      _config->Set("DPkg::Options::", "--force-confold");
+
       global_initialized = true;
     }
   
