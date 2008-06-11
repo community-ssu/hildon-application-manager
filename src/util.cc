@@ -1479,6 +1479,10 @@ package_info_func (GtkTreeViewColumn *column,
 		     ? pi->installed_version
 		     : pi->available_version);
 
+  const char *ptr = strchr (package_version, ':');
+  if (ptr)
+    package_version = ptr + 1;
+
   if (gtk_tree_selection_iter_is_selected (selection, iter))
     {
       if (global_installed)
@@ -1555,6 +1559,9 @@ package_info_func (GtkTreeViewColumn *column,
                 NULL);
 
   version = (global_installed? pi->installed_version: pi->available_version);
+  const char *ptr = strchr (version, ':');
+  if (ptr)
+    version = ptr + 1;
   g_object_set (version_rend, "text", 
                 version,
                 NULL);
