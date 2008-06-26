@@ -45,7 +45,7 @@ User catalogues have no "file" attributes.
 When saving the catalogues after the user has edited them, only the
 /etc/h-a-m/catalogues file should be touched.  That is, the xexps for
 a catalogue without a "file" attribute are written to that file, for
-ther xexps, only the "file", "id" and "disabled" attribute are
+other xexps, only the "file", "id" and "disabled" attribute are
 written.
 
 These rules should also be followed by the
