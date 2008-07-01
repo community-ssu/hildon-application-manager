@@ -1,6 +1,13 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Try to get rid of the legal notice as much as possible [mvo]
+
+Right now, the legal notice dialog is shown whenever a package from a
+non-certified repository is installed.  It might be more educational
+to only show that notice when a non-certified repository is added or
+enabled.
+
 * Clean up pre-defined catalogues mechanics [victor]
 
 The pre-defined catalogues of the Application manager should be
