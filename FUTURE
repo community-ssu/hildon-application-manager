@@ -1,6 +1,34 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Get rid of the temporary apt state concept [victor]
+
+When executing a 'card-install' interaction flow, the apt-worker uses
+a complete, separate, and temporary state that only includes the
+repository on the card.  This feature is responsible for a lot of
+code complexity.
+
+The reason we have the secondary state is that we do not want to
+download the network repository indices again and do not want to
+recompute the caches.
+
+However, card-installs should be very, very rare and we do not need to
+optimize for them.
+
+Thus, let's make the code simpler at the expense of card-installs.
+
+First, the card-install operation will be re-defined to access the
+network repositories during the operation.  Dependencies can be
+fulfilled from them.
+
+Then, the card-install will simply put the card repository to
+/etc/apt/sources.list.d/hildon-application-manager-temp.list, and
+remove that file afterward (via a new apt-worker command, probably).
+For extra robustness, this file should be removed by the apt-worker
+when it starts.
+
+Finally, the whole temporary state machinery can be removed.
+
 * Try to get rid of the legal notice as much as possible [mvo]
 
 Right now, the legal notice dialog is shown whenever a package from a
