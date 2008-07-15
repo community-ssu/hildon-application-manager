@@ -426,10 +426,6 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
     {
       DBusMessage *reply;
 
-      /* XXX - Do this only after the application has been idle for
-	       one minute.  Use the new "Checking for updates, please
-	       wait" dialog, etc.
-      */
       start_interaction_flow_when_idle (idle_check_for_updates, NULL);
       
       reply = dbus_message_new_method_return (message);
