@@ -87,6 +87,7 @@ struct package_info {
   GtkTreeIter iter;
 
   const char *get_display_name (bool installed);
+  const char *get_display_version (bool installed);
 };
 
 view_id get_current_view_id ();
