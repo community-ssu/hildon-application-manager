@@ -1,3 +1,8 @@
+2008-07-16  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/operations.cc: Use get_display_version instead of
+	available_version in all the right places.
+
 2008-07-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.h, src/main.cc (package_info::get_display_version):

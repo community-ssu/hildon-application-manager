@@ -684,7 +684,7 @@ ip_install_loop (ip_clos *c)
 		{
 		  str = g_strdup_printf (_("ai_ni_update_successful"),
 					 pi->get_display_name (false),
-					 pi->available_version);
+					 pi->get_display_version (false));
 		}
 	      else
 		{
@@ -2041,11 +2041,11 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (pi->installed_version)
     g_string_printf (text, _("ai_nc_update"),
 		     pi->get_display_name (false),
-		     pi->available_version, size_buf);
+		     pi->get_display_version (false), size_buf);
   else
     g_string_printf (text, _("ai_nc_install"),
 		     pi->get_display_name (false),
-		     pi->available_version, size_buf);
+		     pi->get_display_version (false), size_buf);
 
   void (*cont) (bool res, void *);
 
@@ -2086,7 +2086,7 @@ if_install (bool res, void *data)
 	{
 	  title = g_strdup_printf (_("ai_nw_updating"),
 				   c->pi->get_display_name (false),
-				   c->pi->available_version);
+				   c->pi->get_display_version (false));
 	}
       else
 	{
@@ -2134,7 +2134,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 	{
 	  str = g_strdup_printf (_("ai_ni_update_successful"),
 				 c->pi->get_display_name (false),
-				 c->pi->available_version);
+				 c->pi->get_display_version (false));
 	}
       else
 	{
