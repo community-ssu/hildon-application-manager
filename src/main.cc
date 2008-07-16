@@ -470,6 +470,22 @@ package_info::get_display_name (bool installed)
   return n;
 }
 
+const char *
+package_info::get_display_version (bool installed)
+{
+  const char *v;
+  if (installed)
+    v = installed_version;
+  else
+    v = available_version;
+
+  const char *p = strchr (v, ':');
+  if (p)
+    v = p + 1;
+
+  return v;
+}
+
 void
 package_info::ref ()
 {

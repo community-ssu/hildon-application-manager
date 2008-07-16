@@ -454,7 +454,7 @@ ip_install_with_info (void *data)
 			? _("ai_nc_update")
 			: _("ai_nc_install")),
 		       pi->get_display_name (false),
-		       pi->available_version, download_buf);
+		       pi->get_display_version (false), download_buf);
       
       ask_yes_no_with_arbitrary_details ((pi->installed_version
 					  ? _("ai_ti_confirm_update")
@@ -1199,7 +1199,7 @@ ip_download_cur (void *data)
     {
       title = g_strdup_printf (_("ai_nw_updating"),
 			       pi->get_display_name (false),
-			       pi->available_version);
+			       pi->get_display_version (false));
     }
   else
     {
@@ -1712,7 +1712,7 @@ uninstall_package (package_info *pi,
   size_string_general (size_buf, 20, c->pi->installed_size);
   g_string_printf (text, _("ai_nc_uninstall"),
 		   c->pi->get_display_name (true),
-		   c->pi->installed_version, size_buf);
+		   c->pi->get_display_version (true), size_buf);
 
   ask_yes_no_with_details (_("ai_ti_confirm_uninstall"), text->str,
 			   c->pi, remove_details,

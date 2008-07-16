@@ -1,7 +1,18 @@
+2008-07-16  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.h, src/main.cc (package_info::get_display_version):
+	New.
+	* src/util.cc (package_info_func): Use it instead of explicit
+	code.
+	* src/operations.cc (ip_install_with_info): Use it for the
+	confirmation dialog.
+	(ip_download_cur): Use it for the progress title.
+	(uninstall_package): Use it for the confirmation dialog.
+
 2008-06-11  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.16
-	
+
 	* src/util.cc (package_info_func): Hide epoch of version (N86191).
 
 	* src/apt-worker.cc (AptWorker::Initialize): Add "--force-optold"
