@@ -1,6 +1,23 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Get rid of file system synchronicity assumption [victor]
+
+Some code in the Application manager might rely on the synchronous
+nature of JFFS2.  This will be a problem should we ever move to some
+other file system that hasn't this natue, like ext3 or UBIFS.
+
+See
+
+    http://www.linux-mtd.infradead.org/doc/ubifs.html#L_writeback
+
+The code needs to be reviewed and appropriate fsync calls (etc) should
+be inserted.
+
+The xexp_write function is a good candidate since it already makes
+some atomicity guarantees (and its documentation should be updated to
+mention the syncronicity).
+
 * Get rid of the temporary apt state concept [victor]
 
 When executing a 'card-install' interaction flow, the apt-worker uses
@@ -28,23 +45,6 @@ For extra robustness, this file should be removed by the apt-worker
 when it starts.
 
 Finally, the whole temporary state machinery can be removed.
-
-* Get rid of file system synchronicity assumption [victor]
-
-Some code in the Application manager might rely on the synchronous
-nature of JFFS2.  This will be a problem should we ever move to some
-other file system that hasn't this natue, like ext3 or UBIFS.
-
-See
-
-    http://www.linux-mtd.infradead.org/doc/ubifs.html#L_writeback
-
-The code needs to be reviewed and appropriate fsync calls (etc) should
-be inserted.
-
-The xexp_write function is a good candidate since it already makes
-some atomicity guarantees (and its documentation should be updated to
-mention the syncronicity).
 
 * Try to get rid of the legal notice as much as possible [mvo]
 
