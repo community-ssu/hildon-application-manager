@@ -112,6 +112,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
     {
       entry = gtk_entry_new ();
 
+#ifdef MAEMO_CHANGES
       int mode;
       g_object_get (entry, "hildon-input-mode", &mode, NULL);
       if (autocap)
@@ -119,6 +120,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
       else
 	mode &= ~int (HILDON_GTK_INPUT_MODE_AUTOCAP);
       g_object_set (entry, "hildon-input-mode", mode, NULL);
+#endif
       
       if (text)
 	{

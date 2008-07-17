@@ -1732,6 +1732,7 @@ global_package_list_key_pressed (GtkWidget * widget,
   return result;
 }
 
+#ifdef MAEMO_CHANGES
 static void
 tap_and_hold_cb (GtkWidget *treeview, gpointer data)
 {
@@ -1757,6 +1758,7 @@ tap_and_hold_cb (GtkWidget *treeview, gpointer data)
         }
     }
 }
+#endif
 
 GtkWidget *
 make_global_package_list (GList *packages,
@@ -1898,6 +1900,7 @@ make_global_package_list (GList *packages,
   g_signal_connect (tree, "key-press-event",
                     G_CALLBACK (global_package_list_key_pressed), NULL);
 
+#ifdef MAEMO_CHANGES
   /* Create the contextual menu */
   if (installed)
     {
@@ -1919,6 +1922,7 @@ make_global_package_list (GList *packages,
 
   gtk_widget_tap_and_hold_setup (tree, menu, NULL,
 				 GtkWidgetTapAndHoldFlags (0));
+#endif
 
   set_global_package_list (packages, installed, selected, activated);
 

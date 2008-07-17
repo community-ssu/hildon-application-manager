@@ -1,3 +1,11 @@
+2008-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (make_global_package_list): Don't install a
+	tap-and-hold menu when not building for maemo's Gtk.
+
+	* src/repo.cc (add_entry): Don't mess with the "hildon-input-mode"
+	property when not building for maemo's Gtk.
+
 2008-07-16  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc: Use get_display_version instead of
