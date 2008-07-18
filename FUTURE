@@ -1,11 +1,17 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Show repository that a package is going to be installed from.
+
+The "Details" dialog should be extended somehow to show the
+repositories / catalogues that a package is going to be installed
+from.
+
 * Get rid of file system synchronicity assumption [victor]
 
 Some code in the Application manager might rely on the synchronous
 nature of JFFS2.  This will be a problem should we ever move to some
-other file system that hasn't this natue, like ext3 or UBIFS.
+other file system that hasn't this nature, like ext3 or UBIFS.
 
 See
 
