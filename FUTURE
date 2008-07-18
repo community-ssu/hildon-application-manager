@@ -5,7 +5,7 @@ New features for the Hildon Application Manager
 
 It's annoying.
 
-* Show repository that a package is going to be installed from.
+* Show repository that a package is going to be installed from [victor]
 
 The "Details" dialog should be extended somehow to show the
 repositories / catalogues that a package is going to be installed
