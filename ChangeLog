@@ -1,5 +1,10 @@
 2008-07-18  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/apt-worker.cc (flag_use_apt_algorithms): New.
+	(main): Initialize it from the 'A' option.
+	(mark_for_install, mark_for_remove): Do it the apt-get way when
+	the flag is true.
+
 	* src/settings.h, src/settings.cc (use_apt_algorithms): New.
 	(load_settings, save_settings, make_settings_tab): Do the right
 	things with it.

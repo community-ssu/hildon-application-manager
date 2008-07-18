@@ -190,6 +190,11 @@ bool flag_break_locks = false;
  */
 bool flag_allow_wrong_domains = false;
 
+/* Setting this to true will use the normal apt-get algorithms for
+   installing/removing packages instead of our home-grown ones.
+*/
+bool flag_use_apt_algorithms = false;
+
 /** GENERAL UTILITIES
  */
 
@@ -1525,6 +1530,9 @@ main (int argc, char **argv)
       if (strchr (options, 'D'))
 	flag_allow_wrong_domains = true;
 
+      if (strchr (options, 'A'))
+	flag_use_apt_algorithms = true;
+
       /* Don't let our heavy lifting starve the UI.
        */
       errno = 0;
@@ -2318,8 +2326,38 @@ mark_for_install (pkgCache::PkgIterator &pkg)
 {
   DBG ("INSTALL %s", pkg.Name());
 
-  mark_for_install_1 (pkg, 0);
-  fix_soft_packages ();
+  if (flag_use_apt_algorithms)
+    {
+      AptWorkerState *worker_state = AptWorkerState::GetCurrent ();
+      pkgDepCache &Cache = *(worker_state->cache);
+      pkgDepCache::StateCache &State = Cache[pkg];
+
+      pkgProblemResolver Fix(&Cache);
+
+      Fix.Clear(pkg);
+      Fix.Protect(pkg);   
+
+      Cache.MarkInstall(pkg,false);
+      if (State.Install() == false)
+	{
+	  if (pkg->CurrentVer && pkg.CurrentVer().Downloadable())
+	    Cache.SetReInstall(pkg,true);
+	} 
+
+      // Install it with autoinstalling enabled (if we not respect the minial
+      // required deps or the policy)
+      if (State.InstBroken() == true || State.InstPolicyBroken() == true)
+	Cache.MarkInstall(pkg,true);
+
+      Fix.InstallProtect();
+      if (Fix.Resolve(true) == false)
+	 _error->Discard();
+    }
+  else
+    {
+      mark_for_install_1 (pkg, 0);
+      fix_soft_packages ();
+    }
 }
 
 /* Mark every upgradeable non-user package for installation.
@@ -2424,8 +2462,28 @@ mark_for_remove (pkgCache::PkgIterator &pkg)
   if (check_cache_state (pkg.Name (), false))
     return;
 
-  mark_for_remove_1 (pkg, false);
-  fix_soft_packages ();
+  if (flag_use_apt_algorithms)
+    {
+      AptWorkerState *worker_state = AptWorkerState::GetCurrent ();
+      pkgDepCache &Cache = *(worker_state->cache);
+
+      pkgProblemResolver Fix(&Cache);
+
+      Fix.Clear(pkg);
+      Fix.Protect(pkg);   
+
+      Fix.Remove(pkg);
+      Cache.MarkDelete (pkg,false);
+
+      Fix.InstallProtect();
+      if (Fix.Resolve(true) == false)
+	 _error->Discard();
+    }
+  else
+    {
+      mark_for_remove_1 (pkg, false);
+      fix_soft_packages ();
+    }
 }
 
 /* Getting the package record in a nicely parsable form.
