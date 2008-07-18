@@ -98,4 +98,17 @@ are available in "Tools > Settings".
    You need to restart the Application manager for this setting to
    take effect.
 
+ - *Use apt-get algorithms*
 
+   After changing this setting, you need to restart the Application
+   Manager to have it take effect.
+
+   This setting will make the Application Manager use the same
+   algorithms as apt-get when computing an installation or removal.
+   We want to use these algorithms in the future, and this setting is
+   a way to experiment with them.
+
+   You have to be more careful at checking what will actually be done.
+   These algorithms can easily do unwanted things.  In the near
+   future, there will be additional confirmations for any change to
+   visible packages.
