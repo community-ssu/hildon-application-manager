@@ -1,3 +1,4 @@
+
 2008-07-18  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (flag_use_apt_algorithms): New.
@@ -11,6 +12,39 @@
 	* src/apt-worker-client.cc (start_apt_worker): Pass 'A' option to
 	apt-worker when use_apt_algorithms is true.
 
+2008-07-18  Victor Jaquez   <vjaquez@maemo.org>
+
+	Merge of the predefined_catalogues branch
+	
+	* src/repo.cc (is_package_catalogue): New, informs if the
+	processed catalogue is predefined in a package.
+	(is_read_only_entry): New, informs if the entry to display is read
+	only.
+	(cat_edit_response): Add a new decision branch if the processed
+	catalogue is a package catalogue, where the entries are read only
+	and the only data to process is it disable/enable status.
+	(show_cat_edit_dialog): more fine grain selection of the read only
+	status for each entry.
+	
+	* src/Makefile.am: added catalgues.cc and catalogues.h files to
+	compilation in targets hildon_application_manager_config_SOURCES
+	and apt_worker_SOURCES
+
+	* src/apt-worker.cc: added catalogues.h header
+	(update_sources_list): replaced the xexp_write_file function call
+	with the write_user_catalogues
+	(cmd_check_updates): replaced xexp_read_file with read_catalogues
+	(cmd_get_catalogues): replaced xexp_read_file with read_catalogues
+
+	* src/catalogues.cc, src/catalogues.h: New files
+
+	* src/hildon-application-manager-config.cc: added catalogues.h
+	header
+	(read_conf): replaced xexp_read_file with read_catalogues
+	(write_conf): replaced xexp_write_file with  write_user_catalogues
+	(handle_file): added a xexp_free (memleak)
+	(main): added a xexp_free (memleak)
+	
 2008-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc (make_global_package_list): Don't install a

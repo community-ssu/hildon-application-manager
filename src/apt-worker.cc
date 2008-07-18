@@ -100,6 +100,7 @@
 
 #include "apt-worker-proto.h"
 #include "confutils.h"
+#include "catalogues.h"
 
 #include "update-notifier-conf.h"
 
@@ -3735,6 +3736,7 @@ update_sources_list (xexp *catalogues)
 
   if (AptWorkerState::IsTemp ())
     {
+      /* @check */
       success =
 	(xexp_write_file (TEMP_CATALOGUE_CONF, catalogues)
 	 && write_sources_list (TEMP_APT_SOURCE_LIST, catalogues));
@@ -3743,8 +3745,8 @@ update_sources_list (xexp *catalogues)
     {
       /* Write the new sources list to disk */
       success =
-	(xexp_write_file (CATALOGUE_CONF, catalogues)
-	 && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
+        (write_user_catalogues (catalogues)
+         && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
     }
 
   return success;
@@ -3772,7 +3774,9 @@ cmd_check_updates (bool with_status)
   if (AptWorkerState::IsTemp ())
     catalogues = xexp_read_file (TEMP_CATALOGUE_CONF);
   else
-    catalogues = xexp_read_file (CATALOGUE_CONF);
+  {
+    catalogues = read_catalogues ();
+  }
 
   reset_catalogue_errors (catalogues);
 
@@ -3926,7 +3930,8 @@ cmd_get_catalogues ()
   if (!stat_result)
     {
       /* Map the catalogue report to (maybe) delete error reports from it */
-      xexp *tmp_catalogues = xexp_read_file (CATALOGUE_CONF);
+      //xexp *tmp_catalogues = xexp_read_file (CATALOGUE_CONF);
+      xexp *tmp_catalogues = read_catalogues ();
       catalogues = xexp_list_map (tmp_catalogues, map_catalogue_error_details);
       xexp_free (tmp_catalogues);
 
@@ -3936,7 +3941,7 @@ cmd_get_catalogues ()
   else
     {
       /* If there's not a conf file on disk, write a empty one */
-      catalogues = xexp_list_new ("catalogues");
+      catalogues = read_catalogues (); /* @check test this scenario */
       xexp_write_file (CATALOGUE_CONF, catalogues);
     }
 

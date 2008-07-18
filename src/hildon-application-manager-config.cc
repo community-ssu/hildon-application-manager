@@ -58,6 +58,8 @@
 
 #include "confutils.h"
 
+#include "catalogues.h"
+
 #ifdef DEBUG
 static void
 DBG (const char *str, xexp *cat)
@@ -84,7 +86,8 @@ xexp *notifier;
 void
 read_conf ()
 {
-  catalogues = xexp_read_file (CATALOGUE_CONF);
+  // catalogues = xexp_read_file (CATALOGUE_CONF);
+  catalogues = read_catalogues ();
   if (catalogues == NULL)
     catalogues = xexp_list_new ("catalogues");
 
@@ -114,7 +117,8 @@ write_conf ()
   if (!xexp_write_file (DOMAIN_CONF, domains))
     exit (1);
 
-  if (!xexp_write_file (CATALOGUE_CONF, catalogues))
+  // if (!xexp_write_file (CATALOGUE_CONF, catalogues))
+  if (!write_user_catalogues (catalogues))
     exit (1);
 }
 
@@ -259,6 +263,9 @@ handle_file (const char *file, bool add)
 
   while (xexp *element = xexp_pop (elements))
     handle_element (element, add);
+
+  if (elements)
+    xexp_free (elements);
 }
 
 void
@@ -333,6 +340,9 @@ main (int argc, char **argv)
       xexp_append (conf, domains);
       xexp_append_1 (conf, notifier);
       xexp_write (stdout, conf);
+
+      if (conf)
+        xexp_free (conf);
     }
   else
     usage ();

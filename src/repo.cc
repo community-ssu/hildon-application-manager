@@ -341,6 +341,21 @@ static cat_dialog_closure *current_cat_dialog_clos = NULL;
 static void reset_cat_list (cat_dialog_closure *c);
 static void set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select);
 
+static gboolean
+is_package_catalogue (xexp *catalogue)
+{
+  const gchar *file = xexp_aref_text (catalogue, "file");
+  const gchar *id   = xexp_aref_text (catalogue, "id");
+
+  return (file && id);
+}
+
+static gboolean
+is_read_only_entry (cat_edit_closure *closure)
+{
+  return (closure->readonly || is_package_catalogue (closure->catalogue));
+}
+
 static void
 cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 {
@@ -350,7 +365,15 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
   if (c->readonly)
     ;
-  else if (response == GTK_RESPONSE_OK)
+  else if (response == GTK_RESPONSE_OK && is_package_catalogue (c->catalogue))
+    {
+      bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
+                  (c->disabled_button));
+      xexp_aset_bool (c->catalogue, "disabled", disabled);
+      set_cat_list (c->cat_dialog, &c->cat_dialog->selected_iter);
+      c->cat_dialog->dirty = true;
+    }
+  else if (response == GTK_RESPONSE_OK && !is_package_catalogue (c->catalogue))
     {
       const char *name = gtk_entry_get_text (GTK_ENTRY (c->name_entry));
       char *uri = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c->uri_entry))));
@@ -514,22 +537,22 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   const char *current_name = catalogue_name (catalogue);
   c->name_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_name"),
-			     current_name, NULL, true, c->readonly, true);
+			     current_name, NULL, true, is_read_only_entry (c), true);
 
   c->uri_entry = add_entry (vbox, group,
 			    _("ai_fi_new_repository_web_address"),
 			    xexp_aref_text (catalogue, "uri"),
-			    NULL, false, c->readonly, true);
+			    NULL, false, is_read_only_entry (c), true);
 
   c->dist_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_distribution"),
 			     xexp_aref_text (catalogue, "dist"),
-			     NULL, false, c->readonly, true);
+			     NULL, false, is_read_only_entry (c), true);
 
   c->components_entry = add_entry (vbox, group,
 				   _("ai_fi_new_repository_component"),
 				   xexp_aref_text (catalogue, "components"),
-				   NULL, false, c->readonly, false);
+				   NULL, false, is_read_only_entry (c), false);
 
   c->disabled_button = gtk_check_button_new ();
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
