@@ -1,6 +1,10 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Remove UI from maemo-select-menu-location.
+
+It's annoying.
+
 * Show repository that a package is going to be installed from.
 
 The "Details" dialog should be extended somehow to show the
