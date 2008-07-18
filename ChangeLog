@@ -1,4 +1,3 @@
-
 2008-07-18  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (flag_use_apt_algorithms): New.
