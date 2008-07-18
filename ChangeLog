@@ -1,3 +1,11 @@
+2008-07-18  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/settings.h, src/settings.cc (use_apt_algorithms): New.
+	(load_settings, save_settings, make_settings_tab): Do the right
+	things with it.
+	* src/apt-worker-client.cc (start_apt_worker): Pass 'A' option to
+	apt-worker when use_apt_algorithms is true.
+
 2008-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc (make_global_package_list): Don't install a

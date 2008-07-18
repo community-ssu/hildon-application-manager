@@ -44,6 +44,7 @@ bool clean_after_install = true;
 bool assume_connection = false;
 bool break_locks = true;
 bool download_packages_to_mmc = true;
+bool use_apt_algorithms = false;
 bool red_pill_mode = false;
 bool red_pill_show_deps = true;
 bool red_pill_show_all = true;
@@ -94,6 +95,8 @@ load_settings ()
 	    break_locks = val;
 	  else if (sscanf (line, "download-packages-to-mmc %d", &val) == 1)
 	    download_packages_to_mmc = val;
+	  else if (sscanf (line, "use-apt-algorithms %d", &val) == 1)
+	    use_apt_algorithms = val;
 	  else if (sscanf (line, "red-pill-mode %d", &val) == 1)
 	    red_pill_mode = val;
 	  else if (sscanf (line, "red-pill-show-deps %d", &val) == 1)
@@ -133,6 +136,7 @@ save_settings ()
       fprintf (f, "package-sort-sign %d\n", package_sort_sign);
       fprintf (f, "break-locks %d\n", break_locks);
       fprintf (f, "download-packages-to-mmc %d\n", download_packages_to_mmc);
+      fprintf (f, "use-apt-algorithms %d\n", use_apt_algorithms);
       fprintf (f, "red-pill-mode %d\n", red_pill_mode);
       fprintf (f, "red-pill-show-deps %d\n", red_pill_show_deps);
       fprintf (f, "red-pill-show-all %d\n", red_pill_show_all);
@@ -158,6 +162,7 @@ enum boolean_options {
   OPT_DOWNLOAD_PACKAGES_TO_MMC,
   OPT_CHECK_ALWAYS,
   OPT_IGNORE_WRONG_DOMAINS,
+  OPT_USE_APT_ALGORITHMS,
   NUM_BOOLEAN_OPTIONS
 };
 
@@ -228,6 +233,9 @@ make_settings_tab (settings_closure *c)
   make_boolean_option (c, vbox, group, OPT_IGNORE_WRONG_DOMAINS,
 		       "Ignore packages from wrong domains",
 		       &red_pill_ignore_wrong_domains);
+  make_boolean_option (c, vbox, group, OPT_USE_APT_ALGORITHMS,
+		       "Use apt-get algorithms",
+		       &use_apt_algorithms);
   g_object_unref (group);
 
   gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),

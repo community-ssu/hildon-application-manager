@@ -38,6 +38,7 @@ extern bool clean_after_install;
 extern bool assume_connection;
 extern bool break_locks;
 extern bool download_packages_to_mmc;
+extern bool use_apt_algorithms;
 extern bool red_pill_mode;
 extern bool red_pill_show_deps;
 extern bool red_pill_show_all;

@@ -242,6 +242,8 @@ start_apt_worker (gchar *prog)
     *ptr++ = 'B';
   if (red_pill_mode && !red_pill_ignore_wrong_domains)
     *ptr++ = 'D';
+  if (use_apt_algorithms)
+    *ptr++ = 'A';
   *ptr++ = '\0';
 
   gchar *args[] = {
