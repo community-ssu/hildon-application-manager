@@ -597,11 +597,11 @@ free_all_packages (int state)
 {
   switch (state)
     {
-    case APTSTATE_DEFAULT:
-      free_all_packages_default ();
-      break;
     case APTSTATE_TEMP:
       free_all_packages_temp ();
+      /* break; */ /* no break needed ;) */
+    case APTSTATE_DEFAULT:
+      free_all_packages_default ();
       break;
     default:
       break;
@@ -1052,11 +1052,11 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   switch (c->state)
     {
-    case APTSTATE_DEFAULT:
-      get_package_list_reply_default (cmd, dec, data);
-      break;
     case APTSTATE_TEMP:
       get_package_list_reply_temp (cmd, dec, data);
+      /* break; */ /* no break needed */
+    case APTSTATE_DEFAULT:
+      get_package_list_reply_default (cmd, dec, data);
       break;
     default:
       delete c;
@@ -1897,13 +1897,13 @@ find_package_in_lists (int state,
 {
   switch (state)
     {
+    case APTSTATE_TEMP:
+      find_in_package_list (result, temp_packages, package_name);
+      /* break;  */ /* no break needed */
     case APTSTATE_DEFAULT:
       find_in_section_list (result, install_sections, package_name);
       find_in_package_list (result, upgradeable_packages, package_name);
       find_in_package_list (result, installed_packages, package_name);
-      break;
-    case APTSTATE_TEMP:
-      find_in_package_list (result, temp_packages, package_name);
       break;
     default:
       break;
