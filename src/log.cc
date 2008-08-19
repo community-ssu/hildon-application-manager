@@ -256,6 +256,7 @@ show_log_dialog_flow ()
     }
 }
 
+#if !HAVE_G_STRING_APPEND_VPRINTF
 static void
 g_string_append_vprintf (GString *str, const gchar *fmt, va_list args)
 {
@@ -269,6 +270,7 @@ g_string_append_vprintf (GString *str, const gchar *fmt, va_list args)
   str->len = old_len + g_vsnprintf (str->str + old_len, fmt_len, fmt, args2);
   va_end (args2);
 }
+#endif
 
 void
 add_log (const char *text, ...)

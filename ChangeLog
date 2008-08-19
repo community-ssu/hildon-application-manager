@@ -1,3 +1,10 @@
+2008-08-19  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* configure.ac: Check for g_string_append_vprintf in the HAM_DEPS.
+	Newer versions of glib have it.
+	* src/log.cc (g_string_append_vprintf): Don't define our own
+	g_string_append_vprintf if configure found it.
+
 2008-07-18  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/apt-worker.cc (flag_use_apt_algorithms): New.
@@ -14,7 +21,7 @@
 2008-07-18  Victor Jaquez   <vjaquez@maemo.org>
 
 	Merge of the predefined_catalogues branch
-	
+
 	* src/repo.cc (is_package_catalogue): New, informs if the
 	processed catalogue is predefined in a package.
 	(is_read_only_entry): New, informs if the entry to display is read
@@ -24,7 +31,7 @@
 	and the only data to process is it disable/enable status.
 	(show_cat_edit_dialog): more fine grain selection of the read only
 	status for each entry.
-	
+
 	* src/Makefile.am: added catalgues.cc and catalogues.h files to
 	compilation in targets hildon_application_manager_config_SOURCES
 	and apt_worker_SOURCES
@@ -43,7 +50,7 @@
 	(write_conf): replaced xexp_write_file with  write_user_catalogues
 	(handle_file): added a xexp_free (memleak)
 	(main): added a xexp_free (memleak)
-	
+
 2008-07-17  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc (make_global_package_list): Don't install a
