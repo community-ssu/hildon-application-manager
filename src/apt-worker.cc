@@ -716,6 +716,8 @@ myCacheFile::save_extra_info ()
 	  else
 	    extra_info[pkg->ID].autoinst = false;
 	}
+      fflush (f);
+      fsync (fileno (f));
       fclose (f);
     }
 
@@ -736,6 +738,8 @@ myCacheFile::save_extra_info ()
 	      if (extra_info[pkg->ID].cur_domain == i)
 		fprintf (f, "%s\n", pkg.Name ());
 	    }
+	  fflush (f);
+	  fsync (fileno (f));
 	  fclose (f);
 	}
     }

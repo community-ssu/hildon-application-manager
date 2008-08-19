@@ -1208,6 +1208,8 @@ check_for_notifications_thread (gpointer userdata)
 
       curl_easy_cleanup (handle);
 
+      fflush (tmp_file);
+      fsync (fileno (tmp_file));
       fclose (tmp_file);
 
       /* Validate data */

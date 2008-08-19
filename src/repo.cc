@@ -746,17 +746,21 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
     {
       emit_row_changed (model, &iter);
       gtk_widget_set_sensitive (c->edit_button,
-				(!new_selected->readonly
-				 && !new_selected->foreign));
+                                is_package_catalogue
+                                (new_selected->catalogue_xexp) || 
+                                (!new_selected->readonly
+                                 && !new_selected->foreign));
       if (!c->show_only_errors)
-	gtk_widget_set_sensitive (c->delete_button,
-				  !new_selected->readonly);
+        gtk_widget_set_sensitive (c->delete_button,
+                                  !is_package_catalogue
+                                  (new_selected->catalogue_xexp) && 
+                                  !new_selected->readonly);
     }
   else
     {
       gtk_widget_set_sensitive (c->edit_button, FALSE);
       if (!c->show_only_errors)
-	gtk_widget_set_sensitive (c->delete_button, FALSE);
+        gtk_widget_set_sensitive (c->delete_button, FALSE);
     }
 }
 

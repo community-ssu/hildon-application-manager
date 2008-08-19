@@ -147,6 +147,8 @@ save_settings ()
       fprintf (f, "red-pill-ignore-wrong-domains %d\n",
 	       red_pill_ignore_wrong_domains);
       fprintf (f, "assume-connection %d\n", assume_connection);
+      fflush (f);
+      fsync (fileno (f));
       fclose (f);
     }
 }
@@ -407,6 +409,8 @@ save_state ()
     {
       fprintf (f, "fullscreen-toolbar %d\n", fullscreen_toolbar);
       fprintf (f, "normal-toolbar %d\n", normal_toolbar);
+      fflush (f);
+      fsync (fileno (f));
       fclose (f);
     }
 }

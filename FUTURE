@@ -56,6 +56,15 @@ when it starts.
 
 Finally, the whole temporary state machinery can be removed.
 
+* Get rid of the "essential"/readonly repositories [victor]
+
+The Application Catalogue UI dialog has a heavy use of readonly
+repositories which are based on the repositories marked as
+"essential", but with the new package catalogue mechanism, this
+feature is deprecated.
+
+The readonly flag must be activaded only when is a package catalogue.
+
 * Try to get rid of the legal notice as much as possible [mvo]
 
 Right now, the legal notice dialog is shown whenever a package from a

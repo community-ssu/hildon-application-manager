@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "confutils.h"
 
@@ -129,7 +130,7 @@ write_sources_list (const char *filename, xexp *catalogues)
 	  }
     }
   
-  if (f == NULL || ferror (f) || fclose (f) < 0)
+  if (f == NULL || ferror (f) || fflush (f) || fsync (fileno (f)) || fclose (f))
     {
       fprintf (stderr, "%s: %s\n", filename, strerror (errno));
       return false;

@@ -149,10 +149,7 @@ installable_status_to_message (package_info *pi,
       except the first are ignored and a single package confirmation
       dialog is used.
 
-   2. Make sure that the network is up when this is not a card
-      install.
-
-   3. Check for the 'certified' status of all selected packages.  For
+   2. Check for the 'certified' status of all selected packages.  For
       each of the selected packages, a 'check_install' operation is
       performed and when one of them would install packages from a
       non-certified domain, the Notice dialog is shown.
@@ -546,10 +543,7 @@ ip_ensure_network (ip_clos *c)
   
   c->entertaining = true;
 
-  if (c->install_type != INSTALL_TYPE_MEMORY_CARD)
-    ensure_network (ip_ensure_network_reply, c);
-  else
-    ip_check_cert_start (c);
+  ensure_network (ip_ensure_network_reply, c);
 }
 
 static void

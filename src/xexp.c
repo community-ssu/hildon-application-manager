@@ -796,7 +796,7 @@ xexp_write_file (const char *filename, xexp *x)
   if (ferror (f))
     goto error;
 
-  if (fclose (f) < 0)
+  if (fflush (f) || fsync (fileno (f)) || fclose (f))
     {
       f = NULL;
       goto error;
