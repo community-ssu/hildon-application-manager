@@ -327,6 +327,9 @@ main (int argc, char **argv)
     }
   else if (strcmp (cmd, "set") == 0)
     {
+      if (files[0] == NULL)
+	usage ();
+
       reset_conf ();
       handle_files (files, true);
       write_conf ();

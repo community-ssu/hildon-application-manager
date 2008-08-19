@@ -2,7 +2,7 @@
 
 	* FUTURE: Added the task of "essential" tag removal
 	* src/apt-worker.cc (myCacheFile::save_extra_info): added fflush
-	op 
+	op
 	* src/confutils.cc (write_sources_list): added the fflush op
 	* src/operations.cc (ip_ensure_network): ensure the network
 	connection even with memory cards package installations
@@ -10,10 +10,15 @@
 	and delete buttons are handled in case of catalogue packages
 	* src/settings.cc (save_settings): added the fflush op
 	* src/update-notifier.c (check_for_notifications_thread): added
-	the fflush op 
+	the fflush op
 	* src/xexp.c (xexp_write_file): added the fflush op
-	
+
 2008-08-19  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/hildon-application-manager-config.cc (main): Fail with the
+	usage message when no arguments are given to "set".  This might
+	prevent people from accidentally wiping out their configuration
+	when exploring.
 
 	* configure.ac: Check for g_string_append_vprintf in the HAM_DEPS.
 	Newer versions of glib have it.
