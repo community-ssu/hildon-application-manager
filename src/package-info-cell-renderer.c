@@ -439,7 +439,10 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
   version_layout = gtk_widget_create_pango_layout (widget, NULL);
 
   cairo_save (cr);
-  cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
+  cairo_set_source_rgb (cr,
+                        widget->style->fg[widget->state].red / 65535.0,
+                        widget->style->fg[widget->state].green / 65535.0,
+                        widget->style->fg[widget->state].blue / 65535.0);
 
   if (priv->pkg_name)
     {

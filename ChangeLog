@@ -1,3 +1,9 @@
+2008-08-22  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
+
+	* src/package-info-cell-renderer.c
+	(package_info_cell_renderer_render):
+	Honor the theme color properties in the cell widget (M3503)
+
 2008-07-16  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc: Use get_display_version instead of
