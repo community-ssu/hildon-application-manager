@@ -1,5 +1,11 @@
 hildon-application-manager (1:2.2.0~unreleased) unstable; urgency=low
 
+  * Fixes: MB#3503
+
+ -- Victor Manuel Jaquez Leal <vjaquez@maemo.org> Fri, 22 Aug, 16:10:39 +0100
+	
+hildon-application-manager (1:2.2.0~unreleased) unstable; urgency=low
+
   * Fixes: NB#86999, MB#3457.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 23 Jun 2008 14:27:36 +0300
