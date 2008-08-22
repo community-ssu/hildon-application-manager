@@ -433,17 +433,40 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
   gint tmp_h = 0;
   gint available_width;
   PangoLayout *name_layout, *version_layout, *description_layout;
-  
+  int state;
+
+  if (!cell->sensitive) 
+    {
+      state = GTK_STATE_INSENSITIVE;
+    }
+  else if ((flags & GTK_CELL_RENDERER_SELECTED) == GTK_CELL_RENDERER_SELECTED)
+    {
+      if (GTK_WIDGET_HAS_FOCUS (widget))
+	state = GTK_STATE_SELECTED;
+      else
+	state = GTK_STATE_ACTIVE;
+    }
+  else if ((flags & GTK_CELL_RENDERER_PRELIT) == GTK_CELL_RENDERER_PRELIT &&
+	   GTK_WIDGET_STATE (widget) == GTK_STATE_PRELIGHT)
+    {
+      state = GTK_STATE_PRELIGHT;
+#ifdef MAEMO_CHANGES
+      state = GTK_STATE_NORMAL;
+#endif /* MAEMO_CHANGES */
+    }
+  else
+    {
+      if (GTK_WIDGET_STATE (widget) == GTK_STATE_INSENSITIVE)
+	state = GTK_STATE_INSENSITIVE;
+      else
+	state = GTK_STATE_NORMAL;
+    }
+
   cr = gdk_cairo_create (GDK_DRAWABLE (window));
   name_layout = gtk_widget_create_pango_layout (widget, NULL);
   version_layout = gtk_widget_create_pango_layout (widget, NULL);
 
   cairo_save (cr);
-  cairo_set_source_rgb (cr,
-                        widget->style->fg[widget->state].red / 65535.0,
-                        widget->style->fg[widget->state].green / 65535.0,
-                        widget->style->fg[widget->state].blue / 65535.0);
-
   if (priv->pkg_name)
     {
       pango_layout_set_text (name_layout, priv->pkg_name, -1);
@@ -482,15 +505,30 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
 
   if (priv->pkg_name)
     {
-      cairo_move_to(cr, cell_area->x + priv->pixbuf_size + DEFAULT_MARGIN, cell_area->y);
-      pango_cairo_show_layout (cr, name_layout);
-      cairo_stroke (cr);
+      gtk_paint_layout (widget->style,
+			window,
+			state,
+			TRUE,
+			expose_area,
+			widget,
+			"cellrenderertext",
+			cell_area->x + priv->pixbuf_size + DEFAULT_MARGIN,
+			cell_area->y,
+			name_layout);
     }
+
   if (priv->pkg_version)
     {
-      cairo_move_to(cr, cell_area->x + cell_area->width - version_w, cell_area->y);
-      pango_cairo_show_layout (cr, version_layout);
-      cairo_stroke (cr);
+      gtk_paint_layout (widget->style,
+			window,
+			state,
+			TRUE,
+			expose_area,
+			widget,
+			"cellrenderertext",
+			cell_area->x + cell_area->width - version_w,
+			cell_area->y,
+			version_layout);
     }
 
   if (priv->pkg_description != NULL && 
@@ -503,9 +541,18 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
       pango_layout_set_ellipsize (description_layout, PANGO_ELLIPSIZE_END);
       pango_layout_set_width (description_layout, 
                               (cell_area->width - priv->pixbuf_size - cell->ypad) * PANGO_SCALE);
-      cairo_move_to(cr, cell_area->x + priv->pixbuf_size + DEFAULT_MARGIN, cell_area->y + h);
-      pango_cairo_show_layout (cr, description_layout);
-      cairo_stroke (cr);
+
+      gtk_paint_layout (widget->style,
+			window,
+			state,
+			TRUE,
+			expose_area,
+			widget,
+			"cellrenderertext",
+			cell_area->x + priv->pixbuf_size + DEFAULT_MARGIN,
+			cell_area->y + h,
+			description_layout);
+
       g_object_unref (description_layout);
     }
 
