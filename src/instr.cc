@@ -558,8 +558,10 @@ eci_end (int n_successful, void *data)
 {
   struct eci_clos *c = (eci_clos *)data;
 
+  rm_temp_catalogues ();
+
   c->cont (c->data);
-  
+
   xexp_free (c->card_catalogues);
   xexp_free (c->perm_catalogues);
   g_strfreev (c->packages);

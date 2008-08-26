@@ -212,6 +212,19 @@ get_catalogues (void (*cont) (xexp *catalogues, void *data),
   apt_worker_get_catalogues (get_catalogues_callback, c);
 }
 
+static void
+rm_temp_catalogues_callback (int cmd,
+                             apt_proto_decoder *dec,
+                             void *callback_data)
+{
+}
+
+void
+rm_temp_catalogues ()
+{
+  apt_worker_rm_temp_catalogues (rm_temp_catalogues_callback, NULL);
+}
+
 const char *
 catalogue_name (xexp *x)
 {

@@ -150,7 +150,7 @@ static xexp *read_operation_record ();
 
 /* Temporary catalogues and temporary sources.list */
 #define TEMP_CATALOGUE_CONF "/var/lib/hildon-application-manager/catalogues.temp"
-#define TEMP_APT_SOURCE_LIST "/var/lib/hildon-application-manager/sources.list.temp"
+#define TEMP_APT_SOURCE_LIST "/etc/apt/sources.list.d/hildon-application-manager-temp.list"
 
 /* APT CACHE ARCHIVES DIRECTORIES */
 #define DEFAULT_DIR_CACHE_ARCHIVES "archives/"
@@ -342,8 +342,6 @@ class myCacheFile;
 class AptWorkerState
 {
 public:
-  AptWorkerState (bool cache_generate, string dir_cache, 
-		  string dir_state, string source_list, string _source_parts);
   AptWorkerState ();
   static void SetDefault ();
   static void SetTemp ();
@@ -351,15 +349,9 @@ public:
   void SetAsCurrent ();
   static AptWorkerState * GetCurrent ();
   static void Initialize ();
-  string dir_cache;
-  string dir_state;
-  string source_list;
-  string source_parts;
   myCacheFile *cache;
   pkgDepCache::ActionGroup *action_group;
-  bool cache_generate;
   bool init_cache_after_request;
-  bool using_alt_archives_dir;
   void InitializeValues ();
   static AptWorkerState *current_state;
   static AptWorkerState *default_state;
@@ -390,27 +382,12 @@ AptWorkerState *AptWorkerState::temp_state = 0;
  */
 bool AptWorkerState::global_initialized = false;
 
-AptWorkerState::AptWorkerState (bool _cache_generate, string _dir_cache, string _dir_state, string _source_list, string _source_parts)
-{
-  cache_generate = _cache_generate;
-  dir_cache = _dir_cache;
-  dir_state = _dir_state;
-  source_list = _source_list;
-  source_parts = _source_parts;
-  InitializeValues ();
-}
-
 /* Default instance. It gets the information from the current
  * APT configuration. To get the default configuration, it should
  * be obtained before setting any other config.
  */
 AptWorkerState::AptWorkerState ()
 {
-  cache_generate = _config->FindB ("Apt::Cache::generate");
-  dir_cache = _config->Find ("Dir::Cache");
-  dir_state = _config->Find ("Dir::State");
-  source_list = _config->Find ("Dir::Etc::SourceList");
-  source_parts = _config->Find ("Dir::Etc::SourceParts");
   InitializeValues ();
 }
 
@@ -418,7 +395,6 @@ void
 AptWorkerState::InitializeValues (void)
 {
   this->cache = NULL;
-  this->using_alt_archives_dir = false;
   this->init_cache_after_request = false;
 }
 
@@ -460,11 +436,11 @@ AptWorkerState::Initialize (void)
   if (!global_initialized)
     {
       if (pkgInitConfig(*_config) == false ||
-	  pkgInitSystem(*_config,_system) == false)
-	{
-	  _error->DumpErrors ();
-	  return;
-	}
+          pkgInitSystem(*_config,_system) == false)
+        {
+          _error->DumpErrors ();
+          return;
+        }
 
       _config->Set("DPkg::Options::", "--force-confold");
 
@@ -472,7 +448,7 @@ AptWorkerState::Initialize (void)
     }
   
   default_state = new AptWorkerState ();
-  temp_state = new AptWorkerState (false, TEMP_APT_CACHE, TEMP_APT_STATE, TEMP_APT_SOURCE_LIST, "");
+  temp_state = new AptWorkerState ();
   
   current_state = default_state;
 }
@@ -480,14 +456,7 @@ AptWorkerState::Initialize (void)
 void AptWorkerState::SetAsCurrent ()
 {
   if (current_state != this)
-    {
-      _config->Set ("Apt::Cache::Generate", cache_generate);
-      _config->Set ("Dir::Cache", dir_cache);
-      _config->Set ("Dir::State", dir_state);
-      _config->Set ("Dir::Etc::SourceList", source_list);
-      _config->Set ("Dir::Etc::SourceParts", source_parts);
       current_state = this;
-    }
 }
 
 /* This struct describes some status flags for specific packages.
@@ -1077,6 +1046,7 @@ void cmd_get_package_details ();
 int cmd_check_updates (bool with_status = true);
 void cmd_get_catalogues ();
 void cmd_set_catalogues ();
+void cmd_rm_temp_catalogues ();
 void cmd_install_check ();
 void cmd_download_package ();
 void cmd_install_package ();
@@ -1103,6 +1073,7 @@ int cmdline_rescue (char **argv);
 static void save_failed_catalogues (xexp *catalogues);
 static xexp *load_failed_catalogues ();
 static void clean_failed_catalogues ();
+static void clean_temp_catalogues ();
 static xexp *merge_catalogues_with_errors (xexp *catalogues);
 
 /** MANAGEMENT OF FILE WITH INFO ABOUT AVAILABLE UPDATES */
@@ -1166,6 +1137,7 @@ static char *cmd_names[] = {
   "CHECK_UPDATES",
   "GET_CATALOGUES",
   "SET_CATALOGUES",
+  "RM_TEMP_CATALOGUES",
   "INSTALL_CHECK",
   "INSTALL_PACKAGE",
   "REMOVE_CHECK",
@@ -1240,6 +1212,10 @@ handle_request ()
 
     case APTCMD_SET_CATALOGUES:
       cmd_set_catalogues ();
+      break;
+
+    case APTCMD_RM_TEMP_CATALOGUES:
+      cmd_rm_temp_catalogues ();
       break;
 
     case APTCMD_INSTALL_CHECK:
@@ -1480,6 +1456,8 @@ misc_init ()
 #ifdef HAVE_APT_TRUST_HOOK
   apt_set_index_trust_level_for_package_hook (index_trust_level_for_package);
 #endif
+
+  clean_temp_catalogues ();
 }
 
 int
@@ -3934,7 +3912,6 @@ cmd_get_catalogues ()
   if (!stat_result)
     {
       /* Map the catalogue report to (maybe) delete error reports from it */
-      //xexp *tmp_catalogues = xexp_read_file (CATALOGUE_CONF);
       xexp *tmp_catalogues = read_catalogues ();
       catalogues = xexp_list_map (tmp_catalogues, map_catalogue_error_details);
       xexp_free (tmp_catalogues);
@@ -3946,7 +3923,7 @@ cmd_get_catalogues ()
     {
       /* If there's not a conf file on disk, write a empty one */
       catalogues = read_catalogues (); /* @check test this scenario */
-      xexp_write_file (CATALOGUE_CONF, catalogues);
+      write_user_catalogues (catalogues);
     }
 
   string Main = _config->FindFile("Dir::Etc::sourcelist");
@@ -3991,6 +3968,21 @@ cmd_set_catalogues ()
   update_sources_list (catalogues);
 
   xexp_free (catalogues);
+  response.encode_int (success);
+}
+
+/* APTCMD_RM_TEMP_CATALOGUES
+ *
+ * Remove the temporal source list stored in /etc/apt directory
+ */
+
+void
+cmd_rm_temp_catalogues ()
+{
+  int success = true;
+
+  clean_temp_catalogues ();
+  
   response.encode_int (success);
 }
 
@@ -4610,9 +4602,6 @@ set_dir_cache_archives (const char *alt_download_root)
     {
       /* Setting default location */
 
-      /* Update APT configuration */
-      state->using_alt_archives_dir = false;
-
       /* If setting to default set just the relative path */
       _config->Set ("Dir::Cache::Archives", DEFAULT_DIR_CACHE_ARCHIVES);
 
@@ -4642,9 +4631,6 @@ set_dir_cache_archives (const char *alt_download_root)
 	    }
 	  else
 	    {
-	      /* Update APT configuration */
-	      state->using_alt_archives_dir = true;
-
 	      /* If not setting to default set the full path */
 	      _config->Set ("Dir::Cache::Archives", archives_dir);
 
@@ -5474,6 +5460,13 @@ clean_failed_catalogues ()
 {
   if (unlink (FAILED_CATALOGUES_FILE) < 0 && errno != ENOENT)
     log_stderr ("error unlinking %s: %m", FAILED_CATALOGUES_FILE);
+}
+
+static void
+clean_temp_catalogues ()
+{
+  if (unlink (TEMP_APT_SOURCE_LIST) < 0 && errno != ENOENT)
+    log_stderr ("error unlinking %s: %m", TEMP_APT_SOURCE_LIST);
 }
 
 static void
