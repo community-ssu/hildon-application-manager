@@ -142,20 +142,13 @@ write_sources_list (const char *filename, xexp *catalogues)
 static xexp *
 get_backup_catalogues ()
 {
-  xexp *catalogues = xexp_read_file (CATALOGUE_CONF);
-  if (catalogues)
-    {
-      xexp *c = xexp_first (catalogues);
-      while(c)
-	{
-	  xexp *r = xexp_rest (c);
-	  if (xexp_aref_bool (c, "nobackup"))
-	    xexp_del (catalogues, c);
-	  c = r;
-	}
-    }
+  /* We backup all the information in the CATALOGUE_CONF file, but
+     nothing from the PACKAGE_CATALOGUES directory.  That will lead to
+     all the user data being backedup, and none of the data controlled
+     by packages.
+  */
 
-  return catalogues;
+  return xexp_read_file (CATALOGUE_CONF);
 }
 
 void
