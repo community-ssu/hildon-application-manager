@@ -54,7 +54,6 @@
 	* configure.ac: Make libalarm dependency optional.
 	* src/update-notifier.c: Only use alarm API when HAVE_LIBALARM_PKG
 	is defined.
-
 	* Makefile.am: Make sure DESTDIR is honored in all cases.
 	(install-local): Create the directory where packages are supposed
 	to drop their catalogue fragments.
@@ -77,6 +76,10 @@
 	being NULL.
 
 2008-08-26  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
+=======
+	* Changelog: add the changelog info 
+>>>>>>> * src/repo.cc (catalogue_name): Be robust against current_locale
+being NULL.:ChangeLog
 
 	* src/package-info-cell-renderer.c
 	(package_info_cell_renderer_finalize): validate strings for free,
