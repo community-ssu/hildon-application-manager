@@ -1,3 +1,36 @@
+2008-08-26  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
+
+    * Changelog: add the changelog info
+    * debian/changelog: add the changelog info
+    * src/package-info-cell-renderer.c
+      (package_info_cell_renderer_finalize): validate strings for free,
+      (package_info_cell_renderer_set_property): validate strings for
+      substitution,
+      (cell_get_state): helper function to obtain the cell state
+      (package_info_cell_renderer_render): get rid of the cairo function
+      calls
+    * src/apt-worker.cc (cmd_get_catalogues): when update the catalogues and
+      no user catalogue file is found, only save the user catalogues.
+      (class AptWorkerState): remove unneeded attributes,
+      (AptWorkerState::AptWorkerState): remove attributes initialization,
+      (AptWorkerState::InitializeValues): remove attribute initialization,
+      (AptWorkerState::Initialize): no parameter construction for
+      temp_state,
+      (AptWorkerState::SetAsCurrent): no attribute assignation
+      (set_dir_cache_archives): no attributes assignation
+    * src/apt-worker-client.cc (apt_worker_rm_temp_catalogues): new function
+    * src/apt-worker-client.h: expose new function
+    * src/apt-worker-proto.h: new apt-worker command
+    * src/apt-worker.cc (handle_request): handle the new command,
+      (misc_init) remove the temporal catalogues at the begining,
+      (cmd_rm_temp_catalogues): new command handler
+      (clean_temp_catalogues): remove temporal catalogues
+    * src/instr.cc (eci_end): ask for temporal catalogues removal
+    * src/repo.cc (rm_temp_catalogues_callback) new callback function,
+      (rm_temp_catalogues): ask to apt-worker for the temporal catalogue
+      removal
+    * src/repo.h: new function exposure
+
 2008-08-22  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
 
 	* src/package-info-cell-renderer.c
