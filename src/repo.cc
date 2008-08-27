@@ -237,7 +237,9 @@ catalogue_name (xexp *x)
   else
     {
       char *current_locale = setlocale (LC_MESSAGES, "");
-      xexp *t = xexp_aref (n, current_locale);
+      xexp *t = (current_locale
+		 ? xexp_aref (n, current_locale)
+		 : NULL);
       if (t == NULL)
 	t = xexp_aref (n, "default");
       if (t && xexp_is_text (t))
