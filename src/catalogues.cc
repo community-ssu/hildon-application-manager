@@ -58,23 +58,26 @@ static void
 add_package_catalogues (xexp *pkgcat, xexp *cat, gchar* file)
 {
   while (xexp *m = xexp_pop (cat))
-  {
-    if (!package_catalogue_is_valid (m))
     {
-      DBG ("Ignoring", m);
-      xexp_free (m);
-      continue;
-    }
+      if (xexp_aref_text (m, "id") == NULL)
+	{
+	  fprintf (stderr, "%s.%s: catalogues must have 'id' element.\n",
+		   file, CATALOGUES_EXT);
+	  continue;
+	}
+      
+      if (!catalogue_is_valid (m))
+	{
+	  DBG ("Ignoring", m);
+	  xexp_free (m);
+	  continue;
+	}
 
-    /* this is not an elegant place to do this */
-    if (file)
       xexp_aset_text (m, "file", file);
-
-    xexp_aset_bool (m, "nobackup", TRUE);
-
-    DBG ("Adding", m);
-    xexp_append_1 (pkgcat, m);
-  }
+      
+      DBG ("Adding", m);
+      xexp_append_1 (pkgcat, m);
+    }
 }
 
 xexp*
@@ -149,7 +152,6 @@ read_package_catalogues (void)
 
       filename = g_strndup (dirent, ext - dirent);
 
-      //merge_package_catalogues (packcat, cat, filename);
       add_package_catalogues (pkgcat, cat, filename);
 
       if (filename)
@@ -184,27 +186,25 @@ read_catalogues (void)
     goto beach;
   
   while (xexp *m = xexp_pop (syscat))
-  {
-    const gchar *sfile = xexp_aref_text (m, "file");
-    const gchar *sid   = xexp_aref_text (m, "id");
-    gboolean sdisabled = xexp_aref_bool (m, "disabled");
-    
+    {
+      const gchar *sfile = xexp_aref_text (m, "file");
+      const gchar *sid   = xexp_aref_text (m, "id");
+      
     if ((!sfile || !sid) &&          /* is a reference to a pkg catalogue? */
         catalogue_is_valid (m))      /* is a valid catalogue? */
-    {
-      DBG ("Adding user's cat to global", m);
-      xexp_append_1 (global, m);
+      {
+	DBG ("Adding user's cat to global", m);
+	xexp_append_1 (global, m);
+      }
+    else
+      {
+	gboolean sdisabled = xexp_aref_bool (m, "disabled");
+	xexp* x = find_package_catalogue (sid, sfile, global);
+	if (x)
+	  xexp_aset_bool (x, "disabled", sdisabled);
+	xexp_free (m);
+      }
     }
-    else if (sdisabled)
-    {
-      xexp* x = find_package_catalogue (sid, sfile, global);
-      if (x)
-        xexp_aset_bool (x, "disabled", TRUE);
-      xexp_free (m);
-    }
-    else  
-      xexp_free (m);
-  }
 
   if (syscat)
     xexp_free (syscat);
@@ -223,30 +223,25 @@ write_user_catalogues (xexp *catalogues)
 
   /* lets' filter the current catalogues list */
   for (xexp *x = xexp_first (catalogues); x; x = xexp_rest (x))
-  {
-    if (xexp_is (x, "catalogue"))
     {
-      xexp* newrep = NULL;
-
-      if (xexp_aref_text (x, "file") &&       /* it is a reference and it is */
-          xexp_aref_text (x, "id") &&         /* disabled */
-          xexp_aref_bool (x, "disabled"))
-      {
-        newrep = xexp_list_new ("catalogue");
-        xexp_aset_bool (newrep, "disabled", 1);
-        xexp_aset_text (newrep, "id", xexp_aref_text (x, "id"));
-        xexp_aset_text (newrep, "file", xexp_aref_text (x, "file"));
-      }
-      else if (!xexp_aref_text (x, "file") && /* it is not a reference to a */
-               !xexp_aref_text (x, "id"))     /* package catalogue */
-        newrep = xexp_copy (x);
-      else
-        continue;
-
-      if (newrep)
-        xexp_append_1 (usercat, newrep);
+      if (xexp_is (x, "catalogue"))
+	{
+	  xexp* newrep = NULL;
+	  
+	  if (xexp_aref_text (x, "file") &&       /* it is package catalogue */
+	      xexp_aref_text (x, "id"))
+	    {
+	      newrep = xexp_list_new ("catalogue");
+	      xexp_aset_bool (newrep, "disabled",
+			      xexp_aref_bool (x, "disabled"));
+	      xexp_aset_text (newrep, "id", xexp_aref_text (x, "id"));
+	      xexp_aset_text (newrep, "file", xexp_aref_text (x, "file"));
+	      xexp_append_1 (usercat, newrep);
+	    }
+	  else
+	    xexp_append_1 (usercat, xexp_copy (x));
+	}
     }
-  }
 
   gint retval = xexp_write_file (CATALOGUE_CONF, usercat);
   xexp_free (usercat);
