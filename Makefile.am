@@ -20,6 +20,8 @@ sudoers_DATA = hildon-application-manager.sudoers
 
 etcdir = $(sysconfdir)/hildon-application-manager/
 
+pkgcatdir = $(datadir)/hildon-application-manager/catalogues
+
 vardir = /var/lib/hildon-application-manager/
 
 install-data-local:
@@ -33,10 +35,11 @@ install-data-local:
 	if [ ! -f $(DESTDIR)$(etcdir)/notifier ]; then \
           echo "<notifier/>" >$(DESTDIR)$(etcdir)/notifier; \
         fi
-	$(mkinstalldirs) $(vardir)
-	if [ ! -f $(vardir)/available_updates ]; then \
-          echo "<updates/>" >$(vardir)/available_updates; \
+	$(mkinstalldirs) $(DESTDIR)$(vardir)
+	if [ ! -f $(DESTDIR)$(vardir)/available_updates ]; then \
+          echo "<updates/>" >$(DESTDIR)$(vardir)/available_updates; \
         fi
+	$(mkinstalldirs) $(DESTDIR)$(pkgcatdir)
 
 uninstall-local:
 	if [ -f $(DESTDIR)$(etcdir)/catalogues ]; then \
@@ -48,8 +51,8 @@ uninstall-local:
 	if [ -f $(DESTDIR)$(etcdir)/notifier ]; then \
           rm $(DESTDIR)$(etcdir)/notifier; \
         fi
-	if [ -f $(vardir)/available_updates ]; then \
-          rm $(vardir)/available_updates; \
+	if [ -f $(DESTDIR)$(vardir)/available_updates ]; then \
+          rm $(DESTDIR)$(vardir)/available_updates; \
         fi
 
 EXTRA_DIST = COPYING.LIB                                        \
