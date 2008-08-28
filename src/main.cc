@@ -34,6 +34,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <gconf/gconf-client.h>
 
+#include <hildon/hildon-defines.h>
 #include <hildon/hildon-window.h>
 
 #include "apt-worker-client.h"
@@ -2919,7 +2920,7 @@ main (int argc, char **argv)
   GtkWidget *window = NULL;
   toolbar_struct *m_tb_struct = NULL;
   toolbar_struct *u_tb_struct = NULL;
-  char *apt_worker_prog = "/usr/libexec/apt-worker";
+  const char *apt_worker_prog = "/usr/libexec/apt-worker";
   bool show = true;
 
   if (argc > 1 && !strcmp (argv[1], "--no-show"))

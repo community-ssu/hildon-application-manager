@@ -59,7 +59,7 @@ static void
 interpret_pmstatus (char *str)
 {
   float percentage;
-  char *title;
+  const char *title;
 
   if (!strncmp (str, "pmstatus:", 9))
     {
@@ -119,7 +119,7 @@ setup_pmstatus_from_fd (int fd)
 }
 
 static bool
-must_mkfifo (char *filename, int mode)
+must_mkfifo (const char *filename, int mode)
 {
   if (unlink (filename) < 0 && errno != ENOENT)
     log_perror (filename);
@@ -133,7 +133,7 @@ must_mkfifo (char *filename, int mode)
 }
 
 static bool
-must_unlink (char *filename)
+must_unlink (const char *filename)
 {
   if (unlink (filename) < 0)
     {
@@ -144,7 +144,7 @@ must_unlink (char *filename)
 }
 
 static int
-must_open (char *filename, int flags)
+must_open (const char *filename, int flags)
 {
   int fd = open (filename, flags);
   if (fd < 0)
@@ -156,7 +156,7 @@ must_open (char *filename, int flags)
 }
 
 static int
-must_open_nonblock (char *filename, int flags)
+must_open_nonblock (const char *filename, int flags)
 {
   int fd = must_open (filename, flags | O_NONBLOCK);
   if (fd >= 0)
@@ -214,11 +214,11 @@ apt_worker_watch (GPid pid, int status, gpointer data)
 }
 
 bool
-start_apt_worker (gchar *prog)
+start_apt_worker (const char *prog)
 {
   int stdout_fd, stderr_fd;
   GError *error = NULL;
-  gchar *sudo;
+  const char *sudo;
 
   // XXX - be more careful with the /tmp files by putting them in a
   //       temporary directory, maybe.
@@ -246,7 +246,7 @@ start_apt_worker (gchar *prog)
     *ptr++ = 'A';
   *ptr++ = '\0';
 
-  gchar *args[] = {
+  const char *args[] = {
     sudo,
     prog, "backend",
     "/tmp/apt-worker.to", "/tmp/apt-worker.from",
@@ -256,7 +256,7 @@ start_apt_worker (gchar *prog)
   };
 
   if (!g_spawn_async_with_pipes (NULL,
-				 args,
+				 (gchar **)args,
 				 NULL,
 				 GSpawnFlags (G_SPAWN_DO_NOT_REAP_CHILD),
 				 NULL,
@@ -507,7 +507,7 @@ cancel_all_pending_worker_calls ()
     }
 
   worker_call *c;
-  while (c = get_next_pending_worker_call ())
+  while ((c = get_next_pending_worker_call ()))
     cancel_worker_call (c);
 }
 

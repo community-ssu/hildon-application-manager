@@ -2665,7 +2665,7 @@ get_flags (package_record &rec)
   int flags = 0;
   char *flag_string = rec.get ("Maemo-Flags");
   char *ptr = flag_string, *tok;
-  while (tok = strsep (&ptr, ","))
+  while ((tok = strsep (&ptr, ",")))
     {
       for (int i = 0; flag_names[i].name != NULL; i++)
 	if (tokens_equal (flag_names[i].name, tok))
@@ -5785,7 +5785,7 @@ static void
 interpret_pmstatus (char *str)
 {
   float percentage;
-  char *title;
+  const char *title;
 
   if (!strncmp (str, "pmstatus:", 9))
     {

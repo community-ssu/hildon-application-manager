@@ -429,7 +429,7 @@ spd_update_common_page (void *data)
   spd_clos *c = (spd_clos *)data;
   GtkWidget *table = c->table;
   package_info *pi = c->pi;
-  gchar *status;
+  const char *status;
   gint last_row = -1;
 
   /* Prevent the 'Updating' banner from being shown */

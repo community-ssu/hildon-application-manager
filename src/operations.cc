@@ -208,10 +208,10 @@ struct ip_clos {
 
   // per installation iteration
   int flags;
-  int64_t free_space;       // the required free storage space in bytes
-  char *alt_download_root;  // Alternative download root filesystem.
-  GSList *upgrade_names;    // the packages and versions that we are going
-  GSList *upgrade_versions; // to upgrade to.
+  int64_t free_space;             // the required free storage space in bytes
+  const char *alt_download_root;  // Alternative download root filesystem.
+  GSList *upgrade_names;          // the packages and versions that we are going
+  GSList *upgrade_versions;       // to upgrade to.
 
   // at the end
   bool entertaining;        // is the progress bar up?
@@ -841,7 +841,7 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
     {
       /* Launch osso-backup as a single instance */
       osso_context_t *osso_context = NULL;
-      if (osso_context = get_osso_context ())
+      if ((osso_context = get_osso_context ()))
 	{
 	  if (osso_application_top (osso_context,
 				    "com.nokia.backup",
