@@ -1,6 +1,11 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Complete port to new Fremantle APIs [mvo]
+
+- update-notifier.c: alarm API.
+- dbus.c: MCE_REBOOT_REQ
+
 * Remove UI from maemo-select-menu-location.
 
 It's annoying.
