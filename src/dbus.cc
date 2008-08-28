@@ -648,6 +648,7 @@ init_dbus_or_die (bool top_existing)
 void
 send_reboot_message (void)
 {
+#ifdef MCE_REBOOT_REQ
   DBusConnection *conn;
   DBusMessage *msg;
 
@@ -670,6 +671,9 @@ send_reboot_message (void)
   dbus_connection_flush (conn);
 
   add_log ("Reboot message sent, quit the application.\n");
+#else
+  what_the_fock_p ();
+#endif
 }
 
 static inline void send_battery_status_request (void)
