@@ -1,5 +1,7 @@
 2008-08-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.2.0
+
 	* src/apt-worker-client.cc, src/apt-worker-client.h,
 	src/apt-worker.cc, src/details.cc, src/main.cc, src/operations.cc:
 	Shut up some new warnings.  Be more const correct.  Put
