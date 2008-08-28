@@ -1,3 +1,38 @@
+2008-08-28  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker-client.cc, src/apt-worker-client.h,
+	src/apt-worker.cc, src/details.cc, src/main.cc, src/operations.cc:
+	Shut up some new warnings.  Be more const correct.  Put
+	parentheses around assignments used as conditions.
+
+	* src/dbus.cc (send_reboot_message): Do nothing when
+	MCE_REBOOT_REQ is not defined.
+
+	* configure.ac: Make libalarm dependency optional.
+	* src/update-notifier.c: Only use alarm API when HAVE_LIBALARM_PKG
+	is defined.
+
+	* Makefile.am: Make sure DESTDIR is honored in all cases.
+	(install-local): Create the directory where packages are supposed
+	to drop their catalogue fragments.
+
+2008-08-27  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/confutils.cc (backup_catalogues): Don't look at the
+	"nobackup" flag, all information in /etc/h-a-m/catalogues is user
+	data now and should be backedup.
+
+	* src/catalogues.cc (write_user_catalogues): Save information for
+	every package catalogue, not only the disabled ones.
+	(read_package_catalogues): Likewise, when reading.
+	(add_package_catalogues): Be noisy about catalogues without a 'id'
+	element.  That will be a common error and we shouldn't be silent
+	about it.  Expect "file" to be non-NULL.  Don't set the "nobackup"
+	flag, it is unused now.
+
+	* src/repo.cc (catalogue_name): Be robust against current_locale
+	being NULL.
+
 2008-08-26  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
 
     * Changelog: add the changelog info
