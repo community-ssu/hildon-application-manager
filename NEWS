@@ -1,3 +1,45 @@
-User visible changes in 4.0:
+User visible changes in 2.2:
 
-* Everything is new.  Enjoy!
+* The Application manager now uses the normal apt-get algorithms for
+  computing a package installation or removal.
+  
+  [experimental and incomplete right now.]
+
+* The pre-defined catalogues are handled differently; they are no
+  longer stored in the same place as user defined catalogues.  As a
+  consequence, you can no longer change the pre-defined catalogues in
+  the UI at all.
+
+  You can still disable them, however.
+
+  This change introduces a clear separation of pre-defined data and
+  user data.  The pre-defined data can be updated during a OS upgrade,
+  while the user data is properly backed up.  Thus, things like a OS
+  upgrade disabling your maemo Extras catalogue or a restoring a
+  backup not enabling it again should no longer happen.
+
+* [Bug 3503] A theming bug with the package lists has been fixed.
+  Previously, the text was always black, now it uses the theme colors.
+
+* The hildon-application-manager-config utility no longer clobbers
+  your configuration when invoked with the "set" sub-command but no
+  files.  While it was technically correct to reset the configuration
+  to be completely empty in this case, it is not very useful and
+  causes too much damage when done accidentally.
+
+  If you really need to reset your configuration to be empty, use
+
+    hildon-application-manager-config set /dev/null
+
+* When installing from a specially prepared memory card, the
+  catalogues listed in the .install file on the card are used in
+  addition to the network catalogues, not instead of them as
+  previously.
+
+  This means that installing from a memory card now requires a network
+  connection.  Also, all optimizations for this case have been removed
+  that allowed us to avoid recomputing the package caches, so it is
+  significantly slower now.
+
+  Don't make these specially prepared memory cards.  Put your stuff on
+  the Internet.  Physical media is sooo 80ties anyway.
