@@ -44,8 +44,15 @@ PKG_CHECK_MODULES(AW_DEPS, glib-2.0)
 AC_SUBST(AW_DEPS_CFLAGS)
 AC_SUBST(AW_DEPS_LIBS)
 
-PKG_CHECK_MODULES(NOTIFIER_DEPS, gtk+-2.0 glib-2.0 libhildondesktop gconf-2.0
-                                 libhildonwm dbus-1 libalarm libcurl)
+
+NOTIFIER_PKGS="gtk+-2.0 glib-2.0 libhildondesktop gconf-2.0 libhildonwm dbus-1 libcurl"
+
+if pkg-config --exists libalarm; then
+  NOTIFIER_PKGS="$NOTIFIER_PKGS libalarm"
+  AC_DEFINE(HAVE_LIBALARM_PKG)
+fi
+
+PKG_CHECK_MODULES(NOTIFIER_DEPS, $NOTIFIER_PKGS)
 AC_SUBST(NOTIFIER_DEPS_LIBS)
 AC_SUBST(NOTIFIER_DEPS_CFLAGS)
 

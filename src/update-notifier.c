@@ -43,7 +43,9 @@
 #include <libhildondesktop/libhildondesktop.h>
 #include <libhildonwm/hd-wm.h>
 
+#if HAVE_LIBALARM_PKG
 #include <alarm_event.h>
+#endif
 
 #include "update-notifier.h"
 #include "update-notifier-conf.h"
@@ -1436,6 +1438,7 @@ setup_inotify (UpdateNotifier *upno)
     }
 }
 
+#if HAVE_LIBALARM_PKG
 static void
 search_and_delete_all_alarms (void)
 {
@@ -1556,6 +1559,16 @@ setup_alarm (UpdateNotifier *upno)
 
   return alarm_cookie > 0;
 }
+#else
+
+static gboolean
+setup_alarm (UpdateNotifier *upno)
+{
+  return TRUE;
+}
+
+#endif
+
 
 static void
 cleanup_gconf (UpdateNotifier *upno)
@@ -1606,6 +1619,7 @@ cleanup_inotify (UpdateNotifier *upno)
     }
 }
 
+#if HAVE_LIBALARM_PKG
 static void
 cleanup_alarm (UpdateNotifier *upno)
 {
@@ -1615,6 +1629,12 @@ cleanup_alarm (UpdateNotifier *upno)
   alarm_cookie = priv->state.alarm_cookie;
   alarm_event_del (alarm_cookie);
 }
+#else
+static void
+cleanup_alarm (UpdateNotifier *upno)
+{
+}
+#endif
 
 /* Returns the position of needle in haystack, or -1 if it can't be found.
  */
@@ -1739,9 +1759,9 @@ load_state (UpdateNotifier *upno)
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
   xexp *x_state = user_file_read_xexp (UFILE_UPDATE_NOTIFIER);
 
-  cookie_t old_cookie = gconf_client_get_int (priv->gconf,
-					      UPNO_GCONF_OLD_ALARM_COOKIE,
-					      NULL);
+  int old_cookie = gconf_client_get_int (priv->gconf,
+					 UPNO_GCONF_OLD_ALARM_COOKIE,
+					 NULL);
 
   gconf_client_unset (priv->gconf,
 		      UPNO_GCONF_OLD_ALARM_COOKIE,
