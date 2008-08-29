@@ -1,3 +1,11 @@
+2008-08-29  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/util.cc (get_https_proxy): Fall back to "https_proxy"
+	envvar.
+
+	* src/settings.cc: Make red_pill_show_all and
+	red_pill_show_magic_sys default to false.
+
 2008-08-28  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.2.0
