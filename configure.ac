@@ -69,7 +69,7 @@ AC_DEFINE_UNQUOTED(DEB_HOST_ARCH, "$DEB_HOST_ARCH", [Debian architecture])
 
 # Default distribution
 #
-AC_DEFINE(DEFAULT_DIST, "diablo", [Default distribution name])
+AC_DEFINE(DEFAULT_DIST, "fremantle", [Default distribution name])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
