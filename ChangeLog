@@ -1,5 +1,9 @@
 2008-08-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/operations.cc (ip_reboot_now, ip_flash_and_reboot_reply):
+	Make sure that the interaction flow ends eventually even if the
+	reboot does not happen.
+
 	* src/util.cc (get_https_proxy): Fall back to "https_proxy"
 	envvar.
 

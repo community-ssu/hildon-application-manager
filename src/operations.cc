@@ -1645,6 +1645,8 @@ ip_reboot_now (void *data)
     {
       /* Reboot the device */
       send_reboot_message ();
+      sleep (3);
+      ip_end (c);
     }
 
   return FALSE;
@@ -1658,6 +1660,8 @@ ip_flash_and_reboot_reply (int cmd, apt_proto_decoder *dec, void *data)
    */
 
   send_reboot_message ();
+  sleep (3);
+  ip_end (data);
 }
 
 
