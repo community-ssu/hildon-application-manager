@@ -1128,7 +1128,7 @@ ensure_state (int state)
 }
 
 #ifdef DEBUG_COMMANDS
-static char *cmd_names[] = {
+static const char *cmd_names[] = {
   "NOOP",
   "STATUS",
   "GET_PACKAGE_LIST",
@@ -2647,7 +2647,7 @@ get_icon (package_record &rec)
   return rec.get ("Maemo-Icon-26");
 }
 
-struct {
+struct flag_struct {
   const char *name;
   int flag;
 } flag_names[] = {
@@ -2656,7 +2656,7 @@ struct {
   { "reboot",           pkgflag_reboot },
   { "system-update",    pkgflag_system_update },
   { "flash-and-reboot", pkgflag_flash_and_reboot },
-  NULL
+  { NULL,               0 }
 };
 
 static int
@@ -4595,7 +4595,6 @@ combine_rescodes (int all, int one)
 static bool
 set_dir_cache_archives (const char *alt_download_root)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
   bool result = false;
 
   if (alt_download_root == NULL)
