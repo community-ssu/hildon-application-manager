@@ -3312,6 +3312,8 @@ get_https_proxy ()
 
   if (host && host[0])
     proxy = g_strdup_printf ("http://%s:%d", host, port);
+  else
+    proxy = g_strdup (getenv ("https_proxy"));
   g_free(host);
 
   g_object_unref (conf);
