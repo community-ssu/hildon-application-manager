@@ -1,4 +1,4 @@
-User visible changes in 2.2:
+User visible changes in 4.0:
 
 * The Application manager now uses the normal apt-get algorithms for
   computing a package installation or removal.
