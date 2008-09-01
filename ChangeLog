@@ -109,14 +109,12 @@
 	* src/repo.h: new function exposure
 
 2008-08-22  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
-	
+
 	* src/package-info-cell-renderer.c
-	(package_info_cell_renderer_render): Honor the theme color
-	properties in the cell widget (M3503)
+	(package_info_cell_renderer_render):
+	Honor the theme color properties in the cell widget (M3503)
 
 2008-08-19  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
-
-	* FUTURE: Added the task of "essential" tag removal
 
 	* src/apt-worker.cc (myCacheFile::save_extra_info): added fflush
 	op
