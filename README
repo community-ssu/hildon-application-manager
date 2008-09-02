@@ -1,8 +1,6 @@
 This is hildon-application-manager, version 2
 =============================================
 
-Test commit from git.
-
 The Hildon Application Manager is a program to manage add-on software
 components for the Hildon Desktop.  It uses the Debian package
 management tools provided by the maemo platform (namely APT and dpkg)
