@@ -152,7 +152,7 @@ pill_response (GtkDialog *dialog, gint response, gpointer unused)
       save_settings ();
 
       if (red_pill_show_all || red_pill_show_magic_sys)
-	get_package_list (APTSTATE_DEFAULT);
+        get_package_list (APTSTATE_DEFAULT);
     }
 }
 
@@ -241,9 +241,9 @@ catalogue_name (xexp *x)
 		 ? xexp_aref (n, current_locale)
 		 : NULL);
       if (t == NULL)
-	t = xexp_aref (n, "default");
+        t = xexp_aref (n, "default");
       if (t && xexp_is_text (t))
-	name = xexp_text (t);
+        name = xexp_text (t);
     }
   return name;
 }
@@ -365,12 +365,6 @@ is_package_catalogue (xexp *catalogue)
   return (file && id);
 }
 
-static gboolean
-is_read_only_entry (cat_edit_closure *closure)
-{
-  return (closure->readonly || is_package_catalogue (closure->catalogue));
-}
-
 static void
 cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 {
@@ -378,9 +372,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
   cat_edit_closure *c = (cat_edit_closure *)clos;
 
-  if (c->readonly)
-    ;
-  else if (response == GTK_RESPONSE_OK && is_package_catalogue (c->catalogue))
+  if (response == GTK_RESPONSE_OK && c->readonly)
     {
       bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
                   (c->disabled_button));
@@ -388,7 +380,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       set_cat_list (c->cat_dialog, &c->cat_dialog->selected_iter);
       c->cat_dialog->dirty = true;
     }
-  else if (response == GTK_RESPONSE_OK && !is_package_catalogue (c->catalogue))
+  else if (response == GTK_RESPONSE_OK && !c->readonly)
     {
       const char *name = gtk_entry_get_text (GTK_ENTRY (c->name_entry));
       char *uri = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c->uri_entry))));
@@ -398,50 +390,50 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 						    (c->disabled_button));
 
       if (all_whitespace (name))
-	{
-	  irritate_user (_("ai_ib_enter_name"));
-	  gtk_widget_grab_focus (c->name_entry);
-	  return;
-	}
+      {
+        irritate_user (_("ai_ib_enter_name"));
+        gtk_widget_grab_focus (c->name_entry);
+        return;
+      }
       /* validate repository location                                         */ 
       /* TODO we need a more general text, like "Invalid repository location" */
       /* TODO encode URI to scape special characters?                         */
       if (!repository_uri_is_valid (uri))
-	{
-	  irritate_user (_("ai_ib_enter_web_address"));
-	  gtk_widget_grab_focus (c->uri_entry);
-	  return;
-	}
+        {
+          irritate_user (_("ai_ib_enter_web_address"));
+          gtk_widget_grab_focus (c->uri_entry);
+          return;
+        }
 
       if (all_whitespace (comps))
-	{
-	  /* Ensure there's a trailing '/' at the end of dist */
-	  char *tmp_dist = dist;
+        {
+          /* Ensure there's a trailing '/' at the end of dist */
+          char *tmp_dist = dist;
 
-	  /* Append the '/' character when needed */
-	  if (all_whitespace (dist))
-	    dist = g_strdup ("/");
-	  else if (!g_str_has_suffix (dist, "/"))
-	    dist = g_strconcat (tmp_dist, "/", NULL);
+          /* Append the '/' character when needed */
+          if (all_whitespace (dist))
+            dist = g_strdup ("/");
+          else if (!g_str_has_suffix (dist, "/"))
+            dist = g_strconcat (tmp_dist, "/", NULL);
 
-	  /* Free tmp_dist if new memory was allocated for dist */
-	  if (dist != tmp_dist)
-	    g_free (tmp_dist);
-	}
+          /* Free tmp_dist if new memory was allocated for dist */
+          if (dist != tmp_dist)
+            g_free (tmp_dist);
+        }
       else if (!all_whitespace (dist))
-	{
-	  /* Remove the trailing '/' at the end of dist, if present */
-	  char *suffix = NULL;
-	  if (g_str_has_suffix (dist, "/") && (suffix = g_strrstr (dist, "/")))
-	    *suffix = '\0';
-	}
+        {
+          /* Remove the trailing '/' at the end of dist, if present */
+          char *suffix = NULL;
+          if (g_str_has_suffix (dist, "/") && (suffix = g_strrstr (dist, "/")))
+            *suffix = '\0';
+        }
 
       if (all_whitespace (dist))
-	dist = NULL;
+        dist = NULL;
 
       reset_cat_list (c->cat_dialog);
       if (c->isnew)
-	xexp_append_1 (c->cat_dialog->catalogues_xexp, c->catalogue);
+        xexp_append_1 (c->cat_dialog->catalogues_xexp, c->catalogue);
       set_catalogue_name (c->catalogue, name);
       xexp_aset_bool (c->catalogue, "disabled", disabled);
       xexp_aset_text (c->catalogue, "components", comps);
@@ -498,29 +490,13 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   else
     title = _("ai_ti_edit_repository");
 
-  if (c->readonly)
-    {
-      GtkWidget *button;
-
-      dialog = gtk_dialog_new_with_buttons (title, NULL,
-					    GTK_DIALOG_MODAL,
-					    NULL);
-
-      // We create the button separately in order to put the focus on
-      // the button.
-      button = gtk_dialog_add_button (GTK_DIALOG (dialog),
-				      _("ai_bd_repository_close"),
-				      GTK_RESPONSE_CANCEL);
-      gtk_widget_grab_focus (button);
-    }
-  else
-    dialog = gtk_dialog_new_with_buttons (title, NULL,
-					  GTK_DIALOG_MODAL,
-					  _("ai_bd_new_repository_ok"),
-					  GTK_RESPONSE_OK,
-					  _("ai_bd_new_repository_cancel"),
-					  GTK_RESPONSE_CANCEL,
-					  NULL);
+  dialog = gtk_dialog_new_with_buttons (title, NULL,
+            GTK_DIALOG_MODAL,
+            _("ai_bd_new_repository_ok"),
+            GTK_RESPONSE_OK,
+            _("ai_bd_new_repository_cancel"),
+            GTK_RESPONSE_CANCEL,
+            NULL);
 
   push_dialog (dialog);
 
@@ -552,22 +528,22 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   const char *current_name = catalogue_name (catalogue);
   c->name_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_name"),
-			     current_name, NULL, true, is_read_only_entry (c), true);
+			     current_name, NULL, true, c->readonly, true);
 
   c->uri_entry = add_entry (vbox, group,
 			    _("ai_fi_new_repository_web_address"),
 			    xexp_aref_text (catalogue, "uri"),
-			    NULL, false, is_read_only_entry (c), true);
+			    NULL, false, c->readonly, true);
 
   c->dist_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_distribution"),
 			     xexp_aref_text (catalogue, "dist"),
-			     NULL, false, is_read_only_entry (c), true);
+			     NULL, false, c->readonly, true);
 
   c->components_entry = add_entry (vbox, group,
 				   _("ai_fi_new_repository_component"),
 				   xexp_aref_text (catalogue, "components"),
-				   NULL, false, is_read_only_entry (c), false);
+				   NULL, false, c->readonly, false);
 
   c->disabled_button = gtk_check_button_new ();
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
@@ -577,7 +553,6 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 				c->disabled_button,
 				NULL, HILDON_CAPTION_OPTIONAL);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
-  gtk_widget_set_sensitive (c->disabled_button, !c->readonly);
 
   gtk_widget_set_usize (dialog, 650, -1);
 
@@ -717,13 +692,10 @@ cat_row_activated (GtkTreeView *treeview,
       catcache *c;
       gtk_tree_model_get (model, &iter, 0, &c, -1);
       if (c == NULL)
-	return;
-
-      if (c->readonly)
-	return;
+        return;
 
       show_cat_edit_dialog (c->cat_dialog, c->catalogue_xexp,
-			    false, false);
+			    false, c->readonly);
     }
 }
 
@@ -761,14 +733,9 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
     {
       emit_row_changed (model, &iter);
       gtk_widget_set_sensitive (c->edit_button,
-                                is_package_catalogue
-                                (new_selected->catalogue_xexp) || 
-                                (!new_selected->readonly
-                                 && !new_selected->foreign));
+                                 !new_selected->foreign);
       if (!c->show_only_errors)
         gtk_widget_set_sensitive (c->delete_button,
-                                  !is_package_catalogue
-                                  (new_selected->catalogue_xexp) && 
                                   !new_selected->readonly);
     }
   else
@@ -814,10 +781,10 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
       xexp *errors = NULL;
 
       cat->enabled = !xexp_aref_bool (x, "disabled");
-      if (red_pill_mode)
-	cat->readonly = false;
+      if (is_package_catalogue (x))
+        cat->readonly = true;
       else
-	cat->readonly = xexp_aref_bool (x, "essential");
+        cat->readonly = false;
       cat->foreign = false;
       cat->name = catalogue_name (x);
       cat->detail = render_catalogue_errors (x);
@@ -825,7 +792,7 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
       /* Check for errors during the last refresh */
       errors = xexp_aref (x, "errors");
       if (errors != NULL && xexp_first (errors) != NULL)
-	cat->refresh_failed = true;
+        cat->refresh_failed = true;
     }
   else if (xexp_is (x, "source") && xexp_is_text (x))
     {
@@ -1077,10 +1044,7 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
     {
       catcache *cat = get_selected_catalogue (c);
       if (cat == NULL)
-	return;
-
-      if (cat->readonly)
-	irritate_user (_("ai_ib_unable_edit"));
+        return;
 
       show_cat_edit_dialog (c, cat->catalogue_xexp, false, cat->readonly);
       return;

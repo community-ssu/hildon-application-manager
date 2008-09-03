@@ -1,3 +1,18 @@
+2008-09-03  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Removed the 'essential' flag for catalogues.
+
+	* src/repo.h: remove the essential tag documentation
+	* src/repo.cc: (reformat) subs spaces for tabs
+	(is_read_only_entry): function removed
+	(cat_edit_response): use the the readonly flag for enabled/disable
+	buttons
+	(show_cat_edit_dialog): the readonly flag doesn't care for the
+	dialog buttons, use the flag instead of the removed function
+	(cat_selection_changed): simplify the boolean operation for
+	sensitivity.
+	(make_catcache_from_xexp): activation of the readonly flag
+
 2008-08-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/operations.cc (ip_reboot_now, ip_flash_and_reboot_reply):

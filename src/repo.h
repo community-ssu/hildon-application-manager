@@ -56,10 +56,6 @@ void show_catalogue_dialog (xexp *catalogues,
 
       When present, marks this catalogue as disabled.
 
-      - essential
-
-      When present, marks this catalogue as essential.
-
       - nobackup
 
       When present, prevents this catalogue from ending up in a
