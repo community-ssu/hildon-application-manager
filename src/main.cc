@@ -424,6 +424,7 @@ package_info::package_info ()
   have_detail_kind = no_details;
   maintainer = NULL;
   description = NULL;
+  repository = NULL;
   summary = NULL;
   for (int i = 0; i < sumtype_max; i++)
     summary_packages[i] = NULL;
@@ -449,6 +450,8 @@ package_info::~package_info ()
     g_object_unref (available_icon);
   g_free (maintainer);
   g_free (description);
+  if (repository)
+    g_free (repository);
   g_free (summary);
   for (int i = 0; i < sumtype_max; i++)
     {

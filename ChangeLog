@@ -48,6 +48,10 @@
 	* src/update-notifier.c: Only use alarm API when HAVE_LIBALARM_PKG
 	is defined.
 
+	* Makefile.am: Make sure DESTDIR is honored in all cases.
+	(install-local): Create the directory where packages are supposed
+	to drop their catalogue fragments.
+
 2008-08-27  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/confutils.cc (backup_catalogues): Don't look at the
@@ -73,7 +77,7 @@
 	substitution,
 	(cell_get_state): helper function to obtain the cell state
 	(package_info_cell_renderer_render): get rid of the cairo function
-	calls.
+	calls
 
 	* src/apt-worker.cc (cmd_get_catalogues): when update the
 	catalogues and no user catalogue file is found, only save the user

@@ -330,6 +330,7 @@ struct apt_proto_package_info {
 //
 // - maintainer (string).
 // - description (string).
+// - repository (string).
 // - dependencies (deptype,string)*,(deptype_end).
 // - summary (sumtype,string)*,(sumtype_end).
 
