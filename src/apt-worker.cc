@@ -3209,6 +3209,32 @@ encode_broken (pkgCache::PkgIterator &pkg,
 }
 
 void
+encode_package_repository (pkgCache::VerIterator ver, int summary_kind)
+{
+  if (summary_kind == 1) /* only installable packages */
+    {
+      pkgCache::VerFileIterator vfi = ver.FileList ();
+      if (vfi.end () == false)
+        {
+          pkgCache::PkgFileIterator pfi = vfi.File ();
+          if (pfi.end () == false)
+            {
+              gchar* repo;
+
+              repo = g_strdup_printf ("%s %s %s", pfi.Site (), pfi.Archive (),
+                                      pfi.Component ());
+              response.encode_string (repo);
+              g_free (repo);
+            }
+        }
+    }
+  else
+    {
+      response.encode_string (NULL);
+    }
+}
+
+void
 encode_package_and_version (pkgCache::VerIterator ver)
 {
   package_record rec (ver);
@@ -3327,13 +3353,13 @@ cmd_get_package_details ()
     {
       response.encode_string ("");      // maintainer
       response.encode_string 
-	("This is an artificial package that represents all\n"
-	 "system packages that are installed on your device.");
+        ("This is an artificial package that represents all\n"
+         "system packages that are installed on your device.");
       response.encode_int (deptype_end);  // dependencies
       if (summary_kind == 1)
-	encode_install_summary (package);
+        encode_install_summary (package);
       else
-	response.encode_int (sumtype_end);
+        response.encode_int (sumtype_end);
     }
   else
     {
@@ -3342,28 +3368,29 @@ cmd_get_package_details ()
       pkgCache::VerIterator ver;
       
       if (find_package_version (state->cache, pkg, ver, package, version))
-	{
-	  package_record rec (ver);
+        {
+          package_record rec (ver);
 	  
-	  response.encode_string (rec.P.Maintainer().c_str());
-	  response.encode_string 
-	    (get_long_description (summary_kind, pkg, rec).c_str());
-	  encode_dependencies (ver);
-	  if (summary_kind == 1)
-	    encode_install_summary (package);
-	  else if (summary_kind == 2)
-	    encode_remove_summary (pkg);
-	  else
-	    response.encode_int (sumtype_end);
-	}
+          response.encode_string (rec.P.Maintainer().c_str());
+          response.encode_string 
+            (get_long_description (summary_kind, pkg, rec).c_str());
+          encode_dependencies (ver);
+          encode_package_repository (ver, summary_kind);
+          if (summary_kind == 1)
+              encode_install_summary (package);
+          else if (summary_kind == 2)
+            encode_remove_summary (pkg);
+          else
+            response.encode_int (sumtype_end);
+        }
       else
-	{
-	  // not found
-	  response.encode_string (NULL);      // maintainer
-	  response.encode_string (NULL);      // description
-	  response.encode_int (deptype_end);  // dependencies
-	  response.encode_int (sumtype_end);  // summary
-	}
+        {
+          // not found
+          response.encode_string (NULL);      // maintainer
+          response.encode_string (NULL);      // description
+          response.encode_int (deptype_end);  // dependencies
+          response.encode_int (sumtype_end);  // summary
+        }
     }
 }
 
