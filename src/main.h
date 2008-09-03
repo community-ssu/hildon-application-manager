@@ -79,6 +79,7 @@ struct package_info {
   detail_kind have_detail_kind;
   char *maintainer;
   char *description;
+  char *repository;
   char *summary;
   GList *summary_packages[sumtype_max];  // GList of strings.
   char *dependencies;

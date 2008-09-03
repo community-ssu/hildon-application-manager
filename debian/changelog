@@ -5,17 +5,7 @@ hildon-application-manager (1:2.2.1~unreleased) unstable; urgency=low
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 28 Aug 2008 19:50:48 +0300
 
-  * Fixes: MB#3503
-
- -- Victor Manuel Jaquez Leal <vjaquez@maemo.org> Fri, 22 Aug, 16:10:39 +0100
-	
-hildon-application-manager (1:2.2.0~unreleased) unstable; urgency=low
-
-  * Fixes: MB#3503
-
- -- Victor Manuel Jaquez Leal <vjaquez@maemo.org> Fri, 22 Aug, 16:10:39 +0100
-	
-hildon-application-manager (1:2.2.0~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.0) unstable; urgency=low
 
   * Fixes: NB#86999, MB#3457.
   * Fixes: MB#3503
