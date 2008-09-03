@@ -1,5 +1,12 @@
 2008-09-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Make maemo-select-menu-location do nothing.
+
+	* utils/Makefile.am: Don't use the launcher for
+	maemo-select-menu-location.
+	* maemo-select-menu-location (main): Just print warning and exit.
+	Removed all the rest.
+
 	Removed the 'essential' flag for catalogues.
 
 	* src/repo.h: remove the essential tag documentation
