@@ -7,11 +7,8 @@ New features for the Hildon Application Manager
 - dbus.c: MCE_REBOOT_REQ
 - dbus.c: battery info (get it via libhal, capability "battery")
 
-* Remove UI from maemo-select-menu-location [mvo, mvo-remove-menu-location].
-
-It's annoying.
-
-* Show repository that a package is going to be installed from [victor]
+* Show repository that a package is going to be installed from
+  [victor, vjaquez-show-repo]
 
 The "Details" dialog should be extended somehow to show the
 repositories / catalogues that a package is going to be installed

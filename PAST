@@ -3,6 +3,10 @@ Completed features of the Hildon Application Manager
 
 See FUTURE for planned features.
 
+* Remove UI from maemo-select-menu-location [mvo, mvo-remove-menu-location].
+
+It's annoying.
+
 * Repairing broken packages [mario]
 
 If a visible package is in a broken state, it should also be shown in
