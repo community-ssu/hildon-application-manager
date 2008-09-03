@@ -1,13 +1,13 @@
 New features for the Hildon Application Manager
 ===============================================
 
-* Complete port to new Fremantle APIs [mvo]
+* Complete port to new Fremantle APIs [mvo, master]
 
 - update-notifier.c: alarm API.
 - dbus.c: MCE_REBOOT_REQ
 - dbus.c: battery info (get it via libhal, capability "battery")
 
-* Remove UI from maemo-select-menu-location.
+* Remove UI from maemo-select-menu-location [mvo, mvo-remove-menu-location].
 
 It's annoying.
 
