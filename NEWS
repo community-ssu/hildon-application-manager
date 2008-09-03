@@ -18,6 +18,9 @@ User visible changes in 2.2:
   upgrade disabling your maemo Extras catalogue or a restoring a
   backup not enabling it again should no longer happen.
 
+* The maemo-select-menu-location utility has been deprecated.  It does
+  nothing now.
+
 * [Bug 3503] A theming bug with the package lists has been fixed.
   Previously, the text was always black, now it uses the theme colors.
 
