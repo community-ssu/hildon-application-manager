@@ -3325,6 +3325,32 @@ not_avail:
 }
 
 void
+encode_package_repository (pkgCache::VerIterator ver, int summary_kind)
+{
+  if (summary_kind == 1) /* only installable packages */
+    {
+      pkgCache::VerFileIterator vfi = ver.FileList ();
+      if (vfi.end () == false)
+        {
+          pkgCache::PkgFileIterator pfi = vfi.File ();
+          if (pfi.end () == false)
+            {
+              gchar* repo;
+
+              repo = g_strdup_printf ("%s %s %s", pfi.Site (), pfi.Archive (),
+                                      pfi.Component ());
+              response.encode_string (repo);
+              g_free (repo);
+            }
+        }
+    }
+  else
+    {
+      response.encode_string (NULL);
+    }
+}
+
+void
 encode_package_and_version (pkgCache::VerIterator ver)
 {
   package_record rec (ver);
