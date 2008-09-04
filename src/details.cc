@@ -525,7 +525,7 @@ spd_update_common_page (void *data)
 
   if (pi->repository)
     {
-      add_table_field (table, ++last_row, "?Repository:", pi->repository);
+      add_table_field (table, ++last_row, "?Catalogue:", pi->repository);
     }
 
   gtk_widget_set_sensitive (GTK_WIDGET (table), TRUE);
