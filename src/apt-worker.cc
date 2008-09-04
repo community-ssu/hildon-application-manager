@@ -3208,30 +3208,82 @@ encode_broken (pkgCache::PkgIterator &pkg,
     }
 }
 
-void
+static gchar*
+find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
+{
+  const gchar *catname = NULL;
+  xexp *catalogues = read_catalogues ();
+
+  if (!catalogues)
+    goto beach;
+  
+  for (xexp *cat = xexp_first (catalogues); cat; cat = xexp_rest (cat))
+  {
+    const gchar *uri = xexp_aref_text (cat, "uri");
+    if (g_strstr_len (uri, strlen (uri), pfi.Site ()))
+      {
+        const gchar *dist = xexp_aref_text (cat, "dist");
+        if (!dist)
+          dist = DEFAULT_DIST;
+
+        if (!g_strcmp0 (dist, pfi.Archive ()))
+          {
+            const gchar *comp = xexp_aref_text (cat, "components");
+            gchar **comps = (comp ? g_strsplit_set (comp, " \t\n", 0) : NULL);
+
+            if (comps)
+              {
+                for (gint i = 0; comps[i]; i++)
+                  if (!g_strcmp0 (comps[i], pfi.Component ()))
+                    {
+                      g_strfreev (comps);
+                      catname = xexp_aref_text (cat, "name");
+                      goto beach;
+                    }
+              }
+
+            g_strfreev (comps);
+          }
+      }
+  }   
+
+beach:  
+  gchar *retval = catname ? g_strdup (catname) :
+    g_strdup_printf ("%s %s %s", pfi.Site (), pfi.Archive (), pfi.Component ());
+
+  if (catalogues)
+    xexp_free (catalogues);
+
+  return retval;
+}
+
+static void
 encode_package_repository (pkgCache::VerIterator ver, int summary_kind)
 {
-  if (summary_kind == 1) /* only installable packages */
-    {
-      pkgCache::VerFileIterator vfi = ver.FileList ();
-      if (vfi.end () == false)
-        {
-          pkgCache::PkgFileIterator pfi = vfi.File ();
-          if (pfi.end () == false)
-            {
-              gchar* repo;
+  // XXX - I don't know how to assure that the "selected" VerFile in the
+  //       VerFileItertor is the installable VerFile, but always seems
+  //       to be the first one in the iterator.
 
-              repo = g_strdup_printf ("%s %s %s", pfi.Site (), pfi.Archive (),
-                                      pfi.Component ());
-              response.encode_string (repo);
-              g_free (repo);
-            }
+  pkgCache::VerFileIterator vfi;
+  
+  if (summary_kind != 1) /* only installable packages */
+    goto not_avail;
+    
+  vfi = ver.FileList ();
+  if (vfi.end () == false)
+    {
+      pkgCache::PkgFileIterator pfi = vfi.File ();
+      if (pfi.end () == false)
+        {
+          gchar* repo = find_catalogue_for_pkgfile (pfi);
+          response.encode_string (repo);
+          g_free (repo);
+          return;
         }
     }
-  else
-    {
-      response.encode_string (NULL);
-    }
+
+not_avail:
+    response.encode_string (NULL);
 }
 
 void
