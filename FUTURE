@@ -1,7 +1,7 @@
 New features for the Hildon Application Manager
 ===============================================
 
-* Complete port to new Fremantle APIs [mvo, master]
+* Complete port to new Fremantle APIs [mvo, mvo-fremantle-port]
 
 - update-notifier.c: alarm API.
 - dbus.c: MCE_REBOOT_REQ
