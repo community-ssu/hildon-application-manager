@@ -3209,18 +3209,50 @@ encode_broken (pkgCache::PkgIterator &pkg,
 }
 
 static gchar*
+chop_uri (gchar *uri)
+{
+  while (uri[0] && uri[strlen (uri) - 1] == '/')
+    uri[strlen (uri) - 1] = '\0';
+
+  return uri;
+}
+
+static gchar*
+find_archive_uri_for_pkgfile (pkgCache::PkgFileIterator pfi)
+{
+  gchar *archiveuri = NULL;
+  pkgIndexFile *index;
+  pkgSourceList list;
+    
+  if (list.ReadMainList () && list.FindIndex (pfi, index))
+    {
+      archiveuri =
+        chop_uri (g_strdup (index->ArchiveURI (string ("")).c_str ()));
+      delete index;
+    }
+
+  return archiveuri;
+}
+
+static gchar*
 find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
 {
   const gchar *catname = NULL;
+  gchar *archiveuri = NULL;
   xexp *catalogues = read_catalogues ();
 
   if (!catalogues)
     goto beach;
+
+  archiveuri = find_archive_uri_for_pkgfile (pfi);
+  
+  if (!archiveuri)
+    goto beach;
   
   for (xexp *cat = xexp_first (catalogues); cat; cat = xexp_rest (cat))
   {
-    const gchar *uri = xexp_aref_text (cat, "uri");
-    if (g_strstr_len (uri, strlen (uri), pfi.Site ()))
+    gchar *uri = chop_uri (g_strdup (xexp_aref_text (cat, "uri")));
+    if (uri && g_strstr_len (uri, strlen (uri), archiveuri))
       {
         const gchar *dist = xexp_aref_text (cat, "dist");
         if (!dist)
@@ -3236,6 +3268,7 @@ find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
                 for (gint i = 0; comps[i]; i++)
                   if (!g_strcmp0 (comps[i], pfi.Component ()))
                     {
+                      g_free (uri);
                       g_strfreev (comps);
                       catname = xexp_aref_text (cat, "name");
                       goto beach;
@@ -3245,12 +3278,17 @@ find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
             g_strfreev (comps);
           }
       }
+    
+    g_free (uri); uri = NULL;
   }   
 
-beach:  
+beach:
   gchar *retval = catname ? g_strdup (catname) :
-    g_strdup_printf ("%s %s %s", pfi.Site (), pfi.Archive (), pfi.Component ());
+    g_strdup_printf ("%s %s %s", archiveuri ? archiveuri : pfi.Site (),
+                     pfi.Archive (), pfi.Component ());
 
+  g_free (archiveuri);
+  
   if (catalogues)
     xexp_free (catalogues);
 
