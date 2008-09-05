@@ -3239,7 +3239,11 @@ find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
 {
   const gchar *catname = NULL;
   gchar *archiveuri = NULL;
+<<<<<<< HEAD:src/apt-worker.cc
 
+=======
+>>>>>>> Retrieve the complete archive uri of the installable version package and
+use it for the catalogue search.:src/apt-worker.cc
   xexp *catalogues = read_catalogues ();
 
   if (!catalogues)
