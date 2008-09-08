@@ -60,7 +60,7 @@
 
 #define _(x) gettext (x)
 
-#define HILDON_ENABLE_UNSTABLE_API 
+#define MENU_HACK
 
 extern "C" {
   #include <hildon/hildon-window.h>
@@ -127,6 +127,9 @@ struct toolbar_struct
   GtkWidget *details_button;
   GtkWidget *search_button;
   GtkWidget *refresh_button;
+#ifdef MENU_HACK
+  GtkToolItem *menu_button;
+#endif
 };
 
 static toolbar_struct *main_tb_struct = NULL;
@@ -2794,6 +2797,11 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
   tb_struct->search_button = NULL;
   tb_struct->refresh_button = NULL;
 
+#ifdef MENU_HACK
+  tb_struct->menu_button = gtk_menu_tool_button_new (NULL, NULL);
+  gtk_toolbar_insert (GTK_TOOLBAR (toolbar), tb_struct->menu_button, -1);
+#endif
+
   /* Main operation button */
   operation_label = gtk_label_new ("");
   operation_button =
@@ -3010,6 +3018,19 @@ main (int argc, char **argv)
 		    G_CALLBACK (main_window_realized), NULL);
 
   create_menu (HILDON_WINDOW (window));
+
+#ifdef MENU_HACK
+  {
+    GtkMenu *menu = hildon_window_get_menu (HILDON_WINDOW (window));
+
+    gtk_menu_tool_button_set_menu 
+      (GTK_MENU_TOOL_BUTTON (m_tb_struct->menu_button), 
+       GTK_WIDGET (menu));
+    gtk_menu_tool_button_set_menu 
+      (GTK_MENU_TOOL_BUTTON (u_tb_struct->menu_button),
+       GTK_WIDGET (menu));
+  }
+#endif
 
   show_view (&main_view);
   set_toolbar_visibility (true, fullscreen_toolbar);

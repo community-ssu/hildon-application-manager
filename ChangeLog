@@ -1,3 +1,10 @@
+2008-09-08  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.cc (MENU_HACK): New define to place the menu in the
+	toolbar.
+	(create_toolbar): Create menu button.
+	(main): Attach menu to toolbar buttons.
+
 2008-09-03  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Make maemo-select-menu-location do nothing.
