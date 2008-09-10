@@ -7,13 +7,6 @@ New features for the Hildon Application Manager
 - dbus.c: MCE_REBOOT_REQ
 - dbus.c: battery info (get it via libhal, capability "battery")
 
-* Show repository that a package is going to be installed from
-  [victor, vjaquez-show-repo]
-
-The "Details" dialog should be extended somehow to show the
-repositories / catalogues that a package is going to be installed
-from.
-
 * Get rid of file system synchronicity assumption [victor]
 
 Some code in the Application manager might rely on the synchronous

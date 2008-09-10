@@ -3,6 +3,13 @@ Completed features of the Hildon Application Manager
 
 See FUTURE for planned features.
 
+* Show repository that a package is going to be installed from
+  [victor, vjaquez-show-repo]
+
+The "Details" dialog should be extended somehow to show the
+repositories / catalogues that a package is going to be installed
+from.
+
 * Remove UI from maemo-select-menu-location [mvo, mvo-remove-menu-location].
 
 It's annoying.
