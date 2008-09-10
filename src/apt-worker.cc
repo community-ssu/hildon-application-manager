@@ -3963,12 +3963,6 @@ cmd_set_catalogues ()
       xexp_free (catalogues);
       catalogues = mapped_catalogues;
     }
-  else
-    {
-      /* Merge the system catalogue with the card catalogue */
-      xexp *tmpcat = read_catalogues ();
-      xexp_append (catalogues, tmpcat);
-    }
 
   /* Update sources.list file */
   update_sources_list (catalogues);
