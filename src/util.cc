@@ -21,8 +21,6 @@
  *
  */
 
-#define CAIRO_CELL_RENDERER
-
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
@@ -55,12 +53,7 @@
 #include "user_files.h"
 #include "update-notifier.h"
 #include "update-notifier-conf.h"
-#ifndef CAIRO_CELL_RENDERER
-#include "modest-hbox-cell-renderer.h"
-#include "modest-vbox-cell-renderer.h"
-#else
 #include "package-info-cell-renderer.h"
-#endif
 
 extern "C" {
 #include <libhildonwm/hd-wm.h>
@@ -1355,60 +1348,9 @@ make_small_label (const char *text)
 static GtkListStore *global_list_store = NULL;
 static bool global_installed;
 
+static bool global_icons_initialized = false;
 static GdkPixbuf *default_icon = NULL;
 static GdkPixbuf *broken_icon = NULL;
-
-#ifndef CAIRO_CELL_RENDERER
-static void
-global_icon_func (GtkTreeViewColumn *column,
-		  GtkCellRenderer *cell,
-		  GtkTreeModel *model,
-		  GtkTreeIter *iter,
-		  gpointer data)
-{
-  package_info *pi;
-  gtk_tree_model_get (model, iter, 0, &pi, -1);
-  if (!pi)
-    return;
-
-  if (default_icon == NULL)
-    {
-      GtkIconTheme *icon_theme;
-
-      icon_theme = gtk_icon_theme_get_default ();
-      default_icon = gtk_icon_theme_load_icon (icon_theme,
-					       "qgn_list_gene_default_app",
-					       26,
-					       GtkIconLookupFlags(0),
-					       NULL);
-    }
-
-  if (broken_icon == NULL)
-    {
-      GtkIconTheme *icon_theme;
-
-      icon_theme = gtk_icon_theme_get_default ();
-      broken_icon = gtk_icon_theme_load_icon (icon_theme,
-					      "qgn_list_app_broken",
-					      26,
-					      GtkIconLookupFlags(0),
-					      NULL);
-    }
-
-  GdkPixbuf *icon;
-  if (pi->broken)
-    icon = broken_icon;
-  else
-    {
-      if (global_installed)
-	icon = pi->installed_icon;
-      else
-	icon = pI->available_icon;
-    }
-
-  g_object_set (cell, "pixbuf", icon? icon : default_icon, NULL);
-}
-#endif
 
 static void
 emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
@@ -1460,8 +1402,6 @@ package_info_func (GtkTreeViewColumn *column,
                    GtkTreeIter *iter,
                    gpointer data)
 {
-#ifdef CAIRO_CELL_RENDERER
-
   GtkTreeView *tree = (GtkTreeView *)data;
   GtkTreeSelection *selection = gtk_tree_view_get_selection (tree);
   package_info *pi;
@@ -1488,23 +1428,16 @@ package_info_func (GtkTreeViewColumn *column,
         }
     }
   
-  if (default_icon == NULL)
+  if (!global_icons_initialized)
     {
-      GtkIconTheme *icon_theme;
+      GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
 
-      icon_theme = gtk_icon_theme_get_default ();
       default_icon = gtk_icon_theme_load_icon (icon_theme,
                                                "qgn_list_gene_default_app",
                                                26,
                                                GtkIconLookupFlags(0),
                                                NULL);
-    }
 
-  if (broken_icon == NULL)
-    {
-      GtkIconTheme *icon_theme;
-
-      icon_theme = gtk_icon_theme_get_default ();
       broken_icon = gtk_icon_theme_load_icon (icon_theme,
                                               "qgn_list_app_broken",
                                               26,
@@ -1529,60 +1462,6 @@ package_info_func (GtkTreeViewColumn *column,
                 "package-description", package_description,
                 "pixbuf", icon? icon : default_icon,
 		NULL);
-
-#else  /* !CAIRO_CELL_RENDERER */
-
-  GtkTreeView *tree = (GtkTreeView *)data;
-  GtkTreeSelection *selection = gtk_tree_view_get_selection (tree);
-  package_info *pi;
-  const gchar *name;
-  const gchar *version;
-  GtkCellRendererText *name_rend, *version_rend, *desc_rend;
-  name_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "name-renderer");
-  version_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "version-renderer");
-  desc_rend = (GtkCellRendererText*) g_object_get_data (G_OBJECT (cell), "desc-renderer");
-
-  gtk_tree_model_get (model, iter, 0, &pi, -1);
-  if (!pi)
-    return;
-  
-  name = pi->get_display_name (global_installed);
-  g_object_set (name_rend, "text", 
-                name,
-                NULL);
-
-  version = pi->get_display_version (global_installed);
-  g_object_set (version_rend, "text", 
-                version,
-                NULL);
-
-  if (gtk_tree_selection_iter_is_selected (selection, iter))
-    {
-      const gchar *desc;
-      gchar *markup;
-
-      if (global_installed)
-        desc = pi->installed_short_description;
-      else
-        {
-          desc = pi->available_short_description;
-          if (desc == NULL)
-            desc = pi->installed_short_description;
-        }
-
-      if (all_whitespace (desc))
-	g_object_set (desc_rend, "visible", FALSE, NULL);
-      else
-	{
-	  markup = g_markup_printf_escaped ("<small>%s</small>", desc);
-	  g_object_set (desc_rend, "markup", markup, NULL);
-	  g_object_set (desc_rend, "visible", TRUE, NULL);
-	  g_free (markup);
-	}
-    }
-  else
-    g_object_set (desc_rend, "visible", FALSE, NULL);
-#endif
 }
 
 static bool global_have_last_selection;
@@ -1772,10 +1651,6 @@ make_global_package_list (GList *packages,
   GtkTreeViewColumn *column;
   GtkWidget *tree, *scroller;
   GtkWidget *menu = NULL;
-#ifndef CAIRO_CELL_RENDERER
-  GtkCellRenderer *v_renderer, *h_renderer, *name_renderer; 
-  GtkCellRenderer *version_renderer, *desc_renderer;
-#endif
 
   if (global_list_store == NULL)
     {
@@ -1798,46 +1673,6 @@ make_global_package_list (GList *packages,
   gtk_tree_view_column_set_title (column, _("ai_li_version"));
   gtk_tree_view_column_set_alignment (column, 1.0);
 
-#ifndef CAIRO_CELL_RENDERER
-  renderer = gtk_cell_renderer_pixbuf_new ();
-  g_object_set (renderer, "yalign", 0.0, NULL);
-  gtk_cell_renderer_set_fixed_size (renderer, 30, -1);
-  gtk_tree_view_column_pack_start (column, renderer, FALSE);
-  gtk_tree_view_column_set_cell_data_func (column, renderer, global_icon_func, tree, NULL);
-
-  v_renderer = modest_vbox_cell_renderer_new ();
-  h_renderer = modest_hbox_cell_renderer_new ();
-  g_object_set (h_renderer, "xpad", 0, NULL);
-  name_renderer = gtk_cell_renderer_text_new ();
-  g_object_set (name_renderer, "yalign", 0.0, 
-                "ellipsize-set", FALSE, 
-                "xpad", 0, NULL);
-  
-  version_renderer = gtk_cell_renderer_text_new ();
-  g_object_set (version_renderer, "yalign", 0.0, 
-                "xalign", 1.0,
-                "ellipsize-set", FALSE, 
-                "xpad", 0, NULL);
-  
-  desc_renderer = gtk_cell_renderer_text_new ();
-  g_object_set (desc_renderer, "yalign", 0.0, NULL);
-  g_object_set (desc_renderer, "xalign", 0.0, NULL);
-  g_object_set (desc_renderer, "visible", FALSE, NULL);
-  g_object_set (desc_renderer, "ellipsize-set", TRUE, NULL);
-  g_object_set (desc_renderer, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
-  
-  modest_hbox_cell_renderer_append (MODEST_HBOX_CELL_RENDERER (h_renderer), name_renderer, TRUE);
-  modest_hbox_cell_renderer_append (MODEST_HBOX_CELL_RENDERER (h_renderer), version_renderer, TRUE);
-  modest_vbox_cell_renderer_append (MODEST_VBOX_CELL_RENDERER (v_renderer), h_renderer, FALSE);
-  modest_vbox_cell_renderer_append (MODEST_VBOX_CELL_RENDERER (v_renderer), desc_renderer, FALSE);
-  g_object_set_data (G_OBJECT (v_renderer), "h-renderer", h_renderer);
-  g_object_set_data (G_OBJECT (v_renderer), "version-renderer", version_renderer);
-  g_object_set_data (G_OBJECT (v_renderer), "name-renderer", name_renderer);
-  g_object_set_data (G_OBJECT (v_renderer), "desc-renderer", desc_renderer);
-  
-  gtk_tree_view_column_pack_end (column, v_renderer, TRUE);
-  gtk_tree_view_column_set_cell_data_func (column, v_renderer, package_info_func, tree, NULL);
-#else
   renderer = package_info_cell_renderer_new ();
   g_object_set (renderer,
                 "xpad", 0, 
@@ -1847,7 +1682,6 @@ make_global_package_list (GList *packages,
                 "visible", TRUE, NULL);
   gtk_tree_view_column_pack_end (column, renderer, TRUE);
   gtk_tree_view_column_set_cell_data_func (column, renderer, package_info_func, tree, NULL);
-#endif
 
   /* Set odd/even rows in different colors */
   gtk_tree_view_set_rules_hint(GTK_TREE_VIEW (tree), TRUE);

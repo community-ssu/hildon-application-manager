@@ -1,5 +1,9 @@
 2008-09-10  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/util.cc: Removed !CAIRO_CELL_RENDERER code.
+	(package_info_func): Only initialize default_icon and broken_icon
+	once.
+
 	* src/package-info-cell-renderer.c:
 	(package_info_cell_renderer_set_property): Deal with NULL pixbufs.
 
