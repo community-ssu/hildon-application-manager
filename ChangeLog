@@ -101,48 +101,38 @@
 
 	* src/apt-worker-client.cc (apt_worker_rm_temp_catalogues): new
 	function
-
 	* src/apt-worker-client.h: expose new function
-
 	* src/apt-worker-proto.h: new apt-worker command
 
 	* src/apt-worker.cc (handle_request): handle the new command,
 	(misc_init) remove the temporal catalogues at the begining,
 	(cmd_rm_temp_catalogues): new command handler
 	(clean_temp_catalogues): remove temporal catalogues
-
 	* src/instr.cc (eci_end): ask for temporal catalogues removal
-
 	* src/repo.cc (rm_temp_catalogues_callback) new callback function,
 	(rm_temp_catalogues): ask to apt-worker for the temporal catalogue
 	removal
-
 	* src/repo.h: new function exposure
 
 2008-08-22  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
 
 	* src/package-info-cell-renderer.c
-	(package_info_cell_renderer_render):
-	Honor the theme color properties in the cell widget (M3503)
+       (package_info_cell_renderer_render):
+       Honor the theme color properties in the cell widget (M3503)
 
 2008-08-19  Victor Manuel Jaquez Leal  <vjaquez@maemo.org>
 
+	* FUTURE: Added the task of "essential" tag removal
 	* src/apt-worker.cc (myCacheFile::save_extra_info): added fflush
 	op
-
 	* src/confutils.cc (write_sources_list): added the fflush op
-
 	* src/operations.cc (ip_ensure_network): ensure the network
 	connection even with memory cards package installations
-
 	* src/repo.cc (cat_selection_changed): the enabling of the edit
 	and delete buttons are handled in case of catalogue packages
-
 	* src/settings.cc (save_settings): added the fflush op
-
 	* src/update-notifier.c (check_for_notifications_thread): added
 	the fflush op
-
 	* src/xexp.c (xexp_write_file): added the fflush op
 
 2008-08-19  Marius Vollmer  <marius.vollmer@nokia.com>
