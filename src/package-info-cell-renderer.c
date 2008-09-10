@@ -280,18 +280,24 @@ package_info_cell_renderer_set_property (GObject              *object,
         g_object_unref (priv->pixbuf);
 
       px = (GdkPixbuf*) g_value_get_object (value);
-      gint px_w = gdk_pixbuf_get_width (px);
-      gint px_h = gdk_pixbuf_get_height (px);
-      if (px_w > priv->pixbuf_size || px_h > priv->pixbuf_size)
-        {
-          priv->pixbuf = gdk_pixbuf_scale_simple (px, priv->pixbuf_size,
-                                                  priv->pixbuf_size,
-                                                  GDK_INTERP_BILINEAR);
-        }
+      if (px)
+	{
+	  gint px_w = gdk_pixbuf_get_width (px);
+	  gint px_h = gdk_pixbuf_get_height (px);
+	  if (px_w > priv->pixbuf_size || px_h > priv->pixbuf_size)
+	    {
+	      priv->pixbuf = gdk_pixbuf_scale_simple (px, priv->pixbuf_size,
+						      priv->pixbuf_size,
+						      GDK_INTERP_BILINEAR);
+	    }
+	  else
+	    {
+	      priv->pixbuf = (GdkPixbuf*) g_value_dup_object (value);
+	    }
+	}
       else
-        {
-          priv->pixbuf = (GdkPixbuf*) g_value_dup_object (value);
-        }
+	priv->pixbuf = NULL;
+
       break;
     case PROP_PIXBUF_SIZE:
       priv->pixbuf_size = g_value_get_uint (value);

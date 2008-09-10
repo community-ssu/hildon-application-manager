@@ -1,5 +1,8 @@
 2008-09-10  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	* src/package-info-cell-renderer.c:
+	(package_info_cell_renderer_set_property): Deal with NULL pixbufs.
+
 	Include repository in package details.
 
 	* src/main.h (struct package_info): Added repository field.
