@@ -3,6 +3,83 @@ Completed features of the Hildon Application Manager
 
 See FUTURE for planned features.
 
+* Clean up pre-defined catalogues mechanics [victor]
+
+The pre-defined catalogues of the Application manager should be
+handled according to the new packaging policy (doc/packpol-conf.txt).
+
+** Spec
+
+Roughly, this means that we need a strict division into catalogue
+entries that are completely 'owned' by packages, and catalogue entries
+that are competely owned by the user.
+
+All the pre-defined catalogues should be owned by packages and can not
+be edited by the user.  They are not backed up.
+
+However, the enabled/disabled flag for each catalogue entry is owned
+by the user: the user can still disable a pre-defined catalogue.  This
+flag is backed up.
+
+** Implementation hints
+
+Right now, all catalogue information is stored in a single file,
+/etc/h-a-m/catalogues.  This should be changed so that only user
+catalogues are stored there.  Packages should be able to drop files
+into /usr/share/hildon-application-manager/catalogues/.
+
+When reading the catalogue information, the xexps from
+/etc/h-a-m/catalogues and /usr/share/h-a-m/catalogues/ should be
+merged.  Concretely, the /etc/h-a-m/catalogues file contains the
+enabled/disabled flags for the catalogues in
+/usr/share/h-a-m/catalogues directory.  For this, packaged catalogue
+entries need to be identified reliably: a new "id" attribute should be
+used for this.
+
+It is probably a good idea to remember where a catalogue has been read
+from: after reading its xexp from a file
+/usr/share/h-a-m/catalogues/foo, we add a <file>foo</file> element to
+the xexp.  Then catalogues are identified by their "file" plus "id"
+attributes, making it easier to choose unique ids.
+
+User catalogues have no "file" attributes.
+
+When saving the catalogues after the user has edited them, only the
+/etc/h-a-m/catalogues file should be touched.  That is, the xexps for
+a catalogue without a "file" attribute are written to that file, for
+other xexps, only the "file", "id" and "disabled" attribute are
+written.
+
+These rules should also be followed by the
+hildon-application-manager-config utility.  Changes made with that
+tool count as user edits.
+
+* Get rid of the "essential"/readonly repositories [victor]
+
+The Application Catalogue UI dialog has a heavy use of readonly
+repositories which are based on the repositories marked as
+"essential", but with the new package catalogue mechanism, this
+feature is deprecated.
+
+The readonly flag must be activaded only when is a package catalogue.
+
+* Get rid of file system synchronicity assumption [victor]
+
+Some code in the Application manager might rely on the synchronous
+nature of JFFS2.  This will be a problem should we ever move to some
+other file system that hasn't this nature, like ext3 or UBIFS.
+
+See
+
+    http://www.linux-mtd.infradead.org/doc/ubifs.html#L_writeback
+
+The code needs to be reviewed and appropriate fsync calls (etc) should
+be inserted.
+
+The xexp_write function is a good candidate since it already makes
+some atomicity guarantees (and its documentation should be updated to
+mention the syncronicity).
+
 * Show repository that a package is going to be installed from
   [victor, vjaquez-show-repo]
 
