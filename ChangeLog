@@ -1,3 +1,15 @@
+2008-09-10  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Include repository in package details.
+
+	* src/main.h (struct package_info): Added repository field.
+	* src/apt-worker-proto.h: New field in response.
+	* src/apt-worker.cc (cmd_get_package_details): Find repository and
+	include it in response.
+	* src/details.cc (spd_get_details_reply): Retireve repository from
+	response.
+	* src/details.cc (spd_update_common_page): Show repository.
+
 2008-09-08  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/main.cc (MENU_HACK): New define to place the menu in the
