@@ -378,12 +378,14 @@ spd_get_details_reply (int cmd, apt_proto_decoder *dec, void *data)
   g_free (c->pi->maintainer);
   g_free (c->pi->description);
   g_free (c->pi->dependencies);
+  g_free (c->pi->repository);
 
   c->pi->maintainer = dec->decode_string_dup ();
   c->pi->description = dec->decode_string_dup ();
   nicify_description_in_place (c->pi->description);
 
   c->pi->dependencies = decode_dependencies (dec);
+  c->pi->repository = dec->decode_string_dup ();
   if (!red_pill_mode || !red_pill_show_deps)
     {
       // Too much information can kill you.
@@ -519,6 +521,11 @@ spd_update_common_page (void *data)
                        pi->available_version);
       size_string_detailed (size_buf, 20, pi->info.download_size);
       add_table_field (table, ++last_row, _("ai_va_details_download_size"), size_buf);
+    }
+
+  if (pi->repository)
+    {
+      add_table_field (table, ++last_row, "?Catalogue:", pi->repository);
     }
 
   gtk_widget_set_sensitive (GTK_WIDGET (table), TRUE);

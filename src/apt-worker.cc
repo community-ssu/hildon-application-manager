@@ -3208,6 +3208,122 @@ encode_broken (pkgCache::PkgIterator &pkg,
     }
 }
 
+static gchar*
+chop_uri (gchar *uri)
+{
+  while (uri[0] && uri[strlen (uri) - 1] == '/')
+    uri[strlen (uri) - 1] = '\0';
+
+  return uri;
+}
+
+static gchar*
+find_archive_uri_for_pkgfile (pkgCache::PkgFileIterator pfi)
+{
+  gchar *archiveuri = NULL;
+  pkgIndexFile *index;
+  pkgSourceList list;
+    
+  if (list.ReadMainList () && list.FindIndex (pfi, index))
+    {
+      archiveuri =
+        chop_uri (g_strdup (index->ArchiveURI (string ("")).c_str ()));
+      delete index;
+    }
+
+  return archiveuri;
+}
+
+static gchar*
+find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
+{
+  const gchar *catname = NULL;
+  gchar *archiveuri = NULL;
+  xexp *catalogues = read_catalogues ();
+
+  if (!catalogues)
+    goto beach;
+
+  archiveuri = find_archive_uri_for_pkgfile (pfi);
+  
+  if (!archiveuri)
+    goto beach;
+  
+  for (xexp *cat = xexp_first (catalogues); cat; cat = xexp_rest (cat))
+  {
+    gchar *uri = chop_uri (g_strdup (xexp_aref_text (cat, "uri")));
+    if (uri && g_strstr_len (uri, strlen (uri), archiveuri))
+      {
+        const gchar *dist = xexp_aref_text (cat, "dist");
+        if (!dist)
+          dist = DEFAULT_DIST;
+
+        if (!g_strcmp0 (dist, pfi.Archive ()))
+          {
+            const gchar *comp = xexp_aref_text (cat, "components");
+            gchar **comps = (comp ? g_strsplit_set (comp, " \t\n", 0) : NULL);
+
+            if (comps)
+              {
+                for (gint i = 0; comps[i]; i++)
+                  if (!g_strcmp0 (comps[i], pfi.Component ()))
+                    {
+                      g_free (uri);
+                      g_strfreev (comps);
+                      catname = xexp_aref_text (cat, "name");
+                      goto beach;
+                    }
+              }
+
+            g_strfreev (comps);
+          }
+      }
+    
+    g_free (uri); uri = NULL;
+  }   
+
+beach:
+  gchar *retval = catname ? g_strdup (catname) :
+    g_strdup_printf ("%s %s %s", archiveuri ? archiveuri : pfi.Site (),
+                     pfi.Archive (), pfi.Component ());
+
+  g_free (archiveuri);
+  
+  if (catalogues)
+    xexp_free (catalogues);
+
+  return retval;
+}
+
+static void
+encode_package_repository (pkgCache::VerIterator ver, int summary_kind)
+{
+  // XXX - I don't know how to assure that the "selected" VerFile in the
+  //       VerFileItertor is the installable VerFile, but always seems
+  //       to be the first one in the iterator.
+
+  pkgCache::VerFileIterator vfi;
+  
+  if (summary_kind != 1) /* only installable packages */
+    goto not_avail;
+    
+  vfi = ver.FileList ();
+  if (vfi.end () == false)
+    {
+      pkgCache::PkgFileIterator pfi = vfi.File ();
+      if (pfi.end () == false)
+        {
+          gchar* repo = find_catalogue_for_pkgfile (pfi);
+          response.encode_string (repo);
+          g_free (repo);
+          return;
+        }
+    }
+
+not_avail:
+    response.encode_string (NULL);
+}
+
 void
 encode_package_and_version (pkgCache::VerIterator ver)
 {
@@ -3327,13 +3443,13 @@ cmd_get_package_details ()
     {
       response.encode_string ("");      // maintainer
       response.encode_string 
-	("This is an artificial package that represents all\n"
-	 "system packages that are installed on your device.");
+        ("This is an artificial package that represents all\n"
+         "system packages that are installed on your device.");
       response.encode_int (deptype_end);  // dependencies
       if (summary_kind == 1)
-	encode_install_summary (package);
+        encode_install_summary (package);
       else
-	response.encode_int (sumtype_end);
+        response.encode_int (sumtype_end);
     }
   else
     {
@@ -3342,28 +3458,29 @@ cmd_get_package_details ()
       pkgCache::VerIterator ver;
       
       if (find_package_version (state->cache, pkg, ver, package, version))
-	{
-	  package_record rec (ver);
+        {
+          package_record rec (ver);
 	  
-	  response.encode_string (rec.P.Maintainer().c_str());
-	  response.encode_string 
-	    (get_long_description (summary_kind, pkg, rec).c_str());
-	  encode_dependencies (ver);
-	  if (summary_kind == 1)
-	    encode_install_summary (package);
-	  else if (summary_kind == 2)
-	    encode_remove_summary (pkg);
-	  else
-	    response.encode_int (sumtype_end);
-	}
+          response.encode_string (rec.P.Maintainer().c_str());
+          response.encode_string 
+            (get_long_description (summary_kind, pkg, rec).c_str());
+          encode_dependencies (ver);
+          encode_package_repository (ver, summary_kind);
+          if (summary_kind == 1)
+              encode_install_summary (package);
+          else if (summary_kind == 2)
+            encode_remove_summary (pkg);
+          else
+            response.encode_int (sumtype_end);
+        }
       else
-	{
-	  // not found
-	  response.encode_string (NULL);      // maintainer
-	  response.encode_string (NULL);      // description
-	  response.encode_int (deptype_end);  // dependencies
-	  response.encode_int (sumtype_end);  // summary
-	}
+        {
+          // not found
+          response.encode_string (NULL);      // maintainer
+          response.encode_string (NULL);      // description
+          response.encode_int (deptype_end);  // dependencies
+          response.encode_int (sumtype_end);  // summary
+        }
     }
 }
 
