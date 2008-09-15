@@ -1,6 +1,8 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Merge <notifier> into generic <settings> [mvo, master].
+
 * Complete port to new Fremantle APIs [mvo, mvo-fremantle-port]
 
 - update-notifier.c: alarm API.
