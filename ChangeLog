@@ -1,3 +1,14 @@
+2008-09-15  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Support for generic system-wide settings, including defaults.
+
+	* src/confutils.cc (system_settings, default_distribution,
+	load_system_settings): New.
+	* src/main.cc (main): Call load_system_settings.
+	* src/apt-worker.cc (misc_init): Likewise.
+
+	* src/hildon-application-manager-config.cc: Handle system settings.
+
 2008-09-10  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc: Removed !CAIRO_CELL_RENDERER code.

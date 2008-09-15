@@ -1447,6 +1447,7 @@ misc_init ()
 
   DBG ("OSSO_PRODUCT_HARDWARE %s", getenv ("OSSO_PRODUCT_HARDWARE"));
 
+  load_system_settings ();
   read_domain_conf ();
 
   AptWorkerState::Initialize ();

@@ -2960,6 +2960,7 @@ main (int argc, char **argv)
   bind_textdomain_codeset ("hildon-application-manager", "UTF-8");
   textdomain ("hildon-application-manager");
 
+  load_system_settings ();
   load_settings ();
   load_state ();
 

@@ -28,6 +28,35 @@
 
 #include "confutils.h"
 
+xexp *system_settings = NULL;
+
+const char *default_distribution;
+
+void
+load_system_settings ()
+{
+  xexp *settings = xexp_read_file (SYSTEM_SETTINGS_FILE);
+  xexp *defaults = xexp_read_file (SYSTEM_SETTINGS_DEFAULTS_FILE);
+
+  if (settings)
+    {
+      if (defaults)
+	xexp_append (settings, defaults);
+    }
+  else if (defaults)
+    {
+      settings = defaults;
+    }
+  else
+    settings = xexp_list_new ("settings");
+
+  system_settings = settings;
+
+  default_distribution = xexp_aref_text (settings, "distribution");
+  if (default_distribution == NULL)
+    default_distribution = "unknown";
+}
+
 static const char *
 skip_whitespace (const char *str)
 {
@@ -102,7 +131,8 @@ bool
 catalogue_is_valid (xexp *cat)
 {
   const char *filter_dist = xexp_aref_text (cat, "filter_dist");
-  return filter_dist == NULL || strcmp (filter_dist, DEFAULT_DIST) == 0;
+  return (filter_dist == NULL
+	  || strcmp (filter_dist, default_distribution) == 0);
 }
 
 bool
@@ -122,7 +152,7 @@ write_sources_list (const char *filename, xexp *catalogues)
 	    if (uri == NULL)
 	      continue;
 	    if (dist == NULL)
-	      dist = DEFAULT_DIST;
+	      dist = default_distribution;
 	    if (comps == NULL)
 	      comps = "";
 	    

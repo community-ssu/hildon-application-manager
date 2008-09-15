@@ -28,6 +28,14 @@ extern "C" {
 #include "xexp.h"
 }
 
+/* The file with the current values of the system-wide settings.
+ */
+#define SYSTEM_SETTINGS_FILE "/etc/hildon-application-manager/settings"
+
+/* The file with the default values of the system-wide settings.
+ */
+#define SYSTEM_SETTINGS_DEFAULTS_FILE "/usr/share/hildon-application-manager/defaults"
+
 /* The file where we store our catalogues for ourselves.
  */
 #define CATALOGUE_CONF "/etc/hildon-application-manager/catalogues"
@@ -59,6 +67,14 @@ extern "C" {
    to each other.
 */
 bool tokens_equal (const char *str1, const char *str2);
+
+/* System settings
+ */
+
+void load_system_settings ();
+
+extern xexp *system_settings;
+extern const char *default_distribution;
 
 /* Catalogues
  */

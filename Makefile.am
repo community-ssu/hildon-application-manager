@@ -35,25 +35,14 @@ install-data-local:
 	if [ ! -f $(DESTDIR)$(etcdir)/notifier ]; then \
           echo "<notifier/>" >$(DESTDIR)$(etcdir)/notifier; \
         fi
+	if [ ! -f $(DESTDIR)$(etcdir)/settings ]; then \
+          echo "<settings/>" >$(DESTDIR)$(etcdir)/settings; \
+        fi
 	$(mkinstalldirs) $(DESTDIR)$(vardir)
 	if [ ! -f $(DESTDIR)$(vardir)/available_updates ]; then \
           echo "<updates/>" >$(DESTDIR)$(vardir)/available_updates; \
         fi
 	$(mkinstalldirs) $(DESTDIR)$(pkgcatdir)
-
-uninstall-local:
-	if [ -f $(DESTDIR)$(etcdir)/catalogues ]; then \
-          rm $(DESTDIR)$(etcdir)/catalogues; \
-        fi
-	if [ -f $(DESTDIR)$(etcdir)/domains ]; then \
-          rm $(DESTDIR)$(etcdir)/domains; \
-        fi
-	if [ -f $(DESTDIR)$(etcdir)/notifier ]; then \
-          rm $(DESTDIR)$(etcdir)/notifier; \
-        fi
-	if [ -f $(DESTDIR)$(vardir)/available_updates ]; then \
-          rm $(DESTDIR)$(vardir)/available_updates; \
-        fi
 
 EXTRA_DIST = COPYING.LIB                                        \
              hildon-application-manager.desktop	                \
