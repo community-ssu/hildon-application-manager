@@ -3257,7 +3257,7 @@ find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
       {
         const gchar *dist = xexp_aref_text (cat, "dist");
         if (!dist)
-          dist = DEFAULT_DIST;
+          dist = default_distribution;
 
         if (!g_strcmp0 (dist, pfi.Archive ()))
           {
@@ -3536,7 +3536,7 @@ find_catalogues_for_item_desc (xexp *catalogues, string desc_uri)
       char *pfx = NULL;
 
       if (dist == NULL)
-	dist = DEFAULT_DIST;
+	dist = default_distribution;
 
       while (uri[0] && uri[strlen(uri)-1] == '/')
 	uri[strlen(uri)-1] = '\0';

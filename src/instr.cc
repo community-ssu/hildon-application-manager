@@ -34,6 +34,7 @@
 #include "log.h"
 #include "repo.h"
 #include "xexp.h"
+#include "confutils.h"
 
 #define _(x) gettext (x)
 
@@ -123,7 +124,7 @@ convert_catalogue (GKeyFile *keyfile, const char *group,
     }
 
   val = g_key_file_get_string (keyfile, group, "filter_dist", NULL);
-  bool applicable = val == NULL || !strcmp (val, DEFAULT_DIST);
+  bool applicable = val == NULL || !strcmp (val, default_distribution);
   g_free (val);
 
   if (!applicable)
@@ -309,14 +310,14 @@ convert_compatibility_catalogues (GKeyFile *keyfile, const char *group)
 
       x = xexp_list_new ("catalogues");
 
-      if (!strcmp (DEFAULT_DIST, "bora") && repo_deb_3)
+      if (!strcmp (default_distribution, "bora") && repo_deb_3)
 	{
 	  xexp *c = convert_compatibility_catalogue (repo_deb_3, repo_name);
 	  if (c)
 	    xexp_cons (x, c);
 	}
 
-      if (!strcmp (DEFAULT_DIST, "mistral") && repo_deb)
+      if (!strcmp (default_distribution, "mistral") && repo_deb)
 	{
 	  xexp *c = convert_compatibility_catalogue (repo_deb, repo_name);
 	  if (c)

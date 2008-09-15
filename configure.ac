@@ -67,10 +67,6 @@ AC_SUBST(hildonstatusbardesktopdir)
 DEB_HOST_ARCH=`dpkg-architecture -qDEB_HOST_ARCH`
 AC_DEFINE_UNQUOTED(DEB_HOST_ARCH, "$DEB_HOST_ARCH", [Debian architecture])
 
-# Default distribution
-#
-AC_DEFINE(DEFAULT_DIST, "diablo", [Default distribution name])
-
 AC_CONFIG_FILES([Makefile
                  src/Makefile
 		 utils/Makefile])

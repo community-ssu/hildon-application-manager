@@ -9,6 +9,15 @@
 
 	* src/hildon-application-manager-config.cc: Handle system settings.
 
+	Get default distribution from system settings.
+
+	* configure.ac (DEFAULT_DIST): Removed.
+	* src/apt-worker.cc (find_catalogue_for_pkgfile): Use
+	default_distribution instead of DEFAULT_DIST.
+	(find_catalogues_for_item_desc): Likewise.
+	* src/instr.cc (convert_catalogue, convert_compatibility_catalogues):
+	Likewise.
+
 2008-09-10  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/util.cc: Removed !CAIRO_CELL_RENDERER code.
