@@ -1,5 +1,10 @@
 2008-09-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Make sure that system settings are loaded before using them.
+
+	* src/hildon-application-manager-config.cc (update_conf): Call
+	load_system_settings before calling write_sources_list.
+
 	Support for generic system-wide settings, including defaults.
 
 	* src/confutils.cc (system_settings, default_distribution,

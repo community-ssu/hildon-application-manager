@@ -134,6 +134,7 @@ write_conf ()
 void
 update_conf ()
 {
+  load_system_settings ();
   if (!write_sources_list (CATALOGUE_APT_SOURCE, catalogues))
     exit (1);
   backup_catalogues ();
