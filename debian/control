@@ -7,7 +7,7 @@ Standards-Version: 3.6.0
 
 Package: hildon-application-manager
 Architecture: any
-Depends: ${shlibs:Depends}, maemo-launcher, hildon-application-manager-l10n
+Depends: ${shlibs:Depends}, maemo-launcher, hildon-application-manager-l10n | hildon-application-manager-l10n-mr0
 Conflicts: osso-application-installer, maemo-select-menu-location, hildon-update-notifier
 Replaces: osso-application-installer, maemo-select-menu-location, hildon-update-notifier
 Provides: maemo-installer-utils, maemo-select-menu-location
