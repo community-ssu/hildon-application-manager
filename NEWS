@@ -18,6 +18,8 @@ User visible changes in 2.2:
   upgrade disabling your maemo Extras catalogue or a restoring a
   backup not enabling it again should no longer happen.
 
+* The default distribution can now be customized.
+
 * The maemo-select-menu-location utility has been deprecated.  It does
   nothing now.
 
