@@ -1368,6 +1368,72 @@ maybe_refresh_package_cache_without_user ()
     refresh_package_cache_without_user_flow ();
 }
 
+/* Add a temporal catalogue and refresh
+ */
+struct atcar_clos {
+  void (*cont) (bool keep_going, void *data);
+  void *data;
+  char *title;
+};
+
+struct add_temp_catalogues_refresh_data {
+  void (*cont) (xexp *tempcat, apt_worker_callback *callback, void *data);
+  xexp *tempcat;
+  apt_worker_callback *callback;
+  void *cont_data;
+};
+
+static void atcar_add_temp_catalogues_reply (int cmd, apt_proto_decoder *dec,
+                                             void *data);
+
+static void
+add_temp_catalogues_and_refresh_cont  (bool success, void *data)
+{
+  add_temp_catalogues_refresh_data *atcr_data =
+    (add_temp_catalogues_refresh_data *) data;
+
+  atcr_data->cont (atcr_data->tempcat,
+                   atcr_data->callback,
+                   atcr_data->cont_data);
+  
+  delete atcr_data;
+}
+
+void
+add_temp_catalogues_and_refresh (xexp *tempcat,
+                                 const char *title,
+                                 void (*cont) (bool keep_going, void *data),
+                                 void *data)
+{
+  atcar_clos *c = new atcar_clos;
+  c->cont = cont;
+  c->data = data;
+  c->title = g_strdup (title);
+
+  add_temp_catalogues_refresh_data *atc_data =
+    new add_temp_catalogues_refresh_data;
+
+  atc_data->cont = apt_worker_add_temp_catalogues;
+  atc_data->tempcat = tempcat;
+  atc_data->callback = atcar_add_temp_catalogues_reply;
+  atc_data->cont_data = c;
+
+  ensure_network (add_temp_catalogues_and_refresh_cont, atc_data);
+}
+
+static void
+atcar_add_temp_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  atcar_clos *c = (atcar_clos *)data;
+
+  // @todo: find a way to remove this temp state
+  refresh_package_cache_without_user (c->title, APTSTATE_TEMP,
+                                      c->cont, c->data);
+
+  g_free (c->title);
+  delete c;
+}
+
 /* Set the catalogues and refresh.
  */
 

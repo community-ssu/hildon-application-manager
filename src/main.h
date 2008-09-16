@@ -152,6 +152,12 @@ void refresh_package_cache_without_user (const char *title,
 
 void maybe_refresh_package_cache_without_user ();
 
+void add_temp_catalogues_and_refresh (xexp *tempcat,
+                                      const char *title,
+                                      void (*cont) (bool keep_going,
+                                                    void *data),
+                                      void *data);
+
 void set_catalogues_and_refresh (xexp *catalogues,
 				 const char *title,
 				 int state,

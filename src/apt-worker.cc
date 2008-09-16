@@ -1046,6 +1046,7 @@ void cmd_get_package_details ();
 int cmd_check_updates (bool with_status = true);
 void cmd_get_catalogues ();
 void cmd_set_catalogues ();
+void cmd_add_temp_catalogues ();
 void cmd_rm_temp_catalogues ();
 void cmd_install_check ();
 void cmd_download_package ();
@@ -1137,6 +1138,7 @@ static const char *cmd_names[] = {
   "CHECK_UPDATES",
   "GET_CATALOGUES",
   "SET_CATALOGUES",
+  "ADD_TEMP_CATALOGUES",
   "RM_TEMP_CATALOGUES",
   "INSTALL_CHECK",
   "INSTALL_PACKAGE",
@@ -1212,6 +1214,10 @@ handle_request ()
 
     case APTCMD_SET_CATALOGUES:
       cmd_set_catalogues ();
+      break;
+
+    case APTCMD_ADD_TEMP_CATALOGUES:
+      cmd_add_temp_catalogues ();
       break;
 
     case APTCMD_RM_TEMP_CATALOGUES:
@@ -3852,6 +3858,17 @@ update_sources_list (xexp *catalogues)
   return success;
 }
 
+static gboolean
+add_temp_sources_list (xexp *tempcat)
+{
+  gboolean success;
+
+  success = (xexp_write_file (TEMP_CATALOGUE_CONF, tempcat) &&
+             write_sources_list (TEMP_APT_SOURCE_LIST, tempcat));
+
+  return success;
+}
+
 int
 cmd_check_updates (bool with_status)
 {
@@ -4086,6 +4103,26 @@ cmd_set_catalogues ()
   update_sources_list (catalogues);
 
   xexp_free (catalogues);
+  response.encode_int (success);
+}
+
+/* APTCMD_ADD_TEMP_CATALOGUES
+ *
+ * Stores a new temporal source list in /etc/apt directory
+ */
+void
+cmd_add_temp_catalogues ()
+{
+  int success;
+  xexp *tempcat;
+
+  tempcat = request.decode_xexp ();
+  xexp_adel (tempcat, "source");
+
+  /* add a temporal sources.list file */
+  success = add_temp_sources_list (tempcat);  
+
+  xexp_free (tempcat);
   response.encode_int (success);
 }
 

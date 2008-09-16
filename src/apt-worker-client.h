@@ -82,6 +82,10 @@ void apt_worker_set_catalogues (int state,
 				apt_worker_callback *callback,
 				void *data);
 
+void apt_worker_add_temp_catalogues (xexp *tempcat,
+                                     apt_worker_callback *callback,
+                                     void *data);
+
 void apt_worker_rm_temp_catalogues (apt_worker_callback *callback,
 				void *data);
 
