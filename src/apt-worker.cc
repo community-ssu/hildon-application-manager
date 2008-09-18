@@ -145,8 +145,8 @@ static xexp *read_operation_record ();
 #define APT_WORKER_LOCK "/var/lib/hildon-application-manager/apt-worker-lock"
 
 /* Temporary repositories APT cache and status directories */
-#define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
-#define TEMP_APT_STATE "/var/lib/hildon-application-manager/temp-state"
+//#define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
+//#define TEMP_APT_STATE "/var/lib/hildon-application-manager/temp-state"
 
 /* Temporary catalogues and temporary sources.list */
 #define TEMP_CATALOGUE_CONF "/var/lib/hildon-application-manager/catalogues.temp"
@@ -1071,8 +1071,7 @@ handle_request ()
   must_read (&req, sizeof (req));
 
 #ifdef DEBUG_COMMANDS
-  DBG ("got req %s/%d/%d state %d",
-       cmd_names[req.cmd], req.seq, req.len, req.state);
+  DBG ("got req %s/%d/%d", cmd_names[req.cmd], req.seq, req.len);
 #endif
 
   reqbuf = alloc_buf (req.len, stack_reqbuf, FIXED_REQUEST_BUF_SIZE);
@@ -3363,7 +3362,6 @@ cmd_get_package_details ()
       pkgCache::PkgIterator pkg;
       pkgCache::VerIterator ver;
       
-      // if (find_package_version (state->cache, pkg, ver, package, version))
       if (find_package_version (awc->cache, pkg, ver, package, version))
         {
           package_record rec (ver);
