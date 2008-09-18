@@ -355,8 +355,7 @@ spd_get_details (package_info *pi, void *data, bool changed)
   apt_worker_get_package_details (pi->name, (c->kind == remove_details
 					     ? pi->installed_version
 					     : pi->available_version),
-				  c->kind, c->state,
-				  spd_get_details_reply, c);
+				  c->kind, spd_get_details_reply, c);
 }
 
 static void

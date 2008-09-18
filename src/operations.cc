@@ -580,8 +580,7 @@ ip_check_cert_loop (ip_clos *c)
 	  ip_check_cert_loop (c);
 	}
       else
-	apt_worker_install_check (c->state, pi->name,
-				  ip_check_cert_reply, c);
+	apt_worker_install_check (pi->name, ip_check_cert_reply, c);
     }
   else
     {
@@ -713,8 +712,7 @@ ip_install_loop (ip_clos *c)
 
       package_info *pi = (package_info *)(c->cur->data);
       
-      apt_worker_install_check (c->state, pi->name,
-				ip_check_domain_reply, c);
+      apt_worker_install_check (pi->name, ip_check_domain_reply, c);
     }
 }
 
@@ -1084,8 +1082,7 @@ ip_check_upgrade (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
-  apt_worker_install_check (c->state, pi->name,
-			    ip_check_upgrade_reply, c);
+  apt_worker_install_check (pi->name, ip_check_upgrade_reply, c);
 }
 
 static void
@@ -1206,7 +1203,7 @@ ip_download_cur (void *data)
   g_free (title);
 
   set_log_start ();
-  apt_worker_download_package (c->state, pi->name,
+  apt_worker_download_package (pi->name,
 			       c->alt_download_root,
 			       ip_download_cur_reply, c);
 }
@@ -1330,7 +1327,7 @@ ip_install_cur (void *data)
       if (pi->info.required_free_space < free_space)
 	{
 	  /* Proceed to instal if there's enough free space */
-	  apt_worker_install_package (c->state, pi->name,
+	  apt_worker_install_package (pi->name,
 				      c->alt_download_root,
 				      ip_install_cur_reply, c);
 	}
@@ -1363,7 +1360,7 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
     apt_proto_result_code (dec->decode_int ());
 
   if (clean_after_install)
-    apt_worker_clean (c->state, ip_clean_reply, NULL);
+    apt_worker_clean (ip_clean_reply, NULL);
 
   c->refresh_needed = true;
 

@@ -394,7 +394,6 @@ struct worker_call {
 
   int cmd;
   int seq;
-//  int state;
   char *data;
   int len;
 
@@ -592,8 +591,7 @@ apt_worker_noop (apt_worker_callback *callback, void *data)
 }
 
 void
-apt_worker_get_package_list (int state,
-			     bool only_user,
+apt_worker_get_package_list (bool only_user,
 			     bool only_installed,
 			     bool only_available,
 			     const char *pattern,
@@ -612,7 +610,7 @@ apt_worker_get_package_list (int state,
 }
 
 void
-apt_worker_update_cache (int state, apt_worker_callback *callback, void *data)
+apt_worker_update_cache (apt_worker_callback *callback, void *data)
 {
   request.reset ();
   
@@ -636,8 +634,7 @@ apt_worker_get_catalogues (apt_worker_callback *callback, void *data)
 }
 
 void
-apt_worker_set_catalogues (int state, 
-			   xexp *catalogues,
+apt_worker_set_catalogues (xexp *catalogues,
 			   apt_worker_callback *callback, void *data)
 {
   request.reset ();
@@ -667,8 +664,7 @@ apt_worker_rm_temp_catalogues (apt_worker_callback *callback, void *data)
 }
 
 void
-apt_worker_get_package_info (int state,
-			     const char *package,
+apt_worker_get_package_info (const char *package,
 			     bool only_installable_info,
 			     apt_worker_callback *callback, void *data)
 {
@@ -684,7 +680,6 @@ void
 apt_worker_get_package_details (const char *package,
 				const char *version,
 				int summary_kind,
-				int state,
 				apt_worker_callback *callback,
 				void *data)
 {
@@ -698,7 +693,7 @@ apt_worker_get_package_details (const char *package,
 }
 
 void
-apt_worker_install_check (int state, const char *package,
+apt_worker_install_check (const char *package,
 			  apt_worker_callback *callback, void *data)
 {
   request.reset ();
@@ -709,7 +704,7 @@ apt_worker_install_check (int state, const char *package,
 }
 
 void
-apt_worker_download_package (int state, const char *package,
+apt_worker_download_package (const char *package,
 			     const char *alt_download_root,
 			     apt_worker_callback *callback, void *data)
 {
@@ -732,7 +727,7 @@ apt_worker_download_package (int state, const char *package,
 }
 
 void
-apt_worker_install_package (int state, const char *package,
+apt_worker_install_package (const char *package,
 			    const char *alt_download_root,
 			    apt_worker_callback *callback, void *data)
 {
@@ -777,7 +772,7 @@ apt_worker_remove_package (const char *package,
 }
 
 void
-apt_worker_clean (int state, apt_worker_callback *callback, void *data)
+apt_worker_clean (apt_worker_callback *callback, void *data)
 {
   call_apt_worker (APTCMD_CLEAN, NULL, 0, callback, data);
 }
@@ -816,8 +811,7 @@ apt_worker_save_backup_data (apt_worker_callback *callback,
 }
 
 void
-apt_worker_get_system_update_packages (int state,
-				       apt_worker_callback *callback,
+apt_worker_get_system_update_packages (apt_worker_callback *callback,
 				       void *data)
 {
   request.reset ();

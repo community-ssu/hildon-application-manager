@@ -1082,8 +1082,7 @@ get_package_list_with_cont (int state, void (*cont) (void *data), void *data)
   free_all_packages (state);
 
   show_updating ();
-  apt_worker_get_package_list (state,
-			       !(red_pill_mode && red_pill_show_all),
+  apt_worker_get_package_list (!(red_pill_mode && red_pill_show_all),
 			       false, 
 			       false, 
 			       NULL,
@@ -1124,7 +1123,7 @@ get_package_info (package_info *pi,
       c->data = data;
       c->pi = pi;
       pi->ref ();
-      apt_worker_get_package_info (state, pi->name, only_basic_info,
+      apt_worker_get_package_info (pi->name, only_basic_info,
 				   gpi_reply, c);
     }
 }
@@ -1297,7 +1296,7 @@ rpcwu_with_network (bool success, void *data)
   if (success)
     {
       set_entertainment_cancel (rpcwu_cancel, c);
-      apt_worker_update_cache (c->state, rpcwu_reply, c);
+      apt_worker_update_cache (rpcwu_reply, c);
     }
   else
     {
@@ -1445,8 +1444,8 @@ struct scar_clos {
 };
 
 struct set_catalogues_refresh_data {
-  void (*cont) (int state, xexp *catalogues,
-      apt_worker_callback *callback, void *data);
+  void (*cont) (xexp *catalogues,
+                apt_worker_callback *callback, void *data);
   int state;
   xexp *catalogues;
   apt_worker_callback *callback;
@@ -1460,8 +1459,7 @@ static void set_catalogues_and_refresh_cont  (bool success, void *data)
 {
   set_catalogues_refresh_data *scr_data = (set_catalogues_refresh_data *) data;
 
-  scr_data->cont (scr_data->state,
-                  scr_data->catalogues,
+  scr_data->cont (scr_data->catalogues,
                   scr_data->callback,
                   scr_data->cont_data);
   
@@ -2097,8 +2095,7 @@ search_packages (const char *pattern, bool in_descriptions)
 			     || parent == &upgrade_applications_view);
       bool only_available = (parent == &install_applications_view
 			     || parent == &upgrade_applications_view);
-      apt_worker_get_package_list (APTSTATE_DEFAULT,
-				   !(red_pill_mode && red_pill_show_all),
+      apt_worker_get_package_list (!(red_pill_mode && red_pill_show_all),
 				   only_installed,
 				   only_available, 
 				   pattern,
