@@ -81,7 +81,6 @@ enum apt_state {
 
 struct apt_request_header {
   int cmd;
-  int state;
   int seq;
   int len;
 };
