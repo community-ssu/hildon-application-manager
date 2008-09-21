@@ -5,7 +5,6 @@ New features for the Hildon Application Manager
 
 - update-notifier.c: alarm API.
 - dbus.c: MCE_REBOOT_REQ
-- dbus.c: battery info (get it via libhal, capability "battery")
 
 * Show repository that a package is going to be installed from
   [victor, vjaquez-show-repo]

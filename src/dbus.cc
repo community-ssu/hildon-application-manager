@@ -25,6 +25,7 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #include <string.h>
 #include <libintl.h>
+#include <libhal.h>
 
 #include "dbus.h"
 #include "util.h"
@@ -676,142 +677,54 @@ send_reboot_message (void)
 #endif
 }
 
-static inline void send_battery_status_request (void)
+bool
+enough_battery_p (void)
 {
-  DBusError error;
-  DBusConnection *conn;
-  DBusMessage *msg;
-  dbus_bool_t retval = 0;
+  LibHalContext *hal;
+  
+  int i;
+  char **devs;
+  int n_devs;
 
-  dbus_error_init (&error);
-  conn = dbus_bus_get (DBUS_BUS_SYSTEM, &error);
-  if (conn == NULL)
+  hal = libhal_ctx_new ();
+  libhal_ctx_set_dbus_connection (hal, dbus_bus_get (DBUS_BUS_SYSTEM, NULL));
+  devs = libhal_find_device_by_capability (hal, "battery", &n_devs, NULL);
+  if (devs)
     {
-      fprintf (stderr, "Can't get session dbus: %s", error.message);
-      return;
-    }
-
-  msg = dbus_message_new_signal(BME_REQUEST_PATH, BME_REQUEST_IF, BME_STATUS_INFO_REQ);
-  if (!msg)
-    {
-      fprintf (stderr, "Fail initializing Dbus signal msg\n");
-      return;
-    }
-
-  dbus_message_set_no_reply(msg, TRUE);
-
-  retval = dbus_connection_send (conn, msg, NULL);
-  if (!retval)
-    {
-      fprintf (stderr, "Fail initializing Dbus signal msg\n");
-      return;
-    }
-  else
-    dbus_connection_flush(conn);
-
-  dbus_message_unref(msg);
-}
-
-static battery_info *
-receive_battery_status_update (void)
-{
-  DBusMessage* msg = NULL;
-  DBusMessageIter args;
-  DBusConnection* conn;
-  DBusError err;
-  GTimer *timer = NULL;
-  gint32 b_level = -1;
-  battery_info *b_info = NULL;
-  gboolean checked_charging = FALSE;
-
-  dbus_error_init(&err);
-  conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
-  if (dbus_error_is_set(&err)) 
-    {
-      fprintf (stderr, "Connection Error (%s)\n", err.message);
-      dbus_error_free(&err);
-      return NULL;
-    }
-
-  /* Init battery info struct */
-  b_info = new battery_info ();
-  b_info->level = 0;
-  b_info->charging = FALSE;
-
-  /* Init timer */
-  timer = g_timer_new ();
-
-  /* Check for interesting signals */
-  g_timer_start (timer);
-  while ((g_timer_elapsed (timer, NULL) < BATTERY_REQUEST_TIMEOUT) &&
-    (b_info->level == -1 || !checked_charging))
-    {
-      dbus_connection_read_write(conn, 0);
-      msg = dbus_connection_pop_message(conn);
-
-      if (msg == NULL)
-	continue;
-
-      if (dbus_message_is_signal(msg, BME_SIGNAL_IF, BME_BATTERY_STATE_UPDATE))
+      for (i = 0; i < n_devs; i++)
 	{
-	  /* Read the parameters */
-	  if (!dbus_message_iter_init(msg, &args))
+	  DBusError error;
+	  
+	  dbus_error_init (&error);
+	  int charging = libhal_device_get_property_bool
+	    (hal, devs[i], "battery.rechargeable.is_charging", &error);
+	  
+	  if (dbus_error_is_set (&error))
+	    dbus_error_free (&error);
+	  else 
 	    {
-	      fprintf (stderr, "Message Has No Parameters\n");
-	      continue;
+	      if (!charging)
+		break;
 	    }
 
-	  if (DBUS_TYPE_UINT32 != dbus_message_iter_get_arg_type(&args))
+	  dbus_error_init (&error);
+	  int percentage = libhal_device_get_property_int
+	    (hal, devs[i], "battery.charge_level.percentage", &error);
+
+	  if (dbus_error_is_set (&error))
 	    {
-	      fprintf(stderr, "Argument is not uint32!\n");
-	      continue;
+	      dbus_error_free (&error);
+	      break;
 	    }
-
-	  dbus_message_iter_get_basic(&args, &b_level);
-	  b_info->level = b_level;
-	}
-      else if (dbus_message_is_signal(msg, BME_SIGNAL_IF, BME_CHARGER_CONNECTED) ||
-	       dbus_message_is_signal(msg, BME_SIGNAL_IF, BME_CHARGER_CHARGING_ON))
-	{
-	  b_info->charging = TRUE;
-	  checked_charging = TRUE;
-	}
-      else if (dbus_message_is_signal(msg, BME_SIGNAL_IF, BME_CHARGER_DISCONNECTED) ||
-	       dbus_message_is_signal(msg, BME_SIGNAL_IF, BME_CHARGER_CHARGING_OFF))
-	{
-	  b_info->charging = FALSE;
-	  checked_charging = TRUE;
+	  else
+	    {
+	      if (percentage > 50)
+		break;
+	    }
 	}
     }
 
-  /* Free memory */
-  if (msg != NULL)
-    dbus_message_unref(msg);
-
-  g_timer_destroy (timer);
-
-  return b_info;
-}
-
-battery_info *
-check_battery_status (void)
-{
-  battery_info *batt_info = NULL;
-  struct stat info;
-
-  /* Do the battery check only if not in the scratchbox */
-  if (stat ("/targets/links/scratchbox.config", &info))
-    {
-      send_battery_status_request ();
-      batt_info = receive_battery_status_update ();
-    }
-  else
-    {
-      /* If working in the scratchbox, return a ad-hoc struct telling
-	 that there's enough battery and that it's chargin on */
-      batt_info = new battery_info ();
-      batt_info->level = 4;
-      batt_info->charging = TRUE;
-    }
-  return batt_info;
+  libhal_ctx_shutdown (hal, NULL);
+  
+  return devs == NULL || i < n_devs;
 }

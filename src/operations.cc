@@ -879,21 +879,6 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
     }
 }
 
-static gboolean
-enough_battery_to_update (void)
-{
-  battery_info *batt_info = NULL;
-  gboolean result = FALSE;
-
-  batt_info = check_battery_status ();
-  if (batt_info != NULL)
-    {
-      result = (batt_info->level > 2) || batt_info->charging;
-      delete batt_info;
-    }
-  return result;
-}
-
 static void
 ip_not_enough_memory (void *data)
 {
@@ -966,59 +951,56 @@ ip_install_one (void *data)
     add_log ("Installing %s %s\n", pi->name, pi->available_version);
 
   /* Check battery when doing an upgrade of an OS package */
-  if (!pi->installed_version ||
-      !(pi->info.install_flags & pkgflag_system_update) ||
-      enough_battery_to_update ())
+  if ((pi->info.install_flags & pkgflag_system_update)
+      && !enough_battery_p ())
     {
-      bool keep_installing = false;
-      int64_t free_space = get_free_space ();
+      ip_not_enough_battery_confirm (ip_install_one, c);
+      return;
+    }
 
-      if (free_space < 0)
-	annoy_user_with_errno (errno, "get_free_space",
-			       ip_end, c);
+  bool keep_installing = false;
+  int64_t free_space = get_free_space ();
 
-      if (pi->info.required_free_space < free_space)
+  if (free_space < 0)
+    annoy_user_with_errno (errno, "get_free_space",
+			   ip_end, c);
+  
+  if (pi->info.required_free_space < free_space)
+    {
+      /* Check MMCs first if download to mmc option is enabled */
+      if (download_packages_to_mmc)
 	{
-	  /* Check MMCs first if download to mmc option is enabled */
-	  if (download_packages_to_mmc)
+	  if (volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT)
+	      && (pi->info.download_size
+		  < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT)))
 	    {
-	      if (volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT)
-		  && (pi->info.download_size
-		      < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT)))
-		{
-		  c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
-		  keep_installing = true;
-		}
-	      else if (volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT)
-		       && (pi->info.download_size
-			   < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT)))
-		{
-		  c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
-		  keep_installing = true;
-		}
+	      c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
+	      keep_installing = true;
+	    }
+	  else if (volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT)
+		   && (pi->info.download_size
+		       < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT)))
+	    {
+	      c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
+	      keep_installing = true;
 	    }
 	}
-
-      /* Check internal flash at last */
-      if (!keep_installing &&
-	  free_space > (pi->info.required_free_space + pi->info.download_size))
-	{
-	  keep_installing = true;
-	}
-
-      /* If there's enough space somewhere, proceed with installation */
-      if (keep_installing)
-	ip_check_upgrade (c);
-      else
-	{
-	  /* Not enough free space */
-	  ip_not_enough_memory (c);
-	}
     }
+  
+  /* Check internal flash at last */
+  if (!keep_installing &&
+      free_space > (pi->info.required_free_space + pi->info.download_size))
+    {
+      keep_installing = true;
+    }
+  
+  /* If there's enough space somewhere, proceed with installation */
+  if (keep_installing)
+    ip_check_upgrade (c);
   else
     {
-      /* Not enough battery to do the upgrade */
-      ip_not_enough_battery_confirm (ip_install_one, c);
+      /* Not enough free space */
+      ip_not_enough_memory (c);
     }
 }
 
@@ -1317,33 +1299,30 @@ ip_install_cur (void *data)
   set_entertainment_fun (NULL, -1, -1, 0);
 
   /* Check battery when doing an upgrade of an OS package */
-  if (!pi->installed_version ||
-      !(pi->info.install_flags & pkgflag_system_update) ||
-      enough_battery_to_update ())
+  if ((pi->info.install_flags & pkgflag_system_update)
+      && !enough_battery_p ())
     {
-      /* Check free space before downloading */
-      int64_t free_space = get_free_space ();
-      if (free_space < 0)
-	annoy_user_with_errno (errno, "get_free_space",
-			       ip_end, c);
+      ip_not_enough_battery_confirm (ip_install_cur, c);
+      return;
+    }
 
-      if (pi->info.required_free_space < free_space)
-	{
-	  /* Proceed to instal if there's enough free space */
-	  apt_worker_install_package (c->state, pi->name,
-				      c->alt_download_root,
-				      ip_install_cur_reply, c);
-	}
-      else
-	{
-	  /* Not enough free space */
-	  ip_not_enough_memory (c);
-	}
+  /* Check free space before downloading */
+  int64_t free_space = get_free_space ();
+  if (free_space < 0)
+    annoy_user_with_errno (errno, "get_free_space",
+			   ip_end, c);
+  
+  if (pi->info.required_free_space < free_space)
+    {
+      /* Proceed to install if there's enough free space */
+      apt_worker_install_package (c->state, pi->name,
+				  c->alt_download_root,
+				  ip_install_cur_reply, c);
     }
   else
     {
-      /* Not enough battery to do the upgrade */
-      ip_not_enough_battery_confirm (ip_install_cur, c);
+      /* Not enough free space */
+      ip_not_enough_memory (c);
     }
 }
 
