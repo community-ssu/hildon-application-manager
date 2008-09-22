@@ -1367,73 +1367,8 @@ maybe_refresh_package_cache_without_user ()
     refresh_package_cache_without_user_flow ();
 }
 
-/* Add a temporal catalogue and refresh
- */
-struct atcar_clos {
-  void (*cont) (bool keep_going, void *data);
-  void *data;
-  char *title;
-};
-
-struct add_temp_catalogues_refresh_data {
-  void (*cont) (xexp *tempcat, apt_worker_callback *callback, void *data);
-  xexp *tempcat;
-  apt_worker_callback *callback;
-  void *cont_data;
-};
-
-static void atcar_add_temp_catalogues_reply (int cmd, apt_proto_decoder *dec,
-                                             void *data);
-
-static void
-add_temp_catalogues_and_refresh_cont  (bool success, void *data)
-{
-  add_temp_catalogues_refresh_data *atcr_data =
-    (add_temp_catalogues_refresh_data *) data;
-
-  atcr_data->cont (atcr_data->tempcat,
-                   atcr_data->callback,
-                   atcr_data->cont_data);
-  
-  delete atcr_data;
-}
-
-void
-add_temp_catalogues_and_refresh (xexp *tempcat,
-                                 const char *title,
-                                 void (*cont) (bool keep_going, void *data),
-                                 void *data)
-{
-  atcar_clos *c = new atcar_clos;
-  c->cont = cont;
-  c->data = data;
-  c->title = g_strdup (title);
-
-  add_temp_catalogues_refresh_data *atc_data =
-    new add_temp_catalogues_refresh_data;
-
-  atc_data->cont = apt_worker_add_temp_catalogues;
-  atc_data->tempcat = tempcat;
-  atc_data->callback = atcar_add_temp_catalogues_reply;
-  atc_data->cont_data = c;
-
-  ensure_network (add_temp_catalogues_and_refresh_cont, atc_data);
-}
-
-static void
-atcar_add_temp_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
-{
-  atcar_clos *c = (atcar_clos *)data;
-
-  // @todo: find a way to remove this temp state
-  refresh_package_cache_without_user (c->title, APTSTATE_TEMP,
-                                      c->cont, c->data);
-
-  g_free (c->title);
-  delete c;
-}
-
-/* Set the catalogues and refresh.
+/* Set the system catalogue and refresh &
+ * Add a temporal catalogue and refresh
  */
 
 struct scar_clos {
@@ -1444,18 +1379,63 @@ struct scar_clos {
 };
 
 struct set_catalogues_refresh_data {
-  void (*cont) (xexp *catalogues,
-                apt_worker_callback *callback, void *data);
-  int state;
+  void (*cont) (xexp *tempcat, apt_worker_callback *callback, void *data);
   xexp *catalogues;
   apt_worker_callback *callback;
   void *cont_data;
 };
 
 static void scar_set_catalogues_reply (int cmd, apt_proto_decoder *dec,
-				       void *data);
+                                       void *data);
+static void set_catalogues_and_refresh_cont  (bool success, void *data);
 
-static void set_catalogues_and_refresh_cont  (bool success, void *data)
+void
+add_temp_catalogues_and_refresh (xexp *tempcat,
+                                 const char *title,
+                                 void (*cont) (bool keep_going, void *data),
+                                 void *data)
+{
+  scar_clos *c = new scar_clos;
+  c->cont = cont;
+  c->data = data;
+  c->title = g_strdup (title);
+  c->state = APTSTATE_TEMP;
+
+  set_catalogues_refresh_data *scr_data = new set_catalogues_refresh_data;
+
+  scr_data->cont = apt_worker_add_temp_catalogues;
+  scr_data->catalogues = tempcat;
+  scr_data->callback = scar_set_catalogues_reply;
+  scr_data->cont_data = c;
+
+  ensure_network (set_catalogues_and_refresh_cont, scr_data);
+}
+
+void
+set_catalogues_and_refresh (xexp *catalogues,
+                            const char *title,
+                            int state, // @todo remove this parameter
+                            void (*cont) (bool keep_going, void *data),
+                            void *data)
+{
+  scar_clos *c = new scar_clos;
+  c->cont = cont;
+  c->data = data;
+  c->title = g_strdup (title);
+  c->state = APTSTATE_DEFAULT;
+
+  set_catalogues_refresh_data *scr_data = new set_catalogues_refresh_data;
+
+  scr_data->cont = apt_worker_set_catalogues;
+  scr_data->catalogues = catalogues;
+  scr_data->callback = scar_set_catalogues_reply;
+  scr_data->cont_data = c; 
+
+  ensure_network (set_catalogues_and_refresh_cont, scr_data);
+}
+
+static void
+set_catalogues_and_refresh_cont  (bool success, void *data)
 {
   set_catalogues_refresh_data *scr_data = (set_catalogues_refresh_data *) data;
 
@@ -1466,35 +1446,13 @@ static void set_catalogues_and_refresh_cont  (bool success, void *data)
   delete scr_data;
 }
 
-void
-set_catalogues_and_refresh (xexp *catalogues,
-			    const char *title,
-			    int state,
-			    void (*cont) (bool keep_going, void *data),
-			    void *data)
-{
-  scar_clos *c = new scar_clos;
-  c->cont = cont;
-  c->data = data;
-  c->title = g_strdup (title);
-  c->state = state;
-
-  set_catalogues_refresh_data *scr_data = new set_catalogues_refresh_data;
-
-  scr_data->cont = apt_worker_set_catalogues;
-  scr_data->state = state;
-  scr_data->catalogues = catalogues;
-  scr_data->callback = scar_set_catalogues_reply;
-  scr_data->cont_data = c; 
-
-  ensure_network (set_catalogues_and_refresh_cont, scr_data);
-}
-
 static void
 scar_set_catalogues_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   scar_clos *c = (scar_clos *)data;
 
+  // @todo: find a way to remove this state handling
+  // it is required to show the package selection dialog
   refresh_package_cache_without_user (c->title, c->state, c->cont, c->data);
 
   g_free (c->title);
