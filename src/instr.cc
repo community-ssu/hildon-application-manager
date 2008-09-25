@@ -442,8 +442,7 @@ eip_with_catalogues (bool res, void *data)
   eip_clos *c = (eip_clos *)data;
 
   if (res && c->package)
-    install_named_package (APTSTATE_DEFAULT, c->package,
-			   eip_end, c);
+    install_named_package (c->package, eip_end, c);
   else
     eip_end (0, c);
 }
@@ -544,10 +543,9 @@ eci_with_temp_catalogues (bool res, void *data)
   struct eci_clos *c = (eci_clos *)data;
 
   if (res)
-    install_named_packages (APTSTATE_TEMP, (const char **)c->packages,
-			    INSTALL_TYPE_MEMORY_CARD, c->automatic,
-			    NULL, NULL,
-			    eci_end, c);
+    install_named_packages ((const char **)c->packages, 
+                            INSTALL_TYPE_MEMORY_CARD, c->automatic,
+                            NULL, NULL, eci_end, c);
   else
     eci_end (0, c);
 }

@@ -270,7 +270,7 @@ settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
       save_settings ();
 
       if (needs_refresh)
-	get_package_list (APTSTATE_DEFAULT);
+	get_package_list ();
     }
 
   delete c;

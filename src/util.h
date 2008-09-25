@@ -422,11 +422,10 @@ void clear_global_section_list ();
  */
 
 void select_package_list (GList *package_list,
-			  int state,
-			  const gchar *title,
-			  const gchar *question,
-			  void (*cont) (gboolean res, GList * pl, void *data),
-			  void *data);
+                          const gchar *title,
+                          const gchar *question,
+                          void (*cont) (gboolean res, GList * pl, void *data),
+                          void *data);
 
 /* Formatting sizes
 

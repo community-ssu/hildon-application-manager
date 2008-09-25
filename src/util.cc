@@ -298,8 +298,7 @@ yes_no_response (GtkDialog *dialog, gint response, gpointer clos)
   if (response == 1)
     {
       if (c->pi)
-	show_package_details (c->pi, c->kind, false, APTSTATE_DEFAULT,
-			      yes_no_details_done, c);
+        show_package_details (c->pi, c->kind, false,  yes_no_details_done, c);
       else if (c->details)
 	c->details (c->data);
       return;
@@ -534,8 +533,7 @@ annoy_user_with_details_response (GtkDialog *dialog, gint response,
   if (response == 1)
     {
       if (c->pi)
-	show_package_details (c->pi, c->kind, true, APTSTATE_DEFAULT,
-			      annoy_details_done, c);
+        show_package_details (c->pi, c->kind, true, annoy_details_done, c);
       else
 	{
 	  if (c->variant == 2)
@@ -2255,12 +2253,10 @@ select_package_list_with_info (void *data)
 
 void
 select_package_list (GList *package_list,
-		     int state,
-		     const gchar *title,
-		     const gchar *question,
-		     void (*cont) (gboolean res, GList *pl,
-				   void *data),
-		     void *data)
+                     const gchar *title,
+                     const gchar *question,
+                     void (*cont) (gboolean res, GList *pl, void *data),
+                     void *data)
 {
   spl_closure *closure = new spl_closure;
 
@@ -2273,8 +2269,7 @@ select_package_list (GList *package_list,
   get_package_infos (package_list,
 		     true,
 		     select_package_list_with_info,
-		     closure,
-		     state);
+		     closure);
 }
 
 #define KILO 1000

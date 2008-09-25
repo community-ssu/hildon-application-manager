@@ -152,7 +152,7 @@ pill_response (GtkDialog *dialog, gint response, gpointer unused)
       save_settings ();
 
       if (red_pill_show_all || red_pill_show_magic_sys)
-        get_package_list (APTSTATE_DEFAULT);
+        get_package_list ();
     }
 }
 
@@ -291,8 +291,7 @@ scdf_dialog_done (bool changed, void *data)
 
   if (changed)
     set_catalogues_and_refresh (c->catalogues,
-				NULL, APTSTATE_DEFAULT,
-				scdf_end, c);
+				NULL, scdf_end, c);
   else
     scdf_end (true, c);
 }
@@ -1145,8 +1144,7 @@ ensure_cache_updated (cat_dialog_closure *c)
   if (!is_package_cache_updated ())
     {
       /* Force a refresh if package cache is not up-to-date */
-      refresh_package_cache_without_user (NULL, APTSTATE_DEFAULT,
-                                          ecu_reply, c);
+      refresh_package_cache_without_user (NULL, ecu_reply, c);
     }
   else
     {
@@ -1349,7 +1347,6 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 				    (c->update
 				     ? _("ai_nw_preparing_installation")
 				     : NULL),
-				    APTSTATE_DEFAULT,
 				    add_catalogues_cont_4, c);
       else
 	add_catalogues_cont_4 (true, c);

@@ -27,8 +27,8 @@
 #include "main.h"
 
 void show_package_details (package_info *p, detail_kind kind,
-			   bool show_problems, int state,
-			   void (*cont) (void *data), void *data);
+                           bool show_problems, 
+                           void (*cont) (void *data), void *data);
 
 void show_package_details_flow (package_info *p, detail_kind kind);
 

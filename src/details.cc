@@ -276,7 +276,6 @@ struct spd_clos {
   package_info *pi;
   detail_kind kind;
   bool show_problems;
-  int state;
 
   GtkWidget *dialog;
   GtkWidget *notebook;
@@ -314,8 +313,8 @@ static void spd_end (void *data);
 
 void
 show_package_details (package_info *pi, detail_kind kind,
-		      bool show_problems, int state,
-		      void (*cont) (void *data), void *data)
+                      bool show_problems, 
+                      void (*cont) (void *data), void *data)
 {
   spd_clos *c = new spd_clos;
   current_spd_clos = c;
@@ -323,7 +322,6 @@ show_package_details (package_info *pi, detail_kind kind,
   c->pi = pi;
   c->kind = kind;
   c->show_problems = show_problems;
-  c->state = state;
   c->cont = cont;
   c->data = data;
   c->dialog = NULL;
@@ -338,7 +336,7 @@ show_package_details (package_info *pi, detail_kind kind,
   if (pi->have_detail_kind != c->kind)
     {
       spd_with_details (c, false);
-      get_package_info (pi, false, spd_get_details, c, c->state);
+      get_package_info (pi, false, spd_get_details, c);
     }
   else
     {
@@ -818,8 +816,7 @@ void
 show_package_details_flow (package_info *pi, detail_kind kind)
 {
   if (start_interaction_flow ())
-    show_package_details (pi, kind, false, APTSTATE_DEFAULT,
-			  spdf_end, NULL);
+    show_package_details (pi, kind, false, spdf_end, NULL);
 }
 
 void
