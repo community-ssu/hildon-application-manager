@@ -212,17 +212,36 @@ get_catalogues (void (*cont) (xexp *catalogues, void *data),
   apt_worker_get_catalogues (get_catalogues_callback, c);
 }
 
+struct rm_temp_catalogues_closure {
+  void (*cont) (void *data);
+  void *data;
+};
+
+static void rtc_reply (bool keep_going, void *data)
+{
+  rm_temp_catalogues_closure* rtc_clos = (rm_temp_catalogues_closure*) data;
+
+  rtc_clos->cont (rtc_clos->data);
+  
+  delete rtc_clos;
+}
+
 static void
 rm_temp_catalogues_callback (int cmd,
                              apt_proto_decoder *dec,
-                             void *callback_data)
+                             void *data)
 {
+  refresh_package_cache_without_user (NULL, rtc_reply, data);
 }
 
 void
-rm_temp_catalogues ()
+rm_temp_catalogues (void (*cont) (void* data), void *data)
 {
-  apt_worker_rm_temp_catalogues (rm_temp_catalogues_callback, NULL);
+  rm_temp_catalogues_closure* rtc_clos = new rm_temp_catalogues_closure;
+  rtc_clos->cont = cont;
+  rtc_clos->data = data;
+  
+  apt_worker_rm_temp_catalogues (rm_temp_catalogues_callback, rtc_clos);
 }
 
 const char *

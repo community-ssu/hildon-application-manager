@@ -478,7 +478,7 @@ struct eci_clos {
 };
 
 static void eci_with_temp_catalogues (bool res, void *data);
-static void eci_end (int n_successful, void *data);
+static void eci_reply (int n_successful, void *data);
 
 void
 execute_card_install (GKeyFile *keyfile, const char *entry,
@@ -545,25 +545,29 @@ eci_with_temp_catalogues (bool res, void *data)
   if (res)
     install_named_packages ((const char **)c->packages, 
                             INSTALL_TYPE_MEMORY_CARD, c->automatic,
-                            NULL, NULL, eci_end, c);
+                            NULL, NULL, eci_reply, c);
   else
-    eci_end (0, c);
+    eci_reply (0, c);
 }
 
-
 static void
-eci_end (int n_successful, void *data)
+eci_end (void *data)
 {
   struct eci_clos *c = (eci_clos *)data;
-
-  rm_temp_catalogues ();
-
+  
   c->cont (c->data);
 
   xexp_free (c->card_catalogues);
   xexp_free (c->perm_catalogues);
   g_strfreev (c->packages);
   delete c;
+
+}
+
+static void
+eci_reply (int n_successful, void *data)
+{
+  rm_temp_catalogues (eci_end, data);
 }
 
 
