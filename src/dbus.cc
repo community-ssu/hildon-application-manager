@@ -36,18 +36,6 @@
 #include <mce/dbus-names.h>
 #include <mce/mode-names.h>
 
-/* For asking for battery information */
-#define BME_SERVICE			"com.nokia.bme"
-#define BME_REQUEST_IF			"com.nokia.bme.request"
-#define BME_SIGNAL_IF			"com.nokia.bme.signal"
-#define BME_REQUEST_PATH		"/com/nokia/bme/request"
-#define BME_STATUS_INFO_REQ		"status_info_req"
-#define BME_BATTERY_STATE_UPDATE	"battery_state_changed"
-#define BME_CHARGER_CONNECTED		"charger_connected"
-#define BME_CHARGER_DISCONNECTED        "charger_disconnected"
-#define BME_CHARGER_CHARGING_ON         "charger_charging_on"
-#define BME_CHARGER_CHARGING_OFF	"charger_charging_off"
-
 /* For getting and tracking the Bluetooth name
  */
 #define BTNAME_SERVICE                  "org.bluez"
@@ -61,9 +49,6 @@
 
 #define BTNAME_MATCH_RULE "type='signal',interface='" BTNAME_SIGNAL_IF \
                           "',member='" BTNAME_SIG_CHANGED "'"
-
-/* Max time to wait for the battery status */
-#define BATTERY_REQUEST_TIMEOUT 5
 
 static void
 dbus_mime_open (DBusConnection *conn, DBusMessage *message)
@@ -599,17 +584,6 @@ init_dbus_or_die (bool top_existing)
       exit (1);
     }
 
-  /* Listen to signals from bme-dbus-proxy */
-  dbus_error_init(&error);
-  dbus_bus_add_match(connection,
-		     "type='signal',interface='" BME_SIGNAL_IF "'", &error);
-  dbus_connection_flush(connection);
-  if (dbus_error_is_set(&error))
-    {
-      dbus_error_free(&error);
-      fprintf (stderr, "Failed to add DBus match for '" BME_SIGNAL_IF "'\n");
-    }
-
   /* Let's query initial state.  These calls are async, so they do not
      consume too much startup time.
    */
@@ -643,38 +617,6 @@ init_dbus_or_die (bool top_existing)
 
   if (!dbus_connection_add_filter(connection, handle_dbus_signal, NULL, NULL))
     fprintf (stderr, "dbus_connection_add_filter failed\n");
-}
-
-
-void
-send_reboot_message (void)
-{
-#ifdef MCE_REBOOT_REQ
-  DBusConnection *conn;
-  DBusMessage *msg;
-
-  /* Helps debugging. */
-  add_log ("Sending reboot message.\n");
-
-  conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
-  if (!conn)
-    {
-      add_log ("Could not get system bus.\n");
-      return;
-    }
-
-  msg = dbus_message_new_method_call (MCE_SERVICE,
-				      MCE_REQUEST_PATH,
-				      MCE_REQUEST_IF,
-				      MCE_REBOOT_REQ);
-
-  dbus_connection_send (conn, msg, NULL);
-  dbus_connection_flush (conn);
-
-  add_log ("Reboot message sent, quit the application.\n");
-#else
-  what_the_fock_p ();
-#endif
 }
 
 bool

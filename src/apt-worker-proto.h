@@ -61,7 +61,7 @@ enum apt_command {
   APTCMD_SAVE_BACKUP_DATA,
 
   APTCMD_GET_SYSTEM_UPDATE_PACKAGES,
-  APTCMD_FLASH_AND_REBOOT,
+  APTCMD_REBOOT,
 
   APTCMD_MAX
 };
@@ -467,7 +467,7 @@ enum apt_proto_pkgtrust {
 // --install" fails, "dpkg --purge" is called automatically as an
 // attempt to clean up.
 
-// FLASH_AND_REBOOT - call the flash-and-reboot utility
+// REBOOT - Run /sbin/reboot.
 //
 // Parameter: none.
 // Response: empty.

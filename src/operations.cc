@@ -291,8 +291,7 @@ static void ip_end (void *data);
 static void ip_reboot (void *data);
 static void ip_reboot_delayed (void *data);
 static gboolean ip_reboot_now (void *data);
-static void ip_flash_and_reboot_reply (int cmd, apt_proto_decoder *dec,
-				       void *data);
+static void ip_reboot_reply (int cmd, apt_proto_decoder *dec, void *data);
 
 void
 install_package (package_info *pi,
@@ -1607,42 +1606,25 @@ ip_reboot_now (void *data)
 {
   ip_clos *c = (ip_clos *)data;
 
-  /* If we should flash and reboot, we call /usr/bin/flash-and-reboot
-     to do it for us.  If that fails, we inform the user and then
-     reboot normally if requested.
-  */
-
   xexp *boot = xexp_list_new ("system-update");
   user_file_write_xexp (UFILE_BOOT, boot);
   xexp_free (boot);
 
   package_info *pi = (package_info *)(c->cur->data);
 
-  if (pi->info.install_flags & pkgflag_flash_and_reboot)
-    apt_worker_flash_and_reboot (ip_flash_and_reboot_reply, c);
-  else 
-    {
-      /* Reboot the device */
-      send_reboot_message ();
-      sleep (3);
-      ip_end (c);
-    }
+  apt_worker_reboot (ip_reboot_reply, c);
 
   return FALSE;
 }
 
 static void
-ip_flash_and_reboot_reply (int cmd, apt_proto_decoder *dec, void *data)
-{ 
-  /* The /usr/bin/flash-and-reboot program did not actually reboot,
-     let's do it ourselves.
-   */
+ip_reboot_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
 
-  send_reboot_message ();
   sleep (3);
-  ip_end (data);
+  ip_end (c);
 }
-
 
 /* UNINSTALL_PACKAGE - Overview
 

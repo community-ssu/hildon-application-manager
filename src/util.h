@@ -588,9 +588,6 @@ int64_t get_free_space_at_path (const char *path);
 */
 gboolean volume_path_is_mounted_writable (const gchar *path);
 
-/* Set a DBUS message to reboot the device */
-void send_reboot_message (void);
-
 /* Save the LAST_UPDATE timstamp from disk */
 void save_last_update_time (time_t t);
 
