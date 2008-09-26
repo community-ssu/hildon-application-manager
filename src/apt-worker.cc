@@ -1057,7 +1057,7 @@ void cmd_get_file_details ();
 void cmd_install_file ();
 void cmd_save_backup_data ();
 void cmd_get_system_update_packages ();
-void cmd_flash_and_reboot ();
+void cmd_reboot ();
 
 int cmdline_check_updates (char **argv);
 int cmdline_rescue (char **argv);
@@ -1258,8 +1258,8 @@ handle_request ()
       cmd_get_system_update_packages ();
       break;
 
-    case APTCMD_FLASH_AND_REBOOT:
-      cmd_flash_and_reboot ();
+    case APTCMD_REBOOT:
+      cmd_reboot ();
       break;
 
     default:
@@ -5726,9 +5726,9 @@ map_catalogue_error_details (xexp *x)
 }
 
 void
-cmd_flash_and_reboot ()
+cmd_reboot ()
 {
-  system ("/usr/bin/flash-and-reboot --yes");
+  system ("/sbin/reboot");
 }
 
 /* Rescue
@@ -5862,7 +5862,7 @@ static struct {
   { 254, 1 },
   { 254, 8 },
   { 254, 0 },
-  -1
+  { -1 }
 };
 
 static int
@@ -6021,7 +6021,6 @@ do_rescue (const char *package, const char *download_root,
 	      _system->Lock();
 	    }
 
-	  run_system (true, "/usr/bin/flash-and-reboot --yes");
 	  run_system (true, "/sbin/reboot");
 	}
       else

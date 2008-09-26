@@ -23,6 +23,13 @@ User visible changes in 2.2:
 * The maemo-select-menu-location utility has been deprecated.  It does
   nothing now.
 
+  XXX - do what instead?
+
+* The flash-and-reboot flag is deprecated.  It just reboots the device
+  now and does not cause the flash-and-reboot utility to be executed.
+  Kernel packages now need to arrange their flashing without help from
+  the Appplication manager.
+
 * [Bug 3503] A theming bug with the package lists has been fixed.
   Previously, the text was always black, now it uses the theme colors.
 
@@ -47,4 +54,4 @@ User visible changes in 2.2:
   significantly slower now.
 
   Don't make these specially prepared memory cards.  Put your stuff on
-  the Internet.  Physical media is sooo 80ties anyway.
+  the Internet.  Physical media is sooo 80ties.

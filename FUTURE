@@ -6,8 +6,6 @@ New features for the Hildon Application Manager
 * Complete port to new Fremantle APIs [mvo, mvo-fremantle-port]
 
 - update-notifier.c: alarm API.
-- dbus.c: MCE_REBOOT_REQ
-- dbus.c: battery info (get it via libhal, capability "battery")
 
 * Get rid of the temporary apt state concept [victor]
 

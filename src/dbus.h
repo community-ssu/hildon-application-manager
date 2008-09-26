@@ -52,6 +52,6 @@ void init_dbus_or_die (bool top_existing);
 
 void send_reboot_message (void);
 
-battery_info *check_battery_status (void);
+bool enough_battery_p (void);
 
 #endif /* !HAM_DBUS_H */
