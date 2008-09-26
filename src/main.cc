@@ -60,8 +60,6 @@
 
 #define _(x) gettext (x)
 
-#define MENU_HACK
-
 extern "C" {
   #include <hildon/hildon-window.h>
   #include <hildon/hildon-note.h>
@@ -2772,17 +2770,6 @@ get_osso_context ()
   return osso_ctxt;
 }
 
-#ifdef MENU_HACK
-static void
-insert_button (GtkWidget *toolbar, 
-	       const char *label, void (*func) (void))
-{
-  GtkWidget *button = GTK_WIDGET (gtk_tool_button_new (NULL, label));
-  gtk_toolbar_insert (GTK_TOOLBAR (toolbar), GTK_TOOL_ITEM (button), -1);
-  g_signal_connect (button, "clicked", G_CALLBACK (func), NULL);
-}
-#endif
-
 static toolbar_struct *
 create_toolbar (bool show_update_all_button, bool show_search_button)
 {
@@ -2807,12 +2794,6 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
   tb_struct->details_button = NULL;
   tb_struct->search_button = NULL;
   tb_struct->refresh_button = NULL;
-
-#ifdef MENU_HACK
-  insert_button (toolbar, "S", show_settings_dialog_flow);
-  insert_button (toolbar, "C", show_catalogue_dialog_flow);
-  insert_button (toolbar, "L", show_log_dialog_flow);
-#endif
 
   /* Main operation button */
   operation_label = gtk_label_new ("");
