@@ -199,7 +199,6 @@ struct ip_clos {
   char *title;
   char *desc;
   int install_type;
-  int state;
   bool automatic;
 
   GList *all_packages;   // all packages given to install_packages
@@ -298,14 +297,14 @@ install_package (package_info *pi,
 		 void (*cont) (int n_successful, void *), void *data)
 {
   install_packages (g_list_prepend (NULL, pi),
-		    APTSTATE_DEFAULT, INSTALL_TYPE_STANDARD, false,
+		    INSTALL_TYPE_STANDARD, false,
 		    NULL, NULL,
 		    cont, data);
 }
 
 void
 install_packages (GList *packages,
-		  int state, int install_type,
+		  int install_type,
 		  bool automatic,
 		  const char *title, const char *desc,
 		  void (*cont) (int n_successful, void *), void *data)
@@ -315,7 +314,6 @@ install_packages (GList *packages,
   c->install_type = install_type;
   c->title = g_strdup (title);
   c->desc = g_strdup (desc);
-  c->state = state;
   c->automatic = automatic;
   c->all_packages = packages;
   c->cont = cont;
@@ -330,8 +328,7 @@ install_packages (GList *packages,
   get_package_infos (packages,
 		     true,
 		     ip_install_with_info,
-		     c,
-		     state);
+		     c);
 }
 
 static bool
@@ -423,9 +420,8 @@ ip_install_with_info (void *data)
 	}
 
       select_package_list (c->packages,
-			   c->state,
-			   title, desc,
-			   ip_select_package_response, c);
+                           title, desc,
+                           ip_select_package_response, c);
     }
   else if (c->install_type == INSTALL_TYPE_UPGRADE_ALL_PACKAGES)
     {
@@ -470,8 +466,7 @@ ip_show_cur_details (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
   
-  show_package_details (pi, install_details, false, c->state,
-			ip_show_details_done, c);
+  show_package_details (pi, install_details, false, ip_show_details_done, c);
 }
 
 static void
@@ -480,8 +475,7 @@ ip_show_cur_problem_details (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
   
-  show_package_details (pi, install_details, true, c->state,
-			ip_show_details_done, c);
+  show_package_details (pi, install_details, true, ip_show_details_done, c);
 }
 
 static void
@@ -579,8 +573,7 @@ ip_check_cert_loop (ip_clos *c)
 	  ip_check_cert_loop (c);
 	}
       else
-	apt_worker_install_check (c->state, pi->name,
-				  ip_check_cert_reply, c);
+	apt_worker_install_check (pi->name, ip_check_cert_reply, c);
     }
   else
     {
@@ -712,8 +705,7 @@ ip_install_loop (ip_clos *c)
 
       package_info *pi = (package_info *)(c->cur->data);
       
-      apt_worker_install_check (c->state, pi->name,
-				ip_check_domain_reply, c);
+      apt_worker_install_check (pi->name, ip_check_domain_reply, c);
     }
 }
 
@@ -785,7 +777,7 @@ ip_get_info_for_install (void *data)
      installations.
   */
   pi->have_info = false;
-  get_package_info (pi, true, ip_with_new_info, c, c->state);
+  get_package_info (pi, true, ip_with_new_info, c);
 }
 
 static void
@@ -1065,8 +1057,7 @@ ip_check_upgrade (void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
-  apt_worker_install_check (c->state, pi->name,
-			    ip_check_upgrade_reply, c);
+  apt_worker_install_check (pi->name, ip_check_upgrade_reply, c);
 }
 
 static void
@@ -1187,7 +1178,7 @@ ip_download_cur (void *data)
   g_free (title);
 
   set_log_start ();
-  apt_worker_download_package (c->state, pi->name,
+  apt_worker_download_package (pi->name,
 			       c->alt_download_root,
 			       ip_download_cur_reply, c);
 }
@@ -1314,7 +1305,7 @@ ip_install_cur (void *data)
   if (pi->info.required_free_space < free_space)
     {
       /* Proceed to install if there's enough free space */
-      apt_worker_install_package (c->state, pi->name,
+      apt_worker_install_package (pi->name,
 				  c->alt_download_root,
 				  ip_install_cur_reply, c);
     }
@@ -1341,7 +1332,7 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
     apt_proto_result_code (dec->decode_int ());
 
   if (clean_after_install)
-    apt_worker_clean (c->state, ip_clean_reply, NULL);
+    apt_worker_clean (ip_clean_reply, NULL);
 
   c->refresh_needed = true;
 
@@ -1570,7 +1561,7 @@ ip_end (void *data)
     stop_entertaining_user ();
 
   if (c->refresh_needed)
-    get_package_list (APTSTATE_DEFAULT);
+    get_package_list ();
 
   if (c->packages != NULL)
     g_list_free (c->packages);
@@ -1590,7 +1581,7 @@ ip_reboot (void *data)
   /* We need to get the package list before rebooting so that the
      "seen updates" state is stored correctly.
    */
-  get_package_list_with_cont (c->state, ip_reboot_delayed, c);
+  get_package_list_with_cont (ip_reboot_delayed, c);
 }
 
 static void
@@ -1751,8 +1742,7 @@ up_checkrm_cmd_done (int status, void *data)
 static void
 up_remove (up_clos *c)
 {
-  get_package_info (c->pi, false, up_remove_with_info, c,
-		    APTSTATE_DEFAULT);
+  get_package_info (c->pi, false, up_remove_with_info, c);
 }
 
 static void
@@ -1811,7 +1801,7 @@ up_remove_reply (int cmd, apt_proto_decoder *dec, void *data)
     }
 
   int success = dec->decode_int ();
-  get_package_list (APTSTATE_DEFAULT);
+  get_package_list ();
   save_backup_data ();
 
   if (success)
@@ -2083,7 +2073,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   int success = dec->decode_int ();
 
-  get_package_list (APTSTATE_DEFAULT);
+  get_package_list ();
   save_backup_data ();
 
   if (success)

@@ -145,8 +145,8 @@ static xexp *read_operation_record ();
 #define APT_WORKER_LOCK "/var/lib/hildon-application-manager/apt-worker-lock"
 
 /* Temporary repositories APT cache and status directories */
-#define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
-#define TEMP_APT_STATE "/var/lib/hildon-application-manager/temp-state"
+//#define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
+//#define TEMP_APT_STATE "/var/lib/hildon-application-manager/temp-state"
 
 /* Temporary catalogues and temporary sources.list */
 #define TEMP_CATALOGUE_CONF "/var/lib/hildon-application-manager/catalogues.temp"
@@ -335,130 +335,57 @@ find_domain_by_uri (const char *uri)
 
 class myCacheFile;
 
-/* This class implements state and cache switching of apt-worker. With
- * this we can switch between the standard apt configuration and a
- * temporary one, used to install a specific set of packages
- */
-class AptWorkerState
+/* This class implements a global static cache managing for
+ *  apt-worker. */
+class AptWorkerCache
 {
 public:
-  AptWorkerState ();
-  static void SetDefault ();
-  static void SetTemp ();
-  static bool IsTemp ();
-  void SetAsCurrent ();
-  static AptWorkerState * GetCurrent ();
+  AptWorkerCache ();
   static void Initialize ();
+  static AptWorkerCache * GetCurrent ();
+  
+  bool init_cache_after_request;  
   myCacheFile *cache;
   pkgDepCache::ActionGroup *action_group;
-  bool init_cache_after_request;
-  void InitializeValues ();
-  static AptWorkerState *current_state;
-  static AptWorkerState *default_state;
-  static AptWorkerState *temp_state;
+  static AptWorkerCache *current;
   static bool global_initialized;
 };
 
-/* It's a class attribute.
- * Currently selected state. It should be 0 (empty), or be
- * equal to default_state (standard apt configuration selected)
- * or to temp_state (temporary configuration of apt selected).
- */
-AptWorkerState *AptWorkerState::current_state = 0;
+AptWorkerCache *AptWorkerCache::current = 0;
 
-/* Class attribute pointing to a state with default
- * APT configuration.
- */
-AptWorkerState *AptWorkerState::default_state = 0;
+bool AptWorkerCache::global_initialized = false;
 
-/* Class attribute pointing to a state with temporary
- * APT configurations.
- */
-AptWorkerState *AptWorkerState::temp_state = 0;
-
-/* Class attribute. If it's enabled, then initialization
- * of the apt library and AptWorkerState default and temp
- * states has been done.
- */
-bool AptWorkerState::global_initialized = false;
-
-/* Default instance. It gets the information from the current
- * APT configuration. To get the default configuration, it should
- * be obtained before setting any other config.
- */
-AptWorkerState::AptWorkerState ()
+AptWorkerCache::AptWorkerCache () : cache (0), init_cache_after_request (false)
 {
-  InitializeValues ();
 }
 
-void 
-AptWorkerState::InitializeValues (void)
+AptWorkerCache *
+AptWorkerCache::GetCurrent (void)
 {
-  this->cache = NULL;
-  this->init_cache_after_request = false;
-}
+  return current;
+}  
 
-void 
-AptWorkerState::SetDefault (void)
-{
-  default_state->SetAsCurrent ();;
-}
-
-void 
-AptWorkerState::SetTemp (void)
-{
-  temp_state->SetAsCurrent ();
-}
-
-bool
-AptWorkerState::IsTemp (void)
-{
-  return current_state == temp_state;
-}
-
-AptWorkerState *
-AptWorkerState::GetCurrent (void)
-{
-  if (current_state == 0)
-    {
-      current_state = default_state;
-    }
-  
-  return current_state;
-}
-
-/* Initialization of apt worker state. It initializes the
- * APT subsystem, and then gets the Default and Temp state
- * instances. */
+/* Initialization of apt worker cache. It initializes the
+ * APT subsystem, and then gets the current instance. */
 void
-AptWorkerState::Initialize (void)
+AptWorkerCache::Initialize (void)
 {
   if (!global_initialized)
     {
-      if (pkgInitConfig(*_config) == false ||
-          pkgInitSystem(*_config,_system) == false)
+      if (pkgInitConfig (*_config) == false ||
+          pkgInitSystem (*_config, _system) == false)
         {
           _error->DumpErrors ();
           return;
         }
 
-      _config->Set("DPkg::Options::", "--force-confold");
-
+      _config->Set ("DPkg::Options::", "--force-confold");
       global_initialized = true;
     }
-  
-  default_state = new AptWorkerState ();
-  temp_state = new AptWorkerState ();
-  
-  current_state = default_state;
-}
 
-void AptWorkerState::SetAsCurrent ()
-{
-  if (current_state != this)
-      current_state = this;
+  current = new AptWorkerCache;
 }
-
+  
 /* This struct describes some status flags for specific packages.
  * myCacheFile includes an array of these, with an entry per
  * package.
@@ -1046,6 +973,7 @@ void cmd_get_package_details ();
 int cmd_check_updates (bool with_status = true);
 void cmd_get_catalogues ();
 void cmd_set_catalogues ();
+void cmd_add_temp_catalogues ();
 void cmd_rm_temp_catalogues ();
 void cmd_install_check ();
 void cmd_download_package ();
@@ -1102,29 +1030,8 @@ void cache_init (bool with_status = true);
 void
 need_cache_init ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  state->init_cache_after_request = true;
-}
-
-/* Function called before each handle_request call. It selects the proper
- * apt worker state depending on the protocol state provided.
- */
-static void
-ensure_state (int state)
-{
-  switch (state)
-    {
-    case APTSTATE_CURRENT: break;
-    case APTSTATE_DEFAULT: 
-      AptWorkerState::SetDefault ();
-      break;
-    case APTSTATE_TEMP:
-      AptWorkerState::SetTemp ();
-      break;
-    default: break;
-    }
-
-  AptWorkerState::GetCurrent ()->init_cache_after_request = false;
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  awc->init_cache_after_request = true;
 }
 
 #ifdef DEBUG_COMMANDS
@@ -1137,6 +1044,7 @@ static const char *cmd_names[] = {
   "CHECK_UPDATES",
   "GET_CATALOGUES",
   "SET_CATALOGUES",
+  "ADD_TEMP_CATALOGUES",
   "RM_TEMP_CATALOGUES",
   "INSTALL_CHECK",
   "INSTALL_PACKAGE",
@@ -1157,14 +1065,13 @@ handle_request ()
   apt_request_header req;
   char stack_reqbuf[FIXED_REQUEST_BUF_SIZE];
   char *reqbuf;
-  AptWorkerState * state = 0;
+  AptWorkerCache * awc = 0;
   time_t last_modified = -1;
 
   must_read (&req, sizeof (req));
 
 #ifdef DEBUG_COMMANDS
-  DBG ("got req %s/%d/%d state %d",
-       cmd_names[req.cmd], req.seq, req.len, req.state);
+  DBG ("got req %s/%d/%d", cmd_names[req.cmd], req.seq, req.len);
 #endif
 
   reqbuf = alloc_buf (req.len, stack_reqbuf, FIXED_REQUEST_BUF_SIZE);
@@ -1175,8 +1082,8 @@ handle_request ()
   request.reset (reqbuf, req.len);
   response.reset ();
 
-  ensure_state (req.state);
-  state = AptWorkerState::GetCurrent ();
+  awc = AptWorkerCache::GetCurrent ();
+  awc->init_cache_after_request = false; // let's reset it now
 
   /* Re-read domains conf file if modified */
   last_modified = file_last_modified (DOMAIN_CONF);
@@ -1212,6 +1119,10 @@ handle_request ()
 
     case APTCMD_SET_CATALOGUES:
       cmd_set_catalogues ();
+      break;
+
+    case APTCMD_ADD_TEMP_CATALOGUES:
+      cmd_add_temp_catalogues ();
       break;
 
     case APTCMD_RM_TEMP_CATALOGUES:
@@ -1279,7 +1190,7 @@ handle_request ()
 
   free_buf (reqbuf, stack_reqbuf);
 
-  if (state->init_cache_after_request)
+  if (awc->init_cache_after_request)
     {
       cache_init (false);
       _error->DumpErrors ();
@@ -1450,7 +1361,7 @@ misc_init ()
   load_system_settings ();
   read_domain_conf ();
 
-  AptWorkerState::Initialize ();
+  AptWorkerCache::Initialize ();
 
   cache_init (false);
 
@@ -1843,29 +1754,20 @@ check_cache_state (const char *package, bool is_install)
 void
 cache_init (bool with_status)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
 
-  /* Closes default and temp caches, to prevent getting blocked
-   * by other locks in dpkg structures. If we don't do it, changing
-   * the apt worker state does not remove the dpkg state lock and
-   * then fails on trying to run dpkg */
-  if (AptWorkerState::default_state->cache)
+  /* Closes the cache, to prevent getting blocked by other locks in
+   * dpkg structures. If we don't do it, changing the apt worker state
+   * does not remove the dpkg state lock and then fails on trying to
+   * run dpkg */
+  /* @todo do we really keep doing this? */
+  if (awc->cache)
     {
       DBG ("closing");
-      delete AptWorkerState::default_state->action_group;
-      AptWorkerState::default_state->cache->Close ();
-      delete AptWorkerState::default_state->cache;
-      AptWorkerState::default_state->cache = NULL;
-      DBG ("done");
-    }
-
-  if (AptWorkerState::temp_state->cache)
-    {
-      DBG ("closing");
-      delete AptWorkerState::temp_state->action_group;
-      AptWorkerState::temp_state->cache->Close ();
-      delete AptWorkerState::temp_state->cache;
-      AptWorkerState::temp_state->cache = NULL;
+      delete awc->action_group;
+      awc->cache->Close ();
+      delete awc->cache;
+      awc->cache = 0;
       DBG ("done");
     }
 
@@ -1879,44 +1781,46 @@ cache_init (bool with_status)
   clear_dpkg_updates ();
 
   UpdateProgress progress (with_status);
-  state->cache = new myCacheFile;
+  awc->cache = new myCacheFile;
 
   DBG ("init.");
-  if (!state->cache->Open (progress))
+  if (!awc->cache->Open (progress))
     {
       DBG ("failed.");
       _error->DumpErrors ();
-      delete state->cache;
-      state->cache = NULL;
+      delete awc->cache;
+      awc->cache = 0;
     }
 
-  if (state->cache)
+  if (awc->cache)
     {
       /* We create a ActionGroup here that is active for the whole
 	 lifetime of the cache.  This prevents libapt-pkg from
 	 performing certain expensive operations that we don't need to
 	 be done intermediately, such as garbage collection.
       */
-      pkgDepCache &cache = *state->cache;
-      state->action_group = new pkgDepCache::ActionGroup (cache);
+      pkgDepCache &cache = *awc->cache;
+      awc->action_group = new pkgDepCache::ActionGroup (cache);
     }
 
   cache_reset ();
 
-  if (!AptWorkerState::IsTemp () && state->cache != NULL)
+  // @todo verify this
+  // if (!AptWorkerState::IsTemp () && state->cache != NULL)
+  if (awc->cache)
     write_available_updates_file ();
 }
 
 bool
 ensure_cache (bool with_status)
 {
-  AptWorkerState * state = NULL;
-
-  state = AptWorkerState::GetCurrent ();
-  if (state->cache == NULL)
+  AptWorkerCache * awc = 0;
+  
+  awc = AptWorkerCache::GetCurrent ();
+  if (awc->cache == NULL)
     cache_init (with_status);
 
-  return state->cache != NULL;
+  return awc->cache != NULL;
 }
 
 /* Determine whether a package was installed automatically to satisfy
@@ -1925,8 +1829,8 @@ ensure_cache (bool with_status)
 bool
 is_auto_package (pkgCache::PkgIterator &pkg)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
   
   return (cache[pkg].Flags & pkgCache::Flag::Auto) != 0;
 }
@@ -1936,22 +1840,22 @@ is_auto_package (pkgCache::PkgIterator &pkg)
 bool
 is_related (pkgCache::PkgIterator &pkg)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  return state->cache->extra_info[pkg->ID].related;
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  return awc->cache->extra_info[pkg->ID].related;
 }
 
 void
 mark_related (const pkgCache::VerIterator &ver)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   const pkgCache::PkgIterator &pkg = ver.ParentPkg();
 
-  if (state->cache->extra_info[pkg->ID].related)
+  if (awc->cache->extra_info[pkg->ID].related)
     return;
 
-  state->cache->extra_info[pkg->ID].related = true;
+  awc->cache->extra_info[pkg->ID].related = true;
 
-  pkgDepCache &cache = *state->cache;
+  pkgDepCache &cache = *awc->cache;
 
   if (pkg.State() == pkgCache::PkgIterator::NeedsUnpack)
     cache.SetReInstall (pkg, true);
@@ -1981,28 +1885,28 @@ mark_related (const pkgCache::VerIterator &ver)
 void
 cache_reset_package (pkgCache::PkgIterator &pkg)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   cache.MarkKeep (pkg);
 
-  if (state->cache->extra_info[pkg->ID].autoinst)
+  if (awc->cache->extra_info[pkg->ID].autoinst)
     cache[pkg].Flags |= pkgCache::Flag::Auto;
   else
     cache[pkg].Flags &= ~pkgCache::Flag::Auto;
   
-  state->cache->extra_info[pkg->ID].related = false;
-  state->cache->extra_info[pkg->ID].soft = false;
+  awc->cache->extra_info[pkg->ID].related = false;
+  awc->cache->extra_info[pkg->ID].soft = false;
 }
 
 void
 cache_reset ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  if (state->cache == NULL)
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  if (awc->cache == NULL)
     return;
 
-  pkgDepCache &cache = *(state->cache);
+  pkgDepCache &cache = *(awc->cache);
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     cache_reset_package (pkg);
@@ -2026,11 +1930,11 @@ cache_reset ()
 void
 fix_soft_packages ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  if (state->cache == NULL)
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  if (awc->cache == NULL)
     return;
 
-  pkgDepCache &cache = *(state->cache);
+  pkgDepCache &cache = *(awc->cache);
 
   bool something_changed;
 
@@ -2082,7 +1986,7 @@ fix_soft_packages ()
 			   != pkgDepCache::DepInstall)
 			  && !Pkg.end()
 			  && cache[Pkg].Delete()
-			  && state->cache->extra_info[Pkg->ID].soft)
+              && awc->cache->extra_info[Pkg->ID].soft)
 			{
 			  DBG ("= %s", Pkg.Name());
 			  cache_reset_package (Pkg);
@@ -2102,8 +2006,8 @@ static bool
 package_replaces (pkgCache::PkgIterator &pkg,
 		  pkgCache::PkgIterator &target)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   pkgCache::DepIterator Dep = cache[pkg].InstVerIter(cache).DependsList();
   for (; Dep.end() != true; Dep++)
@@ -2131,8 +2035,8 @@ package_replaces (pkgCache::PkgIterator &pkg,
 static bool
 package_is_needed (pkgCache::PkgIterator &pkg)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   pkgCache::DepIterator Dep = pkg.RevDependsList();
   for (; Dep.end() != true; Dep++)
@@ -2166,8 +2070,8 @@ static void mark_for_remove_1 (pkgCache::PkgIterator &pkg, bool soft);
 static void
 mark_for_install_1 (pkgCache::PkgIterator &pkg, int level)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   /* This check is just to be extra robust against infinite
      recursions.  They shouldn't happen, but you never know...
@@ -2312,8 +2216,8 @@ mark_for_install (pkgCache::PkgIterator &pkg)
 
   if (flag_use_apt_algorithms)
     {
-      AptWorkerState *worker_state = AptWorkerState::GetCurrent ();
-      pkgDepCache &Cache = *(worker_state->cache);
+      AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+      pkgDepCache &Cache = *(awc->cache);
       pkgDepCache::StateCache &State = Cache[pkg];
 
       pkgProblemResolver Fix(&Cache);
@@ -2349,8 +2253,8 @@ mark_for_install (pkgCache::PkgIterator &pkg)
 static void
 mark_sys_upgrades ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   DBG ("UPGRADE");
 
@@ -2374,7 +2278,7 @@ mark_named_package_for_install (const char *package)
   if (check_cache_state (package, true))
     return true;
 
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   if (!strcmp (package, "magic:sys"))
     {
       mark_sys_upgrades ();
@@ -2382,7 +2286,7 @@ mark_named_package_for_install (const char *package)
     }
   else
     {
-      pkgDepCache &cache = *(state->cache);
+      pkgDepCache &cache = *(awc->cache);
       pkgCache::PkgIterator pkg = cache.FindPkg (package);
       if (!pkg.end())
 	{
@@ -2400,8 +2304,8 @@ mark_named_package_for_install (const char *package)
 static void
 mark_for_remove_1 (pkgCache::PkgIterator &pkg, bool soft)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   if (cache[pkg].Delete ())
     return;
@@ -2410,7 +2314,7 @@ mark_for_remove_1 (pkgCache::PkgIterator &pkg, bool soft)
 
   cache.MarkDelete (pkg);
   cache[pkg].Flags &= ~pkgCache::Flag::Auto;
-  state->cache->extra_info[pkg->ID].soft = soft;
+  awc->cache->extra_info[pkg->ID].soft = soft;
 
   if (!cache[pkg].Delete ())
     return;
@@ -2448,8 +2352,8 @@ mark_for_remove (pkgCache::PkgIterator &pkg)
 
   if (flag_use_apt_algorithms)
     {
-      AptWorkerState *worker_state = AptWorkerState::GetCurrent ();
-      pkgDepCache &Cache = *(worker_state->cache);
+      AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+      pkgDepCache &Cache = *(awc->cache);
 
       pkgProblemResolver Fix(&Cache);
 
@@ -2490,7 +2394,7 @@ struct package_record {
 };
 
 package_record::package_record (pkgCache::VerIterator &ver)
-  : Recs (*(AptWorkerState::GetCurrent ()->cache)),
+  : Recs (*(AptWorkerCache::GetCurrent ()->cache)),
     P (Recs.Lookup (ver.FileList ()))
 {
   const char *start, *stop;
@@ -2728,7 +2632,7 @@ encode_empty_version_info (bool include_size)
 void
 cmd_get_package_list ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   bool only_user = request.decode_int ();
   bool only_installed = request.decode_int ();
   bool only_available = request.decode_int ();
@@ -2742,7 +2646,7 @@ cmd_get_package_list ()
     }
 
   response.encode_int (1);
-  pkgDepCache &cache = *(state->cache);
+  pkgDepCache &cache = *(awc->cache);
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
@@ -2872,12 +2776,12 @@ cmd_get_package_list ()
 void
 cmd_get_system_update_packages ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
 
   if (!ensure_cache (true))
     return;
 
-  pkgDepCache &cache = *(state->cache);
+  pkgDepCache &cache = *(awc->cache);
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
@@ -2905,8 +2809,8 @@ cmd_get_system_update_packages ()
 static int
 installable_status_1 (pkgCache::PkgIterator &pkg)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &Cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &Cache = *(awc->cache);
   pkgCache::VerIterator Ver = Cache[pkg].InstVerIter(Cache);
 
   bool some_missing = false, some_conflicting = false;
@@ -2949,8 +2853,8 @@ combine_status (int s1, int s2)
 static int
 installable_status ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
   int installable_status = status_unable;
   
   for (pkgCache::PkgIterator pkg = cache.PkgBegin();
@@ -2968,8 +2872,8 @@ installable_status ()
 static int
 removable_status ()
 {
-  AptWorkerState * state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
   for (pkgCache::PkgIterator pkg = cache.PkgBegin();
        pkg.end() != true;
        pkg++)
@@ -2999,8 +2903,8 @@ cmd_get_package_info ()
 
   if (ensure_cache (true))
     {
-      AptWorkerState *state = AptWorkerState::GetCurrent ();
-      pkgDepCache &cache = *(state->cache);
+      AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+      pkgDepCache &cache = *(awc->cache);
       pkgCache::PkgIterator pkg = cache.FindPkg (package);
 
       // simulate install
@@ -3017,7 +2921,7 @@ cmd_get_package_info ()
 	   pkg.end() != true;
 	   pkg++)
 	{
-	  if (state->cache->extra_info[pkg->ID].related
+	  if (awc->cache->extra_info[pkg->ID].related
 	      && (cache[pkg].Upgrade()
 		  || pkg.State() != pkgCache::PkgIterator::NeedsNothing))
 	    {
@@ -3144,8 +3048,8 @@ void
 encode_broken (pkgCache::PkgIterator &pkg,
 	       const char *want)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &Cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &Cache = *(awc->cache);
   pkgCache::VerIterator Ver = Cache[pkg].InstVerIter(Cache);
       
   if (Ver.end() == true)
@@ -3343,8 +3247,8 @@ encode_package_and_version (pkgCache::VerIterator ver)
 void
 encode_install_summary (const char *want)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   // XXX - the summary is not really correct when there are broken
   //       packages in the device.  The problems of those packages
@@ -3385,8 +3289,8 @@ encode_install_summary (const char *want)
 void
 encode_remove_summary (pkgCache::PkgIterator &want)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   if (cache.BrokenCount() > 0)
     log_stderr ("[ Some installed packages are broken! ]\n");
@@ -3454,11 +3358,11 @@ cmd_get_package_details ()
     }
   else
     {
-      AptWorkerState *state = AptWorkerState::GetCurrent ();
+      AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
       pkgCache::PkgIterator pkg;
       pkgCache::VerIterator ver;
       
-      if (find_package_version (state->cache, pkg, ver, package, version))
+      if (find_package_version (awc->cache, pkg, ver, package, version))
         {
           package_record rec (ver);
 	  
@@ -3834,20 +3738,33 @@ update_sources_list (xexp *catalogues)
 {
   gboolean success = FALSE;
 
-  if (AptWorkerState::IsTemp ())
-    {
-      /* @check */
-      success =
-	(xexp_write_file (TEMP_CATALOGUE_CONF, catalogues)
-	 && write_sources_list (TEMP_APT_SOURCE_LIST, catalogues));
-    }
-  else
+  // @todo Is this correct? I think it is now, because in the temporal
+  // source flow, the below function is used.
+//   if (AptWorkerState::IsTemp ())
+//     {
+//       /* @check */
+//       success =
+// 	(xexp_write_file (TEMP_CATALOGUE_CONF, catalogues)
+// 	 && write_sources_list (TEMP_APT_SOURCE_LIST, catalogues));
+//     }
+//   else
     {
       /* Write the new sources list to disk */
       success =
         (write_user_catalogues (catalogues)
          && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
     }
+
+  return success;
+}
+
+static gboolean
+add_temp_sources_list (xexp *tempcat)
+{
+  gboolean success;
+
+  success = (xexp_write_file (TEMP_CATALOGUE_CONF, tempcat) &&
+             write_sources_list (TEMP_APT_SOURCE_LIST, tempcat));
 
   return success;
 }
@@ -3871,9 +3788,10 @@ cmd_check_updates (bool with_status)
     }
 
   xexp *catalogues;
-  if (AptWorkerState::IsTemp ())
-    catalogues = xexp_read_file (TEMP_CATALOGUE_CONF);
-  else
+  // @todo how we'll manage this?
+  // if (AptWorkerState::IsTemp ())
+  //  catalogues = xexp_read_file (TEMP_CATALOGUE_CONF);
+  // else
   {
     catalogues = read_catalogues ();
   }
@@ -3897,13 +3815,13 @@ cmd_check_updates (bool with_status)
 int
 cmdline_check_updates (char **argv)
 {
-  AptWorkerState * state = 0;
+  AptWorkerCache * awc = 0;
   int result_code = -1;
 
-  ensure_state (APTSTATE_DEFAULT);
-  state = AptWorkerState::GetCurrent ();
+  awc = AptWorkerCache::GetCurrent ();
+  awc->init_cache_after_request = false;
 
-  if (state->cache == NULL)
+  if (awc->cache == NULL)
     return 2;
 
   if (argv[1])
@@ -4067,7 +3985,9 @@ cmd_set_catalogues ()
   xexp *catalogues = request.decode_xexp ();
   xexp_adel (catalogues, "source");
 
-  if (!AptWorkerState::IsTemp ())
+  // @todo I think this is correct now because the in temporal sources
+  // this command is no longer used
+  //if (!AptWorkerState::IsTemp ())
     {
       /* Map the catalogue report to delete error reports from it */
       xexp *mapped_catalogues =
@@ -4086,6 +4006,26 @@ cmd_set_catalogues ()
   update_sources_list (catalogues);
 
   xexp_free (catalogues);
+  response.encode_int (success);
+}
+
+/* APTCMD_ADD_TEMP_CATALOGUES
+ *
+ * Stores a new temporal source list in /etc/apt directory
+ */
+void
+cmd_add_temp_catalogues ()
+{
+  int success;
+  xexp *tempcat;
+
+  tempcat = request.decode_xexp ();
+  xexp_adel (tempcat, "source");
+
+  /* add a temporal sources.list file */
+  success = add_temp_sources_list (tempcat);  
+
+  xexp_free (tempcat);
   response.encode_int (success);
 }
 
@@ -4225,8 +4165,8 @@ cmd_remove_check ()
 
   if (ensure_cache (true))
     {
-      AptWorkerState *state = AptWorkerState::GetCurrent ();
-      pkgDepCache &cache = *(state->cache);
+      AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+      pkgDepCache &cache = *(awc->cache);
       pkgCache::PkgIterator pkg = cache.FindPkg (package);
 
       if (!pkg.end ())
@@ -4254,8 +4194,8 @@ cmd_remove_package ()
 
   if (ensure_cache (true))
     {
-      AptWorkerState *state = AptWorkerState::GetCurrent ();
-      pkgDepCache &cache = *(state->cache);
+      AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+      pkgDepCache &cache = *(awc->cache);
       pkgCache::PkgIterator pkg = cache.FindPkg (package);
 
       if (!pkg.end ())
@@ -4409,39 +4349,39 @@ domain_dominates_or_is_equal (int a, int b)
 static void
 reset_new_domains ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
 
-  pkgDepCache &cache = *(state->cache);
+  pkgDepCache &cache = *(awc->cache);
   int package_count = cache.Head().PackageCount;
 
   for (int i = 0; i < package_count; i++)
-    state->cache->extra_info[i].new_domain = DOMAIN_UNSIGNED;
+    awc->cache->extra_info[i].new_domain = DOMAIN_UNSIGNED;
 }
 
 static void
 collect_new_domains ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
 
-  pkgDepCache &cache = *(state->cache);
+  pkgDepCache &cache = *(awc->cache);
   int package_count = cache.Head().PackageCount;
 
   for (int i = 0; i < package_count; i++)
-    if (state->cache->extra_info[i].related)
-      state->cache->extra_info[i].cur_domain
-	= state->cache->extra_info[i].new_domain;
+    if (awc->cache->extra_info[i].related)
+      awc->cache->extra_info[i].cur_domain
+        = awc->cache->extra_info[i].new_domain;
 }
 
 static int
 index_trust_level_for_package (pkgIndexFile *index,
 			       const pkgCache::VerIterator &ver)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
   pkgCache::PkgIterator pkg = ver.ParentPkg();
 
   int cur_level =
-    domains[state->cache->extra_info[pkg->ID].cur_domain].trust_level;
+    domains[awc->cache->extra_info[pkg->ID].cur_domain].trust_level;
 
   int index_domain = get_domain (index);
   int index_level = domains[index_domain].trust_level;
@@ -4452,15 +4392,15 @@ index_trust_level_for_package (pkgIndexFile *index,
   /* If we have already found a good domain, accept this one only if
      it is the same domain, or strictly better.
    */
-  if (state->cache->extra_info[pkg->ID].new_domain != DOMAIN_UNSIGNED)
+  if (awc->cache->extra_info[pkg->ID].new_domain != DOMAIN_UNSIGNED)
     {
       int new_level =
-	domains[state->cache->extra_info[pkg->ID].new_domain].trust_level;
+	domains[awc->cache->extra_info[pkg->ID].new_domain].trust_level;
 
-      if (index_domain == state->cache->extra_info[pkg->ID].new_domain
+      if (index_domain == awc->cache->extra_info[pkg->ID].new_domain
 	  || index_level > new_level)
 	{
-	  state->cache->extra_info[pkg->ID].new_domain = index_domain;
+	  awc->cache->extra_info[pkg->ID].new_domain = index_domain;
 	  return index_level;
 	}
       else
@@ -4473,7 +4413,7 @@ index_trust_level_for_package (pkgIndexFile *index,
   if (cache[pkg].NewInstall())
     {
       DBG ("new: accept index");
-      state->cache->extra_info[pkg->ID].new_domain = index_domain;
+      awc->cache->extra_info[pkg->ID].new_domain = index_domain;
       return index_level;
     }
 
@@ -4483,7 +4423,7 @@ index_trust_level_for_package (pkgIndexFile *index,
   if (index_level >= cur_level)
     {
       DBG ("upgrade: accept better");
-      state->cache->extra_info[pkg->ID].new_domain = index_domain;
+      awc->cache->extra_info[pkg->ID].new_domain = index_domain;
       return index_level;
     }
 
@@ -4496,15 +4436,15 @@ index_trust_level_for_package (pkgIndexFile *index,
 static void
 encode_trust_summary ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin();
        pkg.end() != true;
        pkg++)
     {
-      domain_t cur_domain = state->cache->extra_info[pkg->ID].cur_domain;
-      domain_t new_domain = state->cache->extra_info[pkg->ID].new_domain;
+      domain_t cur_domain = awc->cache->extra_info[pkg->ID].cur_domain;
+      domain_t new_domain = awc->cache->extra_info[pkg->ID].new_domain;
 
       if (cache[pkg].Upgrade() && !domains[new_domain].is_certified)
 	{
@@ -4531,10 +4471,10 @@ encode_trust_summary ()
 static void
 encode_upgrades ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   if (ensure_cache (true))
     {
-      pkgDepCache &cache = *(state->cache);
+      pkgDepCache &cache = *(awc->cache);
 
       for (pkgCache::PkgIterator pkg = cache.PkgBegin();
 	   pkg.end() != true;
@@ -4776,8 +4716,8 @@ operation (bool check_only,
 	   bool allow_download,
 	   bool with_status)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgCacheFile &Cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgCacheFile &Cache = *(awc->cache);
   SPtr<myDPkgPM> Pm;
 
   if (_config->FindB("APT::Get::Purge",false) == true)
@@ -4967,7 +4907,7 @@ operation (bool check_only,
       pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
       _system->Lock();
 
-      state->cache->save_extra_info ();
+      awc->cache->save_extra_info ();
 
       if (Res == pkgPackageManager::Failed || 
 	  _error->PendingError() == true)
@@ -4987,7 +4927,7 @@ void
 cmd_clean ()
 {
   bool success = true;
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
 
   // Try to lock the archive directory.  If that fails because we are
   // out of space, continue anyway since it is critical to free flash
@@ -5029,7 +4969,7 @@ cmd_clean ()
   // available now.  We don't use ensure_cache for this since we want
   // it to happen silently.
 
-  if (state->cache == NULL)
+  if (awc->cache == NULL)
     need_cache_init ();
 }
 
@@ -5123,11 +5063,11 @@ get_deb_record (const char *filename)
 static bool
 check_dependency (string &package, string &version, unsigned int op)
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   if (!ensure_cache (true))
     return false;
 
-  pkgDepCache &cache = (*(state->cache));
+  pkgDepCache &cache = *(awc->cache);
   pkgCache::PkgIterator pkg;
   pkgCache::VerIterator installed;
 
@@ -5385,8 +5325,8 @@ cmd_get_file_details ()
 
   if (ensure_cache (true))
     {
-      AptWorkerState *state = AptWorkerState::GetCurrent ();
-      pkgDepCache &cache = *(state->cache);
+      AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+      pkgDepCache &cache = *(awc->cache);
       pkgCache::PkgIterator pkg = cache.FindPkg (section.FindS ("Package"));
       if (!pkg.end ())
 	{
@@ -5476,14 +5416,14 @@ cmd_install_file ()
 static xexp *
 get_backup_packages ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
 
   if (!ensure_cache (true))
     return NULL;
 
   xexp *packages = xexp_list_new ("backup");
 
-  pkgDepCache &cache = *(state->cache);
+  pkgDepCache &cache = *(awc->cache);
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
@@ -5594,8 +5534,8 @@ write_available_updates_file ()
 
   xexp *x_updates = xexp_list_new ("updates");
 
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  pkgDepCache &cache = *(state->cache);
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
@@ -5629,7 +5569,7 @@ write_available_updates_file ()
 	  xexp *x_pkg = NULL;
 	  package_record rec (candidate);
 	  int flags = get_flags (rec);
-	  int domain_index = state->cache->extra_info[pkg->ID].cur_domain;
+	  int domain_index = awc->cache->extra_info[pkg->ID].cur_domain;
 	  
 	  if (flags & pkgflag_system_update)
 	    x_pkg = xexp_text_new ("os", pkg.Name());
@@ -5989,7 +5929,8 @@ do_rescue (const char *package, const char *download_root,
 
   misc_init ();
 
-  ensure_state (APTSTATE_DEFAULT);
+  // @todo Is this really necessary?
+  AptWorkerCache::GetCurrent ()->init_cache_after_request = false;
   if (ensure_cache (false))
     {
       if (mark_named_package_for_install (package))

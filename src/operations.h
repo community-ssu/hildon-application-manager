@@ -54,7 +54,7 @@ enum {
    from a ".auto.install" file.
 */
 void install_packages (GList *packages,
-		       int state, int install_type,
+		       int install_type,
 		       bool automatic,
 		       const char *title, const char *desc,
 		       void (*cont) (int n_successful, void *data),

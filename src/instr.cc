@@ -442,8 +442,7 @@ eip_with_catalogues (bool res, void *data)
   eip_clos *c = (eip_clos *)data;
 
   if (res && c->package)
-    install_named_package (APTSTATE_DEFAULT, c->package,
-			   eip_end, c);
+    install_named_package (c->package, eip_end, c);
   else
     eip_end (0, c);
 }
@@ -479,7 +478,7 @@ struct eci_clos {
 };
 
 static void eci_with_temp_catalogues (bool res, void *data);
-static void eci_end (int n_successful, void *data);
+static void eci_reply (int n_successful, void *data);
 
 void
 execute_card_install (GKeyFile *keyfile, const char *entry,
@@ -533,10 +532,9 @@ execute_card_install (GKeyFile *keyfile, const char *entry,
   c->cont = cont;
   c->data = data;
 
-  set_catalogues_and_refresh (card_catalogues,
-			      _("ai_nw_preparing_installation"),
-			      APTSTATE_TEMP,
-			      eci_with_temp_catalogues, c);
+  add_temp_catalogues_and_refresh (card_catalogues,
+                                   _("ai_nw_preparing_installation"),
+                                   eci_with_temp_catalogues, c);
 }
 
 static void
@@ -545,28 +543,31 @@ eci_with_temp_catalogues (bool res, void *data)
   struct eci_clos *c = (eci_clos *)data;
 
   if (res)
-    install_named_packages (APTSTATE_TEMP, (const char **)c->packages,
-			    INSTALL_TYPE_MEMORY_CARD, c->automatic,
-			    NULL, NULL,
-			    eci_end, c);
+    install_named_packages ((const char **)c->packages, 
+                            INSTALL_TYPE_MEMORY_CARD, c->automatic,
+                            NULL, NULL, eci_reply, c);
   else
-    eci_end (0, c);
+    eci_reply (0, c);
 }
 
-
 static void
-eci_end (int n_successful, void *data)
+eci_end (void *data)
 {
   struct eci_clos *c = (eci_clos *)data;
-
-  rm_temp_catalogues ();
-
+  
   c->cont (c->data);
 
   xexp_free (c->card_catalogues);
   xexp_free (c->perm_catalogues);
   g_strfreev (c->packages);
   delete c;
+
+}
+
+static void
+eci_reply (int n_successful, void *data)
+{
+  rm_temp_catalogues (eci_end, data);
 }
 
 

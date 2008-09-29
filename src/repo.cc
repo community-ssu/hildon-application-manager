@@ -152,7 +152,7 @@ pill_response (GtkDialog *dialog, gint response, gpointer unused)
       save_settings ();
 
       if (red_pill_show_all || red_pill_show_magic_sys)
-        get_package_list (APTSTATE_DEFAULT);
+        get_package_list ();
     }
 }
 
@@ -212,17 +212,36 @@ get_catalogues (void (*cont) (xexp *catalogues, void *data),
   apt_worker_get_catalogues (get_catalogues_callback, c);
 }
 
+struct rm_temp_catalogues_closure {
+  void (*cont) (void *data);
+  void *data;
+};
+
+static void rtc_reply (bool keep_going, void *data)
+{
+  rm_temp_catalogues_closure* rtc_clos = (rm_temp_catalogues_closure*) data;
+
+  rtc_clos->cont (rtc_clos->data);
+  
+  delete rtc_clos;
+}
+
 static void
 rm_temp_catalogues_callback (int cmd,
                              apt_proto_decoder *dec,
-                             void *callback_data)
+                             void *data)
 {
+  refresh_package_cache_without_user (NULL, rtc_reply, data);
 }
 
 void
-rm_temp_catalogues ()
+rm_temp_catalogues (void (*cont) (void* data), void *data)
 {
-  apt_worker_rm_temp_catalogues (rm_temp_catalogues_callback, NULL);
+  rm_temp_catalogues_closure* rtc_clos = new rm_temp_catalogues_closure;
+  rtc_clos->cont = cont;
+  rtc_clos->data = data;
+  
+  apt_worker_rm_temp_catalogues (rm_temp_catalogues_callback, rtc_clos);
 }
 
 const char *
@@ -291,8 +310,7 @@ scdf_dialog_done (bool changed, void *data)
 
   if (changed)
     set_catalogues_and_refresh (c->catalogues,
-				NULL, APTSTATE_DEFAULT,
-				scdf_end, c);
+				NULL, scdf_end, c);
   else
     scdf_end (true, c);
 }
@@ -1145,8 +1163,7 @@ ensure_cache_updated (cat_dialog_closure *c)
   if (!is_package_cache_updated ())
     {
       /* Force a refresh if package cache is not up-to-date */
-      refresh_package_cache_without_user (NULL, APTSTATE_DEFAULT,
-                                          ecu_reply, c);
+      refresh_package_cache_without_user (NULL, ecu_reply, c);
     }
   else
     {
@@ -1349,7 +1366,6 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 				    (c->update
 				     ? _("ai_nw_preparing_installation")
 				     : NULL),
-				    APTSTATE_DEFAULT,
 				    add_catalogues_cont_4, c);
       else
 	add_catalogues_cont_4 (true, c);

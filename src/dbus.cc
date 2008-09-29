@@ -147,10 +147,8 @@ dip_with_initialized_packages (void *data)
   if (c->xid)
     {
       if (start_foreign_interaction_flow (c->xid))
-	install_named_packages (APTSTATE_DEFAULT, c->packages,
-				INSTALL_TYPE_MULTI, false,
-				c->title, c->desc,
-				dip_install_done, c);
+        install_named_packages (c->packages, INSTALL_TYPE_MULTI, false,
+                                c->title, c->desc, dip_install_done, c);
       else
 	dip_end (-1, c);
     }
@@ -158,10 +156,8 @@ dip_with_initialized_packages (void *data)
     {
       present_main_window ();
       if (start_interaction_flow ())
-	install_named_packages (APTSTATE_DEFAULT, c->packages,
-				INSTALL_TYPE_MULTI, false,
-				c->title, c->desc,
-				dip_install_done, c);
+        install_named_packages (c->packages, INSTALL_TYPE_MULTI, false,
+                                c->title, c->desc, dip_install_done, c);
       else
 	dip_end (-1, c);
     }
@@ -315,7 +311,7 @@ static void icfu_end (bool ignored, void *data);
 static void
 idle_check_for_updates (void *unused)
 {
-  refresh_package_cache_without_user (NULL, APTSTATE_DEFAULT, icfu_end, NULL);
+  refresh_package_cache_without_user (NULL, icfu_end, NULL);
 }
 
 static void

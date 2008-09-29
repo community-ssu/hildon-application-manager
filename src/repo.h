@@ -72,6 +72,6 @@ void add_catalogues (xexp *catalogues, bool ask, bool update,
 		     void (*cont) (bool res, void *data),
 		     void *data);
 
-void rm_temp_catalogues ();
+void rm_temp_catalogues (void (*cont) (void* data), void *data);
 
 #endif /* !REPO_H */

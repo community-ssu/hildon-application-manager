@@ -95,16 +95,13 @@ view_id get_current_view_id ();
 
 void get_package_info (package_info *pi,
 		       bool only_installable_info,
-		       void (*cont) (package_info *pi, void *data,
-				     bool changed),
-		       void *data,
-		       int state);
+		       void (*cont) (package_info *pi, void *data, bool changed),
+		       void *data);
 
 void get_package_infos (GList *packages,
 			bool only_installable_info,
 			void (*cont) (void *data),
-			void *data,
-			int state);
+			void *data);
 
 struct section_info {
 
@@ -122,18 +119,17 @@ struct section_info {
   GList *packages;
 };
 
-void get_package_list (int state);
-void get_package_list_with_cont (int state,
-				 void (*cont) (void *data), void *data);
+void get_package_list ();
+void get_package_list_with_cont (void (*cont) (void *data), void *data);
 void show_current_details ();
 void do_current_operation ();
 
 void show_check_for_updates_view ();
 
-void install_named_package (int state, const char *package,
-			    void (*cont) (int n_successful, void *data),
-			    void *data);
-void install_named_packages (int state, const char **packages,
+void install_named_package (const char *package,
+                            void (*cont) (int n_successful, void *data),
+                            void *data);
+void install_named_packages (const char **packages,
 			     int install_type, bool automatic,
 			     const char *title, const char *desc,
 			     void (*cont) (int n_successful, void *data),
@@ -145,18 +141,21 @@ void install_named_packages (int state, const char **packages,
    user is required to complete the operation.
 */
 void refresh_package_cache_without_user (const char *title,
-					 int state,
 					 void (*cont) (bool keep_going,
 						       void *data),
 					 void *data);
 
 void maybe_refresh_package_cache_without_user ();
 
+void add_temp_catalogues_and_refresh (xexp *tempcat,
+                                      const char *title,
+                                      void (*cont) (bool keep_going,
+                                                    void *data),
+                                      void *data);
+
 void set_catalogues_and_refresh (xexp *catalogues,
 				 const char *title,
-				 int state,
-				 void (*cont) (bool keep_going,
-					       void *data),
+				 void (*cont) (bool keep_going, void *data),
 				 void *data);
 
 void install_from_file_flow (const char *filename);
