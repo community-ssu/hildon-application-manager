@@ -1,6 +1,6 @@
 2008-09-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
-	Released 2.1.1
+	Released 2.2.1
 
 	Merged vjaquez-temp-state-cleanup.  The complete concept of a
 	temporary state has been removed.  The only user of the concept,
