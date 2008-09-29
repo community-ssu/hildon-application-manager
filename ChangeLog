@@ -9,7 +9,7 @@
 
 2008-09-26  Marius Vollmer  <marius.vollmer@nokia.com>
 
-	Merged mvo-frematle-port.
+	Merged mvo-fremantle-port.
 
 	Reboot by executing /sbin/reboot.  Don't call flash-and-reboot
 	ever.
