@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.3~unreleased) unstable; urgency=low
+
+  * 
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 30 Sep 2008 15:54:01 +0300
+
 hildon-application-manager (1:2.2.2) unstable; urgency=low
 
   * Added Build-Depends for libhal-dev.
