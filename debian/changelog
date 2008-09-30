@@ -1,6 +1,6 @@
-hildon-application-manager (1:2.2.2~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.2) unstable; urgency=low
 
-  * 
+  * Added Build-Depends for libhal-dev.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 29 Sep 2008 19:32:55 +0300
 
