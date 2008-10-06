@@ -1,3 +1,9 @@
+2008-10-06  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/settings.cc: Disable red_pill_show_all and
+	red_pill_show_magic_sys by default, to better keep people out of
+	trouble.
+
 2008-08-22  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/package-info-cell-renderer.c: Use gtk_paint_layout instead
