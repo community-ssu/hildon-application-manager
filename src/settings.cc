@@ -165,7 +165,9 @@ enum boolean_options {
   OPT_DOWNLOAD_PACKAGES_TO_MMC,
   OPT_CHECK_ALWAYS,
   OPT_IGNORE_WRONG_DOMAINS,
+#if 0
   OPT_PERMANENT,
+#endif
   NUM_BOOLEAN_OPTIONS
 };
 
@@ -236,9 +238,11 @@ make_settings_tab (settings_closure *c)
   make_boolean_option (c, vbox, group, OPT_IGNORE_WRONG_DOMAINS,
 		       "Ignore packages from wrong domains",
 		       &red_pill_ignore_wrong_domains);
+#if 0
   make_boolean_option (c, vbox, group, OPT_PERMANENT,
 		       "Red pill is permanent",
 		       &red_pill_permanent);
+#endif
   g_object_unref (group);
 
   gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),
