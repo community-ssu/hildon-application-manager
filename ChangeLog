@@ -1,5 +1,7 @@
 2008-10-10  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.17
+
 	Allow setting the options of the apt-worker during run-time, not
 	just at startup.
 
