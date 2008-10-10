@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.1.18~unreleased) unstable; urgency=low
+
+  * 
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 10 Oct 2008 18:54:57 +0300
+
 hildon-application-manager (1:2.1.17) unstable; urgency=low
 
   * Fixes: NB#89688: 'Not nough memory' error note shown while
