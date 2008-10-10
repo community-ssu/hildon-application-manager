@@ -1274,7 +1274,10 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   if (result_code == rescode_success)
     ip_install_cur (c);
   else if (entertainment_was_cancelled ())
-    ip_end (c);
+    {
+      apt_worker_clean (ip_clean_reply, NULL);
+      ip_end (c);
+    }
   else
     ip_download_cur_retry_confirm(result_code, c);
 }
