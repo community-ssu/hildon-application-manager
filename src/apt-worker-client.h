@@ -139,4 +139,9 @@ void apt_worker_get_system_update_packages (apt_worker_callback *callback,
 void apt_worker_reboot (apt_worker_callback *callback,
 			void *data);
 
+void apt_worker_set_options (const char *options,
+			     apt_worker_callback *callback,
+			     void *data);
+
+
 #endif /* !APT_WORKER_CLIENT_H */

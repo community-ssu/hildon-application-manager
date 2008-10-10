@@ -2563,8 +2563,7 @@ enable_search (bool f)
 static void
 enable_refresh (bool f)
 {
-  if (!red_pill_mode
-      && current_tb_struct->refresh_button)
+  if (current_tb_struct->refresh_button)
     gtk_widget_set_sensitive (current_tb_struct->refresh_button, f);
 }
 

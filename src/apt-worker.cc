@@ -987,6 +987,7 @@ void cmd_install_file ();
 void cmd_save_backup_data ();
 void cmd_get_system_update_packages ();
 void cmd_reboot ();
+void cmd_set_options ();
 
 int cmdline_check_updates (char **argv);
 int cmdline_rescue (char **argv);
@@ -1172,6 +1173,10 @@ handle_request ()
 
     case APTCMD_REBOOT:
       cmd_reboot ();
+      break;
+
+    case APTCMD_SET_OPTIONS:
+      cmd_set_options ();
       break;
 
     default:
@@ -1373,6 +1378,23 @@ misc_init ()
   clean_temp_catalogues ();
 }
 
+void
+set_options (const char *options)
+{
+  if (strchr (options, 'B'))
+    flag_break_locks = true;
+  
+  if (strchr (options, 'D'))
+    flag_allow_wrong_domains = true;
+}
+
+void
+cmd_set_options ()
+{
+  const char *options = request.decode_string_in_place ();
+  set_options (options);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1420,11 +1442,7 @@ main (int argc, char **argv)
 	   getpid (), input_fd, output_fd, status_fd, cancel_fd,
 	   options);
 
-      if (strchr (options, 'B'))
-	flag_break_locks = true;
-
-      if (strchr (options, 'D'))
-	flag_allow_wrong_domains = true;
+      set_options (options);
 
       if (strchr (options, 'A'))
 	flag_use_apt_algorithms = true;

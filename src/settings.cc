@@ -283,6 +283,7 @@ settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
 	}
 
       save_settings ();
+      update_backend_options ();
 
       if (needs_refresh)
 	get_package_list ();
@@ -428,4 +429,31 @@ save_state ()
       fsync (fileno (f));
       fclose (f);
     }
+}
+
+const char *
+backend_options ()
+{
+  static char options[5];
+
+  char *ptr = options;
+  if (break_locks)
+    *ptr++ = 'B';
+  if (red_pill_mode && !red_pill_ignore_wrong_domains)
+    *ptr++ = 'D';
+  *ptr++ = '\0';
+
+  return options;
+}
+
+static void
+set_options_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  return;
+}
+
+void
+update_backend_options ()
+{
+  apt_worker_set_options (backend_options (), set_options_reply, NULL);
 }

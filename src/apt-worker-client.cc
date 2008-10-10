@@ -235,16 +235,7 @@ start_apt_worker (const char *prog)
   else
     sudo = "/usr/bin/fakeroot";
 
-  gchar options[5] = "";
-
-  char *ptr = options;
-  if (break_locks)
-    *ptr++ = 'B';
-  if (red_pill_mode && !red_pill_ignore_wrong_domains)
-    *ptr++ = 'D';
-  if (use_apt_algorithms)
-    *ptr++ = 'A';
-  *ptr++ = '\0';
+  const char *options = backend_options ();
 
   const char *args[] = {
     sudo,
@@ -826,6 +817,18 @@ apt_worker_reboot (apt_worker_callback *callback,
 {
   request.reset ();
   call_apt_worker (APTCMD_REBOOT,
+		   request.get_buf (), request.get_len (),
+		   callback, data);
+}
+
+void
+apt_worker_set_options (const char *options,
+			apt_worker_callback *callback,
+			void *data)
+{
+  request.reset ();
+  request.encode_string (options);
+  call_apt_worker (APTCMD_SET_OPTIONS,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }

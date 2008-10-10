@@ -62,4 +62,9 @@ extern bool normal_toolbar;
 void load_state ();
 void save_state ();
 
+// Backend options
+
+const char *backend_options ();
+void update_backend_options ();
+
 #endif /* !SETTINGS_H */
