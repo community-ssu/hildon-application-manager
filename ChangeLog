@@ -1,3 +1,15 @@
+2008-10-10  Marius Vollmer  <marius.vollmer@nokia.com>
+
+ 	Make red-pill mode non-permanent by default.
+
+ 	* src/menu.cc, src/menu.h (set_settings_menu_visible): New, to
+ 	make the Settings menu visible immediatly when the red-pill mode
+ 	is activated.
+ 	* src/repo.cc (pill_response): Call it.
+ 	* src/settings.cc (red_pill_permanent): New setting.
+ 	* src/settings.cc (load_settings): Set red_pill_mode to false
+ 	unless it is permanent.
+
 2008-09-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.2.1
