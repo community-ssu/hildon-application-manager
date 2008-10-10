@@ -1078,6 +1078,7 @@ void cmd_install_file ();
 void cmd_save_backup_data ();
 void cmd_get_system_update_packages ();
 void cmd_flash_and_reboot ();
+void cmd_set_options ();
 
 int cmdline_check_updates (char **argv);
 int cmdline_rescue (char **argv);
@@ -1276,6 +1277,10 @@ handle_request ()
       cmd_flash_and_reboot ();
       break;
 
+    case APTCMD_SET_OPTIONS:
+      cmd_set_options ();
+      break;
+
     default:
       log_stderr ("unrecognized request: %d", req.cmd);
       break;
@@ -1472,6 +1477,23 @@ misc_init ()
 #endif
 }
 
+void
+set_options (const char *options)
+{
+  if (strchr (options, 'B'))
+    flag_break_locks = true;
+  
+  if (strchr (options, 'D'))
+    flag_allow_wrong_domains = true;
+}
+
+void
+cmd_set_options ()
+{
+  const char *options = request.decode_string_in_place ();
+  set_options (options);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1519,11 +1541,7 @@ main (int argc, char **argv)
 	   getpid (), input_fd, output_fd, status_fd, cancel_fd,
 	   options);
 
-      if (strchr (options, 'B'))
-	flag_break_locks = true;
-
-      if (strchr (options, 'D'))
-	flag_allow_wrong_domains = true;
+      set_options (options);
 
       /* Don't let our heavy lifting starve the UI.
        */

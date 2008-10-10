@@ -61,6 +61,7 @@ enum apt_command {
 
   APTCMD_GET_SYSTEM_UPDATE_PACKAGES,
   APTCMD_FLASH_AND_REBOOT,
+  APTCMD_SET_OPTIONS,
 
   APTCMD_MAX
 };
@@ -469,6 +470,14 @@ enum apt_proto_pkgtrust {
 // FLASH_AND_REBOOT - call the flash-and-reboot utility
 //
 // Parameter: none.
+// Response: empty.
+
+// SET_OPTIONS - set the backend options.
+//
+// Parameters:
+//
+// - options (string).  Same as when invoking apt-worker.
+//
 // Response: empty.
 
 #endif /* !APT_WORKER_PROTO_H */

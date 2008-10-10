@@ -151,6 +151,7 @@ pill_response (GtkDialog *dialog, gint response, gpointer unused)
       save_settings ();
 
       set_settings_menu_visible (red_pill_mode);
+      update_backend_options ();
       if (red_pill_show_all || red_pill_show_magic_sys)
 	get_package_list (APTSTATE_DEFAULT);
     }

@@ -235,21 +235,14 @@ start_apt_worker (gchar *prog)
   else
     sudo = "/usr/bin/fakeroot";
 
-  gchar options[5] = "";
-
-  char *ptr = options;
-  if (break_locks)
-    *ptr++ = 'B';
-  if (red_pill_mode && !red_pill_ignore_wrong_domains)
-    *ptr++ = 'D';
-  *ptr++ = '\0';
+  const char *options = backend_options ();
 
   gchar *args[] = {
     sudo,
     prog, "backend",
     "/tmp/apt-worker.to", "/tmp/apt-worker.from",
     "/tmp/apt-worker.status", "/tmp/apt-worker.cancel",
-    options,
+    (gchar *)options,
     NULL
   };
 
@@ -813,6 +806,18 @@ apt_worker_flash_and_reboot (apt_worker_callback *callback,
 {
   request.reset ();
   call_apt_worker (APTCMD_FLASH_AND_REBOOT, APTSTATE_DEFAULT,
+		   request.get_buf (), request.get_len (),
+		   callback, data);
+}
+
+void
+apt_worker_set_options (const char *options,
+			apt_worker_callback *callback,
+			void *data)
+{
+  request.reset ();
+  request.encode_string (options);
+  call_apt_worker (APTCMD_SET_OPTIONS, APTSTATE_DEFAULT,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }

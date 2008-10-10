@@ -1,5 +1,15 @@
 2008-10-10  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Allow setting the options of the apt-worker during run-time, not
+	just at startup.
+
+	* src/settings.cc (update_backend_options, backend_options): New.
+	Use them in all the right places.
+	* src/apt-worker-client.cc (apt_worker_set_options): New.
+	* src/apt-worker.cc (cmd_set_options, set_options): New.
+	* src/main.cc (enable_refresh): Also set sensitivity in red-pill
+	mode.
+
 	Make apt-worker more robust at detecting when a operation would
 	leave broken packages behind.
 
