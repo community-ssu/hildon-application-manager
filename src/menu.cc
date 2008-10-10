@@ -110,9 +110,22 @@ menu_close ()
   maybe_exit ();
 }
 
+static GtkWidget *settings_menu_item = NULL;
 static GtkWidget *details_menu_item = NULL;
 static GtkWidget *search_menu_item = NULL;
 static GtkWidget *operation_menu_item = NULL;
+
+void
+set_settings_menu_visible (bool flag)
+{
+  if (settings_menu_item)
+    {
+      if (flag)
+	gtk_widget_show (settings_menu_item);
+      else
+	gtk_widget_hide (settings_menu_item);
+    }
+}
 
 void
 set_details_menu_sensitive (bool flag)
@@ -249,13 +262,12 @@ create_menu (HildonWindow *window)
   g_signal_connect (item, "activate",
 		    G_CALLBACK (fullscreen_toolbar_activated), NULL);
 
-  /* get a reference to the widget to set sensitiveness as needed */
-  if (red_pill_mode)
-    {
-      add_item (tools,
-		_("Settings"), NULL,
-		show_settings_dialog_flow);
-    }
+
+  settings_menu_item = 
+    add_item (tools,
+	      _("Settings"), NULL,
+	      show_settings_dialog_flow);
+
   add_item (tools,
 	    _("ai_me_tools_repository"), NULL,
 	    show_catalogue_dialog_flow);
@@ -287,6 +299,7 @@ create_menu (HildonWindow *window)
     xexp_free (restore_backup);
 
   gtk_widget_show_all (GTK_WIDGET (main));
+  set_settings_menu_visible (red_pill_mode);
 }
 
 GtkWidget *

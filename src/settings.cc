@@ -51,6 +51,7 @@ bool red_pill_show_magic_sys = false;
 bool red_pill_include_details_in_log = false;
 bool red_pill_check_always = false;
 bool red_pill_ignore_wrong_domains = true;
+bool red_pill_permanent = false;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
@@ -111,6 +112,8 @@ load_settings ()
 	    red_pill_check_always = val;
 	  else if (sscanf (line, "red-pill-ignore-wrong-domains %d", &val) == 1)
 	    red_pill_ignore_wrong_domains = val;
+	  else if (sscanf (line, "red-pill-permanent %d", &val) == 1)
+	    red_pill_permanent = val;
 	  else
 	    add_log ("Unrecognized configuration line: '%s'\n", line);
 	}
@@ -118,6 +121,9 @@ load_settings ()
       fclose (f);
     }
   
+  if (!red_pill_permanent)
+    red_pill_mode = false;
+
   /* XML - only kidding.
    */
 }
@@ -142,6 +148,7 @@ save_settings ()
       fprintf (f, "red-pill-check-always %d\n", red_pill_check_always);
       fprintf (f, "red-pill-ignore-wrong-domains %d\n",
 	       red_pill_ignore_wrong_domains);
+      fprintf (f, "red-pill-permanent %d\n", red_pill_permanent);
       fprintf (f, "assume-connection %d\n", assume_connection);
       fclose (f);
     }
@@ -158,6 +165,7 @@ enum boolean_options {
   OPT_DOWNLOAD_PACKAGES_TO_MMC,
   OPT_CHECK_ALWAYS,
   OPT_IGNORE_WRONG_DOMAINS,
+  OPT_PERMANENT,
   NUM_BOOLEAN_OPTIONS
 };
 
@@ -228,6 +236,9 @@ make_settings_tab (settings_closure *c)
   make_boolean_option (c, vbox, group, OPT_IGNORE_WRONG_DOMAINS,
 		       "Ignore packages from wrong domains",
 		       &red_pill_ignore_wrong_domains);
+  make_boolean_option (c, vbox, group, OPT_PERMANENT,
+		       "Red pill is permanent",
+		       &red_pill_permanent);
   g_object_unref (group);
 
   gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),
