@@ -355,7 +355,8 @@ AptWorkerCache *AptWorkerCache::current = 0;
 
 bool AptWorkerCache::global_initialized = false;
 
-AptWorkerCache::AptWorkerCache () : cache (0), init_cache_after_request (false)
+AptWorkerCache::AptWorkerCache ()
+  : init_cache_after_request (false), cache (0)
 {
 }
 
