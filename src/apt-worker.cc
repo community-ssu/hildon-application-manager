@@ -1729,8 +1729,6 @@ void cache_reset ();
  */
 static char *current_cache_package = NULL;
 static bool current_cache_is_install;
-static unsigned int cache_reset_broken_count = 0;
-static unsigned int cache_reset_bad_count = 0;
 
 static bool
 check_cache_state (const char *package, bool is_install)
@@ -1865,7 +1863,7 @@ mark_related (const pkgCache::VerIterator &ver)
      unpacking, we also mark all dependencies of this package as
      related so that we try to unpack/configure them as well.
   */
-  if (cache_reset_bad_count > 0)
+  if (cache.BadCount () > 0)
     {
       for (pkgCache::DepIterator D = ver.DependsList(); D.end() == false;
 	   D++)
@@ -1900,6 +1898,20 @@ cache_reset_package (pkgCache::PkgIterator &pkg)
   awc->cache->extra_info[pkg->ID].soft = false;
 }
 
+static bool
+any_newly_broken ()
+{
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
+
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+    {
+      if (cache[pkg].InstBroken() && !cache[pkg].NowBroken())
+	return true;
+    }
+  return false;
+}
+
 void
 cache_reset ()
 {
@@ -1914,8 +1926,6 @@ cache_reset ()
 
   g_free (current_cache_package);
   current_cache_package = NULL;
-  cache_reset_broken_count = cache.BrokenCount();
-  cache_reset_bad_count = cache.BadCount();
 }
 
 /* Try to fix packages that have been broken by undoing soft changes.
@@ -2082,9 +2092,11 @@ mark_for_install_1 (pkgCache::PkgIterator &pkg, int level)
 
   mark_related (cache[pkg].CandidateVerIter(cache));
 
-  /* Avoid recursion if package is already marked for installation.
+  /* Avoid recursion if package is already marked for installation but
+     try to fix it when it is broken.
    */
-  if (cache[pkg].Mode == pkgDepCache::ModeInstall)
+  if (cache[pkg].Mode == pkgDepCache::ModeInstall
+      && !cache[pkg].InstBroken ())
     return;
 
   DBG ("+ %s", pkg.Name());
@@ -2128,6 +2140,7 @@ mark_for_install_1 (pkgCache::PkgIterator &pkg, int level)
 	 it will be installed. Otherwise we only worry about critical deps */
       if (cache.IsImportantDep(Start) == false)
 	continue;
+
       if (pkg->CurrentVer != 0 && Start.IsCritical() == false)
 	continue;
       
@@ -2705,15 +2718,8 @@ cmd_get_package_list ()
       response.encode_string (pkg.Name ());
 
       // Broken.
-      //
-      // This check doesn't catch all kinds of broken packages, only
-      // those that failed to unpack or configure, but not, for
-      // example, those that have been forcfully installed despite
-      // missing dependencies.  This is probably OK for now since only
-      // the former kinds of brokenness should be producable with the
-      // Application Manager anyway.
-      //
-      bool broken = (pkg.State () != pkgCache::PkgIterator::NeedsNothing);
+      bool broken = (cache[pkg].NowBroken()
+		     || (pkg.State () != pkgCache::PkgIterator::NeedsNothing));
       response.encode_int (broken);
 
       // Installed version
@@ -2911,7 +2917,7 @@ cmd_get_package_info ()
       // simulate install
       
       mark_named_package_for_install (package);
-      if (cache.BrokenCount() > cache_reset_broken_count)
+      if (any_newly_broken ())
 	info.installable_status = installable_status ();
       else
 	info.installable_status = status_able;
@@ -2966,7 +2972,7 @@ cmd_get_package_info ()
 
 	      if (info.removable_status == status_unknown)
 		{
-		  if (cache.BrokenCount() > cache_reset_broken_count)
+		  if (any_newly_broken ())
 		    info.removable_status = removable_status ();
 		  else
 		    info.removable_status = status_able;

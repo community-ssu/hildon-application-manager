@@ -1,5 +1,18 @@
 2008-10-10  Marius Vollmer  <marius.vollmer@nokia.com>
 
+ 	Make apt-worker more robust at detecting when a operation would
+	leave broken packages behind.
+
+ 	* src/apt-worker.cc (any_newly_broken): New.
+ 	* src/apt-worker.cc (cmd_get_package_info): Use it instead of
+ 	looking at just the number of broken packages.
+ 	* src/apt-worker.cc (mark_for_install_1): Allow broken packages to
+ 	be installed again.
+ 	* src/apt-worker.cc (cmd_get_package_list): Also flag NowBroken
+ 	packages as broken.
+ 	* src/details.cc (spd_create_summary_page): List all package
+ 	operations for broken packages.
+
  	Make red-pill mode non-permanent by default.
 
  	* src/menu.cc, src/menu.h (set_settings_menu_visible): New, to

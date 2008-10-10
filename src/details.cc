@@ -572,7 +572,8 @@ spd_create_summary_page (void *data)
     {
       /* When there is exactly one package in all of the lists, we
 	 show nothing for the summary since it would look stupid and
-	 it is the common case.
+	 it is the common case.  However, we always show everything
+	 when the package is broken.
       */
       
       int n_entries =
@@ -580,7 +581,7 @@ spd_create_summary_page (void *data)
 	 g_list_length (pi->summary_packages[sumtype_upgrading]) +
 	 g_list_length (pi->summary_packages[sumtype_removing]));
 
-      if (n_entries > 1 || red_pill_mode)
+      if (n_entries > 1 || pi->broken || red_pill_mode)
 	{
 	  r = add_table_list (summary_table, r,
 			      _("ai_fi_details_packages_install"),
