@@ -1,5 +1,7 @@
 2008-10-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.18
+	
 	* src/apt-worker.cc (mark_for_install_1): Continue if MarkInstall
 	leaves a package in MarkKeep.
 
