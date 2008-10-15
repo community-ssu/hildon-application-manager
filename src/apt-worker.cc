@@ -798,7 +798,7 @@ myCacheFile::load_extra_info ()
 	      pkgCache::PkgIterator pkg = cache.FindPkg (line);
 	      if (!pkg.end ())
 		{
-		  DBG ("%s: %s (%d)", domains[i].name, pkg.Name (), pkg->ID);
+		  // DBG ("%s: %s (%d)", domains[i].name, pkg.Name (), pkg->ID);
 		  extra_info[pkg->ID].cur_domain = i;
 		}
 	    }
@@ -2224,10 +2224,12 @@ mark_for_install_1 (pkgCache::PkgIterator &pkg, int level)
 
   DBG ("+ %s", pkg.Name());
 
-  /* Now mark it and return if that fails.
+  /* Now mark it and return if that fails.  Both ModeInstall and
+     ModeKeep are fine.  ModeKeep only happens for broken packages.
    */
   cache.MarkInstall (pkg, false);
-  if (cache[pkg].Mode != pkgDepCache::ModeInstall)
+  if (cache[pkg].Mode != pkgDepCache::ModeInstall
+      && cache[pkg].Mode != pkgDepCache::ModeKeep)
     return;
 
   /* Try to satisfy dependencies.  We can't use MarkInstall with
