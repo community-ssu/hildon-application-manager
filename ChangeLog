@@ -1,5 +1,7 @@
 2008-10-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
+	Released 2.1.19
+	
 	Improve handling of broken packages and error reporting for them.
 
 	* src/apt-worker.cc (any_newly_broken): Removed.

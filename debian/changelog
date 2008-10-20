@@ -1,6 +1,7 @@
-hildon-application-manager (1:2.1.19~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.1.19) unstable; urgency=low
 
-  * 
+  * Improved handling of broken packages further and error reporting for
+    them.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 20 Oct 2008 14:07:54 +0300
 
