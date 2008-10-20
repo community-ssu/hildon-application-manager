@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.1.19~unreleased) unstable; urgency=low
+
+  * 
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 20 Oct 2008 14:07:54 +0300
+
 hildon-application-manager (1:2.1.18) unstable; urgency=low
 
   * Fixed apt-worker so that it really can install missing dependencies
