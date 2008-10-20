@@ -2019,6 +2019,7 @@ cache_reset_package (pkgCache::PkgIterator &pkg)
   state->cache->extra_info[pkg->ID].soft = false;
 }
 
+#if 0
 static bool
 any_newly_broken ()
 {
@@ -2030,6 +2031,23 @@ any_newly_broken ()
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
       if (cache[pkg].InstBroken() && !cache[pkg].NowBroken())
+	return true;
+    }
+  return false;
+}
+#endif
+
+static bool
+any_related_broken ()
+{
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  if (state->cache == NULL)
+    return false;
+
+  pkgDepCache &cache = *(state->cache);
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
+    {
+      if (is_related (pkg) && cache[pkg].InstBroken())
 	return true;
     }
   return false;
@@ -2807,13 +2825,12 @@ cmd_get_package_list ()
       //
       // We only offer an available version if the package is not
       // installed at all, or if the available version is newer than
-      // the installed one, or if the installed version is broken and
-      // it is actually downloadable.
+      // the installed one, or if the installed version is broken.
 
       if (!candidate.end ()
 	  && (installed.end ()
 	      || installed.CompareVer (candidate) < 0
-	      || (broken && candidate.Downloadable ())))
+	      || broken))
 	encode_version_info (1, candidate, false);
       else
 	encode_empty_version_info (false);
@@ -2943,7 +2960,7 @@ installable_status ()
        pkg.end() != true;
        pkg++)
     {
-      if (cache[pkg].InstBroken())
+      if (is_related (pkg) && cache[pkg].InstBroken())
 	installable_status =
 	  combine_status (installable_status_1 (pkg), installable_status);
     }
@@ -2992,7 +3009,7 @@ cmd_get_package_info ()
       // simulate install
       
       mark_named_package_for_install (package);
-      if (any_newly_broken ())
+      if (any_related_broken ())
 	info.installable_status = installable_status ();
       else
 	info.installable_status = status_able;
@@ -3003,7 +3020,7 @@ cmd_get_package_info ()
 	   pkg.end() != true;
 	   pkg++)
 	{
-	  if (state->cache->extra_info[pkg->ID].related
+	  if (is_related (pkg)
 	      && (cache[pkg].Upgrade()
 		  || pkg.State() != pkgCache::PkgIterator::NeedsNothing))
 	    {
@@ -3047,7 +3064,7 @@ cmd_get_package_info ()
 
 	      if (info.removable_status == status_unknown)
 		{
-		  if (any_newly_broken ())
+		  if (any_related_broken ())
 		    info.removable_status = removable_status ();
 		  else
 		    info.removable_status = status_able;
@@ -3245,7 +3262,7 @@ encode_install_summary (const char *want)
 	  encode_package_and_version (pkg.CurrentVer());
 	}
 
-      if (cache[pkg].InstBroken())
+      if (is_related (pkg) && cache[pkg].InstBroken())
 	encode_broken (pkg, want);
     }
 
