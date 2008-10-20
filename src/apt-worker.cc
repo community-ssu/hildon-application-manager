@@ -705,7 +705,7 @@ myCacheFile::load_extra_info ()
 	      pkgCache::PkgIterator pkg = cache.FindPkg (line);
 	      if (!pkg.end ())
 		{
-		  DBG ("%s: %s (%d)", domains[i].name, pkg.Name (), pkg->ID);
+		  // DBG ("%s: %s (%d)", domains[i].name, pkg.Name (), pkg->ID);
 		  extra_info[pkg->ID].cur_domain = i;
 		}
 	    }
@@ -1917,14 +1917,16 @@ cache_reset_package (pkgCache::PkgIterator &pkg)
 }
 
 static bool
-any_newly_broken ()
+any_related_broken ()
 {
-  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
-  pkgDepCache &cache = *(awc->cache);
+  AptWorkerState *state = AptWorkerState::GetCurrent ();
+  if (state->cache == NULL)
+    return false;
 
+  pkgDepCache &cache = *(state->cache);
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
-      if (cache[pkg].InstBroken() && !cache[pkg].NowBroken())
+      if (is_related (pkg) && cache[pkg].InstBroken())
 	return true;
     }
   return false;
@@ -2119,10 +2121,12 @@ mark_for_install_1 (pkgCache::PkgIterator &pkg, int level)
 
   DBG ("+ %s", pkg.Name());
 
-  /* Now mark it and return if that fails.
+  /* Now mark it and return if that fails.  Both ModeInstall and
+     ModeKeep are fine.  ModeKeep only happens for broken packages.
    */
   cache.MarkInstall (pkg, false);
-  if (cache[pkg].Mode != pkgDepCache::ModeInstall)
+  if (cache[pkg].Mode != pkgDepCache::ModeInstall
+      && cache[pkg].Mode != pkgDepCache::ModeKeep)
     return;
 
   /* Try to satisfy dependencies.  We can't use MarkInstall with
@@ -2750,13 +2754,12 @@ cmd_get_package_list ()
       //
       // We only offer an available version if the package is not
       // installed at all, or if the available version is newer than
-      // the installed one, or if the installed version is broken and
-      // it is actually downloadable.
+      // the installed one, or if the installed version is broken.
 
       if (!candidate.end ()
 	  && (installed.end ()
 	      || installed.CompareVer (candidate) < 0
-	      || (broken && candidate.Downloadable ())))
+	      || broken))
 	encode_version_info (1, candidate, false);
       else
 	encode_empty_version_info (false);
@@ -2886,7 +2889,7 @@ installable_status ()
        pkg.end() != true;
        pkg++)
     {
-      if (cache[pkg].InstBroken())
+      if (is_related (pkg) && cache[pkg].InstBroken())
 	installable_status =
 	  combine_status (installable_status_1 (pkg), installable_status);
     }
@@ -2935,7 +2938,7 @@ cmd_get_package_info ()
       // simulate install
       
       mark_named_package_for_install (package);
-      if (any_newly_broken ())
+      if (any_related_broken ())
 	info.installable_status = installable_status ();
       else
 	info.installable_status = status_able;
@@ -2946,7 +2949,7 @@ cmd_get_package_info ()
 	   pkg.end() != true;
 	   pkg++)
 	{
-	  if (awc->cache->extra_info[pkg->ID].related
+	  if (is_related (pkg)
 	      && (cache[pkg].Upgrade()
 		  || pkg.State() != pkgCache::PkgIterator::NeedsNothing))
 	    {
@@ -2990,7 +2993,7 @@ cmd_get_package_info ()
 
 	      if (info.removable_status == status_unknown)
 		{
-		  if (any_newly_broken ())
+		  if (any_related_broken ())
 		    info.removable_status = removable_status ();
 		  else
 		    info.removable_status = status_able;
@@ -3304,7 +3307,7 @@ encode_install_summary (const char *want)
 	  encode_package_and_version (pkg.CurrentVer());
 	}
 
-      if (cache[pkg].InstBroken())
+      if (is_related (pkg) && cache[pkg].InstBroken())
 	encode_broken (pkg, want);
     }
 
