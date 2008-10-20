@@ -1,13 +1,13 @@
 2008-10-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.19
-	
+
 	Improve handling of broken packages and error reporting for them.
 
 	* src/apt-worker.cc (any_newly_broken): Removed.
 	(any_related_broken): New.  Use it instead of any_newly_broken.
 	(cmd_get_package_list): Offer "upgrades" for all broken packages,
-	not only the downloadable ones.
+	not only the downloadable ones (N90333).
 	(installable_status): Only consider related packages.
 	(encode_install_summary): Likewise.
 
