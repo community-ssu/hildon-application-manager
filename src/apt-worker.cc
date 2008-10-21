@@ -1919,11 +1919,11 @@ cache_reset_package (pkgCache::PkgIterator &pkg)
 static bool
 any_related_broken ()
 {
-  AptWorkerState *state = AptWorkerState::GetCurrent ();
-  if (state->cache == NULL)
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  if (awc->cache == NULL)
     return false;
 
-  pkgDepCache &cache = *(state->cache);
+  pkgDepCache &cache = *(awc->cache);
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
       if (is_related (pkg) && cache[pkg].InstBroken())
