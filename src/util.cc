@@ -1872,7 +1872,7 @@ unref_section_info (gpointer data, GClosure *closure)
   si->unref();
 }
 
-#define GRID_COLUMNS 2
+#define GRID_COLUMNS 3
 
 GtkWidget *
 make_global_section_list (GList *sections, section_activated *act)
@@ -1886,11 +1886,8 @@ make_global_section_list (GList *sections, section_activated *act)
       return label;
     }
 
-  GtkWidget *hbox = gtk_hbox_new (FALSE, 0);
-  GtkWidget *table = gtk_table_new (1, GRID_COLUMNS, FALSE);
+  GtkWidget *table = gtk_table_new (1, GRID_COLUMNS, TRUE);
   GtkWidget *scroller;
-
-  gtk_box_pack_start (GTK_BOX (hbox), table, FALSE, FALSE, 10);
 
   bool first_button = true;
 
@@ -1902,7 +1899,8 @@ make_global_section_list (GList *sections, section_activated *act)
     {
       section_info *si = (section_info *)s->data;
       GtkWidget *label = gtk_label_new (si->name);
-      gtk_misc_set_padding (GTK_MISC (label), 15, 15);
+      gtk_misc_set_padding (GTK_MISC (label), 0, 14);
+      gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
       GtkWidget *btn = gtk_button_new ();
       gtk_container_add (GTK_CONTAINER (btn), label);
       gtk_table_attach_defaults (GTK_TABLE (table), btn,
@@ -1913,7 +1911,6 @@ make_global_section_list (GList *sections, section_activated *act)
 	{
 	  col = 0;
 	  row++;
-	  gtk_table_resize (GTK_TABLE (table), row+1, GRID_COLUMNS);
 	}
       
       si->ref(); 
@@ -1933,7 +1930,7 @@ make_global_section_list (GList *sections, section_activated *act)
 				  GTK_POLICY_NEVER,
 				  GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scroller),
-					 hbox);
+					 table);
 
   global_section_list = scroller;
   g_object_ref (scroller);
