@@ -252,7 +252,8 @@ show_log_dialog_flow ()
 	  response = gtk_dialog_run (GTK_DIALOG (dialog));
 	  log_response (GTK_DIALOG (dialog), response, text_view);
 	}
-      while (response != GTK_RESPONSE_CLOSE);
+      while (response != GTK_RESPONSE_CLOSE &&
+             response != GTK_RESPONSE_DELETE_EVENT);
     }
 }
 
