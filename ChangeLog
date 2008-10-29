@@ -1,3 +1,9 @@
+2008-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/log.cc (show_log_dialog_flow): admit also
+	GTK_RESPONSE_DELETE_EVENT as close response for the log
+	dialog (N91083).
+
 2008-10-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Clean the cache directories when a package download is cancelled
