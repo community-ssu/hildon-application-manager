@@ -207,7 +207,8 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
       g_free (name);
     }
 
-  if (response == GTK_RESPONSE_CLOSE)
+  if (response == GTK_RESPONSE_CLOSE ||
+      response == GTK_RESPONSE_DELETE_EVENT)
     {
       pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
