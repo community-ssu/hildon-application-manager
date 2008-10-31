@@ -1,15 +1,16 @@
 New features for the Hildon Application Manager
 ===============================================
 
-* Unify configuration by having one directory for dropping off xexp
-  files. [mvo]
+* Update the notification plugin for the new hildon status menu in
+  hildon-desktop [vjaquez]
 
-* Merge <notifier> into generic <settings> [mvo, master].
+* Remove the free space verification from the UI and move it to the
+  apt-worker [vjaquez]
 
-* Make a h-a-m/domains config directory. [mvo]
+* Make a h-a-m/domains config directory. [mvo, domain-dropping]
 
-For dropping domain.xexp fragments, just like h-a-m/catalogues.  Maybe
-unify it to one config directory.
+For dropping domain.xexp fragments, just like h-a-m/catalogues.  Also
+see the lower priority task "config-cleanup".
 
 * Complete port to new Fremantle APIs [mvo, mvo-fremantle-port]
 
@@ -109,3 +110,10 @@ The following steps might be appropriate:
   right way to do it: letting users confirm the changes to the visible
   packages.
 
+* Unify configuration by having one directory for dropping off xexp
+  files. [mvo, config-cleanup]
+
+We should implement a unified handling of settings.  Each setting has
+up to four values: user value, system value, variant value, and
+builtin value.  These four values are merged according to the type of
+the setting.  All values except the builtin value can be unset.
