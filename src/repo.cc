@@ -1085,7 +1085,8 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       g_free (text);
     }
 
-  if (response == GTK_RESPONSE_CLOSE)
+  if (response == GTK_RESPONSE_CLOSE ||
+      response == GTK_RESPONSE_DELETE_EVENT)
     {
       reset_cat_list (c);
       pop_dialog (GTK_WIDGET (dialog));
