@@ -117,3 +117,7 @@ We should implement a unified handling of settings.  Each setting has
 up to four values: user value, system value, variant value, and
 builtin value.  These four values are merged according to the type of
 the setting.  All values except the builtin value can be unset.
+
+* Implement Maemo-Upgrade-Only-From [mvo]
+
+Details later.
