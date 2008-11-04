@@ -393,7 +393,9 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
   cat_edit_closure *c = (cat_edit_closure *)clos;
 
-  if (response == GTK_RESPONSE_OK && c->readonly)
+  if (c->readonly && !c->cat_dialog) // it cames from an .install file
+    ;
+  else if (response == GTK_RESPONSE_OK && c->readonly)
     {
       bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
                   (c->disabled_button));
@@ -568,13 +570,20 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 
   c->disabled_button = gtk_check_button_new ();
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
-				xexp_aref_bool (catalogue, "disabled"));
+                                xexp_aref_bool (catalogue, "disabled"));
   caption = hildon_caption_new (group,
-				_("ai_fi_new_repository_disabled"),
-				c->disabled_button,
-				NULL, HILDON_CAPTION_OPTIONAL);
+                                _("ai_fi_new_repository_disabled"),
+                                c->disabled_button,
+                                NULL, HILDON_CAPTION_OPTIONAL);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
 
+  /* XXX- when the dialog is shown from an .install file. This is a
+     quickfix.  For this case we'll need a three state dialog:
+     i) editable; ii) enable/disable; iii) read only
+  */
+  gtk_widget_set_sensitive (c->disabled_button, c->cat_dialog != NULL);
+
+  
   gtk_widget_set_usize (dialog, 650, -1);
 
   g_signal_connect (dialog, "response",
