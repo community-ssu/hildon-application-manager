@@ -10,6 +10,7 @@ applications from a memory card.
 The Application Manager offers some pre-defined 'interaction flows'
 that can be controlled with a ".install" file.  Such a .install file
 is a text file following the GKeyfile format, as defined by glib.
+List elements are separated by a semicolon.
 
 The following interaction flows are available:
 
