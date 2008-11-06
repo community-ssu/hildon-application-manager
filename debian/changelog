@@ -1,4 +1,4 @@
-hildon-application-manager (1:2.2.3~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.3) unstable; urgency=low
 
   * Fixes: NB#89688, NB#91083, NB#90809, NB#90586, NB#91957.
 
