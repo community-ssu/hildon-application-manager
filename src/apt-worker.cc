@@ -192,6 +192,11 @@ bool flag_allow_wrong_domains = false;
 */
 bool flag_use_apt_algorithms = false;
 
+/* Setting this to false will not use MMC to save the packages when
+   downloading them.
+*/
+bool flag_download_packages_to_mmc = false;
+
 /** GENERAL UTILITIES
  */
 
@@ -1382,6 +1387,9 @@ set_options (const char *options)
   
   if (strchr (options, 'D'))
     flag_allow_wrong_domains = true;
+
+  if (strchr (options, 'M'))
+    flag_download_packages_to_mmc = true;
 }
 
 void
