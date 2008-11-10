@@ -153,7 +153,6 @@ main (int argc, char **argv)
     (title,
      NULL, GTK_DIALOG_MODAL,
      _("ai_bd_license_ok"), GTK_RESPONSE_OK,
-     _("ai_bd_license_cancel"), GTK_RESPONSE_CANCEL,
      NULL);
 
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
