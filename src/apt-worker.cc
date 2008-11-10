@@ -4754,6 +4754,26 @@ set_dir_cache_archives (const char *alt_download_root)
   return result;
 }
 
+static bool
+is_there_enough_free_space (const char *download_root, double download_size)
+{
+  struct statvfs buf;
+
+  if (statvfs (download_root, &buf) != 0)
+    {
+      log_stderr ("Couldn't determine free space in %s", download_root);
+      return false;
+    }
+
+  if (unsigned (buf.f_bfree) < download_size / buf.f_bsize)
+    {
+      log_stderr ("You don't have enough free space in %s", download_root);
+      return false;
+    }
+
+  return true;
+}
+
 /* operation () is used to run pending apt operations
  * (removals or installations). If check_only parameter is
  * enabled, it will only check if the operation is doable.
@@ -4885,6 +4905,11 @@ operation (bool check_only,
 	  return rescode_packages_not_found;
 	}
 
+      if (!is_there_enough_free_space (
+            _config->FindDir ("Dir::Cache::Archives").c_str (),
+            FetchBytes - FetchPBytes))
+            return rescode_out_of_space;
+      
       /* Send a status report now if we are going to download
 	 something.  This makes sure that the progress dialog is
 	 shown even if the first pulse of the fetcher takes a long
