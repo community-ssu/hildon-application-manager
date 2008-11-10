@@ -144,10 +144,6 @@ static xexp *read_operation_record ();
  */
 #define APT_WORKER_LOCK "/var/lib/hildon-application-manager/apt-worker-lock"
 
-/* Temporary repositories APT cache and status directories */
-//#define TEMP_APT_CACHE "/var/cache/hildon-application-manager/temp-cache"
-//#define TEMP_APT_STATE "/var/lib/hildon-application-manager/temp-state"
-
 /* Temporary catalogues and temporary sources.list */
 #define TEMP_CATALOGUE_CONF "/var/lib/hildon-application-manager/catalogues.temp"
 #define TEMP_APT_SOURCE_LIST "/etc/apt/sources.list.d/hildon-application-manager-temp.list"
