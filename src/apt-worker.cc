@@ -4134,6 +4134,99 @@ cmd_install_check ()
  * installs packages marked for install.
  */
 
+#include <sys/statvfs.h>
+#include <mntent.h>
+
+/* MMC mountpoints */
+#define INTERNAL_MMC_MOUNTPOINT "/media/mmc2"
+#define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
+
+static bool
+volume_is_readwrite (char* option)
+{
+  g_return_val_if_fail (option, FALSE);
+  
+  enum
+  {
+    RW = 0,
+    END
+  };
+
+  const char * const suboptions[] =
+    {
+      MNTOPT_RW,
+      NULL
+    };
+
+  int so;
+  char* argument = NULL;
+
+  while (*option != 0)
+    {
+      so = getsubopt (&option, (char* const*) suboptions, &argument);
+      if (so == RW)
+        return true;
+    }
+
+  return false;
+}
+
+static bool
+volume_path_is_mounted_writable (const gchar *path)
+{
+  bool result = false;
+
+  g_return_val_if_fail (path, false);
+
+  FILE *fp = setmntent (MOUNTED, "r");
+  g_return_val_if_fail (fp != NULL, false);
+
+  struct mntent *mnt;
+  while ((mnt = getmntent (fp)) != NULL)
+    {
+      gboolean usable = (g_strcmp0 (mnt->mnt_dir, path) == 0 &&
+                         volume_is_readwrite (mnt->mnt_opts));
+
+      if (usable)
+        {
+          /* Try to write a dummy file to be completely sure,
+             since getmntent is not always up-to-date about the
+             read-only status of a partition, which would in fact
+             become read-only only when actually writing to it */
+          gchar *dummyfile = g_strdup_printf ("%s/.ham-dummy-file-XXXXXX",
+                                              path);
+          int fd;
+
+          /* Try to open a temporary file under the selected path */
+          fd = mkstemp (dummyfile);
+          if (fd != -1)
+            {
+              /* Try to write some data in the file */
+              const char *dummytext = "Dummy text";
+              int n = strlen (dummytext);
+              bool data_written = (write (fd, dummytext, n) == n
+                                   && fsync (fd) != -1);
+
+              /* Close the descriptor and decide the final result */
+              result = (close (fd) != -1) && data_written;
+
+              /* Delete the file on success */
+              if (result)
+                unlink (dummyfile);
+            }
+          g_free (dummyfile);
+
+          /* Don't keep on iterating if an usable path was found */
+          if (result)
+            break;
+        }
+    }
+
+  endmntent (fp);
+  
+  return result;
+}
+
 void
 cmd_download_package ()
 {
@@ -4159,9 +4252,34 @@ cmd_download_package ()
   if (ensure_cache (true))
     {
       if (mark_named_package_for_install (package))
-	result_code = operation (false, alt_download_root, true);
+        {
+          /* we already checked if there's enough space after
+             the installation using the required_free_space field */
+          if (flag_download_packages_to_mmc &&
+              volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT))
+            {
+              alt_download_root = INTERNAL_MMC_MOUNTPOINT;
+              result_code = operation (false, alt_download_root, true);
+            }
+          
+          if (flag_download_packages_to_mmc &&
+              result_code == rescode_out_of_space &&
+              volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT))
+            {
+              alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
+              result_code = operation (false, alt_download_root, true);
+            }
+
+          /* default or bailout option */
+          if (!flag_download_packages_to_mmc ||
+              result_code == rescode_out_of_space)
+            {
+              alt_download_root = NULL;
+              result_code = operation (false, alt_download_root, true);
+            }
+        }
       else
-	result_code = rescode_packages_not_found;
+        result_code = rescode_packages_not_found;
     }
 
   response.encode_int (result_code);
