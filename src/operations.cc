@@ -1178,9 +1178,7 @@ ip_download_cur (void *data)
   g_free (title);
 
   set_log_start ();
-  apt_worker_download_package (pi->name,
-			       c->alt_download_root,
-			       ip_download_cur_reply, c);
+  apt_worker_download_package (pi->name, ip_download_cur_reply, c);
 }
 
 struct ipdcr_clos {
@@ -1270,7 +1268,7 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   apt_proto_result_code result_code =
     apt_proto_result_code (dec->decode_int ());
-  c->alt_download_root = dec->decode_string_dup ():
+  c->alt_download_root = dec->decode_string_dup ();
 
   if (result_code == rescode_success)
     ip_install_cur (c);
