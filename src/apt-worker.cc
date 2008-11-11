@@ -4231,10 +4231,10 @@ void
 cmd_download_package ()
 {
   const char *package = request.decode_string_in_place ();
-  const char *alt_download_root = request.decode_string_in_place ();
   const char *http_proxy = request.decode_string_in_place ();
   const char *https_proxy = request.decode_string_in_place ();
 
+  const char *alt_download_root = NULL;
   int result_code = rescode_failure;
 
   if (http_proxy)
@@ -4283,6 +4283,7 @@ cmd_download_package ()
     }
 
   response.encode_int (result_code);
+  response.encode_string (alt_download_root);
 }
 
 /* APTCMD_INSTALL_PACKAGE
