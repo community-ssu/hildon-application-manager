@@ -4235,7 +4235,7 @@ cmd_download_package ()
   const char *https_proxy = request.decode_string_in_place ();
 
   const char *alt_download_root = NULL;
-  int result_code = rescode_failure;
+  int result_code = rescode_out_of_space;
 
   if (http_proxy)
     {

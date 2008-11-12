@@ -949,44 +949,14 @@ ip_install_one (void *data)
       return;
     }
 
-  bool keep_installing = false;
   int64_t free_space = get_free_space ();
 
   if (free_space < 0)
     annoy_user_with_errno (errno, "get_free_space",
 			   ip_end, c);
-  
-  if (pi->info.required_free_space < free_space)
-    {
-      /* Check MMCs first if download to mmc option is enabled */
-      if (download_packages_to_mmc)
-	{
-	  if (volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT)
-	      && (pi->info.download_size
-		  < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT)))
-	    {
-	      c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
-	      keep_installing = true;
-	    }
-	  else if (volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT)
-		   && (pi->info.download_size
-		       < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT)))
-	    {
-	      c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
-	      keep_installing = true;
-	    }
-	}
-    }
-  
-  /* Check internal flash at last */
-  if (!keep_installing &&
-      free_space > (pi->info.required_free_space + pi->info.download_size))
-    {
-      keep_installing = true;
-    }
-  
+
   /* If there's enough space somewhere, proceed with installation */
-  if (keep_installing)
+  if (pi->info.required_free_space < free_space)
     ip_check_upgrade (c);
   else
     {
@@ -1269,9 +1239,16 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   apt_proto_result_code result_code =
     apt_proto_result_code (dec->decode_int ());
   c->alt_download_root = dec->decode_string_dup ();
+  add_log ("download result code = %d | new alt_download_root = %s\n",
+           result_code, c->alt_download_root ? c->alt_download_root : "NULL");
 
   if (result_code == rescode_success)
     ip_install_cur (c);
+  else if (result_code = rescode_out_of_space)
+    {
+      /* Not enough free space */
+      ip_not_enough_memory (c);
+    }
   else if (entertainment_was_cancelled ())
     {
       apt_worker_clean (ip_clean_reply, NULL);
