@@ -46,10 +46,6 @@
 
 #define HAM_BACKUP_RESPONSE 1
 
-/* MMC mountpoints */
-#define INTERNAL_MMC_MOUNTPOINT "/media/mmc2"
-#define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
-
 /* Common utilities
  */
 
