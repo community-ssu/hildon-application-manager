@@ -82,6 +82,7 @@ binary-arch: build install
 #	dh_installcron
 #	dh_installinfo
 #	dh_installman
+	dh_installxsession -u 'post 40'
 	dh_link
 	dh_strip --dbg-package=hildon-application-manager
 	dh_compress

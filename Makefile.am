@@ -24,9 +24,6 @@ pkgcatdir = $(datadir)/hildon-application-manager/catalogues
 
 vardir = /var/lib/hildon-application-manager/
 
-postsessiondir = /etc/X11/Xsession.post/
-postsession_DATA = 40hildon-application-manager
-
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(etcdir)
 	if [ ! -f $(DESTDIR)$(etcdir)/catalogues ]; then \
@@ -53,8 +50,7 @@ EXTRA_DIST = COPYING.LIB                                        \
              hildon-application-manager.xml			\
              hildon-application-manager.conf			\
              hildon-application-manager.sh			\
-             hildon-application-manager.sudoers                 \
-             40hildon-application-manager
+             hildon-application-manager.sudoers
 
 deb:
 	./make-package $(PACKAGE) $(VERSION) .
