@@ -1,20 +1,14 @@
 #! /bin/sh
 
 ## This is a small utility to control the Application Manager in
-## certain common ways.  It is also as
-## /etc/init.d/hildon-application-manager and has to handle the
-## "start", "stop", etc subcommands.
+## certain common ways.
 
 set -e
 
 cats="/var/lib/hildon-application-manager/catalogues.backup"
 cats2="/var/lib/hildon-application-manager/catalogues2.backup"
 
-if [ "$1" = "start" ]; then
-  /usr/libexec/ham-after-boot&
-elif [ "$1" = "stop" ]; then
-  true
-elif [ "$1" = "restore-catalogues" ]; then
+if [ "$1" = "restore-catalogues" ]; then
   /usr/bin/hildon-application-manager-config add "$cats"
 elif [ "$1" = "restore-catalogues2" ]; then
   /usr/bin/hildon-application-manager-config add "$cats2"
@@ -52,7 +46,5 @@ else
   echo >&2 "       hildon-application-manager-util update-system"
   echo >&2 "       hildon-application-manager-util check-for-updates"
   echo >&2 "       hildon-application-manager-util check-state"
-  echo >&2 "       hildon-application-manager-util start"
-  echo >&2 "       hildon-application-manager-util stop"
   exit 1 
 fi
