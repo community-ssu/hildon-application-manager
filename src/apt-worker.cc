@@ -4873,20 +4873,52 @@ set_dir_cache_archives (const char *alt_download_root)
   return result;
 }
 
+static int64_t
+get_pkg_required_free_space ()
+{
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
+
+  int64_t retval = 0;
+
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin (); pkg.end () != true; pkg++)
+    { 
+      if (is_related (pkg) &&
+          (cache[pkg].Upgrade ()
+           || pkg.State () != pkgCache::PkgIterator::NeedsNothing))
+        {
+          pkgCache::VerIterator ver = cache[pkg].CandidateVerIter (cache);
+          package_record rec (ver);
+          retval += get_required_free_space (rec);
+        }
+    }
+
+  return retval;
+}
+
 static bool
-is_there_enough_free_space (const char *download_root, double download_size)
+is_there_enough_free_space (const char *archive_dir, double size)
 {
   struct statvfs buf;
 
-  if (statvfs (download_root, &buf) != 0)
+  if (statvfs (archive_dir, &buf) != 0)
     {
-      log_stderr ("Couldn't determine free space in %s", download_root);
+      log_stderr ("Couldn't determine free space in %s", archive_dir);
       return false;
     }
 
-  if (unsigned (buf.f_bfree) < download_size / buf.f_bsize)
+  /* what if after downloaded the bytes in DEFAULT_DIR_CACHE_ARCHIVES
+   * there's not enough space to install them? */
+  if (!strstr (archive_dir, INTERNAL_MMC_MOUNTPOINT) &&
+      !strstr (archive_dir, REMOVABLE_MMC_MOUNTPOINT))
     {
-      log_stderr ("You don't have enough free space in %s", download_root);
+      /* Should we add install_user_size_delta value */
+      size += (double) get_pkg_required_free_space ();
+    }
+
+  if (unsigned (buf.f_bfree) < size / buf.f_bsize)
+    {
+      log_stderr ("You don't have enough free space in %s", archive_dir);
       return false;
     }
 
@@ -5024,9 +5056,9 @@ operation (bool check_only,
 	  return rescode_packages_not_found;
 	}
 
-      if (!is_there_enough_free_space (
-            _config->FindDir ("Dir::Cache::Archives").c_str (),
-            FetchBytes - FetchPBytes))
+      if (!is_there_enough_free_space
+          (_config->FindDir ("Dir::Cache::Archives").c_str (),
+           FetchBytes - FetchPBytes))
             return rescode_out_of_space;
       
       /* Send a status report now if we are going to download
