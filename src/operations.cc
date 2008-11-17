@@ -1235,8 +1235,6 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   apt_proto_result_code result_code =
     apt_proto_result_code (dec->decode_int ());
   c->alt_download_root = dec->decode_string_dup ();
-  add_log ("download result code = %d | new alt_download_root = %s\n",
-           result_code, c->alt_download_root ? c->alt_download_root : "NULL");
 
   if (result_code == rescode_success)
     ip_install_cur (c);

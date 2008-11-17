@@ -4253,8 +4253,6 @@ cmd_download_package ()
     {
       if (mark_named_package_for_install (package))
         {
-          /* we already checked if there's enough space after
-             the installation using the required_free_space field */
           if (flag_download_packages_to_mmc &&
               volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT))
             {
