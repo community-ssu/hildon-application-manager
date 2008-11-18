@@ -938,7 +938,7 @@ entertainment_update_title ()
 static void
 entertainment_response (GtkWidget *widget, int response, void *data)
 {
-  if (response == GTK_RESPONSE_CANCEL)
+  if (response == GTK_RESPONSE_CANCEL || response == GTK_RESPONSE_DELETE_EVENT)
     cancel_entertainment ();
 }
 
