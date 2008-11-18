@@ -1,0 +1,26 @@
+msgid "accessories"
+msgstr "Lisävarusteet"
+
+msgid "communication"
+msgstr "Viestintä"
+
+msgid "games"
+msgstr "Pelit"
+
+msgid "multimedia"
+msgstr "Multimedia"
+
+msgid "office"
+msgstr "Toimisto"
+
+msgid "programming"
+msgstr "Ohjelmointi"
+
+msgid "support"
+msgstr "Tuki"
+
+msgid "themes"
+msgstr "Teemat"
+
+msgid "tools"
+msgstr "Työkalut"

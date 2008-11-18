@@ -1,0 +1,26 @@
+msgid "accessories"
+msgstr "Accessoires"
+
+msgid "communication"
+msgstr "Communicatie"
+
+msgid "games"
+msgstr "Spelletjes"
+
+msgid "multimedia"
+msgstr "Multimedia"
+
+msgid "office"
+msgstr "Kantoor"
+
+msgid "programming"
+msgstr "Programmering"
+
+msgid "support"
+msgstr "Ondersteuning"
+
+msgid "themes"
+msgstr "Thema's"
+
+msgid "tools"
+msgstr "Extra"

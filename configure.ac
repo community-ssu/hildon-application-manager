@@ -69,6 +69,6 @@ AC_DEFINE_UNQUOTED(DEB_HOST_ARCH, "$DEB_HOST_ARCH", [Debian architecture])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-		 utils/Makefile])
-
+		 utils/Makefile
+		 catpo/Makefile])
 AC_OUTPUT

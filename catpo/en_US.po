@@ -1,0 +1,26 @@
+msgid "accessories"
+msgstr "Accessories"
+
+msgid "communication"
+msgstr "Communication"
+
+msgid "games"
+msgstr "Games"
+
+msgid "multimedia"
+msgstr "Multimedia"
+
+msgid "office"
+msgstr "Office"
+
+msgid "programming"
+msgstr "Programming"
+
+msgid "support"
+msgstr "Support"
+
+msgid "themes"
+msgstr "Themes"
+
+msgid "tools"
+msgstr "Tools"

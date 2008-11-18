@@ -1,0 +1,6 @@
+Whether or not a category is permitted or not is determined by whether
+or not there is a translation of the symbolic name of the category to
+the current locale.  These translations are looked up in the
+"hildon-application-manager-categories" text domain.
+
+This directory contains sample translation files.
