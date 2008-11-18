@@ -113,14 +113,19 @@ struct section_info {
 
   int ref_count;
 
-  char *symbolic_name;
+  int rank;
   const char *name;
 
   GList *packages;
 };
 
+#define SECTION_RANK_ALL    0
+#define SECTION_RANK_NORMAL 1
+#define SECTION_RANK_OTHER  2
+
 void get_package_list ();
 void get_package_list_with_cont (void (*cont) (void *data), void *data);
+
 void show_current_details ();
 void do_current_operation ();
 

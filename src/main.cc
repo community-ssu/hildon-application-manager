@@ -398,6 +398,7 @@ static GList *installed_packages = NULL;
 static GList *search_result_packages = NULL;
 static gboolean package_list_ready = false;
 
+static int cur_section_rank;
 static char *cur_section_name;
 
 package_info::package_info ()
@@ -512,14 +513,13 @@ free_packages (GList *list)
 section_info::section_info ()
 {
   ref_count = 1;
-  symbolic_name = NULL;
+  rank = 1;
   name = NULL;
   packages = NULL;
 }
 
 section_info::~section_info ()
 {
-  g_free (symbolic_name);
   free_packages (packages);
 }
 
@@ -594,10 +594,7 @@ canonicalize_section_name (const char *name)
 const char *
 nicify_section_name (const char *name)
 {
-  if (name == NULL)
-    name = "";
-
-  if (red_pill_mode && red_pill_show_all)
+  if (name == NULL || red_pill_mode && red_pill_show_all)
     return name;
 
   name = canonicalize_section_name (name);
@@ -605,38 +602,66 @@ nicify_section_name (const char *name)
   if (*name == '\0')
     return "-";
 
-  char *logical_id = g_strdup_printf ("ai_category_%s", name);
-  const char *translated_name = gettext (logical_id);
-  if (translated_name != logical_id)
+  const char *translated_name =
+    dgettext ("hildon-application-manager-categories", name);
+  if (translated_name != name)
     name = translated_name;
-  g_free (logical_id);
+  else
+    name = NULL;
+
   return name;
 }
 
 static section_info *
-find_section_info (GList **list_ptr, const char *name,
-		   bool create, bool allow_all)
+find_section_info (GList **list_ptr,
+		   int rank, const char *name)
 {
-  name = canonicalize_section_name (name);
+  if (list_ptr)
+    {
+      for (GList *ptr = *list_ptr; ptr; ptr = ptr->next)
+	{
+	  section_info *si = (section_info *)ptr->data;
+	  if (si->rank == rank && !strcmp (si->name, name))
+	    return si;
+	}
+    }
 
-  if (name == NULL)
-    name = "other";
+  return NULL;
+}
 
-  if (!allow_all && !strcmp (name, "all"))
-    name = "other";
+static section_info *
+create_section_info (GList **list_ptr,
+		     int rank, const char *name)
+{
+  if (name)
+    name = nicify_section_name (canonicalize_section_name (name));
 
-  for (GList *ptr = *list_ptr; ptr; ptr = ptr->next)
-    if (!strcmp (((section_info *)ptr->data)->symbolic_name, name))
-      return (section_info *)ptr->data;
+  if (!name)
+    {
+      /* If we don't have a name for the section, it can't be a
+	 "normal" section.  Move it to the "other" rank in that case.
+      */
+      if (rank == SECTION_RANK_NORMAL)
+	rank = SECTION_RANK_OTHER;
 
-  if (!create)
-    return NULL;
-	    
-  section_info *si = new section_info;
-  si->symbolic_name = g_strdup (name);
-  si->name = nicify_section_name (si->symbolic_name);
-  si->packages = NULL;
-  *list_ptr = g_list_prepend (*list_ptr, si);
+      if (rank == SECTION_RANK_ALL)
+	name = _("ai_category_all");
+      else if (rank == SECTION_RANK_OTHER)
+	name = _("ai_category_other");
+    }
+
+  section_info *si = find_section_info (list_ptr, rank, name);
+  
+  if (si == NULL)
+    {
+      si = new section_info;
+      si->rank = rank;
+      si->name = name;
+      si->packages = NULL;
+      if (list_ptr)
+	*list_ptr = g_list_prepend (*list_ptr, si);
+    }
+
   return si;
 }
 
@@ -648,7 +673,10 @@ compare_section_names (gconstpointer a, gconstpointer b)
 
   // The sorting of sections can not be configured.
 
-  return g_ascii_strcasecmp (si_a->name, si_b->name);
+  if (si_a->rank == si_b->rank)
+    return g_ascii_strcasecmp (si_a->name, si_b->name);
+  else
+    return si_a->rank - si_b->rank;
 }
 
 static gint
@@ -777,8 +805,7 @@ sort_all_packages ()
   
   GList **section_ptr;
   if (install_sections
-      && !strcmp (((section_info *)install_sections->data)->symbolic_name,
-		  "all"))
+      && ((section_info *)install_sections->data)->rank == SECTION_RANK_ALL)
     section_ptr = &(install_sections->next);
   else
     section_ptr = &install_sections;
@@ -897,9 +924,7 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
     what_the_fock_p ();
   else
     {
-      section_info *all_si = new section_info;
-      all_si->symbolic_name = g_strdup ("all");
-      all_si->name = nicify_section_name (all_si->symbolic_name);
+      section_info *all_si = create_section_info (NULL, SECTION_RANK_ALL, NULL);
 
       while (!dec->at_end ())
 	{
@@ -919,9 +944,9 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 	      else
 		{
 		  section_info *sec =
-		    find_section_info (&install_sections,
-				       info->available_section,
-				       true, false);
+		    create_section_info (&install_sections,
+					 SECTION_RANK_NORMAL, 
+					 info->available_section);
 		  info->ref ();
 		  sec->packages = g_list_prepend (sec->packages, info);
 
@@ -966,8 +991,8 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (cur_view_struct == &search_results_view
       || (cur_view_struct == &install_section_view
-	  && (find_section_info (&install_sections, cur_section_name,
-				false, true) == NULL
+	  && (find_section_info (&install_sections,
+				 cur_section_rank, cur_section_name) == NULL
 	      || (install_sections && !install_sections->next))))
     show_view (cur_view_struct->parent);
 
@@ -1515,7 +1540,7 @@ make_install_section_view (view *v)
 		       _("ai_ib_nothing_to_install"));
 
   section_info *si = find_section_info (&install_sections,
-					cur_section_name, false, true);
+					cur_section_rank, cur_section_name);
 
   view =
     make_global_package_list (si? si->packages : NULL,
@@ -1542,12 +1567,13 @@ make_install_section_view (view *v)
 static void
 view_section (section_info *si)
 {
-  if (si->symbolic_name == NULL)
+  if (si->name == NULL)
     return;
   g_free (cur_section_name);
-  cur_section_name = g_strdup (si->symbolic_name);
+  cur_section_name = g_strdup (si->name);
+  cur_section_rank = si->rank;
 
-  install_section_view.label = nicify_section_name (cur_section_name);
+  install_section_view.label = cur_section_name;
 
   show_view (&install_section_view);
 }

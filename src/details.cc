@@ -493,10 +493,12 @@ spd_update_common_page (void *data)
 
   add_table_field (table, ++last_row, _("ai_fi_details_status"), status);
 
+  const char *section_name =
+    nicify_section_name (pi->have_detail_kind == remove_details
+			 ? pi->installed_section
+			 : pi->available_section);
   add_table_field (table, ++last_row, _("ai_fi_details_category"),
-                   nicify_section_name (pi->have_detail_kind == remove_details
-                                        ? pi->installed_section
-                                        : pi->available_section));
+		   section_name? section_name : _("ai_category_other"));
 
   /* now, the optional fields */
   
