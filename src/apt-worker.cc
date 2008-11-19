@@ -4141,6 +4141,9 @@ cmd_install_check ()
 #define INTERNAL_MMC_MOUNTPOINT "/media/mmc2"
 #define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
 
+/* global variable to report the download size to the frontend */
+static int64_t download_size = 0;
+
 static bool
 volume_is_readwrite (char* option)
 {
@@ -4281,7 +4284,10 @@ cmd_download_package ()
     }
 
   response.encode_int (result_code);
+  response.encode_int64 (download_size);
   response.encode_string (alt_download_root);
+
+  download_size = 0;
 }
 
 /* APTCMD_INSTALL_PACKAGE
@@ -4895,7 +4901,7 @@ get_pkg_required_free_space ()
 }
 
 static bool
-is_there_enough_free_space (const char *archive_dir, double size)
+is_there_enough_free_space (const char *archive_dir, int64_t size)
 {
   struct statvfs buf;
 
@@ -4911,10 +4917,10 @@ is_there_enough_free_space (const char *archive_dir, double size)
       !strstr (archive_dir, REMOVABLE_MMC_MOUNTPOINT))
     {
       /* Should we add install_user_size_delta value */
-      size += (double) get_pkg_required_free_space ();
+      size += get_pkg_required_free_space ();
     }
 
-  if (unsigned (buf.f_bfree) < size / buf.f_bsize)
+  if (unsigned (buf.f_bfree) < double (size) / buf.f_bsize)
     {
       log_stderr ("You don't have enough free space in %s", archive_dir);
       return false;
@@ -5054,9 +5060,9 @@ operation (bool check_only,
 	  return rescode_packages_not_found;
 	}
 
+      download_size = FetchBytes - FetchPBytes;
       if (!is_there_enough_free_space
-          (_config->FindDir ("Dir::Cache::Archives").c_str (),
-           FetchBytes - FetchPBytes))
+          (_config->FindDir ("Dir::Cache::Archives").c_str (), download_size))
             return rescode_out_of_space;
       
       /* Send a status report now if we are going to download

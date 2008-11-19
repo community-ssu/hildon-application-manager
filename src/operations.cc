@@ -240,7 +240,7 @@ static void ip_warn_about_reboot (ip_clos *c);
 static void ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 					   gpointer data);
 
-static void ip_not_enough_memory (void *data);
+static void ip_not_enough_memory (void *data, int64_t download_size);
 static void ip_not_enough_battery_confirm (void (*cont) (void *data), void *data);
 static void ip_not_enough_battery_confirm_response (bool res, void *data);
 
@@ -867,10 +867,12 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 }
 
 static void
-ip_not_enough_memory (void *data)
+ip_not_enough_memory (void *data, int64_t download_size)
 {
   ip_clos *c = (ip_clos *)data;
 
+  /** @todo: how to report the needed download size? */
+  
   if (red_pill_mode)
     {
       /* Allow continuation
@@ -957,7 +959,7 @@ ip_install_one (void *data)
   else
     {
       /* Not enough free space */
-      ip_not_enough_memory (c);
+      ip_not_enough_memory (c, pi->info.required_free_space);
     }
 }
 
@@ -1234,14 +1236,17 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   apt_proto_result_code result_code =
     apt_proto_result_code (dec->decode_int ());
+  int64_t download_size = dec->decode_int64 ();
   c->alt_download_root = dec->decode_string_dup ();
+
+  add_log ("required disk space: %Ld\n", download_size);
 
   if (result_code == rescode_success)
     ip_install_cur (c);
-  else if (result_code = rescode_out_of_space)
+  else if (result_code == rescode_out_of_space)
     {
       /* Not enough free space */
-      ip_not_enough_memory (c);
+      ip_not_enough_memory (c, download_size);
     }
   else if (entertainment_was_cancelled ())
     {
@@ -1285,7 +1290,7 @@ ip_install_cur (void *data)
   else
     {
       /* Not enough free space */
-      ip_not_enough_memory (c);
+      ip_not_enough_memory (c, pi->info.required_free_space);
     }
 }
 
