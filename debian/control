@@ -2,7 +2,7 @@ Source: hildon-application-manager
 Section: misc
 Priority: optional
 Maintainer: Marius Vollmer <marius.vollmer@nokia.com>
-Build-Depends: debhelper (>= 4.0.0), libapt-pkg-dev (>= 0.7.6), libglib2.0-dev, libgtk2.0-dev, libhildon1-dev, libhildonfm2-dev, libconic0-dev, libgconf2-dev, libosso-gnomevfs2-dev, libhildonhelp-dev, mce-dev, libhildonwm-dev, libhildondesktop-dev, libalarm-dev, osso-af-settings, libcurl3-dev, libhal-dev, upstart-dev
+Build-Depends: debhelper (>= 4.0.0), libapt-pkg-dev (>= 0.7.6), libglib2.0-dev, libgtk2.0-dev, libhildon1-dev, libhildonfm2-dev, libconic0-dev, libgconf2-dev, libosso-gnomevfs2-dev, libhildonhelp-dev, mce-dev, libhildonwm-dev, libhildondesktop1-dev, libalarm-dev, osso-af-settings, libcurl3-dev, libhal-dev, upstart-dev
 Standards-Version: 3.6.0
 
 Package: hildon-application-manager
