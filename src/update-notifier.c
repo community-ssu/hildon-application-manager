@@ -40,7 +40,6 @@
 #include <curl/curl.h>
 
 #include <libosso.h>
-#include <libhildondesktop/libhildondesktop.h>
 #include <libhildonwm/hd-wm.h>
 
 #if HAVE_LIBALARM_PKG
@@ -111,7 +110,7 @@ struct _UpdateNotifierPrivate
   GMutex* notifications_thread_mutex;
 };
 
-HD_DEFINE_PLUGIN (UpdateNotifier, update_notifier, STATUSBAR_TYPE_ITEM);
+HD_DEFINE_PLUGIN_MODULE (UpdateNotifier, update_notifier, HD_TYPE_STATUS_MENU_ITEM);
 
 enum {
   UPNO_ICON_INVISIBLE,
@@ -163,6 +162,11 @@ static void save_state (UpdateNotifier *upno);
 static void save_last_update_time (time_t t);
 
 /* Initialization/destruction functions */
+
+static void
+update_notifier_class_finalize (UpdateNotifierClass *klass)
+{
+}
 
 static void
 update_notifier_class_init (UpdateNotifierClass *klass)
@@ -552,6 +556,7 @@ setup_gconf (UpdateNotifier *upno)
 static void
 set_condition_carefully (UpdateNotifier *upno, gboolean condition)
 {
+#if 0 /* this is not valid in the new libhildondesktop-1 */
   /* Setting the 'condition' of the plugin will cause the overflow row
      of the status bar to be closed, regardless of whether the
      condition has actually changed or not.  Thus, we are careful here
@@ -562,6 +567,7 @@ set_condition_carefully (UpdateNotifier *upno, gboolean condition)
   g_object_get (upno, "condition", &old_condition, NULL);
   if (old_condition != condition)
     g_object_set (upno, "condition", condition, NULL);
+#endif
 }
 
 static void
