@@ -1,6 +1,11 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Drop support for memory cards completely [vjaquez]
+
+Everything related to installation from memory cards should be
+removed.
+
 * Update the notification plugin for the new hildon status menu in
   hildon-desktop [vjaquez]
 
