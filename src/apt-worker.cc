@@ -1917,7 +1917,7 @@ cache_reset_package (pkgCache::PkgIterator &pkg)
 }
 
 static bool
-any_related_broken ()
+any_newly_or_related_broken ()
 {
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   if (awc->cache == NULL)
@@ -1926,7 +1926,8 @@ any_related_broken ()
   pkgDepCache &cache = *(awc->cache);
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
-      if (is_related (pkg) && cache[pkg].InstBroken())
+      if (cache[pkg].InstBroken() &&
+	  (!cache[pkg].NowBroken() || is_related (pkg)))
 	return true;
     }
   return false;
@@ -2889,9 +2890,25 @@ installable_status ()
        pkg.end() != true;
        pkg++)
     {
-      if (is_related (pkg) && cache[pkg].InstBroken())
-	installable_status =
-	  combine_status (installable_status_1 (pkg), installable_status);
+      /* If a non-related package gets newly broken, we report this as
+	 a conflict.  If a related package is broken, we take a closer
+	 look.
+      */
+      if (cache[pkg].InstBroken())
+	{
+	  if (is_related (pkg))
+	    {
+	      installable_status =
+		combine_status (installable_status_1 (pkg),
+				installable_status);
+	    }
+	  else if (!cache[pkg].NowBroken())
+	    {
+	      installable_status =
+		combine_status (status_conflicting,
+				installable_status);
+	    }
+	}
     }
 
   return installable_status;
@@ -2938,7 +2955,7 @@ cmd_get_package_info ()
       // simulate install
       
       mark_named_package_for_install (package);
-      if (any_related_broken ())
+      if (any_newly_or_related_broken ())
 	info.installable_status = installable_status ();
       else
 	info.installable_status = status_able;
@@ -2993,7 +3010,7 @@ cmd_get_package_info ()
 
 	      if (info.removable_status == status_unknown)
 		{
-		  if (any_related_broken ())
+		  if (any_newly_or_related_broken ())
 		    info.removable_status = removable_status ();
 		  else
 		    info.removable_status = status_able;
@@ -3278,10 +3295,6 @@ encode_install_summary (const char *want)
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   pkgDepCache &cache = *(awc->cache);
 
-  // XXX - the summary is not really correct when there are broken
-  //       packages in the device.  The problems of those packages
-  //       might be included in the report.
-
   if (cache.BrokenCount() > 0)
     fprintf (stderr, "[ Some installed packages are broken! ]\n");
 
@@ -3307,8 +3320,16 @@ encode_install_summary (const char *want)
 	  encode_package_and_version (pkg.CurrentVer());
 	}
 
-      if (is_related (pkg) && cache[pkg].InstBroken())
-	encode_broken (pkg, want);
+      if (cache[pkg].InstBroken())
+	{
+	  if (is_related (pkg))
+	    encode_broken (pkg, want);
+	  else if (!cache[pkg].NowBroken())
+	    {
+	      response.encode_int (sumtype_conflicting);
+	      encode_package_and_version (pkg.CurrentVer());
+	    }
+	}
     }
 
   response.encode_int (sumtype_end);
