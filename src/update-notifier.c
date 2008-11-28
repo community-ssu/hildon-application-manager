@@ -79,7 +79,8 @@ typedef struct {
 typedef struct _UpdateNotifierPrivate UpdateNotifierPrivate;
 struct _UpdateNotifierPrivate
 {
-  GtkWidget *button;
+  GtkWidget *button; /* update_button */
+  GtkWidget *newrel_button;
   GtkWidget *blinkifier;
   GtkWidget *menu;
   GtkWidget *open_ham_item;
@@ -125,6 +126,7 @@ static void update_notifier_init (UpdateNotifier *upno);
 static void update_notifier_finalize (GObject *object);
 
 /* Private functions */
+static void build_ui (UpdateNotifier *upno);
 static void button_toggled (GtkWidget *button, gpointer data);
 static void menu_hidden (GtkMenuShell *menu, gpointer user_data);
 static void open_ham_menu_item_activated (GtkWidget *menu, gpointer data);
@@ -198,8 +200,6 @@ setup_alarm_now (gpointer data)
 static void
 update_notifier_init (UpdateNotifier *upno)
 {
-  GdkPixbuf *icon_pixbuf;
-  GtkIconTheme *icon_theme;
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
   priv->osso_ctxt = NULL;
@@ -213,36 +213,13 @@ update_notifier_init (UpdateNotifier *upno)
 
       setup_gconf (upno);
 
-      priv->button = gtk_toggle_button_new ();
+      build_ui (upno);
       
-      icon_theme = gtk_icon_theme_get_default ();
-      icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
-					      "qgn_stat_new_updates",
-					      40,
-					      GTK_ICON_LOOKUP_NO_SVG,
-					      NULL);
-#if USE_BLINKIFIER
-      priv->static_pic = icon_pixbuf;
-      priv->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
-#else
-      priv->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
-#endif
-  
-      gtk_container_add (GTK_CONTAINER (priv->button), priv->blinkifier);
-      gtk_container_add (GTK_CONTAINER (upno), priv->button);
-
-      gtk_widget_show (priv->blinkifier);
-      gtk_widget_show (priv->button);
-
-      priv->button_toggled_handler_id =
-	g_signal_connect (priv->button, "toggled",
-			  G_CALLBACK (button_toggled), upno);
-
       load_state (upno);
 
       setup_inotify (upno);
 
-      update_icon_visibility (upno);
+      /* update_icon_visibility (upno); */
       update_state (upno);
 
       /* We only setup the alarm after a one minute pause since the alarm
@@ -348,6 +325,122 @@ menu_position_func (GtkMenu   *menu,
 	 + AVAILABLE_NOTIFICATIONS_MENU_TOP_PADDING);
 
   *push_in = FALSE;
+}
+
+static GtkWidget*
+build_button (gchar *title)
+{
+  GtkWidget *button, *image;
+  GdkPixbuf *pixbuf;
+  GtkWidget *hbox, *vbox1, *vbox2;
+  GtkWidget *label1, *label2;
+  PangoAttrList *attr_list;
+
+  g_return_val_if_fail (title != NULL, NULL);
+
+  button = gtk_button_new ();
+  gtk_container_set_border_width (GTK_CONTAINER (button), 3);
+
+  pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                     "general_application_manager",
+                                     64, GTK_ICON_LOOKUP_NO_SVG, NULL);
+
+  image = NULL;
+  if (pixbuf != NULL)
+    {
+      image = gtk_image_new_from_pixbuf (pixbuf);
+      g_object_unref (pixbuf);
+    }
+
+  hbox = gtk_hbox_new (FALSE, 8);
+  vbox1 = gtk_vbox_new (FALSE, 0);
+  vbox2 = gtk_vbox_new (FALSE, 0);
+
+  label1 = gtk_label_new (title);
+  gtk_misc_set_alignment (GTK_MISC (label1), 0.0, 0.5);
+  attr_list = pango_attr_list_new ();
+  pango_attr_list_insert (attr_list,
+                          pango_attr_size_new_absolute (PANGO_SCALE * 24));
+  gtk_label_set_attributes (GTK_LABEL (label1), attr_list);
+  pango_attr_list_unref (attr_list);
+
+  label2 = gtk_label_new ("this is a test");
+  gtk_misc_set_alignment (GTK_MISC (label2), 0.0, 0.5);
+  attr_list = pango_attr_list_new ();
+  pango_attr_list_insert (attr_list,
+                          pango_attr_size_new_absolute (PANGO_SCALE * 18));
+  gtk_label_set_attributes (GTK_LABEL (label2), attr_list);
+  pango_attr_list_unref (attr_list);
+
+  gtk_container_add (GTK_CONTAINER (button), hbox);
+  gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox), vbox1, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox1), vbox2, TRUE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox2), label1, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox2), label2, FALSE, FALSE, 0);
+
+  gtk_widget_show_all (GTK_WIDGET (button));
+  
+  return button;
+}
+
+static void
+build_ui (UpdateNotifier *upno)
+{
+  GdkPixbuf* pixbuf;
+  UpdateNotifierPrivate *priv;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
+
+  /* status menu buttons */
+  priv->button = build_button (_("ai_sb_update_description") ?
+                               _("ai_sb_update_description") :
+                               "New software updates");
+  gtk_container_add (GTK_CONTAINER (upno), priv->button);
+
+  priv->newrel_button = build_button ("New Sofware Release");
+  gtk_container_add (GTK_CONTAINER (upno), priv->newrel_button);
+
+  gtk_widget_show_all (GTK_WIDGET (upno));
+
+  /* status area icon */
+  pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                     "qgn_stat_new_updates",
+                                     40, GTK_ICON_LOOKUP_NO_SVG, NULL);
+  if (pixbuf != NULL)
+  {
+    hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (upno),
+                                                pixbuf);
+    g_object_unref (pixbuf);
+  }
+      
+#if 0      
+      priv->button = gtk_toggle_button_new ();
+      
+      icon_theme = gtk_icon_theme_get_default ();
+      icon_pixbuf = gtk_icon_theme_load_icon (icon_theme,
+					      "qgn_stat_new_updates",
+					      40,
+					      GTK_ICON_LOOKUP_NO_SVG,
+					      NULL);
+#if USE_BLINKIFIER
+      priv->static_pic = icon_pixbuf;
+      priv->blinkifier = gtk_image_new_from_animation (hn_app_pixbuf_anim_blinker_new(icon_pixbuf, 1000, -1, 100));
+#else
+      priv->blinkifier = gtk_image_new_from_pixbuf (icon_pixbuf);
+      g_object_unref (icon_pixbuf);
+#endif
+  
+      gtk_container_add (GTK_CONTAINER (priv->button), priv->blinkifier);
+      gtk_container_add (GTK_CONTAINER (upno), priv->button);
+
+      gtk_widget_show (priv->blinkifier);
+      gtk_widget_show (priv->button);
+
+      priv->button_toggled_handler_id =
+	g_signal_connect (priv->button, "toggled",
+			  G_CALLBACK (button_toggled), upno);
+#endif      
 }
 
 static void
