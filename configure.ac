@@ -45,12 +45,7 @@ AC_SUBST(AW_DEPS_CFLAGS)
 AC_SUBST(AW_DEPS_LIBS)
 
 
-NOTIFIER_PKGS="libosso libhildondesktop-1 libhildonwm gconf-2.0 dbus-1 libcurl"
-
-if pkg-config --exists alarm; then
-  NOTIFIER_PKGS="$NOTIFIER_PKGS alarm"
-  AC_DEFINE(HAVE_LIBALARM_PKG)
-fi
+NOTIFIER_PKGS="libosso libhildondesktop-1 libhildonwm gconf-2.0 dbus-1 libcurl alarm"
 
 PKG_CHECK_MODULES(NOTIFIER_DEPS, $NOTIFIER_PKGS)
 AC_SUBST(NOTIFIER_DEPS_LIBS)

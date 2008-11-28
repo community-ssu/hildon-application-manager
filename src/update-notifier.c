@@ -42,9 +42,7 @@
 #include <libosso.h>
 #include <libhildonwm/hd-wm.h>
 
-#if HAVE_LIBALARM_PKG
 #include <libalarm.h>
-#endif
 
 #include "update-notifier.h"
 #include "update-notifier-conf.h"
@@ -55,7 +53,7 @@
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
-#define USE_BLINKIFIER 1
+#define USE_BLINKIFIER 0
 
 #define HTTP_PROXY_GCONF_DIR      "/system/http_proxy"
 #define HAM_APPID                 "hildon-application-manager-client"
@@ -1445,7 +1443,6 @@ setup_inotify (UpdateNotifier *upno)
     }
 }
 
-#if HAVE_LIBALARM_PKG
 static void
 search_and_delete_all_alarms (void)
 {
@@ -1575,16 +1572,6 @@ setup_alarm (UpdateNotifier *upno)
 
   return alarm_cookie > 0;
 }
-#else
-
-static gboolean
-setup_alarm (UpdateNotifier *upno)
-{
-  return TRUE;
-}
-
-#endif
-
 
 static void
 cleanup_gconf (UpdateNotifier *upno)
@@ -1635,7 +1622,6 @@ cleanup_inotify (UpdateNotifier *upno)
     }
 }
 
-#if HAVE_LIBALARM_PKG
 static void
 cleanup_alarm (UpdateNotifier *upno)
 {
@@ -1645,12 +1631,6 @@ cleanup_alarm (UpdateNotifier *upno)
   alarm_cookie = priv->state.alarm_cookie;
   alarmd_event_del (alarm_cookie);
 }
-#else
-static void
-cleanup_alarm (UpdateNotifier *upno)
-{
-}
-#endif
 
 /* Returns the position of needle in haystack, or -1 if it can't be found.
  */
