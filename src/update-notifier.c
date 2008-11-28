@@ -44,6 +44,8 @@
 
 #include <libalarm.h>
 
+#include <libintl.h>
+
 #include "update-notifier.h"
 #include "update-notifier-conf.h"
 
