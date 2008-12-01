@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.1.19.1) unstable; urgency=low
+
+  * Unbreak handling of broken packages.  Fixes: NB#93926.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 01 Dec 2008 20:26:25 +0200
+
 hildon-application-manager (1:2.1.19) unstable; urgency=low
 
   * Improved handling of broken packages further and error reporting for

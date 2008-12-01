@@ -1,3 +1,21 @@
+2008-12-01  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 2.1.19.1
+
+	Unbreak handling of broken packages (N93926).
+
+	* src/apt-worker.cc (any_newly_or_related_broken): New, replaces
+	any_related_broken.  We really shouldn't ignore newly broken
+	packages.
+	(installable_status): Report non-related newly broken packages as
+	conflicts.
+	(encode_install_summary): Likewise.
+
+	Improve reporting of not-removable packages.
+
+	* src/apt-worker.cc (encode_remove_summary): Only include newly
+	broken packages as "needing" in the summary.
+
 2008-10-20  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.1.19
