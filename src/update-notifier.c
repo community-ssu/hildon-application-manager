@@ -41,6 +41,7 @@
 
 #include <libosso.h>
 #include <libhildonwm/hd-wm.h>
+#include <hildon/hildon.h>
 
 #include <libalarm.h>
 
@@ -330,54 +331,33 @@ menu_position_func (GtkMenu   *menu,
 static GtkWidget*
 build_button (gchar *title)
 {
-  GtkWidget *button, *image;
-  GdkPixbuf *pixbuf;
-  GtkWidget *hbox, *vbox1, *vbox2;
-  GtkWidget *label1, *label2;
-  PangoAttrList *attr_list;
+  GtkWidget *button;
 
   g_return_val_if_fail (title != NULL, NULL);
 
-  button = gtk_button_new ();
-  gtk_container_set_border_width (GTK_CONTAINER (button), 3);
+  button = hildon_button_new_with_text (HILDON_SIZE_FULLSCREEN_WIDTH |
+                                        HILDON_SIZE_FINGER_HEIGHT,
+                                        HILDON_BUTTON_ARRANGEMENT_VERTICAL,
+                                        title, "");
 
-  pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
-                                     "general_application_manager",
-                                     64, GTK_ICON_LOOKUP_NO_SVG, NULL);
+  {
+    GdkPixbuf *pixbuf;
+    GtkWidget *image;
+    
+    pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                       "general_application_manager",
+                                       64, GTK_ICON_LOOKUP_NO_SVG, NULL);
 
-  image = NULL;
-  if (pixbuf != NULL)
-    {
-      image = gtk_image_new_from_pixbuf (pixbuf);
-      g_object_unref (pixbuf);
-    }
 
-  hbox = gtk_hbox_new (FALSE, 8);
-  vbox1 = gtk_vbox_new (FALSE, 0);
-  vbox2 = gtk_vbox_new (FALSE, 0);
+    if (pixbuf != NULL)
+      {
+        image = gtk_image_new_from_pixbuf (pixbuf);
+        g_object_unref (pixbuf);
+      }
 
-  label1 = gtk_label_new (title);
-  gtk_misc_set_alignment (GTK_MISC (label1), 0.0, 0.5);
-  attr_list = pango_attr_list_new ();
-  pango_attr_list_insert (attr_list,
-                          pango_attr_size_new_absolute (PANGO_SCALE * 24));
-  gtk_label_set_attributes (GTK_LABEL (label1), attr_list);
-  pango_attr_list_unref (attr_list);
-
-  label2 = gtk_label_new ("this is a test");
-  gtk_misc_set_alignment (GTK_MISC (label2), 0.0, 0.5);
-  attr_list = pango_attr_list_new ();
-  pango_attr_list_insert (attr_list,
-                          pango_attr_size_new_absolute (PANGO_SCALE * 18));
-  gtk_label_set_attributes (GTK_LABEL (label2), attr_list);
-  pango_attr_list_unref (attr_list);
-
-  gtk_container_add (GTK_CONTAINER (button), hbox);
-  gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, TRUE, 0);
-  gtk_box_pack_start (GTK_BOX (hbox), vbox1, TRUE, TRUE, 0);
-  gtk_box_pack_start (GTK_BOX (vbox1), vbox2, TRUE, FALSE, 0);
-  gtk_box_pack_start (GTK_BOX (vbox2), label1, FALSE, FALSE, 0);
-  gtk_box_pack_start (GTK_BOX (vbox2), label2, FALSE, FALSE, 0);
+    if (image)
+      hildon_button_set_image (HILDON_BUTTON (button), image);
+  }
 
   gtk_widget_show_all (GTK_WIDGET (button));
   
@@ -387,31 +367,34 @@ build_button (gchar *title)
 static void
 build_ui (UpdateNotifier *upno)
 {
-  GdkPixbuf* pixbuf;
   UpdateNotifierPrivate *priv;
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
 
   /* status menu buttons */
-  priv->button = build_button (_("ai_sb_update_description") ?
-                               _("ai_sb_update_description") :
-                               "New software updates");
-  gtk_container_add (GTK_CONTAINER (upno), priv->button);
+  {
+    priv->button = build_button (_("ai_sb_update_description"));
+    gtk_container_add (GTK_CONTAINER (upno), priv->button);
 
-  priv->newrel_button = build_button ("New Sofware Release");
-  gtk_container_add (GTK_CONTAINER (upno), priv->newrel_button);
+    /* priv->newrel_button = build_button ("New Sofware Release"); */
+    /* gtk_container_add (GTK_CONTAINER (upno), priv->newrel_button); */
 
-  gtk_widget_show_all (GTK_WIDGET (upno));
+    gtk_widget_show_all (GTK_WIDGET (upno));
+  }
 
   /* status area icon */
-  pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
-                                     "qgn_stat_new_updates",
-                                     40, GTK_ICON_LOOKUP_NO_SVG, NULL);
-  if (pixbuf != NULL)
   {
-    hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (upno),
-                                                pixbuf);
-    g_object_unref (pixbuf);
+    GdkPixbuf* pixbuf;
+    
+    pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                       "qgn_stat_new_updates",
+                                       40, GTK_ICON_LOOKUP_NO_SVG, NULL);
+    if (pixbuf != NULL)
+      {
+        hd_status_plugin_item_set_status_area_icon
+          (HD_STATUS_PLUGIN_ITEM (upno), pixbuf);
+        g_object_unref (pixbuf);
+      }
   }
       
 #if 0      
