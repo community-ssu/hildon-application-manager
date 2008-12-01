@@ -3293,7 +3293,7 @@ encode_remove_summary (pkgCache::PkgIterator &want)
 	  encode_package_and_version (pkg.CurrentVer());
 	}
 
-      if (cache[pkg].InstBroken())
+      if (cache[pkg].InstBroken() && !cache[pkg].NowBroken())
 	{
 	  response.encode_int (sumtype_needed_by);
 	  encode_package_and_version (pkg.CurrentVer());
