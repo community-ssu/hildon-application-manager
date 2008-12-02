@@ -43,7 +43,7 @@
 #include <libhildonwm/hd-wm.h>
 
 #if HAVE_LIBALARM_PKG
-#include <alarm_event.h>
+#include <libalarm.h>
 #endif
 
 #include "update-notifier.h"
@@ -55,9 +55,10 @@
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
-#define USE_BLINKIFIER 0
+#define USE_BLINKIFIER 1
 
 #define HTTP_PROXY_GCONF_DIR      "/system/http_proxy"
+#define HAM_APPID                 "hildon-application-manager-client"
 
 /* For opening an URL */
 #define URL_SERVICE                     "com.nokia.osso_browser"
@@ -72,7 +73,7 @@
 */
 typedef struct {
   int icon_state;
-  int alarm_cookie;
+  cookie_t alarm_cookie;
 } upno_state;
 
 typedef struct _UpdateNotifierPrivate UpdateNotifierPrivate;
@@ -1450,23 +1451,25 @@ search_and_delete_all_alarms (void)
 {
   int i = 0;
   time_t first = time (NULL);
-  time_t last = (time_t)G_MAXINT32;
+  time_t last = (time_t) G_MAXINT32;
   cookie_t *cookies = NULL;
  
-  cookies = alarm_event_query (first, last, 0, 0);
+  cookies = alarmd_event_query (first, last, 0, 0, HAM_APPID);
 
   if (cookies == NULL)
     return;
 
   for (i = 0; cookies[i] != 0; i++)
     {
-      alarm_event_t *alarm = alarm_event_get (cookies[i]);
-      if (alarm->dbus_interface != NULL &&
-	  !strcmp (alarm->dbus_interface, UPDATE_NOTIFIER_INTERFACE))
-	{
-	  alarm_event_del (cookies[i]);
-	}
-      alarm_event_free (alarm);
+      alarm_event_t *event = alarmd_event_get (cookies[i]);
+      alarm_action_t *action = alarm_event_get_action (event, 0);
+      if ((action != NULL) &&
+          (!strcmp (alarm_action_get_dbus_service (action),
+                    UPDATE_NOTIFIER_INTERFACE)))
+        {
+          alarmd_event_del (cookies[i]);
+        }
+      alarm_event_delete (event);
     }
   g_free (cookies);
 }
@@ -1475,8 +1478,9 @@ static gboolean
 setup_alarm (UpdateNotifier *upno)
 {
   UpdateNotifierPrivate *priv = UPDATE_NOTIFIER_GET_PRIVATE (upno);
-  alarm_event_t new_alarm;
-  alarm_event_t *old_alarm = NULL;
+  alarm_event_t *new_event;
+  alarm_action_t *new_action;
+  alarm_event_t *old_event = NULL;
   cookie_t alarm_cookie;
   int interval;
 
@@ -1506,59 +1510,65 @@ setup_alarm (UpdateNotifier *upno)
   alarm_cookie = priv->state.alarm_cookie;
 
   if (alarm_cookie > 0)
-    old_alarm = alarm_event_get (alarm_cookie);
+    old_event = alarmd_event_get (alarm_cookie);
 
   /* Setup new alarm based on old alarm.
    */
 
-  memset (&new_alarm, 0, sizeof(alarm_event_t));
+  new_event = alarm_event_create ();
 
-  if (old_alarm == NULL || old_alarm->recurrence != interval)
+  alarm_event_set_alarm_appid (new_event, HAM_APPID);
+  alarm_event_set_title (new_event, "H-A-M Update Notifier");
+  alarm_event_set_message (new_event, NULL);
+
+  new_event->flags |= ALARM_EVENT_CONNECTED;
+  new_event->flags |= ALARM_EVENT_RUN_DELAYED;
+
+  new_event->recur_count = -1;
+  new_event->snooze_secs = 0;
+
+  if (old_event == NULL || old_event->recur_secs != interval)
     {
       /* Reset timing parameters.
        */
 
       time_t now = time (NULL);
 
-      new_alarm.alarm_time = now + 60 * interval;
-      new_alarm.recurrence = interval;
+      new_event->alarm_time = now + ALARM_RECURRING_MINUTES (interval);
+      new_event->recur_secs = interval;
     }
   else
     {
       /* Copy timing parameters.
        */
 
-      new_alarm.alarm_time = old_alarm->alarm_time;
-      new_alarm.recurrence = old_alarm->recurrence;
+      new_event->alarm_time = old_event->alarm_time;
+      new_event->recur_secs = old_event->recur_secs;
     }
 
-  alarm_event_free (old_alarm);
+  alarm_event_delete (old_event);
 
   /* Setup the rest.
    */
 
-  new_alarm.recurrence_count = -1;
-  new_alarm.snooze = 0;
+  new_action = alarm_event_add_actions (new_event, 1);
+  new_action->flags = ALARM_ACTION_TYPE_DBUS | ALARM_ACTION_WHEN_TRIGGERED;
+  alarm_action_set_dbus_service (new_action, UPDATE_NOTIFIER_SERVICE);
+  alarm_action_set_dbus_path (new_action, UPDATE_NOTIFIER_OBJECT_PATH);
+  alarm_action_set_dbus_interface (new_action, UPDATE_NOTIFIER_INTERFACE);
+  alarm_action_set_dbus_name (new_action, UPDATE_NOTIFIER_OP_CHECK_UPDATES);
 
-  new_alarm.dbus_service = UPDATE_NOTIFIER_SERVICE;
-  new_alarm.dbus_path = UPDATE_NOTIFIER_OBJECT_PATH;
-  new_alarm.dbus_interface = UPDATE_NOTIFIER_INTERFACE;
-  new_alarm.dbus_name = UPDATE_NOTIFIER_OP_CHECK_UPDATES;
-
-  new_alarm.flags = (ALARM_EVENT_NO_DIALOG
-		     | ALARM_EVENT_CONNECTED
-		     | ALARM_EVENT_RUN_DELAYED);
 
   /* Replace old event with new one.  If we fail to delete the old
      alarm, we still add the new one, just to be safe.
    */
   if (alarm_cookie > 0)
-    alarm_event_del (alarm_cookie);
+    alarmd_event_del (alarm_cookie);
 
   /* Search for more alarms to delete (if available) */
   search_and_delete_all_alarms ();
 
-  alarm_cookie = alarm_event_add (&new_alarm);
+  alarm_cookie = alarmd_event_add (new_event);
 
   priv->state.alarm_cookie = alarm_cookie;
   save_state (upno);
@@ -1633,7 +1643,7 @@ cleanup_alarm (UpdateNotifier *upno)
   cookie_t alarm_cookie;
 
   alarm_cookie = priv->state.alarm_cookie;
-  alarm_event_del (alarm_cookie);
+  alarmd_event_del (alarm_cookie);
 }
 #else
 static void
