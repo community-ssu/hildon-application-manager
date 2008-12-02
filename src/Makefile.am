@@ -3,7 +3,7 @@ bin_PROGRAMS = hildon-application-manager.launch \
 dist_bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server test-app-killer
 libexec_PROGRAMS = apt-worker ham-after-boot.launch
-hildonstatusbarplugin_LTLIBRARIES = libhildon-update-notifier.la
+hildonstatusmenuplugin_LTLIBRARIES = libhildon-update-notifier.la
 
 
 hildon_application_manager_launch_SOURCES = main.h			\
@@ -95,8 +95,9 @@ libhildon_update_notifier_la_SOURCES = update-notifier.h		\
                                        user_files.c
 libhildon_update_notifier_la_CFLAGS = $(NOTIFIER_DEPS_CFLAGS)
 libhildon_update_notifier_la_LIBADD = $(NOTIFIER_DEPS_LIBS)
+libhildon_update_notifier_la_LDFLAGS = -module -avoid-version
 
-hildonstatusbardesktop_DATA = hildon-update-notifier.desktop
+hildonstatusmenudesktop_DATA = hildon-update-notifier.desktop
 
 ham_after_boot_launch_SOURCES = ham-after-boot.c \
 				user_files.c \

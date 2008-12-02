@@ -26,7 +26,7 @@ AC_EGREP_HEADER(apt_set_index_trust_level_for_package_hook,
 
 PKG_CHECK_MODULES(HAM_DEPS, glib-2.0 gtk+-2.0 hildon-1 hildon-fm-2 libosso
                             conic gconf-2.0 gnome-vfs-2.0 hildon-help mce
-                            libhildonwm libhildondesktop hal)
+                            libhildonwm libhildondesktop-1 hal)
 AC_SUBST(HAM_DEPS_CFLAGS)
 AC_SUBST(HAM_DEPS_LIBS)
 
@@ -45,10 +45,10 @@ AC_SUBST(AW_DEPS_CFLAGS)
 AC_SUBST(AW_DEPS_LIBS)
 
 
-NOTIFIER_PKGS="gtk+-2.0 glib-2.0 libhildondesktop gconf-2.0 libhildonwm dbus-1 libcurl"
+NOTIFIER_PKGS="libosso libhildondesktop-1 libhildonwm gconf-2.0 dbus-1 libcurl"
 
-if pkg-config --exists libalarm; then
-  NOTIFIER_PKGS="$NOTIFIER_PKGS libalarm"
+if pkg-config --exists alarm; then
+  NOTIFIER_PKGS="$NOTIFIER_PKGS alarm"
   AC_DEFINE(HAVE_LIBALARM_PKG)
 fi
 
@@ -56,11 +56,13 @@ PKG_CHECK_MODULES(NOTIFIER_DEPS, $NOTIFIER_PKGS)
 AC_SUBST(NOTIFIER_DEPS_LIBS)
 AC_SUBST(NOTIFIER_DEPS_CFLAGS)
 
-hildonstatusbarplugindir=`pkg-config osso-af-settings --variable=hildondesktoplibdir`
-hildonstatusbardesktopdir=`pkg-config osso-af-settings --variable=statusbardesktopentrydir`
+#hildonstatusbarplugindir=`pkg-config osso-af-settings --variable=hildondesktoplibdir`
+#hildonstatusbardesktopdir=`pkg-config osso-af-settings --variable=statusbardesktopentrydir`
+hildonstatusmenuplugindir="${libdir}/hildon-desktop"
+hildonstatusmenudesktopdir="${datadir}/applications/hildon-status-menu"
 
-AC_SUBST(hildonstatusbarplugindir)
-AC_SUBST(hildonstatusbardesktopdir)
+AC_SUBST(hildonstatusmenuplugindir)
+AC_SUBST(hildonstatusmenudesktopdir)
 
 # Debian architecture
 #
