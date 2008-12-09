@@ -51,7 +51,6 @@
 #include "operations.h"
 #include "apt-worker-client.h"
 #include "user_files.h"
-#include "update-notifier.h"
 #include "update-notifier-conf.h"
 #include "package-info-cell-renderer.h"
 
