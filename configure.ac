@@ -51,13 +51,10 @@ PKG_CHECK_MODULES(NOTIFIER_DEPS, $NOTIFIER_PKGS)
 AC_SUBST(NOTIFIER_DEPS_LIBS)
 AC_SUBST(NOTIFIER_DEPS_CFLAGS)
 
-#hildonstatusbarplugindir=`pkg-config osso-af-settings --variable=hildondesktoplibdir`
-#hildonstatusbardesktopdir=`pkg-config osso-af-settings --variable=statusbardesktopentrydir`
+hildonstatusmenudesktopentrydir="${datadir}/applications/hildon-status-menu"
+AC_SUBST(hildonstatusmenudesktopentrydir)
 hildonstatusmenuplugindir="${libdir}/hildon-desktop"
-hildonstatusmenudesktopdir="${datadir}/applications/hildon-status-menu"
-
 AC_SUBST(hildonstatusmenuplugindir)
-AC_SUBST(hildonstatusmenudesktopdir)
 
 # Debian architecture
 #
@@ -66,6 +63,7 @@ AC_DEFINE_UNQUOTED(DEB_HOST_ARCH, "$DEB_HOST_ARCH", [Debian architecture])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+		 statusbar/Makefile
 		 utils/Makefile
 		 catpo/Makefile])
 AC_OUTPUT

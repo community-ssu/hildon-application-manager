@@ -3,8 +3,6 @@ bin_PROGRAMS = hildon-application-manager.launch \
 dist_bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server
 libexec_PROGRAMS = apt-worker ham-after-boot.launch
-hildonstatusmenuplugin_LTLIBRARIES = libhildon-update-notifier.la
-
 
 hildon_application_manager_launch_SOURCES = main.h			\
                                             main.cc			\
@@ -40,7 +38,7 @@ hildon_application_manager_launch_SOURCES = main.h			\
 					    apt-worker-proto.cc		\
                                             confutils.h			\
                                             confutils.cc		\
-                                            update-notifier-conf.h      \
+                                            $(top_srcdir)/statusbar/update-notifier-conf.h      \
                                             user_files.h                \
                                             user_files.c                \
                                             apt-utils.h                 \
@@ -83,21 +81,6 @@ apt_worker_SOURCES = apt-worker.cc  	 \
 apt_worker_CFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
-
-libhildon_update_notifier_la_SOURCES = update-notifier.h		\
-				       update-notifier-conf.h		\
-	                               update-notifier.c		\
-	                               hn-app-pixbuf-anim-blinker.h	\
-	                               hn-app-pixbuf-anim-blinker.c	\
-                                       xexp.h				\
-                                       xexp.c                           \
-                                       user_files.h                     \
-                                       user_files.c
-libhildon_update_notifier_la_CFLAGS = $(NOTIFIER_DEPS_CFLAGS)
-libhildon_update_notifier_la_LIBADD = $(NOTIFIER_DEPS_LIBS)
-libhildon_update_notifier_la_LDFLAGS = -module -avoid-version
-
-hildonstatusmenudesktop_DATA = hildon-update-notifier.desktop
 
 ham_after_boot_launch_SOURCES = ham-after-boot.c \
 				user_files.c \

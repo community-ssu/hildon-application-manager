@@ -1,4 +1,4 @@
-SUBDIRS = src utils catpo
+SUBDIRS = src utils catpo statusbar
 
 desktopdir = $(datadir)/applications/hildon
 desktop_DATA = hildon-application-manager.desktop
