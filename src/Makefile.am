@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -I $(top_srcdir)/statusbar
+
 bin_PROGRAMS = hildon-application-manager.launch \
                hildon-application-manager-config
 dist_bin_SCRIPTS = hildon-application-manager-util
@@ -38,7 +40,6 @@ hildon_application_manager_launch_SOURCES = main.h			\
 					    apt-worker-proto.cc		\
                                             confutils.h			\
                                             confutils.cc		\
-                                            $(top_srcdir)/statusbar/update-notifier-conf.h      \
                                             user_files.h                \
                                             user_files.c                \
                                             apt-utils.h                 \
