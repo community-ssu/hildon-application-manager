@@ -40,8 +40,7 @@
 #include <curl/curl.h>
 
 #include <libosso.h>
-#include <hildon/hildon.h>
-
+#include <libhildonwm/hd-wm.h>
 #include <libalarm.h>
 
 #include <libintl.h>
