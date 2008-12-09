@@ -76,8 +76,7 @@ apt_worker_SOURCES = apt-worker.cc  	 \
                      confutils.h	 \
                      confutils.cc        \
                      catalogues.h        \
-                     catalogues.cc       \
-		     update-notifier-conf.h
+                     catalogues.cc
 
 apt_worker_CFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)
