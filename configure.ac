@@ -53,8 +53,8 @@ AC_SUBST(NOTIFIER_DEPS_CFLAGS)
 
 hildonstatusmenudesktopentrydir="${datadir}/applications/hildon-status-menu"
 AC_SUBST(hildonstatusmenudesktopentrydir)
-hildonstatusmenuplugindir="${libdir}/hildon-desktop"
-AC_SUBST(hildonstatusmenuplugindir)
+hildondesktoplibdir="${libdir}/hildon-desktop"
+AC_SUBST(hildondesktoplibdir)
 
 # Debian architecture
 #
