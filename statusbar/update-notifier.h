@@ -24,11 +24,9 @@
 #ifndef UPDATE_NOTIFIER_H
 #define UPDATE_NOTIFIER_H
 
-#include <glib.h>
-#include <gtk/gtk.h>
-#include <dbus/dbus.h>
-#include <gconf/gconf-client.h>
 #include <libhildondesktop/libhildondesktop.h>
+
+G_BEGIN_DECLS
 
 #define UPDATE_NOTIFIER_TYPE            (update_notifier_get_type ())
 #define UPDATE_NOTIFIER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), UPDATE_NOTIFIER_TYPE, UpdateNotifier))
@@ -51,5 +49,7 @@ struct _UpdateNotifierClass
 };
 
 GType update_notifier_get_type(void);
+
+G_END_DECLS
 
 #endif /* !UPDATE_NOTIFIER_H */
