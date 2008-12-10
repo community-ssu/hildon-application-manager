@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <libintl.h>
 #include <sys/inotify.h>
@@ -49,6 +50,8 @@
 #else
 #define LOG(...)
 #endif
+
+#define APPNAME "hildon_update_notifier"
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
@@ -92,6 +95,8 @@ struct _UpdateNotifierPrivate
 /* setup prototypes */
 static gboolean setup_dbus (UpdateNotifier *self);
 static void setup_gconf (UpdateNotifier *self);
+static gboolean setup_alarm (UpdateNotifier *upno);
+static gboolean setup_alarm_now (gpointer data);
 static gboolean setup_inotify (UpdateNotifier *self);
 static void close_inotify (UpdateNotifier *self);
 
@@ -161,10 +166,14 @@ update_notifier_init (UpdateNotifier *self)
       LOG ("dbus setup");
 
       setup_gconf (self);
+      /* create_widgets (self); */
       load_state (self);
+
       if (setup_inotify (self))
         {
-/*       create_widgets (self); */
+          /* update_icon_visibility */
+          update_state (self);
+          g_timeout_add_seconds (60, setup_alarm_now, self);
         }
       else
         close_inotify (self);
@@ -196,7 +205,7 @@ update_notifier_rpc_cb (const gchar* interface, const gchar* method,
   else if (strcmp (method, UPDATE_NOTIFIER_OP_CHECK_STATE) == 0)
     {
       /* Update states of the satusbar item */
-      /* update_state (self); */
+      update_state (self);
     }
   else
     return OSSO_ERROR;
@@ -214,10 +223,9 @@ setup_dbus (UpdateNotifier *self)
 
   g_return_val_if_fail (priv->osso == NULL, FALSE);
 
-  priv->osso = osso_initialize ("hildon_update_notifier",
-                                PACKAGE_VERSION, TRUE, NULL);
+  priv->osso = osso_initialize (APPNAME, PACKAGE_VERSION, TRUE, NULL);
 
-  if (!priv->osso)
+  if (priv->osso == NULL)
     return FALSE;
 
   result = osso_rpc_set_cb_f (priv->osso,
@@ -236,7 +244,7 @@ update_notifier_interval_changed_cb (GConfClient *client, guint cnxn_id,
   g_return_if_fail (IS_UPDATE_NOTIFIER (data));
 
   LOG ("Interval value changed");
-  /* setup_alarm (UPDATE_NOTIFIER (data)); */
+  setup_alarm (UPDATE_NOTIFIER (data));
 }
 
 static void
@@ -482,6 +490,130 @@ close_inotify (UpdateNotifier *self)
       close (priv->inotify_fd);
     }
   priv->inotify_fd = -1;
+}
+
+static void
+delete_all_alarms (void)
+{
+  int i;
+  cookie_t *cookies = NULL;
+ 
+  if ((cookies = alarmd_event_query (0, 0, 0, 0, APPNAME)))
+    {
+      for (i = 0; cookies[i]; ++i)
+        alarmd_event_del (cookies[i]);
+      free(cookies);
+    }
+}
+
+static gint
+get_interval (UpdateNotifier* self)
+{
+  UpdateNotifierPrivate *priv;
+  gint interval;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  interval = gconf_client_get_int (priv->gconf,
+                                   UPNO_GCONF_CHECK_INTERVAL,
+                                   NULL);
+
+  if (interval <= 0)
+    {
+      /* Use default value and set it from now on */
+      interval = UPNO_DEFAULT_CHECK_INTERVAL;
+      gconf_client_set_int (priv->gconf,
+                            UPNO_GCONF_CHECK_INTERVAL,
+                            interval,
+                            NULL);
+    }
+
+  LOG ("The interval is %d", interval);
+  return interval;
+}
+
+static gboolean
+setup_alarm (UpdateNotifier *self)
+{
+  UpdateNotifierPrivate *priv;
+  alarm_event_t *old_event;
+  alarm_event_t *event;
+  alarm_action_t *action;
+  int interval;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  
+  interval = get_interval (self);
+  
+  /* We reset the alarm when we don't have a cookie for the old alarm
+     (which probably means there is no old alarm), when we can't find
+     the old alarm although we have a cookie (which shouldn't happen
+     unless someone manually mucks with the alarm queue), or if the
+     interval has changed.
+
+     Otherwise we leave the old alarm in place, but we update its
+     parameters without touching the timing.
+  */
+  LOG ("The stored alarm id is %d", priv->alarm_cookie);
+
+  old_event = NULL;
+  if (priv->alarm_cookie > 0)
+    old_event = alarmd_event_get (priv->alarm_cookie);
+
+  /* Setup new alarm based on old alarm. */
+  event = alarm_event_create ();
+  alarm_event_set_alarm_appid (event, APPNAME);
+
+  event->flags = ALARM_EVENT_CONNECTED | ALARM_EVENT_RUN_DELAYED;
+  event->recur_count = -1;
+
+  if (old_event == NULL || old_event->recur_secs != interval)
+    {
+      /* reset timing parameters. */
+      event->alarm_time = time_get_time () + interval;
+      event->recur_secs = interval;
+    }
+  else
+    {
+      /* copy timing parameters */
+      event->alarm_time = old_event->alarm_time;
+      event->recur_secs = old_event->recur_secs;
+
+      alarm_event_delete (old_event);
+    }
+
+  /* create the action */
+  action = alarm_event_add_actions (event, 1);
+  action->flags = ALARM_ACTION_WHEN_TRIGGERED |
+    ALARM_ACTION_TYPE_DBUS |
+    ALARM_ACTION_DBUS_USE_ACTIVATION;
+  alarm_action_set_dbus_service (action, UPDATE_NOTIFIER_SERVICE);
+  alarm_action_set_dbus_path (action, UPDATE_NOTIFIER_OBJECT_PATH);
+  alarm_action_set_dbus_interface (action, UPDATE_NOTIFIER_INTERFACE);
+  alarm_action_set_dbus_name (action, UPDATE_NOTIFIER_OP_CHECK_UPDATES);
+
+  /* Search for more alarms to delete (if available) */
+  delete_all_alarms ();
+
+  priv->alarm_cookie = alarmd_event_add (event);
+
+  LOG ("The new alarm id is %d", priv->alarm_cookie);
+  
+  save_state (self);
+
+  return priv->alarm_cookie > 0;
+}
+
+static gboolean
+setup_alarm_now (gpointer data)
+{
+  g_return_val_if_fail (IS_UPDATE_NOTIFIER (data), FALSE);
+                        
+  if (setup_alarm (UPDATE_NOTIFIER (data)))
+    return FALSE;
+
+  /* Try again in one minute. */
+  return TRUE;
 }
 
 static void
