@@ -28,6 +28,7 @@
 #include <gtk/gtk.h>
 #include <hildon/hildon.h>
 #include <libosso.h>
+#include <gconf/gconf-client.h>
 
 #include <libintl.h>
 
@@ -55,10 +56,13 @@ struct _UpdateNotifierPrivate
   GtkWidget *button;
   
   osso_context_t *osso;
+  GConfClient *gconf;
 };
 
 /* prototypes */
 static gboolean setup_dbus (UpdateNotifier *self);
+static void setup_gconf (UpdateNotifier *self);
+
 static void my_log (const gchar *function, const gchar *fmt, ...);
   
 HD_DEFINE_PLUGIN_MODULE (UpdateNotifier, update_notifier,
@@ -80,6 +84,11 @@ update_notifier_finalize (GObject *object)
 
   if (priv->osso != NULL)
     osso_deinitialize (priv->osso);
+
+  if (priv->gconf != NULL)
+      g_object_unref (priv->gconf);
+
+  
 }
 static void
 update_notifier_class_init (UpdateNotifierClass *klass)
@@ -102,6 +111,12 @@ update_notifier_init (UpdateNotifier *self)
   if (setup_dbus (self))
     {
       LOG ("dbus setup");
+
+      setup_gconf (self);
+/*       load_state (self); */
+/*       setup_inotify (self); */
+
+/*       create_widgets (self); */
     }
 }
 
@@ -161,6 +176,34 @@ setup_dbus (UpdateNotifier *self)
                               hildon_update_notifier_rpc_cb, self);
 
   return (result == OSSO_OK);
+}
+
+static void
+hildon_update_notifier_interval_changed_cb (GConfClient *client, guint cnxn_id,
+                                            GConfEntry *entry, gpointer data)
+{
+  g_return_if_fail (IS_UPDATE_NOTIFIER (data));
+
+  /* setup_alarm (UPDATE_NOTIFIER (data)); */
+}
+
+static void
+setup_gconf (UpdateNotifier *self)
+{
+  UpdateNotifierPrivate *priv;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  g_return_if_fail (priv->gconf == NULL);
+
+  priv->gconf = gconf_client_get_default ();
+  
+  gconf_client_add_dir (priv->gconf,
+                        UPNO_GCONF_DIR, GCONF_CLIENT_PRELOAD_ONELEVEL, NULL);
+  
+  gconf_client_notify_add (priv->gconf, UPNO_GCONF_CHECK_INTERVAL,
+                           hildon_update_notifier_interval_changed_cb, self,
+                           NULL, NULL);
 }
 
 static void
