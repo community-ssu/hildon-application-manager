@@ -1,3 +1,42 @@
+2008-12-09  Victor Manuel Jaquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc: removed the "update-notifier.h" include file.
+
+2008-12-01  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (encode_remove_summary): Only include newly
+	broken packages as "needing" in the summary.
+
+2008-11-27  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/apt-worker.cc (any_newly_or_related_broken): New, replaces
+	any_related_broken.  We really shouldn't ignore newly broken
+	packages. 
+	(installable_status): Report non-related newly broken packages as
+	conflicts.
+	(encode_install_summary): Likewise.
+
+2008-11-19  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* src/main.h (section_info): Removed symbolic_name field.  Added
+	rank. Updated all users to speficy name and rank.
+	* src/main.cc (nicify_section_name): Look into
+	"hildon-application-manager-categories" textdomain for category
+	translations.  Return NULL when no translations are found. 
+	(compare_section_names): Take rank into account.
+	* src/details.cc (spd_update_common_page): Use 'Other' when
+	getting a NULL section name from nicify_section_name.
+
+2008-11-18  Victor Manuel Jaquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (entertainment_response): Added DELETE_EVENT as
+	CANCEL synonym.
+
+2008-11-10  Victor Manuel Jaquez Leal  <vjaquez@igalia.com>
+
+	* src/apt-worker: removed unused macros related to the temporal
+	state.	
+	
 2008-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/log.cc (show_log_dialog_flow): admit also
