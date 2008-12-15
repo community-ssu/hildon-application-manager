@@ -2,8 +2,7 @@ hildon-application-manager (1:2.2.5) unstable; urgency=low
 
   * debian/dirs: removed
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 10 Dic 2008 21:41:58 +0200
-
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 10 Dec 2008 21:41:58 +0200
 	
 hildon-application-manager (1:2.2.4) unstable; urgency=low
 
