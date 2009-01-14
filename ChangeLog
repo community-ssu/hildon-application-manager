@@ -37,6 +37,51 @@
 	* src/apt-worker: removed unused macros related to the temporal
 	state.	
 	
+2008-11-12  Victor Manuel Jaquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc src/util.h (volume_path_is_mounted_writable):
+	unused function removed.
+
+	* src/operations.cc (ip_install_one): removed the machinery for
+	choosing the cache archive directory (alt_download_root) in the
+	frontend.
+	(ip_download_cur_reply): display the proper message to the user
+	when the out of free space response is received.
+
+2008-11-11  Victor Manuel Jaquez Leal  <vjaquez@igalia.com>
+
+	* src/apt-worker-client.cc src/apt-worker-client.h
+	(apt_worker_download_package): removed the alt_download_root
+	parameter from the function signature.
+
+	* src/apt-worker-client.cc (apt_worker_download_package): didn't
+	send the alternative archive cache directory to the apt-worker.
+
+	* src/apt-worker.cc (cmd_download_package): didn't receive the
+	alternative archive cache directory from the frontend but send it
+	back because the apt-worker now defines it.
+
+	* src/operations.cc (ip_download_cur_reply): set the alternative
+	archive cache directory in the closure provided by the apt-worker
+	response.
+
+	* src/apt-worker.cc (volume_is_readwrite): new function.
+	(volume_path_is_mounted_writable): new function.
+	(cmd_download_package): added the machinery for choosing the
+	cache archive directory (alt_download_root) in the apt-worker.
+
+2008-11-10  Victor Manuel Jaquez Leal  <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (is_there_enough_free_space): new function.
+	(operation): returns out_of_space error if there's not enough free
+	space in the cache archive directory.
+
+	* src/apt-worker.cc (set_options): recieves the 'M' constant as
+	indicator for enabling the download of packages in MMC.
+
+	* src/settings.cc (backend_options): send the 'M' constant to the
+	apt-worker if the download of packages in MMC is enabled.
+
 2008-10-29  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* src/log.cc (show_log_dialog_flow): admit also

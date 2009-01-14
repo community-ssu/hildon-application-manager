@@ -39,8 +39,8 @@ install-data-local:
           echo "<settings/>" >$(DESTDIR)$(etcdir)/settings; \
         fi
 	$(mkinstalldirs) $(DESTDIR)$(vardir)
-	if [ ! -f $(DESTDIR)$(vardir)/available_updates ]; then \
-          echo "<updates/>" >$(DESTDIR)$(vardir)/available_updates; \
+	if [ ! -f $(DESTDIR)$(vardir)/available-updates ]; then \
+          echo "<updates/>" >$(DESTDIR)$(vardir)/available-updates; \
         fi
 	$(mkinstalldirs) $(DESTDIR)$(pkgcatdir)
 

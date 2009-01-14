@@ -582,11 +582,6 @@ int64_t get_free_space ();
  */
 int64_t get_free_space_at_path (const char *path);
 
-/* Checks if there's some volume mounted in the specified path and is
-   writable.
-*/
-gboolean volume_path_is_mounted_writable (const gchar *path);
-
 /* Save the LAST_UPDATE timstamp from disk */
 void save_last_update_time (time_t t);
 

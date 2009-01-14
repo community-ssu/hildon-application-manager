@@ -441,6 +441,8 @@ backend_options ()
     *ptr++ = 'B';
   if (red_pill_mode && !red_pill_ignore_wrong_domains)
     *ptr++ = 'D';
+  if (download_packages_to_mmc)
+    *ptr++ = 'M';
   *ptr++ = '\0';
 
   return options;

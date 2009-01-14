@@ -192,6 +192,11 @@ bool flag_allow_wrong_domains = false;
 */
 bool flag_use_apt_algorithms = false;
 
+/* Setting this to false will not use MMC to save the packages when
+   downloading them.
+*/
+bool flag_download_packages_to_mmc = false;
+
 /** GENERAL UTILITIES
  */
 
@@ -1382,6 +1387,9 @@ set_options (const char *options)
   
   if (strchr (options, 'D'))
     flag_allow_wrong_domains = true;
+
+  if (strchr (options, 'M'))
+    flag_download_packages_to_mmc = true;
 }
 
 void
@@ -4126,15 +4134,111 @@ cmd_install_check ()
  * installs packages marked for install.
  */
 
+#include <sys/statvfs.h>
+#include <mntent.h>
+
+/* MMC mountpoints */
+#define INTERNAL_MMC_MOUNTPOINT "/media/mmc2"
+#define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
+
+/* global variable to report the download size to the frontend */
+static int64_t download_size = 0;
+
+static bool
+volume_is_readwrite (char* option)
+{
+  g_return_val_if_fail (option, FALSE);
+  
+  enum
+  {
+    RW = 0,
+    END
+  };
+
+  const char * const suboptions[] =
+    {
+      MNTOPT_RW,
+      NULL
+    };
+
+  int so;
+  char* argument = NULL;
+
+  while (*option != 0)
+    {
+      so = getsubopt (&option, (char* const*) suboptions, &argument);
+      if (so == RW)
+        return true;
+    }
+
+  return false;
+}
+
+static bool
+volume_path_is_mounted_writable (const gchar *path)
+{
+  bool result = false;
+
+  g_return_val_if_fail (path, false);
+
+  FILE *fp = setmntent (MOUNTED, "r");
+  g_return_val_if_fail (fp != NULL, false);
+
+  struct mntent *mnt;
+  while ((mnt = getmntent (fp)) != NULL)
+    {
+      gboolean usable = (g_strcmp0 (mnt->mnt_dir, path) == 0 &&
+                         volume_is_readwrite (mnt->mnt_opts));
+
+      if (usable)
+        {
+          /* Try to write a dummy file to be completely sure,
+             since getmntent is not always up-to-date about the
+             read-only status of a partition, which would in fact
+             become read-only only when actually writing to it */
+          gchar *dummyfile = g_strdup_printf ("%s/.ham-dummy-file-XXXXXX",
+                                              path);
+          int fd;
+
+          /* Try to open a temporary file under the selected path */
+          fd = mkstemp (dummyfile);
+          if (fd != -1)
+            {
+              /* Try to write some data in the file */
+              const char *dummytext = "Dummy text";
+              int n = strlen (dummytext);
+              bool data_written = (write (fd, dummytext, n) == n
+                                   && fsync (fd) != -1);
+
+              /* Close the descriptor and decide the final result */
+              result = (close (fd) != -1) && data_written;
+
+              /* Delete the file on success */
+              if (result)
+                unlink (dummyfile);
+            }
+          g_free (dummyfile);
+
+          /* Don't keep on iterating if an usable path was found */
+          if (result)
+            break;
+        }
+    }
+
+  endmntent (fp);
+  
+  return result;
+}
+
 void
 cmd_download_package ()
 {
   const char *package = request.decode_string_in_place ();
-  const char *alt_download_root = request.decode_string_in_place ();
   const char *http_proxy = request.decode_string_in_place ();
   const char *https_proxy = request.decode_string_in_place ();
 
-  int result_code = rescode_failure;
+  const char *alt_download_root = NULL;
+  int result_code = rescode_out_of_space;
 
   if (http_proxy)
     {
@@ -4151,12 +4255,39 @@ cmd_download_package ()
   if (ensure_cache (true))
     {
       if (mark_named_package_for_install (package))
-	result_code = operation (false, alt_download_root, true);
+        {
+          if (flag_download_packages_to_mmc &&
+              volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT))
+            {
+              alt_download_root = INTERNAL_MMC_MOUNTPOINT;
+              result_code = operation (false, alt_download_root, true);
+            }
+          
+          if (flag_download_packages_to_mmc &&
+              result_code == rescode_out_of_space &&
+              volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT))
+            {
+              alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
+              result_code = operation (false, alt_download_root, true);
+            }
+
+          /* default or bailout option */
+          if (!flag_download_packages_to_mmc ||
+              result_code == rescode_out_of_space)
+            {
+              alt_download_root = NULL;
+              result_code = operation (false, alt_download_root, true);
+            }
+        }
       else
-	result_code = rescode_packages_not_found;
+        result_code = rescode_packages_not_found;
     }
 
   response.encode_int (result_code);
+  response.encode_int64 (download_size);
+  response.encode_string (alt_download_root);
+
+  download_size = 0;
 }
 
 /* APTCMD_INSTALL_PACKAGE
@@ -4746,6 +4877,58 @@ set_dir_cache_archives (const char *alt_download_root)
   return result;
 }
 
+static int64_t
+get_pkg_required_free_space ()
+{
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
+
+  int64_t retval = 0;
+
+  for (pkgCache::PkgIterator pkg = cache.PkgBegin (); pkg.end () != true; pkg++)
+    { 
+      if (is_related (pkg) &&
+          (cache[pkg].Upgrade ()
+           || pkg.State () != pkgCache::PkgIterator::NeedsNothing))
+        {
+          pkgCache::VerIterator ver = cache[pkg].CandidateVerIter (cache);
+          package_record rec (ver);
+          retval += get_required_free_space (rec);
+        }
+    }
+
+  return retval;
+}
+
+static bool
+is_there_enough_free_space (const char *archive_dir, int64_t size)
+{
+  struct statvfs buf;
+
+  if (statvfs (archive_dir, &buf) != 0)
+    {
+      log_stderr ("Couldn't determine free space in %s", archive_dir);
+      return false;
+    }
+
+  /* what if after downloaded the bytes in DEFAULT_DIR_CACHE_ARCHIVES
+   * there's not enough space to install them? */
+  if (!strstr (archive_dir, INTERNAL_MMC_MOUNTPOINT) &&
+      !strstr (archive_dir, REMOVABLE_MMC_MOUNTPOINT))
+    {
+      /* Should we add install_user_size_delta value */
+      size += get_pkg_required_free_space ();
+    }
+
+  if (unsigned (buf.f_bfree) < double (size) / buf.f_bsize)
+    {
+      log_stderr ("You don't have enough free space in %s", archive_dir);
+      return false;
+    }
+
+  return true;
+}
+
 /* operation () is used to run pending apt operations
  * (removals or installations). If check_only parameter is
  * enabled, it will only check if the operation is doable.
@@ -4877,6 +5060,11 @@ operation (bool check_only,
 	  return rescode_packages_not_found;
 	}
 
+      download_size = FetchBytes - FetchPBytes;
+      if (!is_there_enough_free_space
+          (_config->FindDir ("Dir::Cache::Archives").c_str (), download_size))
+            return rescode_out_of_space;
+      
       /* Send a status report now if we are going to download
 	 something.  This makes sure that the progress dialog is
 	 shown even if the first pulse of the fetcher takes a long

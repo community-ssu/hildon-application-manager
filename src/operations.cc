@@ -46,10 +46,6 @@
 
 #define HAM_BACKUP_RESPONSE 1
 
-/* MMC mountpoints */
-#define INTERNAL_MMC_MOUNTPOINT "/media/mmc2"
-#define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
-
 /* Common utilities
  */
 
@@ -244,7 +240,7 @@ static void ip_warn_about_reboot (ip_clos *c);
 static void ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 					   gpointer data);
 
-static void ip_not_enough_memory (void *data);
+static void ip_not_enough_memory (void *data, int64_t download_size);
 static void ip_not_enough_battery_confirm (void (*cont) (void *data), void *data);
 static void ip_not_enough_battery_confirm_response (bool res, void *data);
 
@@ -871,10 +867,12 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 }
 
 static void
-ip_not_enough_memory (void *data)
+ip_not_enough_memory (void *data, int64_t download_size)
 {
   ip_clos *c = (ip_clos *)data;
 
+  /** @todo: how to report the needed download size? */
+  
   if (red_pill_mode)
     {
       /* Allow continuation
@@ -949,49 +947,19 @@ ip_install_one (void *data)
       return;
     }
 
-  bool keep_installing = false;
   int64_t free_space = get_free_space ();
 
   if (free_space < 0)
     annoy_user_with_errno (errno, "get_free_space",
 			   ip_end, c);
-  
-  if (pi->info.required_free_space < free_space)
-    {
-      /* Check MMCs first if download to mmc option is enabled */
-      if (download_packages_to_mmc)
-	{
-	  if (volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT)
-	      && (pi->info.download_size
-		  < get_free_space_at_path (INTERNAL_MMC_MOUNTPOINT)))
-	    {
-	      c->alt_download_root = INTERNAL_MMC_MOUNTPOINT;
-	      keep_installing = true;
-	    }
-	  else if (volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT)
-		   && (pi->info.download_size
-		       < get_free_space_at_path (REMOVABLE_MMC_MOUNTPOINT)))
-	    {
-	      c->alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
-	      keep_installing = true;
-	    }
-	}
-    }
-  
-  /* Check internal flash at last */
-  if (!keep_installing &&
-      free_space > (pi->info.required_free_space + pi->info.download_size))
-    {
-      keep_installing = true;
-    }
-  
+
   /* If there's enough space somewhere, proceed with installation */
-  if (keep_installing)
+  if (pi->info.required_free_space < free_space)
     ip_check_upgrade (c);
   else
     {
       /* Not enough free space */
-      ip_not_enough_memory (c);
+      ip_not_enough_memory (c, pi->info.required_free_space);
     }
 }
 
@@ -1178,9 +1146,7 @@ ip_download_cur (void *data)
   g_free (title);
 
   set_log_start ();
-  apt_worker_download_package (pi->name,
-			       c->alt_download_root,
-			       ip_download_cur_reply, c);
+  apt_worker_download_package (pi->name, ip_download_cur_reply, c);
 }
 
 struct ipdcr_clos {
@@ -1270,9 +1236,18 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   apt_proto_result_code result_code =
     apt_proto_result_code (dec->decode_int ());
+  int64_t download_size = dec->decode_int64 ();
+  c->alt_download_root = dec->decode_string_dup ();
+
+  add_log ("required disk space: %Ld\n", download_size);
 
   if (result_code == rescode_success)
     ip_install_cur (c);
+  else if (result_code == rescode_out_of_space)
+    {
+      /* Not enough free space */
+      ip_not_enough_memory (c, download_size);
+    }
   else if (entertainment_was_cancelled ())
     {
       apt_worker_clean (ip_clean_reply, NULL);
@@ -1315,7 +1290,7 @@ ip_install_cur (void *data)
   else
     {
       /* Not enough free space */
-      ip_not_enough_memory (c);
+      ip_not_enough_memory (c, pi->info.required_free_space);
     }
 }
 

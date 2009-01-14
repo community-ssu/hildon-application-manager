@@ -28,7 +28,7 @@
 #include <gtk/gtk.h>
 #include <dbus/dbus.h>
 #include <gconf/gconf-client.h>
-#include <libhildondesktop/statusbar-item.h>
+#include <libhildondesktop/libhildondesktop.h>
 
 #define UPDATE_NOTIFIER_TYPE            (update_notifier_get_type ())
 #define UPDATE_NOTIFIER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), UPDATE_NOTIFIER_TYPE, UpdateNotifier))
@@ -42,12 +42,12 @@ typedef struct _UpdateNotifierClass UpdateNotifierClass;
 
 struct _UpdateNotifier
 {
-  StatusbarItem parent;
+  HDStatusMenuItem parent;
 };
 
 struct _UpdateNotifierClass
 {
-  StatusbarItemClass parent_class;
+  HDStatusMenuItemClass parent_class;
 };
 
 GType update_notifier_get_type(void);

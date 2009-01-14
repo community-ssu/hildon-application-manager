@@ -102,7 +102,6 @@ void apt_worker_install_check (const char *package,
 			       void *data);
 
 void apt_worker_download_package (const char *package,
-				  const char *alt_download_root,
 				  apt_worker_callback *callback,
 				  void *data);
 
