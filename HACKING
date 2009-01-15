@@ -35,6 +35,6 @@ suffix.  You can use suffixes of the form "~unreleasedN", if you have
 a use for them.
 
 When making the release, remove the "~unreleased" suffix and update
-the time line.  Make a tag in svn.  Bump the version in configure.ac
-and create a new debian/changelog (with the "~unreleased" suffix) in
-debian/changelog and commit these changes to trunk.
+the time line.  Make a tag.  Bump the version in configure.ac and
+create a new debian/changelog (with the "~unreleased" suffix) in
+debian/changelog and commit these changes.

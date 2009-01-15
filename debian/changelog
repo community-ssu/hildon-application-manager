@@ -1,6 +1,8 @@
 hildon-application-manager (1:2.2.6~unreleased) unstable; urgency=low
 
-  * 
+  * Removed dependency on libhildondesktop0 and libhildonwm0.
+    Fixes: NB#95449.
+  * Implemented status menu.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 12 Dec 2008 19:01:06 +0200
 
