@@ -54,10 +54,6 @@
 #include "update-notifier-conf.h"
 #include "package-info-cell-renderer.h"
 
-extern "C" {
-#include <libhildonwm/hd-wm.h>
-}
-
 #define _(x) gettext (x)
 
 static Window parent_xid = None;
@@ -2912,6 +2908,7 @@ run_cmd (char **argv,
   g_child_watch_add (child_pid, reap_process, c);
 }
 
+#if 0
 void
 close_apps (void)
 {
@@ -2953,6 +2950,12 @@ close_apps (void)
   g_free (ham_appname);
   g_free (current_appname);
 }
+#else
+void
+close_apps (void)
+{
+}
+#endif
 
 const char *
 skip_whitespace (const char *str)

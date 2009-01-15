@@ -1,7 +1,7 @@
 bin_PROGRAMS = hildon-application-manager.launch \
                hildon-application-manager-config
 dist_bin_SCRIPTS = hildon-application-manager-util
-noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server test-app-killer
+noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server
 libexec_PROGRAMS = apt-worker ham-after-boot.launch
 hildonstatusmenuplugin_LTLIBRARIES = libhildon-update-notifier.la
 

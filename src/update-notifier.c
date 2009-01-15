@@ -40,7 +40,6 @@
 #include <curl/curl.h>
 
 #include <libosso.h>
-#include <libhildonwm/hd-wm.h>
 #include <hildon/hildon.h>
 
 #include <libalarm.h>
@@ -1037,6 +1036,7 @@ setup_dbus (UpdateNotifier *upno)
   return (result == OSSO_OK);
 }
 
+#if 0
 static gboolean
 ham_is_running ()
 {
@@ -1075,6 +1075,13 @@ ham_is_running ()
 
   return app_found;
 }
+#else
+static gboolean
+ham_is_running ()
+{
+  return TRUE;
+}
+#endif
 
 static void
 show_check_for_updates_view (UpdateNotifier *upno)
