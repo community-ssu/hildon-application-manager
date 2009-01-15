@@ -1,3 +1,14 @@
+2009-01-15  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Released 2.2.6.
+
+	Removed use of deprecated libhildonwm.
+
+	* configure.ac: Remove it from HAM_DEPS and NOTIFIER_DEPS.
+	* src/Makefile.am (noinst_PROGRAMS): Don't build test-app-close.
+	* src/update-notifier.c (ham_is_running): Always return true.
+	* src/util.cc (close_apps): Do nothing.
+
 2008-12-09  Victor Manuel Jaquez Leal  <vjaquez@igalia.com>
 
 	* src/util.cc: removed the "update-notifier.h" include file.
