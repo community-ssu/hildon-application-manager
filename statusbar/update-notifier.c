@@ -75,7 +75,7 @@ typedef struct _UpdateNotifierPrivate UpdateNotifierPrivate;
 struct _UpdateNotifierPrivate
 {
   /* ui */
-  GtkWidget *icon;
+  GtkPixbuf *icon;
   GtkWidget *button;
 
   /* environment */
@@ -167,13 +167,10 @@ update_notifier_init (UpdateNotifier *self)
       LOG ("dbus setup");
 
       setup_gconf (self);
-      /* create_widgets (self); */
-      load_state (self);
+      create_widgets (self);
 
       if (setup_inotify (self))
         {
-          /* update_icon_visibility */
-          update_state (self);
           g_timeout_add_seconds (60, setup_alarm_now, self);
         }
       else
@@ -383,7 +380,7 @@ update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
           is_file_modified_event (event, priv->wd[HOME],
                                   UFILE_SEEN_NOTIFICATIONS))
         {
-          update_state (UPDATE_NOTIFIER (data));
+          set_state (UPDATE_NOTIFIER (data));
         }
       else if (is_file_modified_event (event, priv->wd[HOME],
                                        UFILE_AVAILABLE_NOTIFICATIONS))
@@ -619,6 +616,74 @@ setup_alarm_now (gpointer data)
 }
 
 static void
+build_button (UpdateNotifier *self)
+{
+  UpdateNotifierPrivate *priv;
+  gchar *title;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  title = _("ai_sb_update_description");
+
+  priv->button = hildon_button_new_with_text (HILDON_SIZE_FULLSCREEN_WIDTH |
+                                              HILDON_SIZE_FINGER_HEIGHT,
+                                              HILDON_BUTTON_ARRANGEMENT_VERTICAL,
+                                              title, "");
+
+  /* set icon */
+  {
+    GdkPixbuf *pixbuf;
+
+     pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                       "general_application_manager",
+                                       64, GTK_ICON_LOOKUP_NO_SVG, NULL);
+
+    if (pixbuf != NULL)
+      {
+        GtkWidget *image;
+
+        image = gtk_image_new_from_pixbuf (pixbuf);
+
+        if (image != NULL)
+          hildon_button_set_image (HILDON_BUTTON (priv->button), image);
+
+        g_object_unref (pixbuf);
+      }
+  }
+
+  gtk_widget_show (GTK_WIDGET (priv->button));
+
+  return priv->button;
+}
+
+static void
+build_status_area_icon (UpdateNotifier *self)
+{
+  UpdateNotifierPrivate *priv;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  priv->icon = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                         "qgn_stat_new_updates",
+                                         40, GTK_ICON_LOOKUP_NO_SVG, NULL);
+
+  hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
+                                              priv->icon);
+}
+
+static void
+create_widgets (UpdateNotifier *self)
+{
+  UpdateNotifierPrivate *priv;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  build_button (self);
+  build_status_area_icon (self);
+  load_state (self);
+}
+
+static void
 load_state (UpdateNotifier *self)
 {
   UpdateNotifierPrivate *priv;
@@ -630,13 +695,13 @@ load_state (UpdateNotifier *self)
 
   if (state != NULL)
     {
-      priv->state = (State) xexp_aref_int (state, "icon-state",
-                                           UPNO_STATE_INVISIBLE);
+      set_state (self,
+                 xexp_aref_int (state, "icon-state", UPNO_STATE_INVISIBLE));
       priv->alarm_cookie = (cookie_t) xexp_aref_int (state, "alarm-cookie", 0);
       xexp_free (state);
     }
 
-  LOG ("loaded state = %d", priv->state);
+  LOG ("state loaded");
 }
 
 static void
@@ -656,22 +721,83 @@ save_state (UpdateNotifier *self)
 
   xexp_free (x_state);
 
-  LOG ("saved state = %d", priv->state);
+  LOG ("state saved");
+}
+
+static void
+update_widget_state (UpdateNotifier *self)
+{
+  State state;
+
+  state = get_state (self);
+
+  if (state == UPNO_STATE_INVISIBLE)
+    {
+      hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
+                                                  NULL);
+      gtk_widget_hide (GTK_WIDGET (self));
+
+      return;
+    }
+  else /* this is common to blinking and static */
+    {
+      UpdateNotifierPrivate *priv;
+
+      priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+      hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self)
+                                                  priv->icon);
+      gtk_widget_show (GTK_WIDGET (self));
+    }
+
+  switch (self)
+    {
+    case UPNO_STATE_STATIC:
+      /* @todo */
+      break;
+    case UPNO_STATE_BLINKING:
+      /* @todo */
+      break:
+    default:
+      g_assert_not_reached ();
+    }
 }
 
 static void
 set_state (UpdateNotifier* self, State state)
 {
   UpdateNotifierPrivate *priv;
+  State old_state;
+
+  g_return_if_fail (state >= UPNO_STATE_INVISIBLE &&
+                    state <= UPNO_STATE_BLINKING);
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
 
-  priv->state = state;
+  /* let's avoid the obvious */
+  if (state == priv->state)
+    return;
+
+  /* this rule seems to be applied ever: */
+  /* we can only go to blinking if we're invisible */
+  if (state == UPNO_STATE_BLINKING && priv->state != UPNO_STATE_INVISIBLE)
+    return;
+
+  {
+    LOG ("Changing icon state from %d to %d", priv->state, state);
+    priv->state = state;
+    save_state (self);
+    update_widget_state (self);
+  }
 }
 
 static State
 get_state (UpdateNotifier *self)
 {
+  UpdateNotifierPrivate *priv;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  return priv->state;
 }
 
 static void
