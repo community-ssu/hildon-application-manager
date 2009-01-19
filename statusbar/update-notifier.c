@@ -347,6 +347,7 @@ update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
   /* Return if the object was already destroyed
      or the if inotify is not still ready */
   g_return_val_if_fail (IS_UPDATE_NOTIFIER (data), FALSE);
+
   priv = UPDATE_NOTIFIER_GET_PRIVATE (data);
   g_return_val_if_fail (priv->inotify_fd == -1, FALSE);
 
@@ -393,7 +394,7 @@ update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
     }
 
   return TRUE;
-  
+
 error_cancel:
   priv->io_watch = 0;
   close_inotify (UPDATE_NOTIFIER (data));
@@ -407,7 +408,7 @@ add_watch_for_path (UpdateNotifier *self, const gchar *path)
   gint watch;
 
   g_return_val_if_fail (path != NULL, -1);
-  
+
   priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
 
   watch = inotify_add_watch (priv->inotify_fd, path,
@@ -449,7 +450,7 @@ setup_inotify (UpdateNotifier *self)
 
   {
     gchar *path;
-    
+
     path = user_file_get_state_dir_path ();
     priv->wd[HOME] = add_watch_for_path (self, path);
     g_free (path);
@@ -470,13 +471,13 @@ close_inotify (UpdateNotifier *self)
   UpdateNotifierPrivate *priv;
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
-  
+
   if (priv->io_watch > 0)
     g_source_remove (priv->io_watch);
   priv->io_watch = 0;
 
   if (priv->inotify_fd > 0)
-    {  
+    {
       gint i;
 
       for (i = 0; i < MAXWATCH; i++)
@@ -497,7 +498,7 @@ delete_all_alarms (void)
 {
   int i;
   cookie_t *cookies = NULL;
- 
+
   if ((cookies = alarmd_event_query (0, 0, 0, 0, APPNAME)))
     {
       for (i = 0; cookies[i]; ++i)
@@ -542,9 +543,9 @@ setup_alarm (UpdateNotifier *self)
   int interval;
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
-  
+
   interval = get_interval (self);
-  
+
   /* We reset the alarm when we don't have a cookie for the old alarm
      (which probably means there is no old alarm), when we can't find
      the old alarm although we have a cookie (which shouldn't happen
@@ -598,7 +599,7 @@ setup_alarm (UpdateNotifier *self)
   priv->alarm_cookie = alarmd_event_add (event);
 
   LOG ("The new alarm id is %d", priv->alarm_cookie);
-  
+
   save_state (self);
 
   return priv->alarm_cookie > 0;
@@ -608,7 +609,7 @@ static gboolean
 setup_alarm_now (gpointer data)
 {
   g_return_val_if_fail (IS_UPDATE_NOTIFIER (data), FALSE);
-                        
+
   if (setup_alarm (UPDATE_NOTIFIER (data)))
     return FALSE;
 
