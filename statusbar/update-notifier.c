@@ -116,6 +116,7 @@ HD_DEFINE_PLUGIN_MODULE (UpdateNotifier, update_notifier,
 static void
 update_notifier_class_finalize (UpdateNotifierClass *klass)
 {
+  /* noop */
 }
 
 static void
@@ -343,7 +344,7 @@ update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
   gchar buf[BUF_LEN];
   gint i;
   gint len;
-      
+
   /* Return if the object was already destroyed
      or the if inotify is not still ready */
   g_return_val_if_fail (IS_UPDATE_NOTIFIER (data), FALSE);
