@@ -59,9 +59,9 @@
 
 typedef enum _State State;
 enum _State {
-  UPNO_ICON_INVISIBLE,
-  UPNO_ICON_STATIC,
-  UPNO_ICON_BLINKING
+  UPNO_STATE_INVISIBLE,
+  UPNO_STATE_STATIC,
+  UPNO_STATE_BLINKING
 };
 
 /* inotify watchers id */
@@ -83,7 +83,7 @@ struct _UpdateNotifierPrivate
   GConfClient *gconf;
 
   /* state */
-  State icon_state;
+  State state;
   cookie_t alarm_cookie;
 
   /* inotify */
@@ -154,7 +154,7 @@ update_notifier_init (UpdateNotifier *self)
 
   priv->osso = NULL;
 
-  priv->icon_state = UPNO_ICON_INVISIBLE;
+  priv->state = UPNO_STATE_INVISIBLE;
   priv->alarm_cookie = 0;
 
   priv->inotify_fd = -1;
@@ -629,13 +629,13 @@ load_state (UpdateNotifier *self)
 
   if (state != NULL)
     {
-      priv->icon_state = (State) xexp_aref_int (state, "icon-state",
-                                                UPNO_ICON_INVISIBLE);
+      priv->state = (State) xexp_aref_int (state, "icon-state",
+                                           UPNO_STATE_INVISIBLE);
       priv->alarm_cookie = (cookie_t) xexp_aref_int (state, "alarm-cookie", 0);
       xexp_free (state);
     }
 
-  LOG ("loaded state = %d", priv->icon_state);
+  LOG ("loaded state = %d", priv->state);
 }
 
 static void
@@ -648,14 +648,29 @@ save_state (UpdateNotifier *self)
 
   x_state = xexp_list_new ("state");
 
-  xexp_aset_int (x_state, "icon-state", (gint) priv->icon_state);
+  xexp_aset_int (x_state, "icon-state", (gint) priv->state);
   xexp_aset_int (x_state, "alarm-cookie", priv->alarm_cookie);
 
   user_file_write_xexp (UFILE_UPDATE_NOTIFIER, x_state);
 
   xexp_free (x_state);
 
-  LOG ("saved state = %d", priv->icon_state);
+  LOG ("saved state = %d", priv->state);
+}
+
+static void
+set_state (UpdateNotifier* self, State state)
+{
+  UpdateNotifierPrivate *priv;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  priv->state = state;
+}
+
+static State
+get_state (UpdateNotifier *self)
+{
 }
 
 static void
