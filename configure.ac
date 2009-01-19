@@ -51,9 +51,10 @@ PKG_CHECK_MODULES(NOTIFIER_DEPS, $NOTIFIER_PKGS)
 AC_SUBST(NOTIFIER_DEPS_LIBS)
 AC_SUBST(NOTIFIER_DEPS_CFLAGS)
 
-hildonstatusmenudesktopentrydir="${datadir}/applications/hildon-status-menu"
+hildonstatusmenudesktopentrydir=`pkg-config libhildondesktop-1 --variable=hildonstatusmenudesktopentrydir`
 AC_SUBST(hildonstatusmenudesktopentrydir)
-hildondesktoplibdir="${libdir}/hildon-desktop"
+
+hildondesktoplibdir=`pkg-config libhildondesktop-1 --variable=hildondesktoplibdir`
 AC_SUBST(hildondesktoplibdir)
 
 # Debian architecture
