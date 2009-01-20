@@ -174,7 +174,9 @@ update_notifier_init (UpdateNotifier *self)
           g_timeout_add_seconds (60, setup_alarm_now, self);
         }
       else
-        close_inotify (self);
+        {
+          close_inotify (self);
+        }
     }
 }
 
