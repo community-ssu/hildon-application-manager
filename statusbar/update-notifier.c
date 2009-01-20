@@ -29,11 +29,13 @@
 #include <errno.h>
 #include <libintl.h>
 #include <sys/inotify.h>
+#include <sys/stat.h>
 
 #include <gtk/gtk.h>
 #include <gconf/gconf-client.h>
 
 #include <hildon/hildon.h>
+#include <libhildonwm/hd-wm.h>
 #include <libosso.h>
 #include <clockd/libtime.h>
 #include <libalarm.h>
@@ -52,6 +54,13 @@
 #endif
 
 #define APPNAME "hildon_update_notifier"
+
+/* HAM name known by the window manager */
+#define HAM_APPNAME "Application manager"
+
+/* gconf keys */
+#define LAST_USED_TYPE_GCONF_DIR "/system/osso/connectivity/IAP/last_used_type"
+#define HTTP_PROXY_GCONF_DIR     "/system/http_proxy"
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
@@ -75,7 +84,7 @@ typedef struct _UpdateNotifierPrivate UpdateNotifierPrivate;
 struct _UpdateNotifierPrivate
 {
   /* ui */
-  GtkPixbuf *icon;
+  GdkPixbuf *icon;
   GtkWidget *button;
 
   /* environment */
@@ -90,6 +99,9 @@ struct _UpdateNotifierPrivate
   gint inotify_fd;
   guint io_watch;
   gint wd[2];
+
+  /* apt-worker spawn */
+  guint child_id;
 };
 
 /* setup prototypes */
@@ -99,6 +111,7 @@ static gboolean setup_alarm (UpdateNotifier *upno);
 static gboolean setup_alarm_now (gpointer data);
 static gboolean setup_inotify (UpdateNotifier *self);
 static void close_inotify (UpdateNotifier *self);
+static void setup_ui (UpdateNotifier *self);
 
 /* state handling prototypes */
 static void load_state (UpdateNotifier *self);
@@ -109,6 +122,10 @@ static State get_state (UpdateNotifier *self);
 
 /* misc prototypes */
 static void my_log (const gchar *function, const gchar *fmt, ...);
+
+/* ham querying */
+static gboolean ham_is_running ();
+static gboolean ham_is_showing_check_for_updates_view (UpdateNotifier *self);
 
 HD_DEFINE_PLUGIN_MODULE (UpdateNotifier, update_notifier,
                          HD_TYPE_STATUS_MENU_ITEM);
@@ -128,13 +145,23 @@ update_notifier_finalize (GObject *object)
   self = UPDATE_NOTIFIER (object);
   priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
 
+  if (priv->icon != NULL)
+    g_object_unref (priv->icon);
+
+  if (priv->child_id > 0)
+    g_source_remove (priv->child_id);
+
+  alarmd_event_del (priv->alarm_cookie);
+
+  close_inotify (self);
+
+  if (priv->gconf != NULL)
+    g_object_unref (priv->gconf);
+
   if (priv->osso != NULL)
     osso_deinitialize (priv->osso);
 
-  if (priv->gconf != NULL)
-      g_object_unref (priv->gconf);
-
-  close_inotify (self);
+  G_OBJECT_CLASS (update_notifier_parent_class)->finalize (object);
 }
 
 static void
@@ -167,7 +194,7 @@ update_notifier_init (UpdateNotifier *self)
       LOG ("dbus setup");
 
       setup_gconf (self);
-      create_widgets (self);
+      setup_ui (self);
 
       if (setup_inotify (self))
         {
@@ -178,6 +205,210 @@ update_notifier_init (UpdateNotifier *self)
           close_inotify (self);
         }
     }
+}
+
+static gboolean
+connection_is_expensive (UpdateNotifier *self)
+{
+  UpdateNotifierPrivate *priv;
+  gboolean is_cheap;
+  gchar *last_used_type;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  /* XXX - only the WLAN_INFRA and the WLAN_ADHOC bearers are
+           considered cheap.  There should be a general platform
+           feature that tells us whether we need to be careful with
+           network access or not.  Also, peeking into GConf is not the
+           best thing, but the ConIc API doesn't seem to have an easy
+           way to query the currently active connection.
+  */
+
+  last_used_type = gconf_client_get_string (priv->gconf,
+                                            LAST_USED_TYPE_GCONF_DIR, NULL);
+
+  is_cheap = (last_used_type != NULL
+           && (strcmp (last_used_type, "WLAN_ADHOC") == 0
+               || strcmp (last_used_type, "WLAN_INFRA") == 0));
+
+  g_free (last_used_type);
+
+  return !is_cheap;
+}
+
+static gchar*
+get_http_proxy ()
+{
+  GConfClient *gconf;
+  gchar *proxy;
+
+  if ((proxy = getenv ("http_proxy")) != NULL)
+    return g_strdup (proxy);
+
+  gconf = gconf_client_get_default ();
+
+  if (gconf_client_get_bool (gconf,
+                             HTTP_PROXY_GCONF_DIR "/use_http_proxy", NULL))
+    {
+      gchar *user;
+      gchar *password;
+      gchar *host;
+      gint port;
+
+      user = NULL;
+      password = NULL;
+
+      if (gconf_client_get_bool (gconf,
+                                 HTTP_PROXY_GCONF_DIR "/use_authentication",
+				 NULL))
+	{
+	  user = gconf_client_get_string
+            (gconf, HTTP_PROXY_GCONF_DIR "/authentication_user", NULL);
+	  password = gconf_client_get_string
+	    (gconf, HTTP_PROXY_GCONF_DIR "/authentication_password", NULL);
+	}
+
+      host = gconf_client_get_string (gconf,
+                                      HTTP_PROXY_GCONF_DIR "/host", NULL);
+      port = gconf_client_get_int (gconf, HTTP_PROXY_GCONF_DIR "/port", NULL);
+
+      if (user)
+	{
+	  // XXX - encoding of '@', ':' in user and password?
+
+	  if (password)
+	    proxy = g_strdup_printf ("http://%s:%s@%s:%d",
+				     user, password, host, port);
+	  else
+	    proxy = g_strdup_printf ("http://%s@%s:%d", user, host, port);
+	}
+      else
+	proxy = g_strdup_printf ("http://%s:%d", host, port);
+
+      g_free (user);
+      g_free (password);
+      g_free (host);
+
+      /* XXX - there is also ignore_hosts, which we ignore for now,
+	       since transcribing it to no_proxy is hard... mandatory,
+	       non-transparent proxies are evil anyway.
+      */
+    }
+
+  g_object_unref (gconf);
+
+  return proxy;
+}
+
+static void
+save_last_update_time (time_t t)
+{
+  gchar *text;
+  xexp *x;
+
+  text = g_strdup_printf ("%d", t);
+  x = xexp_text_new ("time", text);
+  g_free (text);
+  user_file_write_xexp (UFILE_LAST_UPDATE, x);
+  xexp_free (x);
+}
+
+static void
+check_for_updates_done (GPid pid, gint status, gpointer data)
+{
+  UpdateNotifier *self;
+  UpdateNotifierPrivate *priv;
+
+  g_return_if_fail (IS_UPDATE_NOTIFIER (data));
+
+  self = UPDATE_NOTIFIER (data);
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  priv->child_id = 0;
+
+  if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
+    {
+      save_last_update_time (time_get_time ());
+      update_state (self);
+    }
+  else
+    {
+      /* Ask the Application Manager to perform the update, but don't
+	 start it if it isn't running already.
+       */
+      if (ham_is_running ())
+        {
+          LOG ("Calling HAM RPC async");
+          osso_rpc_async_run (priv->osso,
+                              HILDON_APP_MGR_SERVICE,
+                              HILDON_APP_MGR_OBJECT_PATH,
+                              HILDON_APP_MGR_INTERFACE,
+                              HILDON_APP_MGR_OP_CHECK_UPDATES,
+                              NULL,
+                              NULL,
+                              DBUS_TYPE_INVALID);
+        }
+    }
+}
+
+static void
+check_for_updates (UpdateNotifier *self)
+{
+  UpdateNotifierPrivate *priv;
+  gchar *gainroot_cmd;
+  gchar *proxy;
+  GPid pid;
+  struct stat info;
+  GError *error;
+
+  if (connection_is_expensive (self))
+    return;
+
+  error = NULL;
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  LOG ("calling apt-worker checking for updates");
+
+  /* Choose the right gainroot command */
+  if (!stat ("/targets/links/scratchbox.config", &info))
+    gainroot_cmd = g_strdup ("/usr/bin/fakeroot");
+  else
+    gainroot_cmd = g_strdup ("/usr/bin/sudo");
+
+  proxy = get_http_proxy ();
+  LOG ("Proxy = %s", proxy);
+
+  /* Build command to be spawned */
+  char *argv[] = {
+    gainroot_cmd,
+    "/usr/libexec/apt-worker",
+    "check-for-updates",
+    proxy,
+    NULL
+  };
+
+  if (!g_spawn_async_with_pipes (NULL,
+				 argv,
+				 NULL,
+				 G_SPAWN_DO_NOT_REAP_CHILD,
+				 NULL,
+				 NULL,
+				 &pid,
+				 NULL,
+				 NULL,
+				 NULL,
+				 &error))
+    {
+      fprintf (stderr, "can't run %s: %s\n", argv[0], error->message);
+      g_error_free (error);
+    }
+  else
+    {
+      priv->child_id = g_child_watch_add (pid, check_for_updates_done, self);
+    }
+
+  g_free (gainroot_cmd);
+  g_free (proxy);
 }
 
 static gint
@@ -200,7 +431,8 @@ update_notifier_rpc_cb (const gchar* interface, const gchar* method,
   if (strcmp (method, UPDATE_NOTIFIER_OP_CHECK_UPDATES) == 0)
     {
       /* Search for new avalable updates */
-      /* check_for_updates (self); */
+      check_for_updates (self);
+      /* check_for_notifications (self); */
     }
   else if (strcmp (method, UPDATE_NOTIFIER_OP_CHECK_STATE) == 0)
     {
@@ -349,7 +581,9 @@ update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
   g_return_val_if_fail (IS_UPDATE_NOTIFIER (data), FALSE);
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (data);
-  g_return_val_if_fail (priv->inotify_fd == -1, FALSE);
+  g_return_val_if_fail (priv->inotify_fd != -1, FALSE);
+
+  LOG ("inotify callback");
 
   while (TRUE)
     {
@@ -382,12 +616,13 @@ update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
           is_file_modified_event (event, priv->wd[HOME],
                                   UFILE_SEEN_NOTIFICATIONS))
         {
-          set_state (UPDATE_NOTIFIER (data));
+          update_state (UPDATE_NOTIFIER (data));
         }
       else if (is_file_modified_event (event, priv->wd[HOME],
                                        UFILE_AVAILABLE_NOTIFICATIONS))
         {
           update_seen_notifications ();
+          update_state (UPDATE_NOTIFIER (data));
         }
 
       i += sizeof (struct inotify_event) + event->len;
@@ -654,8 +889,6 @@ build_button (UpdateNotifier *self)
   }
 
   gtk_widget_show (GTK_WIDGET (priv->button));
-
-  return priv->button;
 }
 
 static void
@@ -674,15 +907,12 @@ build_status_area_icon (UpdateNotifier *self)
 }
 
 static void
-create_widgets (UpdateNotifier *self)
+setup_ui (UpdateNotifier *self)
 {
-  UpdateNotifierPrivate *priv;
-
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
-
   build_button (self);
   build_status_area_icon (self);
   load_state (self);
+  update_state (self);
 }
 
 static void
@@ -746,19 +976,19 @@ update_widget_state (UpdateNotifier *self)
       UpdateNotifierPrivate *priv;
 
       priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
-      hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self)
+      hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
                                                   priv->icon);
       gtk_widget_show (GTK_WIDGET (self));
     }
 
-  switch (self)
+  switch ((gint) state)
     {
     case UPNO_STATE_STATIC:
       /* @todo */
       break;
     case UPNO_STATE_BLINKING:
       /* @todo */
-      break:
+      break;
     default:
       g_assert_not_reached ();
     }
@@ -768,7 +998,6 @@ static void
 set_state (UpdateNotifier* self, State state)
 {
   UpdateNotifierPrivate *priv;
-  State old_state;
 
   g_return_if_fail (state >= UPNO_STATE_INVISIBLE &&
                     state <= UPNO_STATE_BLINKING);
@@ -802,10 +1031,163 @@ get_state (UpdateNotifier *self)
   return priv->state;
 }
 
+/* contains and transports the number of available updates types */
+typedef struct {
+  gint os;
+  gint certified;
+  gint other;
+  gint new;
+} UpdatesCount;
+
+/* calculates the number of available updates types */
+static UpdatesCount *
+get_updates_count ()
+{
+  xexp *available_updates;
+  xexp *seen_updates;
+  UpdatesCount *retval;
+
+  retval = g_new0 (UpdatesCount, 1);
+
+  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
+
+  if (available_updates == NULL)
+    goto exit;
+
+  seen_updates = user_file_read_xexp (UFILE_SEEN_UPDATES);
+
+  if (seen_updates == NULL)
+    seen_updates = xexp_list_new ("updates");
+
+  /* preconditions ok */
+  {
+    xexp *x;
+    xexp *y;
+
+    y = NULL;
+
+    for (x = xexp_first (available_updates); x != NULL; x = xexp_rest (x))
+      {
+        if (!xexp_is_text (x))
+          continue;
+
+        if ((seen_updates != NULL) && xexp_is_list (seen_updates))
+          {
+            const gchar *pkg;
+
+            pkg = xexp_text (x);
+
+            for (y = xexp_first (seen_updates); y != NULL; y = xexp_rest (y))
+              if (xexp_is_text (y) && strcmp (pkg, xexp_text (y)) == 0)
+                break;
+          }
+
+        if (y == NULL)
+          retval->new++;
+
+        if (xexp_is (x, "os"))
+          retval->os++;
+        else if (xexp_is (x, "certified"))
+          retval->certified++;
+        else
+          retval->other++;
+      }
+
+      xexp_free (available_updates);
+
+      if (seen_updates != NULL)
+        xexp_free (seen_updates);
+    }
+
+ exit:
+  LOG ("new pkgs = %d, new os = %d, new cert = %d, other = %d",
+       retval->new, retval->os, retval->certified, retval->other);
+
+  return retval;
+}
+
+static gchar*
+maybe_add_dots (gchar *str)
+{
+  gchar *tmp;
+
+  tmp = NULL;
+  if (str)
+    {
+      tmp = g_strconcat (str, "...", NULL);
+      g_free (str);
+    }
+
+  return tmp;
+}
+
+static gchar*
+build_status_menu_button_value (UpdatesCount *uc)
+{
+  gchar *retval;
+
+  g_return_val_if_fail (uc != NULL && uc->new != 0, NULL);
+
+  retval = NULL;
+
+  if (uc->os > 0)
+    retval = g_strdup_printf (_("ai_sb_update_os_%d"), uc->os);
+
+  if (uc->certified > 0)
+    {
+      retval = maybe_add_dots (retval);
+      if (!retval)
+        retval = g_strdup_printf (_("ai_sb_update_nokia_%d"), uc->certified);
+    }
+
+  if (uc->other > 0)
+    {
+      retval = maybe_add_dots (retval);
+      if (!retval)
+        retval = g_strdup_printf (_("ai_sb_update_thirdparty_%d"), uc->other);
+    }
+
+  LOG ("update string = %s", retval);
+  return retval;
+}
+
+static gboolean
+update_status_menu_button_value (UpdateNotifier *self)
+{
+  UpdatesCount *uc;
+  gboolean retval;
+
+  retval = FALSE;
+
+  if ((uc = get_updates_count ()) == NULL)
+    return FALSE;
+
+  if (uc->new > 0 && !ham_is_showing_check_for_updates_view (self))
+    {
+      gchar *value;
+
+      if ((value = build_status_menu_button_value (uc)) != NULL)
+        {
+          UpdateNotifierPrivate *priv;
+          priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+          hildon_button_set_value (HILDON_BUTTON (priv->button), value);
+          retval = TRUE;
+          g_free (value);
+        }
+    }
+
+  g_free (uc);
+  return retval;
+}
+
 static void
 update_state (UpdateNotifier *self)
 {
-  LOG ("Don't know yet if this function is needed");
+  if (update_status_menu_button_value (self)
+      /* @todo || update_notifications_button_value (self) */)
+    set_state (self, UPNO_STATE_BLINKING);
+  else
+    set_state (self, UPNO_STATE_INVISIBLE);
 }
 
 static void
@@ -819,4 +1201,57 @@ my_log (const gchar *function, const gchar *fmt, ...)
   g_printerr ("update-notifier (%s): %s\n", function, tmp);
   g_free (tmp);
   va_end (args);
+}
+
+static gboolean
+ham_is_running ()
+{
+  HDWM *hdwm;
+  HDWMEntryInfo *info;
+  GList *apps;
+  GList *l;
+  gchar *appname;
+
+  hdwm = hd_wm_get_singleton ();
+  hd_wm_update_client_list (hdwm);
+
+  apps = hd_wm_get_applications (hdwm);
+  for (l = apps; l; l = l->next)
+    {
+      info = (HDWMEntryInfo *) l->data;
+
+      appname = hd_wm_entry_info_get_app_name (info);
+
+      if (appname && (strcmp (HAM_APPNAME, appname) == 0))
+        return TRUE;
+    }
+
+  return FALSE;
+}
+
+static gboolean
+ham_is_showing_check_for_updates_view (UpdateNotifier *self)
+{
+  if (ham_is_running ())
+    {
+      UpdateNotifierPrivate *priv;
+      osso_return_t result;
+      osso_rpc_t reply;
+
+      priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+      LOG ("asking if ham is showing the \"check for updates\" view");
+      result = osso_rpc_run (priv->osso,
+			     HILDON_APP_MGR_SERVICE,
+			     HILDON_APP_MGR_OBJECT_PATH,
+			     HILDON_APP_MGR_INTERFACE,
+			     HILDON_APP_MGR_OP_SHOWING_CHECK_FOR_UPDATES,
+			     &reply,
+			     DBUS_TYPE_INVALID);
+
+      if (result == OSSO_OK && reply.type == DBUS_TYPE_BOOLEAN)
+        return reply.value.b;
+    }
+
+  return FALSE;
 }
