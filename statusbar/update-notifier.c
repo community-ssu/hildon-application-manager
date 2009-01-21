@@ -62,6 +62,9 @@
 #define LAST_USED_TYPE_GCONF_DIR "/system/osso/connectivity/IAP/last_used_type"
 #define HTTP_PROXY_GCONF_DIR     "/system/http_proxy"
 
+/* inotify paths */
+#define  VARLIB_INOTIFY_DIR      "/var/lib/hildon-application-manager"
+
 #define _(x) dgettext ("hildon-application-manager", (x))
 
 #define UPDATE_NOTIFIER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), UPDATE_NOTIFIER_TYPE, UpdateNotifierPrivate))
@@ -198,6 +201,11 @@ update_notifier_init (UpdateNotifier *self)
 
       if (setup_inotify (self))
         {
+          /* We only setup the alarm after a one minute pause since the alarm
+             daemon is not yet running when the plugins are loaded after boot.
+             It is arguably a bug in the alarm framework that the daemon needs
+             to be running to access and modify the alarm queue.
+          */
           g_timeout_add_seconds (60, setup_alarm_now, self);
         }
       else
@@ -227,9 +235,13 @@ connection_is_expensive (UpdateNotifier *self)
   last_used_type = gconf_client_get_string (priv->gconf,
                                             LAST_USED_TYPE_GCONF_DIR, NULL);
 
+  /* assume we're are in scratchbox, so in a cheap connection */
+  if (last_used_type == NULL)
+    return FALSE;
+
   is_cheap = (last_used_type != NULL
-           && (strcmp (last_used_type, "WLAN_ADHOC") == 0
-               || strcmp (last_used_type, "WLAN_INFRA") == 0));
+              && (strcmp (last_used_type, "WLAN_ADHOC") == 0
+                  || strcmp (last_used_type, "WLAN_INFRA") == 0));
 
   g_free (last_used_type);
 
@@ -328,6 +340,7 @@ check_for_updates_done (GPid pid, gint status, gpointer data)
 
   if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
     {
+      LOG ("Check for updates done");
       save_last_update_time (time_get_time ());
       update_state (self);
     }
@@ -690,8 +703,7 @@ setup_inotify (UpdateNotifier *self)
     priv->wd[HOME] = add_watch_for_path (self, path);
     g_free (path);
 
-    path = "/var/lib/hildon-application-manager";
-    priv->wd[VARLIB] = add_watch_for_path (self, path);
+    priv->wd[VARLIB] = add_watch_for_path (self, VARLIB_INOTIFY_DIR);
 
     if (priv->wd[HOME] == -1 || priv->wd[VARLIB] == -1)
       return FALSE;
@@ -732,27 +744,54 @@ static void
 delete_all_alarms (void)
 {
   int i;
-  cookie_t *cookies = NULL;
+  cookie_t *cookies;
 
   if ((cookies = alarmd_event_query (0, 0, 0, 0, APPNAME)))
     {
       for (i = 0; cookies[i]; ++i)
-        alarmd_event_del (cookies[i]);
+        {
+          LOG ("deleting event %d", cookies[i]);
+          alarmd_event_del (cookies[i]);
+        }
       free(cookies);
     }
 }
 
-static gint
+static cookie_t
+get_last_alarm (void)
+{
+  cookie_t *cookies;
+  cookie_t retval;
+
+  retval = 0;
+  if ((cookies = alarmd_event_query (0, 0, 0, 0, APPNAME)))
+    {
+      if (cookies[1] != 0)
+        {
+          LOG ("Several alarm events found! Killing them all!");
+          delete_all_alarms ();
+        }
+      else
+        {
+          retval = cookies[0];
+        }
+      free (cookies);
+    }
+
+  return retval;
+ }
+
+static time_t
 get_interval (UpdateNotifier* self)
 {
   UpdateNotifierPrivate *priv;
-  gint interval;
+  time_t interval;
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
 
-  interval = gconf_client_get_int (priv->gconf,
-                                   UPNO_GCONF_CHECK_INTERVAL,
-                                   NULL);
+  interval = (time_t) gconf_client_get_int (priv->gconf,
+                                            UPNO_GCONF_CHECK_INTERVAL,
+                                            NULL);
 
   if (interval <= 0)
     {
@@ -760,9 +799,11 @@ get_interval (UpdateNotifier* self)
       interval = UPNO_DEFAULT_CHECK_INTERVAL;
       gconf_client_set_int (priv->gconf,
                             UPNO_GCONF_CHECK_INTERVAL,
-                            interval,
+                            (gint) interval,
                             NULL);
     }
+
+  interval = (time_t) 60 * 1;  /* FIXME: remove this! */
 
   LOG ("The interval is %d", interval);
   return interval;
@@ -772,14 +813,16 @@ static gboolean
 setup_alarm (UpdateNotifier *self)
 {
   UpdateNotifierPrivate *priv;
-  alarm_event_t *old_event;
   alarm_event_t *event;
   alarm_action_t *action;
-  int interval;
+  time_t interval;
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
 
-  interval = get_interval (self);
+  g_return_val_if_fail (priv->alarm_cookie == 0, FALSE);
+
+  priv->alarm_cookie = get_last_alarm ();
+  LOG ("The stored alarm id is %d", priv->alarm_cookie);
 
   /* We reset the alarm when we don't have a cookie for the old alarm
      (which probably means there is no old alarm), when we can't find
@@ -790,52 +833,74 @@ setup_alarm (UpdateNotifier *self)
      Otherwise we leave the old alarm in place, but we update its
      parameters without touching the timing.
   */
-  LOG ("The stored alarm id is %d", priv->alarm_cookie);
-
-  old_event = NULL;
   if (priv->alarm_cookie > 0)
-    old_event = alarmd_event_get (priv->alarm_cookie);
+    {
+      alarm_event_t *old_event;
+
+      old_event = alarmd_event_get (priv->alarm_cookie);
+
+      if (old_event != NULL)
+        {
+          if (alarm_event_is_recurring (old_event))
+            {
+              LOG ("There's already a recurring event. No new event needed");
+              return TRUE;
+            }
+         else
+            {
+              LOG ("A not recurring event found! Killing them all!");
+              delete_all_alarms ();
+            }
+        }
+    }
+
+  LOG ("Creating a new event");
 
   /* Setup new alarm based on old alarm. */
   event = alarm_event_create ();
   alarm_event_set_alarm_appid (event, APPNAME);
 
-  event->flags = ALARM_EVENT_CONNECTED | ALARM_EVENT_RUN_DELAYED;
-  event->recur_count = -1;
+  /* If the trigger time is missed (due to the device being off or
+     system time being adjusted beyond the trigger point) the alarm
+     should be run anyway. */
+  event->flags |= ALARM_EVENT_RUN_DELAYED;
 
-  if (old_event == NULL || old_event->recur_secs != interval)
-    {
-      /* reset timing parameters. */
-      event->alarm_time = time_get_time () + interval;
-      event->recur_secs = interval;
-    }
-  else
-    {
-      /* copy timing parameters */
-      event->alarm_time = old_event->alarm_time;
-      event->recur_secs = old_event->recur_secs;
+  /* Run only when internet connection is available. */
+  /* conic is needed */
+  /* FIXME: event->flags |= ALARM_EVENT_CONNECTED; */
 
-      alarm_event_delete (old_event);
-    }
+  /* If the system time is moved backwards, the alarm should be
+     rescheduled. */
+  event->flags |= ALARM_EVENT_BACK_RESCHEDULE;
+
+  interval = get_interval (self);
+  event->alarm_time = ALARM_RECURRING_SECONDS (time (NULL) + interval);
+
+  /* set the recurrence */
+  event->recur_count = -1; /* infinite recorrence */
+  event->recur_secs = ALARM_RECURRING_SECONDS (interval);
 
   /* create the action */
   action = alarm_event_add_actions (event, 1);
-  action->flags = ALARM_ACTION_WHEN_TRIGGERED |
-    ALARM_ACTION_TYPE_DBUS |
-    ALARM_ACTION_DBUS_USE_ACTIVATION;
+
+  action->flags |= ALARM_ACTION_WHEN_TRIGGERED;
+  action->flags |= ALARM_ACTION_TYPE_DBUS;
+  action->flags |= ALARM_ACTION_DBUS_USE_ACTIVATION;
+
   alarm_action_set_dbus_service (action, UPDATE_NOTIFIER_SERVICE);
   alarm_action_set_dbus_path (action, UPDATE_NOTIFIER_OBJECT_PATH);
   alarm_action_set_dbus_interface (action, UPDATE_NOTIFIER_INTERFACE);
   alarm_action_set_dbus_name (action, UPDATE_NOTIFIER_OP_CHECK_UPDATES);
 
-  /* Search for more alarms to delete (if available) */
-  delete_all_alarms ();
-
-  priv->alarm_cookie = alarmd_event_add (event);
+  if (alarm_event_is_sane (event) != -1)
+    {
+      priv->alarm_cookie = alarmd_event_add (event);
+      alarm_event_delete (event);
+    }
+  else
+    LOG ("alarm event is not correct!");
 
   LOG ("The new alarm id is %d", priv->alarm_cookie);
-
-  save_state (self);
 
   return priv->alarm_cookie > 0;
 }
@@ -929,7 +994,8 @@ load_state (UpdateNotifier *self)
     {
       set_state (self,
                  xexp_aref_int (state, "icon-state", UPNO_STATE_INVISIBLE));
-      priv->alarm_cookie = (cookie_t) xexp_aref_int (state, "alarm-cookie", 0);
+      /* priv->alarm_cookie =
+         (cookie_t) xexp_aref_int (state, "alarm-cookie", 0); */
       xexp_free (state);
     }
 
@@ -947,7 +1013,7 @@ save_state (UpdateNotifier *self)
   x_state = xexp_list_new ("state");
 
   xexp_aset_int (x_state, "icon-state", (gint) priv->state);
-  xexp_aset_int (x_state, "alarm-cookie", priv->alarm_cookie);
+  /* xexp_aset_int (x_state, "alarm-cookie", priv->alarm_cookie); */
 
   user_file_write_xexp (UFILE_UPDATE_NOTIFIER, x_state);
 
@@ -1183,6 +1249,8 @@ update_status_menu_button_value (UpdateNotifier *self)
 static void
 update_state (UpdateNotifier *self)
 {
+  LOG ("updating the state");
+
   if (update_status_menu_button_value (self)
       /* @todo || update_notifications_button_value (self) */)
     set_state (self, UPNO_STATE_BLINKING);
