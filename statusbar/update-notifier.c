@@ -216,6 +216,12 @@ update_notifier_init (UpdateNotifier *self)
 }
 
 static gboolean
+running_in_scratchbox ()
+{
+  return access("/targets/links/scratchbox.config", F_OK) == 0;
+}
+
+static gboolean
 connection_is_expensive (UpdateNotifier *self)
 {
   UpdateNotifierPrivate *priv;
@@ -383,7 +389,8 @@ check_for_updates (UpdateNotifier *self)
   LOG ("calling apt-worker checking for updates");
 
   /* Choose the right gainroot command */
-  if (!stat ("/targets/links/scratchbox.config", &info))
+  gainroot_cmd = NULL;
+  if (running_in_scratchbox ())
     gainroot_cmd = g_strdup ("/usr/bin/fakeroot");
   else
     gainroot_cmd = g_strdup ("/usr/bin/sudo");
