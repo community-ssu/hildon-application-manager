@@ -66,6 +66,8 @@
 /* inotify paths */
 #define  VARLIB_INOTIFY_DIR      "/var/lib/hildon-application-manager"
 
+#define STATUSBAR_HAM_ICON_SIZE  16
+
 #define _(x) dgettext ("hildon-application-manager", (x))
 
 #define UPDATE_NOTIFIER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), UPDATE_NOTIFIER_TYPE, UpdateNotifierPrivate))
@@ -947,8 +949,9 @@ build_button (UpdateNotifier *self)
     GdkPixbuf *pixbuf;
 
      pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
-                                       "general_application_manager",
-                                       64, GTK_ICON_LOOKUP_NO_SVG, NULL);
+                                        "general_application_manager",
+                                        STATUSBAR_HAM_ICON_SIZE,
+                                        GTK_ICON_LOOKUP_NO_SVG, NULL);
 
     if (pixbuf != NULL)
       {
