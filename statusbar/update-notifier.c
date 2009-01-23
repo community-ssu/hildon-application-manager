@@ -39,6 +39,7 @@
 #include <libosso.h>
 #include <clockd/libtime.h>
 #include <libalarm.h>
+#include <conic.h>
 
 #include <xexp.h>
 #include <user_files.h>
@@ -53,13 +54,13 @@
 #define LOG(...)
 #endif
 
-#define APPNAME "hildon_update_notifier"
+/* appname for OSSO and alarmd */
+#define APPNAME                  "hildon_update_notifier"
 
 /* HAM name known by the window manager */
-#define HAM_APPNAME "Application manager"
+#define HAM_APPNAME              "Application manager"
 
 /* gconf keys */
-#define LAST_USED_TYPE_GCONF_DIR "/system/osso/connectivity/IAP/last_used_type"
 #define HTTP_PROXY_GCONF_DIR     "/system/http_proxy"
 
 /* inotify paths */
@@ -74,6 +75,12 @@ enum _State {
   UPNO_STATE_INVISIBLE,
   UPNO_STATE_STATIC,
   UPNO_STATE_BLINKING
+};
+
+typedef enum _ConState ConState;
+enum _ConState {
+  UPNO_CON_ONLINE,
+  UPNO_CON_OFFLINE
 };
 
 /* inotify watchers id */
@@ -103,6 +110,10 @@ struct _UpdateNotifierPrivate
   guint io_watch;
   gint wd[2];
 
+  /* libconic */
+  ConIcConnection *conic;
+  ConState constate;
+
   /* apt-worker spawn */
   guint child_id;
 };
@@ -122,6 +133,9 @@ static void save_state (UpdateNotifier *self);
 static void update_state (UpdateNotifier *self);
 static void set_state (UpdateNotifier *self, State state);
 static State get_state (UpdateNotifier *self);
+
+/* connection state prototypes */
+static void setup_connection_state (UpdateNotifier *self);
 
 /* misc prototypes */
 static void my_log (const gchar *function, const gchar *fmt, ...);
@@ -158,6 +172,9 @@ update_notifier_finalize (GObject *object)
 
   close_inotify (self);
 
+  if (priv->conic != NULL)
+    g_object_unref (priv->conic);
+
   if (priv->gconf != NULL)
     g_object_unref (priv->gconf);
 
@@ -192,12 +209,16 @@ update_notifier_init (UpdateNotifier *self)
   priv->io_watch = 0;
   priv->wd[HOME] = priv->wd[VARLIB] = -1;
 
+  priv->conic = NULL;
+  priv->constate = UPNO_CON_OFFLINE;
+
   if (setup_dbus (self))
     {
       LOG ("dbus setup");
 
       setup_gconf (self);
       setup_ui (self);
+      setup_connection_state (self);
 
       if (setup_inotify (self))
         {
@@ -221,52 +242,34 @@ running_in_scratchbox ()
   return access("/targets/links/scratchbox.config", F_OK) == 0;
 }
 
-static gboolean
-connection_is_expensive (UpdateNotifier *self)
+static gchar*
+get_http_proxy (UpdateNotifier *self)
 {
   UpdateNotifierPrivate *priv;
-  gboolean is_cheap;
-  gchar *last_used_type;
+  gchar *proxy;
 
   priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
-
-  /* XXX - only the WLAN_INFRA and the WLAN_ADHOC bearers are
-           considered cheap.  There should be a general platform
-           feature that tells us whether we need to be careful with
-           network access or not.  Also, peeking into GConf is not the
-           best thing, but the ConIc API doesn't seem to have an easy
-           way to query the currently active connection.
-  */
-
-  last_used_type = gconf_client_get_string (priv->gconf,
-                                            LAST_USED_TYPE_GCONF_DIR, NULL);
-
-  /* assume we're are in scratchbox, so in a cheap connection */
-  if (last_used_type == NULL)
-    return FALSE;
-
-  is_cheap = (last_used_type != NULL
-              && (strcmp (last_used_type, "WLAN_ADHOC") == 0
-                  || strcmp (last_used_type, "WLAN_INFRA") == 0));
-
-  g_free (last_used_type);
-
-  return !is_cheap;
-}
-
-static gchar*
-get_http_proxy ()
-{
-  GConfClient *gconf;
-  gchar *proxy;
 
   if ((proxy = getenv ("http_proxy")) != NULL)
     return g_strdup (proxy);
 
-  gconf = gconf_client_get_default ();
+  proxy = NULL;
 
-  if (gconf_client_get_bool (gconf,
-                             HTTP_PROXY_GCONF_DIR "/use_http_proxy", NULL))
+  if (priv->conic != NULL)
+    {
+      const gchar* host;
+      gint port;
+
+      host = con_ic_connection_get_proxy_host (priv->conic,
+                                               CON_IC_PROXY_PROTOCOL_HTTP);
+      port = con_ic_connection_get_proxy_port (priv->conic,
+                                               CON_IC_PROXY_PROTOCOL_HTTP);
+
+      if (host != NULL)
+        proxy = g_strdup_printf ("http://%s:%d", host, port);
+    }
+  else if (gconf_client_get_bool (priv->gconf,
+                                  HTTP_PROXY_GCONF_DIR "/use_http_proxy", NULL))
     {
       gchar *user;
       gchar *password;
@@ -276,25 +279,27 @@ get_http_proxy ()
       user = NULL;
       password = NULL;
 
-      if (gconf_client_get_bool (gconf,
+      if (gconf_client_get_bool (priv->gconf,
                                  HTTP_PROXY_GCONF_DIR "/use_authentication",
 				 NULL))
 	{
 	  user = gconf_client_get_string
-            (gconf, HTTP_PROXY_GCONF_DIR "/authentication_user", NULL);
+            (priv->gconf, HTTP_PROXY_GCONF_DIR "/authentication_user", NULL);
 	  password = gconf_client_get_string
-	    (gconf, HTTP_PROXY_GCONF_DIR "/authentication_password", NULL);
+	    (priv->gconf,
+             HTTP_PROXY_GCONF_DIR "/authentication_password", NULL);
 	}
 
-      host = gconf_client_get_string (gconf,
+      host = gconf_client_get_string (priv->gconf,
                                       HTTP_PROXY_GCONF_DIR "/host", NULL);
-      port = gconf_client_get_int (gconf, HTTP_PROXY_GCONF_DIR "/port", NULL);
+      port = gconf_client_get_int (priv->gconf,
+                                   HTTP_PROXY_GCONF_DIR "/port", NULL);
 
-      if (user)
+      if (user != NULL)
 	{
 	  // XXX - encoding of '@', ':' in user and password?
 
-	  if (password)
+	  if (password != NULL)
 	    proxy = g_strdup_printf ("http://%s:%s@%s:%d",
 				     user, password, host, port);
 	  else
@@ -312,8 +317,6 @@ get_http_proxy ()
 	       non-transparent proxies are evil anyway.
       */
     }
-
-  g_object_unref (gconf);
 
   return proxy;
 }
@@ -377,14 +380,14 @@ check_for_updates (UpdateNotifier *self)
   gchar *gainroot_cmd;
   gchar *proxy;
   GPid pid;
-  struct stat info;
   GError *error;
 
-  if (connection_is_expensive (self))
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  if (priv->constate == UPNO_CON_OFFLINE)
     return;
 
   error = NULL;
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
 
   LOG ("calling apt-worker checking for updates");
 
@@ -395,7 +398,7 @@ check_for_updates (UpdateNotifier *self)
   else
     gainroot_cmd = g_strdup ("/usr/bin/sudo");
 
-  proxy = get_http_proxy ();
+  proxy = get_http_proxy (self);
   LOG ("Proxy = %s", proxy);
 
   /* Build command to be spawned */
@@ -974,8 +977,8 @@ build_status_area_icon (UpdateNotifier *self)
                                          "qgn_stat_new_updates",
                                          40, GTK_ICON_LOOKUP_NO_SVG, NULL);
 
-  hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
-                                              priv->icon);
+/*   hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self), */
+/*                                               priv->icon); */
 }
 
 static void
@@ -1263,6 +1266,60 @@ update_state (UpdateNotifier *self)
     set_state (self, UPNO_STATE_BLINKING);
   else
     set_state (self, UPNO_STATE_INVISIBLE);
+}
+
+static void
+update_notifier_connection_cb (ConIcConnection *connection,
+                               ConIcConnectionEvent *event,
+                               gpointer data)
+{
+  UpdateNotifierPrivate *priv;
+
+  g_return_if_fail (IS_UPDATE_NOTIFIER (data));
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (data);
+
+  LOG ("got a connect notification");
+
+  if (con_ic_connection_event_get_status (event) == CON_IC_STATUS_CONNECTED)
+    {
+      const gchar *bearer;
+
+      bearer = con_ic_event_get_bearer_type (CON_IC_EVENT (event));
+
+      /* XXX - only the WLAN_INFRA and the WLAN_ADHOC bearers are
+               considered cheap.  There should be a general platform
+               feature that tells us whether we need to be careful with
+               network access or not.  */
+      priv->constate = (strcmp (bearer, "WLAN_ADHOC") == 0
+                       || strcmp (bearer, "WLAN_INFRA") == 0);
+    }
+
+  LOG ("we're %s", priv->constate == UPNO_CON_OFFLINE ? "offline" : "online");
+}
+
+static void
+setup_connection_state (UpdateNotifier *self)
+{
+  UpdateNotifierPrivate *priv;
+
+  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+
+  if (running_in_scratchbox ())
+    {
+      /* if we're in scratchbox will assume that we have an inet
+         connection */
+      priv->constate = UPNO_CON_ONLINE;
+      LOG ("we're online");
+    }
+  else
+    {
+      priv->conic = con_ic_connection_new ();
+
+      g_signal_connect (G_OBJECT (priv->conic), "connection-event",
+                        G_CALLBACK (update_notifier_connection_cb), self);
+      g_object_set (G_OBJECT (priv->conic),
+                    "automatic-connection-events", TRUE, NULL);
+    }
 }
 
 static void
