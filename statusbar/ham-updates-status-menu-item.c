@@ -57,6 +57,7 @@
 #define  VARLIB_INOTIFY_DIR      "/var/lib/hildon-application-manager"
 
 #define STATUSBAR_HAM_ICON_SIZE  16
+#define STATUSMENU_HAM_ICON_SIZE 64
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
@@ -854,6 +855,40 @@ setup_alarm_now (gpointer data)
   return TRUE;
 }
 
+static GdkPixbuf *
+icon_load (const gchar *name, gint size)
+{
+  GtkIconTheme *icon_theme;
+  GdkPixbuf *pixbuf = NULL;
+  GError *error = NULL;
+
+  if (name == NULL)
+    return NULL;
+
+  icon_them = gtk_icon_theme_get_default ();
+
+  if (size < 1)
+  {
+    gint idx;
+    /* size was smaller than one => use the largest natural size available */
+    gint *icon_sizes = gtk_icon_theme_get_icon_sizes (icon_theme, name);
+    for (idx = 0; icon_sizes[idx] != 0 && icon_sizes[idx] != -1; idx++)
+      size = icon_sizes[idx];
+    g_free (icon_sizes);
+  }
+
+  pixbuf =  gtk_icon_theme_load_icon (icon_theme, name, size,
+                                      GTK_ICON_LOOKUP_NO_SVG, &error);
+
+  if (error != NULL)
+  {
+    error ("error loading pixbuf '%s': %s", name, error->message);
+    g_error_free (error);
+  }
+
+  return pixbuf;
+}
+
 static void
 build_button (HamUpdatesStatusMenuItem *self)
 {
@@ -873,10 +908,8 @@ build_button (HamUpdatesStatusMenuItem *self)
   {
     GdkPixbuf *pixbuf;
 
-     pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
-                                        "general_application_manager",
-                                        STATUSBAR_HAM_ICON_SIZE,
-                                        GTK_ICON_LOOKUP_NO_SVG, NULL);
+    pixbuf = icon_load ("general_application_manager",
+                        STATUSMENU_HAM_ICON_SIZE);
 
     if (pixbuf != NULL)
       {
@@ -901,9 +934,7 @@ build_status_area_icon (HamUpdatesStatusMenuItem *self)
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
-  priv->icon = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
-                                         "qgn_stat_new_updates",
-                                         40, GTK_ICON_LOOKUP_NO_SVG, NULL);
+  priv->icon = icon_load ("qgn_stat_new_updates", 0);
 
 /*   hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self), */
 /*                                               priv->icon); */
