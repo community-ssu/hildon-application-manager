@@ -53,7 +53,6 @@
 /* appname for OSSO and alarmd */
 #define APPNAME                  "hildon_update_notifier"
 
-
 /* inotify paths */
 #define  VARLIB_INOTIFY_DIR      "/var/lib/hildon-application-manager"
 
@@ -61,7 +60,7 @@
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
-#define UPDATE_NOTIFIER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), UPDATE_NOTIFIER_TYPE, UpdateNotifierPrivate))
+#define HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItemPrivate))
 
 typedef enum _State State;
 enum _State {
@@ -83,8 +82,8 @@ enum {
   MAXWATCH
 };
 
-typedef struct _UpdateNotifierPrivate UpdateNotifierPrivate;
-struct _UpdateNotifierPrivate
+typedef struct _HamUpdatesStatusMenuItemPrivate HamUpdatesStatusMenuItemPrivate;
+struct _HamUpdatesStatusMenuItemPrivate
 {
   /* ui */
   GdkPixbuf *icon;
@@ -112,35 +111,35 @@ struct _UpdateNotifierPrivate
 };
 
 /* setup prototypes */
-static gboolean setup_dbus (UpdateNotifier *self);
-static void setup_gconf (UpdateNotifier *self);
-static gboolean setup_alarm (UpdateNotifier *upno);
+static gboolean setup_dbus (HamUpdatesStatusMenuItem *self);
+static void setup_gconf (HamUpdatesStatusMenuItem *self);
+static gboolean setup_alarm (HamUpdatesStatusMenuItem *upno);
 static gboolean setup_alarm_now (gpointer data);
-static gboolean setup_inotify (UpdateNotifier *self);
-static void close_inotify (UpdateNotifier *self);
-static void setup_ui (UpdateNotifier *self);
+static gboolean setup_inotify (HamUpdatesStatusMenuItem *self);
+static void close_inotify (HamUpdatesStatusMenuItem *self);
+static void setup_ui (HamUpdatesStatusMenuItem *self);
 
 /* state handling prototypes */
-static void load_state (UpdateNotifier *self);
-static void save_state (UpdateNotifier *self);
-static void update_state (UpdateNotifier *self);
-static void set_state (UpdateNotifier *self, State state);
-static State get_state (UpdateNotifier *self);
+static void load_state (HamUpdatesStatusMenuItem *self);
+static void save_state (HamUpdatesStatusMenuItem *self);
+static void update_state (HamUpdatesStatusMenuItem *self);
+static void set_state (HamUpdatesStatusMenuItem *self, State state);
+static State get_state (HamUpdatesStatusMenuItem *self);
 
 /* connection state prototypes */
-static void setup_connection_state (UpdateNotifier *self);
+static void setup_connection_state (HamUpdatesStatusMenuItem *self);
 
 /* misc prototypes */
 static void my_log (const gchar *function, const gchar *fmt, ...);
 
 /* ham querying */
-static gboolean ham_is_showing_check_for_updates_view (UpdateNotifier *self);
+static gboolean ham_is_showing_check_for_updates_view (HamUpdatesStatusMenuItem *self);
 
-HD_DEFINE_PLUGIN_MODULE (UpdateNotifier, update_notifier,
+HD_DEFINE_PLUGIN_MODULE (HamUpdatesStatusMenuItem, update_notifier,
                          HD_TYPE_STATUS_MENU_ITEM);
 
 static void
-update_notifier_class_finalize (UpdateNotifierClass *klass)
+update_notifier_class_finalize (HamUpdatesStatusMenuItemClass *klass)
 {
   /* noop */
 }
@@ -148,11 +147,11 @@ update_notifier_class_finalize (UpdateNotifierClass *klass)
 static void
 update_notifier_finalize (GObject *object)
 {
-  UpdateNotifier *self;
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItem *self;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  self = UPDATE_NOTIFIER (object);
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  self = HAM_UPDATES_STATUS_MENU_ITEM (object);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   if (priv->icon != NULL)
     g_object_unref (priv->icon);
@@ -177,20 +176,20 @@ update_notifier_finalize (GObject *object)
 }
 
 static void
-update_notifier_class_init (UpdateNotifierClass *klass)
+update_notifier_class_init (HamUpdatesStatusMenuItemClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   object_class->finalize = update_notifier_finalize;
 
-  g_type_class_add_private (object_class, sizeof (UpdateNotifierPrivate));
+  g_type_class_add_private (object_class, sizeof (HamUpdatesStatusMenuItemPrivate));
 }
 
 static void
-update_notifier_init (UpdateNotifier *self)
+update_notifier_init (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   priv->osso = NULL;
 
@@ -229,12 +228,12 @@ update_notifier_init (UpdateNotifier *self)
 }
 
 static gchar*
-get_http_proxy (UpdateNotifier *self)
+get_http_proxy (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   gchar *proxy;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   if ((proxy = getenv ("http_proxy")) != NULL)
     return g_strdup (proxy);
@@ -265,13 +264,13 @@ get_http_proxy (UpdateNotifier *self)
 static void
 check_for_updates_done (GPid pid, gint status, gpointer data)
 {
-  UpdateNotifier *self;
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItem *self;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  g_return_if_fail (IS_UPDATE_NOTIFIER (data));
+  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
 
-  self = UPDATE_NOTIFIER (data);
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   priv->child_id = 0;
 
@@ -302,15 +301,15 @@ check_for_updates_done (GPid pid, gint status, gpointer data)
 }
 
 static void
-check_for_updates (UpdateNotifier *self)
+check_for_updates (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   gchar *gainroot_cmd;
   gchar *proxy;
   GPid pid;
   GError *error;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   if (priv->constate == UPNO_CON_OFFLINE)
     return;
@@ -367,14 +366,14 @@ update_notifier_rpc_cb (const gchar* interface, const gchar* method,
                         GArray* arguments, gpointer data,
                         osso_rpc_t* retval)
 {
-  UpdateNotifier *self;
+  HamUpdatesStatusMenuItem *self;
 
-  g_return_val_if_fail (IS_UPDATE_NOTIFIER (data), OSSO_ERROR);
+  g_return_val_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data), OSSO_ERROR);
   g_return_val_if_fail (interface != NULL && method != NULL, OSSO_ERROR);
 
   LOG ("RPC Message: %s:%s", interface, method);
 
-  self = UPDATE_NOTIFIER (data);
+  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
 
   if (strcmp (interface, UPDATE_NOTIFIER_INTERFACE) != 0)
     return OSSO_ERROR;
@@ -397,12 +396,12 @@ update_notifier_rpc_cb (const gchar* interface, const gchar* method,
 }
 
 static gboolean
-setup_dbus (UpdateNotifier *self)
+setup_dbus (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   osso_return_t result;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   g_return_val_if_fail (priv->osso == NULL, FALSE);
 
@@ -424,18 +423,18 @@ static void
 update_notifier_interval_changed_cb (GConfClient *client, guint cnxn_id,
                                      GConfEntry *entry, gpointer data)
 {
-  g_return_if_fail (IS_UPDATE_NOTIFIER (data));
+  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
 
   LOG ("Interval value changed");
-  setup_alarm (UPDATE_NOTIFIER (data));
+  setup_alarm (HAM_UPDATES_STATUS_MENU_ITEM (data));
 }
 
 static void
-setup_gconf (UpdateNotifier *self)
+setup_gconf (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   g_return_if_fail (priv->gconf == NULL);
 
@@ -522,16 +521,16 @@ static gboolean
 update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
                             gpointer data)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   gchar buf[BUF_LEN];
   gint i;
   gint len;
 
   /* Return if the object was already destroyed
      or the if inotify is not still ready */
-  g_return_val_if_fail (IS_UPDATE_NOTIFIER (data), FALSE);
+  g_return_val_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data), FALSE);
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (data);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (data);
   g_return_val_if_fail (priv->inotify_fd != -1, FALSE);
 
   LOG ("inotify callback");
@@ -567,13 +566,13 @@ update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
           is_file_modified_event (event, priv->wd[HOME],
                                   UFILE_SEEN_NOTIFICATIONS))
         {
-          update_state (UPDATE_NOTIFIER (data));
+          update_state (HAM_UPDATES_STATUS_MENU_ITEM (data));
         }
       else if (is_file_modified_event (event, priv->wd[HOME],
                                        UFILE_AVAILABLE_NOTIFICATIONS))
         {
           update_seen_notifications ();
-          update_state (UPDATE_NOTIFIER (data));
+          update_state (HAM_UPDATES_STATUS_MENU_ITEM (data));
         }
 
       i += sizeof (struct inotify_event) + event->len;
@@ -583,19 +582,19 @@ update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
 
 error_cancel:
   priv->io_watch = 0;
-  close_inotify (UPDATE_NOTIFIER (data));
+  close_inotify (HAM_UPDATES_STATUS_MENU_ITEM (data));
   return FALSE;
 }
 
 static gint
-add_watch_for_path (UpdateNotifier *self, const gchar *path)
+add_watch_for_path (HamUpdatesStatusMenuItem *self, const gchar *path)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   gint watch;
 
   g_return_val_if_fail (path != NULL, -1);
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   watch = inotify_add_watch (priv->inotify_fd, path,
                              IN_CLOSE_WRITE | IN_MOVED_TO);
@@ -611,13 +610,13 @@ add_watch_for_path (UpdateNotifier *self, const gchar *path)
 }
 
 static gboolean
-setup_inotify (UpdateNotifier *self)
+setup_inotify (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   gint fd;
   GIOChannel *io_channel;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   g_return_val_if_fail (priv->inotify_fd == -1, FALSE);
 
@@ -651,11 +650,11 @@ setup_inotify (UpdateNotifier *self)
 }
 
 static void
-close_inotify (UpdateNotifier *self)
+close_inotify (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   if (priv->io_watch > 0)
     g_source_remove (priv->io_watch);
@@ -720,12 +719,12 @@ get_last_alarm (void)
  }
 
 static time_t
-get_interval (UpdateNotifier* self)
+get_interval (HamUpdatesStatusMenuItem* self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   time_t interval;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   interval = (time_t) gconf_client_get_int (priv->gconf,
                                             UPNO_GCONF_CHECK_INTERVAL,
@@ -748,14 +747,14 @@ get_interval (UpdateNotifier* self)
 }
 
 static gboolean
-setup_alarm (UpdateNotifier *self)
+setup_alarm (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   alarm_event_t *event;
   alarm_action_t *action;
   time_t interval;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   g_return_val_if_fail (priv->alarm_cookie == 0, FALSE);
 
@@ -846,9 +845,9 @@ setup_alarm (UpdateNotifier *self)
 static gboolean
 setup_alarm_now (gpointer data)
 {
-  g_return_val_if_fail (IS_UPDATE_NOTIFIER (data), FALSE);
+  g_return_val_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data), FALSE);
 
-  if (setup_alarm (UPDATE_NOTIFIER (data)))
+  if (setup_alarm (HAM_UPDATES_STATUS_MENU_ITEM (data)))
     return FALSE;
 
   /* Try again in one minute. */
@@ -856,12 +855,12 @@ setup_alarm_now (gpointer data)
 }
 
 static void
-build_button (UpdateNotifier *self)
+build_button (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   gchar *title;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   title = _("ai_sb_update_description");
 
@@ -896,11 +895,11 @@ build_button (UpdateNotifier *self)
 }
 
 static void
-build_status_area_icon (UpdateNotifier *self)
+build_status_area_icon (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   priv->icon = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
                                          "qgn_stat_new_updates",
@@ -911,7 +910,7 @@ build_status_area_icon (UpdateNotifier *self)
 }
 
 static void
-setup_ui (UpdateNotifier *self)
+setup_ui (HamUpdatesStatusMenuItem *self)
 {
   build_button (self);
   build_status_area_icon (self);
@@ -920,12 +919,12 @@ setup_ui (UpdateNotifier *self)
 }
 
 static void
-load_state (UpdateNotifier *self)
+load_state (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   xexp *state = NULL;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   state = user_file_read_xexp (UFILE_UPDATE_NOTIFIER);
 
@@ -942,12 +941,12 @@ load_state (UpdateNotifier *self)
 }
 
 static void
-save_state (UpdateNotifier *self)
+save_state (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
   xexp *x_state = NULL;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   x_state = xexp_list_new ("state");
 
@@ -962,7 +961,7 @@ save_state (UpdateNotifier *self)
 }
 
 static void
-update_widget_state (UpdateNotifier *self)
+update_widget_state (HamUpdatesStatusMenuItem *self)
 {
   State state;
 
@@ -978,9 +977,9 @@ update_widget_state (UpdateNotifier *self)
     }
   else /* this is common to blinking and static */
     {
-      UpdateNotifierPrivate *priv;
+      HamUpdatesStatusMenuItemPrivate *priv;
 
-      priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+      priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
       hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
                                                   priv->icon);
       gtk_widget_show (GTK_WIDGET (self));
@@ -1000,14 +999,14 @@ update_widget_state (UpdateNotifier *self)
 }
 
 static void
-set_state (UpdateNotifier* self, State state)
+set_state (HamUpdatesStatusMenuItem* self, State state)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
   g_return_if_fail (state >= UPNO_STATE_INVISIBLE &&
                     state <= UPNO_STATE_BLINKING);
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   /* let's avoid the obvious */
   if (state == priv->state)
@@ -1027,11 +1026,11 @@ set_state (UpdateNotifier* self, State state)
 }
 
 static State
-get_state (UpdateNotifier *self)
+get_state (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   return priv->state;
 }
@@ -1157,7 +1156,7 @@ build_status_menu_button_value (UpdatesCount *uc)
 }
 
 static gboolean
-update_status_menu_button_value (UpdateNotifier *self)
+update_status_menu_button_value (HamUpdatesStatusMenuItem *self)
 {
   UpdatesCount *uc;
   gboolean retval;
@@ -1173,8 +1172,8 @@ update_status_menu_button_value (UpdateNotifier *self)
 
       if ((value = build_status_menu_button_value (uc)) != NULL)
         {
-          UpdateNotifierPrivate *priv;
-          priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+          HamUpdatesStatusMenuItemPrivate *priv;
+          priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
           hildon_button_set_value (HILDON_BUTTON (priv->button), value);
           retval = TRUE;
           g_free (value);
@@ -1186,7 +1185,7 @@ update_status_menu_button_value (UpdateNotifier *self)
 }
 
 static void
-update_state (UpdateNotifier *self)
+update_state (HamUpdatesStatusMenuItem *self)
 {
   LOG ("updating the state");
 
@@ -1202,10 +1201,10 @@ update_notifier_connection_cb (ConIcConnection *connection,
                                ConIcConnectionEvent *event,
                                gpointer data)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  g_return_if_fail (IS_UPDATE_NOTIFIER (data));
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (data);
+  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (data);
 
   LOG ("got a connect notification");
 
@@ -1227,11 +1226,11 @@ update_notifier_connection_cb (ConIcConnection *connection,
 }
 
 static void
-setup_connection_state (UpdateNotifier *self)
+setup_connection_state (HamUpdatesStatusMenuItem *self)
 {
-  UpdateNotifierPrivate *priv;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-  priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   if (running_in_scratchbox ())
     {
@@ -1265,15 +1264,15 @@ my_log (const gchar *function, const gchar *fmt, ...)
 }
 
 static gboolean
-ham_is_showing_check_for_updates_view (UpdateNotifier *self)
+ham_is_showing_check_for_updates_view (HamUpdatesStatusMenuItem *self)
 {
   if (ham_is_running ())
     {
-      UpdateNotifierPrivate *priv;
+      HamUpdatesStatusMenuItemPrivate *priv;
       osso_return_t result;
       osso_rpc_t reply;
 
-      priv = UPDATE_NOTIFIER_GET_PRIVATE (self);
+      priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
       LOG ("asking if ham is showing the \"check for updates\" view");
       result = osso_rpc_run (priv->osso,

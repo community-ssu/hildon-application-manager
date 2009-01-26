@@ -16,40 +16,40 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * Foundation, Inc., 51 Franklin St, Fitnessfth Floor, Boston, MA
  * 02110-1301 USA
  *
  */
 
-#ifndef UPDATE_NOTIFIER_H
-#define UPDATE_NOTIFIER_H
+#ifndef HAM_UPDATES_STATUS_MENU_ITEM_H
+#define HAM_UPDATES_STATUS_MENU_ITEM_H
 
 #include <libhildondesktop/libhildondesktop.h>
 
 G_BEGIN_DECLS
 
-#define UPDATE_NOTIFIER_TYPE            (update_notifier_get_type ())
-#define UPDATE_NOTIFIER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), UPDATE_NOTIFIER_TYPE, UpdateNotifier))
-#define UPDATE_NOTIFIER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  UPDATE_NOTIFIER_TYPE, UpdateNotifierClass))
-#define IS_UPDATE_NOTIFIER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), UPDATE_NOTIFIER_TYPE))
-#define IS_UPDATE_NOTIFIER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  UPDATE_NOTIFIER_TYPE))
-#define UPDATE_NOTIFIER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  UPDATE_NOTIFIER_TYPE, UpdateNotifierClass))
+#define HAM_UPDATES_STATUS_MENU_ITEM_TYPE            (update_notifier_get_type ())
+#define HAM_UPDATES_STATUS_MENU_ITEM(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItem))
+#define HAM_UPDATES_STATUS_MENU_ITEM_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItemClass))
+#define IS_HAM_UPDATES_STATUS_MENU_ITEM(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), HAM_UPDATES_STATUS_MENU_ITEM_TYPE))
+#define IS_HAM_UPDATES_STATUS_MENU_ITEM_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  HAM_UPDATES_STATUS_MENU_ITEM_TYPE))
+#define HAM_UPDATES_STATUS_MENU_ITEM_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItemClass))
 
-typedef struct _UpdateNotifier      UpdateNotifier;
-typedef struct _UpdateNotifierClass UpdateNotifierClass;
+typedef struct _HamUpdatesStatusMenuItem      HamUpdatesStatusMenuItem;
+typedef struct _HamUpdatesStatusMenuItemClass HamUpdatesStatusMenuItemClass;
 
-struct _UpdateNotifier
+struct _HamUpdatesStatusMenuItem
 {
   HDStatusMenuItem parent;
 };
 
-struct _UpdateNotifierClass
+struct _HamUpdatesStatusMenuItemClass
 {
   HDStatusMenuItemClass parent_class;
 };
 
-GType update_notifier_get_type(void);
+GType ham_updates_status_menu_item_get_type(void);
 
 G_END_DECLS
 
-#endif /* !UPDATE_NOTIFIER_H */
+#endif /* !HAM_UPDATES_STATUS_MENU_ITEM_H */
