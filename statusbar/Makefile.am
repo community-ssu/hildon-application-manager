@@ -5,28 +5,28 @@ AM_CFLAGS = \
 	-ansi -std=gnu99
 
 EXTRA_DIST = \
-	hildon-update-notifier.desktop
+	ham-updates.desktop
 
 hildonstatusmenudesktopentry_DATA = \
-	hildon-update-notifier.desktop
+	ham-updates.desktop
 
 hildondesktoplib_LTLIBRARIES = \
-	libhildon-update-notifier.la
+	ham-updates-status-menu-item.la
 
-libhildon_update_notifier_la_CFLAGS = \
+ham_updates_status_menu_item_la_CFLAGS = \
 	$(NOTIFIER_DEPS_CFLAGS)
 
-libhildon_update_notifier_la_LIBADD = \
+ham_updates_status_menu_item_la_LIBADD = \
 	$(NOTIFIER_DEPS_LIBS)
 
-libhildon_update_notifier_la_LDFLAGS = \
+ham_updates_status_menu_item_la_LDFLAGS = \
 	-module -avoid-version -no-undefined
 
-libhildon_update_notifier_la_SOURCES = 	\
+ham_updates_status_menu_item_la_SOURCES = 	\
 	util.h				\
 	util.c				\
-	update-notifier.h		\
-	update-notifier.c		\
+	ham-updates-status-menu-item.h	\
+	ham-updates-status-menu-item.c	\
 	update-notifier-conf.h		\
 	hn-app-pixbuf-anim-blinker.h	\
 	hn-app-pixbuf-anim-blinker.c	\

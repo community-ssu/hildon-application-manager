@@ -28,6 +28,7 @@
 #include <xexp.h>
 #include <user_files.h>
 
+#include <string.h>
 #include <unistd.h>
 #include <libhildonwm/hd-wm.h>
 #include <gconf/gconf-client.h>

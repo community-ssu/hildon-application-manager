@@ -23,6 +23,8 @@
 
 #define _GNU_SOURCE
 
+#include "ham-updates-status-menu-item.h"
+
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -44,7 +46,6 @@
 #include <user_files.h>
 
 #include "util.h"
-#include "update-notifier.h"
 #include "update-notifier-conf.h"
 
 #define DEBUG
