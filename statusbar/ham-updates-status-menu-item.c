@@ -812,7 +812,7 @@ setup_alarm (HamUpdatesStatusMenuItem *self)
   event->flags |= ALARM_EVENT_BACK_RESCHEDULE;
 
   interval = get_interval (self);
-  event->alarm_time = ALARM_RECURRING_SECONDS (time (NULL) + interval);
+  event->alarm_time = ALARM_RECURRING_SECONDS (time_get_time () + interval);
 
   /* set the recurrence */
   event->recur_count = -1; /* infinite recorrence */
@@ -843,12 +843,39 @@ setup_alarm (HamUpdatesStatusMenuItem *self)
   return priv->alarm_cookie > 0;
 }
 
+static void
+run_service_now (HamUpdatesStatusMenuItem *self)
+{
+  time_t now;
+  time_t last_update;
+  time_t interval;
+
+  now = time_get_time ();
+  last_update = load_last_update_time ();
+  interval = get_interval (self);
+
+  LOG ("now = %d, last update = %d, interval = %d", now, last_update, interval);
+  if (now - last_update > interval)
+    {
+      LOG ("we haven't checked for updates since long time ago");
+      /* Search for new avalable updates */
+      check_for_updates (self);
+      /* check_for_notifications (self); */
+    }
+}
+
 static gboolean
 setup_alarm_now (gpointer data)
 {
+  HamUpdatesStatusMenuItem *self;
+
   g_return_val_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data), FALSE);
 
-  if (setup_alarm (HAM_UPDATES_STATUS_MENU_ITEM (data)))
+  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
+
+  run_service_now (self);
+
+  if (setup_alarm (self))
     return FALSE;
 
   /* Try again in one minute. */
@@ -859,13 +886,16 @@ static GdkPixbuf *
 icon_load (const gchar *name, gint size)
 {
   GtkIconTheme *icon_theme;
-  GdkPixbuf *pixbuf = NULL;
-  GError *error = NULL;
+  GdkPixbuf *pixbuf;
+  GError *error;
 
   if (name == NULL)
     return NULL;
 
-  icon_them = gtk_icon_theme_get_default ();
+  pixbuf = NULL;
+  error = NULL;
+
+  icon_theme = gtk_icon_theme_get_default ();
 
   if (size < 1)
   {
@@ -882,7 +912,7 @@ icon_load (const gchar *name, gint size)
 
   if (error != NULL)
   {
-    error ("error loading pixbuf '%s': %s", name, error->message);
+    fprintf (stderr, "error loading pixbuf '%s': %s", name, error->message);
     g_error_free (error);
   }
 
@@ -899,10 +929,9 @@ build_button (HamUpdatesStatusMenuItem *self)
 
   title = _("ai_sb_update_description");
 
-  priv->button = hildon_button_new_with_text (HILDON_SIZE_FULLSCREEN_WIDTH |
-                                              HILDON_SIZE_FINGER_HEIGHT,
-                                              HILDON_BUTTON_ARRANGEMENT_VERTICAL,
-                                              title, "");
+  priv->button = hildon_button_new_with_text
+    (HILDON_SIZE_FULLSCREEN_WIDTH | HILDON_SIZE_FINGER_HEIGHT,
+     HILDON_BUTTON_ARRANGEMENT_VERTICAL, title, "");
 
   /* set icon */
   {
