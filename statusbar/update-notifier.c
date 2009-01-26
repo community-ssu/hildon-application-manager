@@ -35,7 +35,6 @@
 #include <gconf/gconf-client.h>
 
 #include <hildon/hildon.h>
-#include <libhildonwm/hd-wm.h>
 #include <libosso.h>
 #include <clockd/libtime.h>
 #include <libalarm.h>
@@ -44,24 +43,15 @@
 #include <xexp.h>
 #include <user_files.h>
 
+#include "util.h"
 #include "update-notifier.h"
 #include "update-notifier-conf.h"
 
 #define DEBUG
-#ifdef DEBUG
-#define LOG(...) my_log (__PRETTY_FUNCTION__, __VA_ARGS__);
-#else
-#define LOG(...)
-#endif
 
 /* appname for OSSO and alarmd */
 #define APPNAME                  "hildon_update_notifier"
 
-/* HAM name known by the window manager */
-#define HAM_APPNAME              "Application manager"
-
-/* gconf keys */
-#define HTTP_PROXY_GCONF_DIR     "/system/http_proxy"
 
 /* inotify paths */
 #define  VARLIB_INOTIFY_DIR      "/var/lib/hildon-application-manager"
@@ -143,7 +133,6 @@ static void setup_connection_state (UpdateNotifier *self);
 static void my_log (const gchar *function, const gchar *fmt, ...);
 
 /* ham querying */
-static gboolean ham_is_running ();
 static gboolean ham_is_showing_check_for_updates_view (UpdateNotifier *self);
 
 HD_DEFINE_PLUGIN_MODULE (UpdateNotifier, update_notifier,
@@ -238,12 +227,6 @@ update_notifier_init (UpdateNotifier *self)
     }
 }
 
-static gboolean
-running_in_scratchbox ()
-{
-  return access("/targets/links/scratchbox.config", F_OK) == 0;
-}
-
 static gchar*
 get_http_proxy (UpdateNotifier *self)
 {
@@ -270,70 +253,12 @@ get_http_proxy (UpdateNotifier *self)
       if (host != NULL)
         proxy = g_strdup_printf ("http://%s:%d", host, port);
     }
-  else if (gconf_client_get_bool (priv->gconf,
-                                  HTTP_PROXY_GCONF_DIR "/use_http_proxy", NULL))
+  else if (priv->gconf != NULL)
     {
-      gchar *user;
-      gchar *password;
-      gchar *host;
-      gint port;
-
-      user = NULL;
-      password = NULL;
-
-      if (gconf_client_get_bool (priv->gconf,
-                                 HTTP_PROXY_GCONF_DIR "/use_authentication",
-				 NULL))
-	{
-	  user = gconf_client_get_string
-            (priv->gconf, HTTP_PROXY_GCONF_DIR "/authentication_user", NULL);
-	  password = gconf_client_get_string
-	    (priv->gconf,
-             HTTP_PROXY_GCONF_DIR "/authentication_password", NULL);
-	}
-
-      host = gconf_client_get_string (priv->gconf,
-                                      HTTP_PROXY_GCONF_DIR "/host", NULL);
-      port = gconf_client_get_int (priv->gconf,
-                                   HTTP_PROXY_GCONF_DIR "/port", NULL);
-
-      if (user != NULL)
-	{
-	  // XXX - encoding of '@', ':' in user and password?
-
-	  if (password != NULL)
-	    proxy = g_strdup_printf ("http://%s:%s@%s:%d",
-				     user, password, host, port);
-	  else
-	    proxy = g_strdup_printf ("http://%s@%s:%d", user, host, port);
-	}
-      else
-	proxy = g_strdup_printf ("http://%s:%d", host, port);
-
-      g_free (user);
-      g_free (password);
-      g_free (host);
-
-      /* XXX - there is also ignore_hosts, which we ignore for now,
-	       since transcribing it to no_proxy is hard... mandatory,
-	       non-transparent proxies are evil anyway.
-      */
+      proxy = get_gconf_http_proxy ();
     }
 
   return proxy;
-}
-
-static void
-save_last_update_time (time_t t)
-{
-  gchar *text;
-  xexp *x;
-
-  text = g_strdup_printf ("%d", t);
-  x = xexp_text_new ("time", text);
-  g_free (text);
-  user_file_write_xexp (UFILE_LAST_UPDATE, x);
-  xexp_free (x);
 }
 
 static void
@@ -966,7 +891,7 @@ build_button (UpdateNotifier *self)
       }
   }
 
-  gtk_widget_show (GTK_WIDGET (priv->button));
+/*   gtk_widget_show (GTK_WIDGET (priv->button)); */
 }
 
 static void
@@ -1336,32 +1261,6 @@ my_log (const gchar *function, const gchar *fmt, ...)
   g_printerr ("update-notifier (%s): %s\n", function, tmp);
   g_free (tmp);
   va_end (args);
-}
-
-static gboolean
-ham_is_running ()
-{
-  HDWM *hdwm;
-  HDWMEntryInfo *info;
-  GList *apps;
-  GList *l;
-  gchar *appname;
-
-  hdwm = hd_wm_get_singleton ();
-  hd_wm_update_client_list (hdwm);
-
-  apps = hd_wm_get_applications (hdwm);
-  for (l = apps; l; l = l->next)
-    {
-      info = (HDWMEntryInfo *) l->data;
-
-      appname = hd_wm_entry_info_get_app_name (info);
-
-      if (appname && (strcmp (HAM_APPNAME, appname) == 0))
-        return TRUE;
-    }
-
-  return FALSE;
 }
 
 static gboolean

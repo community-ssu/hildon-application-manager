@@ -23,6 +23,8 @@ libhildon_update_notifier_la_LDFLAGS = \
 	-module -avoid-version -no-undefined
 
 libhildon_update_notifier_la_SOURCES = 	\
+	util.h				\
+	util.c				\
 	update-notifier.h		\
 	update-notifier.c		\
 	update-notifier-conf.h		\
