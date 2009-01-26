@@ -120,6 +120,9 @@ static gboolean setup_inotify (HamUpdatesStatusMenuItem *self);
 static void close_inotify (HamUpdatesStatusMenuItem *self);
 static void setup_ui (HamUpdatesStatusMenuItem *self);
 
+/* teardown prototypes */
+static void delete_all_alarms (void);
+
 /* state handling prototypes */
 static void load_state (HamUpdatesStatusMenuItem *self);
 static void save_state (HamUpdatesStatusMenuItem *self);
@@ -160,7 +163,7 @@ update_notifier_finalize (GObject *object)
   if (priv->child_id > 0)
     g_source_remove (priv->child_id);
 
-  alarmd_event_del (priv->alarm_cookie);
+  delete_all_alarms ();
 
   close_inotify (self);
 
@@ -427,6 +430,7 @@ update_notifier_interval_changed_cb (GConfClient *client, guint cnxn_id,
   g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
 
   LOG ("Interval value changed");
+  delete_all_alarms ();
   setup_alarm (HAM_UPDATES_STATUS_MENU_ITEM (data));
 }
 
@@ -741,7 +745,7 @@ get_interval (HamUpdatesStatusMenuItem* self)
                             NULL);
     }
 
-  interval = (time_t) 60 * 1;  /* FIXME: remove this! */
+  interval = (time_t) 60 * 5;  /* FIXME: remove this! */
 
   LOG ("The interval is %d", interval);
   return interval;
