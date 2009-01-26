@@ -45,10 +45,10 @@
 #include <xexp.h>
 #include <user_files.h>
 
+#define DEBUG
+
 #include "util.h"
 #include "update-notifier-conf.h"
-
-#define DEBUG
 
 /* appname for OSSO and alarmd */
 #define APPNAME                  "hildon_update_notifier"
