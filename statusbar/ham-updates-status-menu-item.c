@@ -139,6 +139,9 @@ static void setup_connection_state (HamUpdatesStatusMenuItem *self);
 static gboolean ham_is_showing_check_for_updates_view
 (HamUpdatesStatusMenuItem *self);
 
+/* Dialog content. Must free the return value */
+static gchar* get_dialog_content ();
+
 HD_DEFINE_PLUGIN_MODULE (HamUpdatesStatusMenuItem, ham_updates_status_menu_item,
                          HD_TYPE_STATUS_MENU_ITEM);
 
@@ -740,8 +743,6 @@ get_interval (HamUpdatesStatusMenuItem* self)
                             NULL);
     }
 
-  interval = (time_t) 60 * 5;  /* FIXME: remove this! */
-
   LOG ("The interval is %d", interval);
   return interval;
 }
@@ -881,6 +882,70 @@ setup_alarm_now (gpointer data)
   return TRUE;
 }
 
+static void
+ham_updates_status_menu_item_button_click_cb (GtkButton *button, gpointer data)
+{
+  GtkWidget *parent;
+  GtkWidget *dialog;
+  HamUpdatesStatusMenuItem *self;
+  gint response;
+
+  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
+
+  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
+
+  parent = gtk_widget_get_toplevel (GTK_WIDGET (self));
+
+  dialog = gtk_dialog_new_with_buttons
+    (_("ai_sb_update_description"), GTK_WINDOW (parent),
+     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+     _("ai_sb_update_am"), GTK_RESPONSE_YES,
+     _("ai_sb_app_push_no"), GTK_RESPONSE_NO,
+     NULL);
+
+  /* contents */
+  {
+    GtkWidget *label;
+    gchar *content;
+
+    content = get_dialog_content ();
+
+    if (content == NULL)
+      goto error;
+
+    label = gtk_label_new (NULL);
+    gtk_label_set_markup (GTK_LABEL (label), content);
+    g_free (content);
+
+    gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), label);
+  }
+
+  gtk_widget_show_all (dialog);
+
+  response = gtk_dialog_run (GTK_DIALOG (dialog));
+
+  if (response == GTK_RESPONSE_YES)
+  {
+    HamUpdatesStatusMenuItemPrivate *priv;
+    LOG ("Starts Application Manager and opens 'Check for update'");
+
+    priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+    osso_rpc_async_run (priv->osso,
+                        HILDON_APP_MGR_SERVICE,
+                        HILDON_APP_MGR_OBJECT_PATH,
+                        HILDON_APP_MGR_INTERFACE,
+                        HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES,
+                        NULL,
+                        NULL,
+                        DBUS_TYPE_INVALID);
+  }
+
+ error:
+  gtk_widget_destroy (dialog);
+  set_state (self, UPNO_STATE_INVISIBLE);
+}
+
 static GdkPixbuf *
 icon_load (const gchar *name, gint size)
 {
@@ -953,6 +1018,9 @@ build_button (HamUpdatesStatusMenuItem *self)
   }
 
   gtk_widget_show (GTK_WIDGET (priv->button));
+  g_signal_connect (G_OBJECT (priv->button), "clicked",
+                    G_CALLBACK (ham_updates_status_menu_item_button_click_cb),
+                    self);
 
   gtk_container_add (GTK_CONTAINER (self), priv->button);
 }
@@ -1263,6 +1331,173 @@ update_state (HamUpdatesStatusMenuItem *self)
     set_state (self, UPNO_STATE_BLINKING);
   else
     set_state (self, UPNO_STATE_INVISIBLE);
+}
+
+static gchar*
+get_package_list_string (gchar *type)
+{
+  xexp *available_updates;
+  xexp *seen_updates;
+  gchar *retval;
+
+  retval = NULL;
+
+  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
+
+  if (available_updates == NULL)
+    goto exit;
+
+  seen_updates = user_file_read_xexp (UFILE_SEEN_UPDATES);
+
+  if (seen_updates == NULL)
+    seen_updates = xexp_list_new ("updates");
+
+  /* preconditions ok */
+  {
+    xexp *x;
+    xexp *y;
+    gint c;
+
+    y = NULL;
+    c = 0;
+
+    for (x = xexp_first (available_updates); x != NULL; x = xexp_rest (x))
+      {
+        if (!xexp_is_text (x))
+          continue;
+
+        if ((seen_updates != NULL) && xexp_is_list (seen_updates))
+          {
+            const gchar *pkg;
+
+            pkg = xexp_text (x);
+
+            for (y = xexp_first (seen_updates); y != NULL; y = xexp_rest (y))
+              if (xexp_is_text (y) && strcmp (pkg, xexp_text (y)) == 0)
+                break;
+          }
+
+        if (xexp_is (x, type) && c < 3)
+          {
+            const gchar *pkg;
+
+            if ((pkg = xexp_text (x)) != NULL)
+              {
+                c++;
+                if (retval != NULL)
+                  {
+                    gchar *tmp;
+
+                    tmp = retval;
+                    retval = g_strconcat (tmp, ", ", pkg, NULL);
+                    g_free (tmp);
+                  }
+                else
+                  retval = g_strdup (pkg);
+              }
+          }
+      }
+
+      xexp_free (available_updates);
+
+      if (seen_updates != NULL)
+        xexp_free (seen_updates);
+
+      if (c > 2)
+        {
+          gchar *tmp;
+
+          tmp = retval;
+          retval = g_strconcat (tmp, "...", NULL);
+          g_free (tmp);
+        }
+    }
+
+ exit:
+  LOG ("pkgs = %s", retval);
+
+  return retval;
+}
+
+static gchar*
+concat_package_list (gchar *str, gchar *type)
+{
+  gchar *tmp;
+  gchar *pkgs;
+  gchar *retval;
+
+  tmp = str;
+  pkgs = get_package_list_string (type);
+  retval = g_strconcat (tmp, "<small>", pkgs, "</small>\n\n", NULL);
+  g_free (tmp);
+  g_free (pkgs);
+
+  return retval;
+}
+
+static gchar*
+build_update_type_string (gchar *str, gchar *title, gchar *type)
+{
+  gchar *retval;
+
+  if (str != NULL)
+    {
+      gchar *tmp;
+
+      tmp = str;
+      retval = g_strconcat (tmp, "<big>", title, "</big>\n", NULL);
+      g_free (tmp);
+    }
+  else
+    retval = g_strconcat ("<big>", title, "</big>\n", NULL);
+
+  retval = concat_package_list (retval, type);
+
+  return retval;
+}
+
+static gchar*
+get_dialog_content ()
+{
+  gchar *str;
+  UpdatesCount *uc;
+
+  if ((uc = get_updates_count ()) == NULL)
+    return NULL;
+
+  if (uc->new == 0)
+    return NULL;
+
+  str = NULL;
+
+  if (uc->os > 0)
+    {
+      gchar *title;
+
+      title = g_strdup_printf (_("ai_sb_update_os_%d"), uc->os);
+      str = build_update_type_string (str, title, "os");
+      g_free (title);
+    }
+
+  if (uc->certified > 0)
+    {
+      gchar *title;
+
+      title = g_strdup_printf (_("ai_sb_update_nokia_%d"), uc->certified);
+      str = build_update_type_string (str, title, "certified");
+      g_free (title);
+    }
+
+  if (uc->other > 0)
+    {
+      gchar *title;
+
+      title = g_strdup_printf (_("ai_sb_update_thirdparty_%d"), uc->other);
+      str = build_update_type_string (str, title, "other");
+      g_free (title);
+    }
+
+  return str;
 }
 
 static void
