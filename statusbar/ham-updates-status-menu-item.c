@@ -957,7 +957,9 @@ build_button (HamUpdatesStatusMenuItem *self)
       }
   }
 
-/*   gtk_widget_show (GTK_WIDGET (priv->button)); */
+  gtk_widget_show (GTK_WIDGET (priv->button));
+
+  gtk_container_add (GTK_CONTAINER (self), priv->button);
 }
 
 static void
@@ -1028,25 +1030,33 @@ static void
 update_widget_state (HamUpdatesStatusMenuItem *self)
 {
   State state;
+  gboolean visible;
 
   state = get_state (self);
+  g_object_get (G_OBJECT (self), "visible", &visible, NULL);
 
-  if (state == UPNO_STATE_INVISIBLE)
+  if (state == UPNO_STATE_INVISIBLE && visible)
     {
+      LOG ("turning off the widgets");
       hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
                                                   NULL);
       gtk_widget_hide (GTK_WIDGET (self));
-
       return;
     }
-  else /* this is common to blinking and static */
+  else if (!visible) /* this is common to blinking and static */
     {
       HamUpdatesStatusMenuItemPrivate *priv;
 
+      LOG ("turning on the widgets");
       priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+      gtk_widget_show (GTK_WIDGET (self));
       hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
                                                   priv->icon);
-      gtk_widget_show (GTK_WIDGET (self));
+    }
+  else
+    {
+      g_assert_not_reached ();
     }
 
   switch ((gint) state)
@@ -1078,8 +1088,8 @@ set_state (HamUpdatesStatusMenuItem* self, State state)
 
   /* this rule seems to be applied ever: */
   /* we can only go to blinking if we're invisible */
-  if (state == UPNO_STATE_BLINKING && priv->state != UPNO_STATE_INVISIBLE)
-    return;
+  g_return_if_fail (!(state == UPNO_STATE_BLINKING
+                      && priv->state != UPNO_STATE_INVISIBLE));
 
   {
     LOG ("Changing icon state from %d to %d", priv->state, state);
