@@ -27,6 +27,8 @@
 #include <glib.h>
 #include <time.h>
 
+#include <sys/inotify.h>
+
 /* HAM name known by the window manager */
 #define HAM_APPNAME              "Application manager"
 
@@ -37,7 +39,7 @@
 #define LOG(...)
 #endif
 
-static void my_log (const gchar *function, const gchar *fmt, ...);
+void my_log (const gchar *function, const gchar *fmt, ...);
 
 /* TRUE if the application is running in the scratchbox environment */
 gboolean running_in_scratchbox ();
@@ -59,5 +61,11 @@ gboolean ham_is_running ();
    The current proxy is taken either from gconf.
 */
 gchar *get_gconf_http_proxy ();
+
+/* verify if the event modifies the specified file in the specified
+   watcher
+*/
+gboolean is_file_modified (struct inotify_event *event, gint watch,
+			   const gchar *filename);
 
 #endif 	    /* !UTIL_H */

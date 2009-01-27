@@ -28,7 +28,7 @@
 
 G_BEGIN_DECLS
 
-#define HAM_UPDATES_STATUS_MENU_ITEM_TYPE            (ham_updates_status_menu_ite_get_type ())
+#define HAM_UPDATES_STATUS_MENU_ITEM_TYPE            (ham_updates_status_menu_item_get_type ())
 #define HAM_UPDATES_STATUS_MENU_ITEM(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItem))
 #define HAM_UPDATES_STATUS_MENU_ITEM_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItemClass))
 #define IS_HAM_UPDATES_STATUS_MENU_ITEM(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), HAM_UPDATES_STATUS_MENU_ITEM_TYPE))

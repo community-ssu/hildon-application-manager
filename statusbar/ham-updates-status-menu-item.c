@@ -54,7 +54,7 @@
 #define APPNAME                  "hildon_update_notifier"
 
 /* inotify paths */
-#define  VARLIB_INOTIFY_DIR      "/var/lib/hildon-application-manager"
+#define  INOTIFY_DIR             "/var/lib/hildon-application-manager"
 
 #define STATUSBAR_HAM_ICON_SIZE  16
 #define STATUSMENU_HAM_ICON_SIZE 64
@@ -65,24 +65,25 @@
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItemPrivate))
 
 typedef enum _State State;
-enum _State {
-  UPNO_STATE_INVISIBLE,
-  UPNO_STATE_STATIC,
-  UPNO_STATE_BLINKING
-};
+enum _State
+  {
+    UPNO_STATE_INVISIBLE,
+    UPNO_STATE_STATIC,
+    UPNO_STATE_BLINKING
+  };
 
 typedef enum _ConState ConState;
-enum _ConState {
-  UPNO_CON_ONLINE,
-  UPNO_CON_OFFLINE
-};
+enum _ConState
+  {
+    UPNO_CON_ONLINE,
+    UPNO_CON_OFFLINE
+  };
 
 /* inotify watchers id */
-enum {
-  HOME,
-  VARLIB,
-  MAXWATCH
-};
+enum
+  {
+    HOME, VAR, MAXWATCH
+  };
 
 typedef struct _HamUpdatesStatusMenuItemPrivate HamUpdatesStatusMenuItemPrivate;
 struct _HamUpdatesStatusMenuItemPrivate
@@ -133,9 +134,6 @@ static State get_state (HamUpdatesStatusMenuItem *self);
 
 /* connection state prototypes */
 static void setup_connection_state (HamUpdatesStatusMenuItem *self);
-
-/* misc prototypes */
-static void my_log (const gchar *function, const gchar *fmt, ...);
 
 /* ham querying */
 static gboolean ham_is_showing_check_for_updates_view
@@ -206,7 +204,7 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
 
   priv->inotify_fd = -1;
   priv->io_watch = 0;
-  priv->wd[HOME] = priv->wd[VARLIB] = -1;
+  priv->wd[HOME] = priv->wd[VAR] = -1;
 
   priv->conic = NULL;
   priv->constate = UPNO_CON_OFFLINE;
@@ -518,16 +516,6 @@ update_seen_notifications ()
    xexp_free (seen_notifications);
 }
 
-static gboolean
-is_file_modified_event (struct inotify_event *event,
-                        int watch, const char *name)
-{
-  return (event->wd == watch
-          && (event->mask & (IN_CLOSE_WRITE | IN_MOVED_TO))
-          && event->len > 0
-          && strcmp (event->name, name) == 0);
-}
-
 #define BUF_LEN 4096
 
 static gboolean
@@ -573,17 +561,14 @@ ham_updates_status_menu_item_inotify_cb (GIOChannel *source,
 
       event = (struct inotify_event *) &buf[i];
 
-      if (is_file_modified_event (event, priv->wd[VARLIB],
-                                  AVAILABLE_UPDATES_FILE_NAME) ||
-          is_file_modified_event (event, priv->wd[HOME],
-                                  UFILE_SEEN_UPDATES) ||
-          is_file_modified_event (event, priv->wd[HOME],
-                                  UFILE_SEEN_NOTIFICATIONS))
+      if (is_file_modified (event, priv->wd[VAR], AVAILABLE_UPDATES_FILE_NAME)
+          || is_file_modified (event, priv->wd[HOME], UFILE_SEEN_UPDATES)
+          || is_file_modified (event, priv->wd[HOME], UFILE_SEEN_NOTIFICATIONS))
         {
           update_state (HAM_UPDATES_STATUS_MENU_ITEM (data));
         }
-      else if (is_file_modified_event (event, priv->wd[HOME],
-                                       UFILE_AVAILABLE_NOTIFICATIONS))
+      else if (is_file_modified (event, priv->wd[HOME],
+                                 UFILE_AVAILABLE_NOTIFICATIONS))
         {
           update_seen_notifications ();
           update_state (HAM_UPDATES_STATUS_MENU_ITEM (data));
@@ -655,9 +640,9 @@ setup_inotify (HamUpdatesStatusMenuItem *self)
     priv->wd[HOME] = add_watch_for_path (self, path);
     g_free (path);
 
-    priv->wd[VARLIB] = add_watch_for_path (self, VARLIB_INOTIFY_DIR);
+    priv->wd[VAR] = add_watch_for_path (self, INOTIFY_DIR);
 
-    if (priv->wd[HOME] == -1 || priv->wd[VARLIB] == -1)
+    if (priv->wd[HOME] == -1 || priv->wd[VAR] == -1)
       return FALSE;
   }
 
@@ -1333,19 +1318,6 @@ setup_connection_state (HamUpdatesStatusMenuItem *self)
       g_object_set (G_OBJECT (priv->conic),
                     "automatic-connection-events", TRUE, NULL);
     }
-}
-
-static void
-my_log (const gchar *function, const gchar *fmt, ...)
-{
-  va_list args;
-  gchar *tmp;
-
-  va_start (args, fmt);
-  tmp = g_strdup_vprintf (fmt, args);
-  g_printerr ("update-notifier (%s): %s\n", function, tmp);
-  g_free (tmp);
-  va_end (args);
 }
 
 static gboolean

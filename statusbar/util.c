@@ -30,8 +30,10 @@
 
 #include <string.h>
 #include <unistd.h>
+
 #include <libhildonwm/hd-wm.h>
 #include <gconf/gconf-client.h>
+
 
 gboolean
 running_in_scratchbox ()
@@ -61,6 +63,19 @@ load_last_update_time ()
     t = xexp_text_as_int (x);
   xexp_free (x);
   return (time_t) t;
+}
+
+void
+my_log (const gchar *function, const gchar *fmt, ...)
+{
+  va_list args;
+  gchar *tmp;
+
+  va_start (args, fmt);
+  tmp = g_strdup_vprintf (fmt, args);
+  g_printerr ("update-notifier (%s): %s\n", function, tmp);
+  g_free (tmp);
+  va_end (args);
 }
 
 gboolean
@@ -155,4 +170,13 @@ get_gconf_http_proxy ()
   g_object_unref (conf);
 
   return proxy;
+}
+
+gboolean
+is_file_modified (struct inotify_event *event, int watch, const char *filename)
+{
+  return (event->wd == watch
+          && (event->mask & (IN_CLOSE_WRITE | IN_MOVED_TO))
+          && event->len > 0
+          && strcmp (event->name, filename) == 0);
 }
