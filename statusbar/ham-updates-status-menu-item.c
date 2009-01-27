@@ -61,7 +61,8 @@
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
-#define HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItemPrivate))
+#define HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE(o) \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItemPrivate))
 
 typedef enum _State State;
 enum _State {
@@ -137,19 +138,21 @@ static void setup_connection_state (HamUpdatesStatusMenuItem *self);
 static void my_log (const gchar *function, const gchar *fmt, ...);
 
 /* ham querying */
-static gboolean ham_is_showing_check_for_updates_view (HamUpdatesStatusMenuItem *self);
+static gboolean ham_is_showing_check_for_updates_view
+(HamUpdatesStatusMenuItem *self);
 
-HD_DEFINE_PLUGIN_MODULE (HamUpdatesStatusMenuItem, update_notifier,
+HD_DEFINE_PLUGIN_MODULE (HamUpdatesStatusMenuItem, ham_updates_status_menu_item,
                          HD_TYPE_STATUS_MENU_ITEM);
 
 static void
-update_notifier_class_finalize (HamUpdatesStatusMenuItemClass *klass)
+ham_updates_status_menu_item_class_finalize
+(HamUpdatesStatusMenuItemClass *klass)
 {
   /* noop */
 }
 
 static void
-update_notifier_finalize (GObject *object)
+ham_updates_status_menu_item_finalize (GObject *object)
 {
   HamUpdatesStatusMenuItem *self;
   HamUpdatesStatusMenuItemPrivate *priv;
@@ -176,20 +179,21 @@ update_notifier_finalize (GObject *object)
   if (priv->osso != NULL)
     osso_deinitialize (priv->osso);
 
-  G_OBJECT_CLASS (update_notifier_parent_class)->finalize (object);
+  G_OBJECT_CLASS (ham_updates_status_menu_item_parent_class)->finalize (object);
 }
 
 static void
-update_notifier_class_init (HamUpdatesStatusMenuItemClass *klass)
+ham_updates_status_menu_item_class_init (HamUpdatesStatusMenuItemClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
-  object_class->finalize = update_notifier_finalize;
+  object_class->finalize = ham_updates_status_menu_item_finalize;
 
-  g_type_class_add_private (object_class, sizeof (HamUpdatesStatusMenuItemPrivate));
+  g_type_class_add_private (object_class,
+                            sizeof (HamUpdatesStatusMenuItemPrivate));
 }
 
 static void
-update_notifier_init (HamUpdatesStatusMenuItem *self)
+ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
 
@@ -366,9 +370,11 @@ check_for_updates (HamUpdatesStatusMenuItem *self)
 }
 
 static gint
-update_notifier_rpc_cb (const gchar* interface, const gchar* method,
-                        GArray* arguments, gpointer data,
-                        osso_rpc_t* retval)
+ham_updates_status_menu_item_rpc_cb (const gchar* interface,
+                                     const gchar* method,
+                                     GArray* arguments,
+                                     gpointer data,
+                                     osso_rpc_t* retval)
 {
   HamUpdatesStatusMenuItem *self;
 
@@ -418,14 +424,16 @@ setup_dbus (HamUpdatesStatusMenuItem *self)
                               UPDATE_NOTIFIER_SERVICE,
                               UPDATE_NOTIFIER_OBJECT_PATH,
                               UPDATE_NOTIFIER_INTERFACE,
-                              update_notifier_rpc_cb, self);
+                              ham_updates_status_menu_item_rpc_cb, self);
 
   return (result == OSSO_OK);
 }
 
 static void
-update_notifier_interval_changed_cb (GConfClient *client, guint cnxn_id,
-                                     GConfEntry *entry, gpointer data)
+ham_updates_status_menu_item_interval_changed_cb (GConfClient *client,
+                                                  guint cnxn_id,
+                                                  GConfEntry *entry,
+                                                  gpointer data)
 {
   g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
 
@@ -449,8 +457,8 @@ setup_gconf (HamUpdatesStatusMenuItem *self)
                         UPNO_GCONF_DIR, GCONF_CLIENT_PRELOAD_ONELEVEL, NULL);
 
   gconf_client_notify_add (priv->gconf, UPNO_GCONF_CHECK_INTERVAL,
-                           update_notifier_interval_changed_cb, self,
-                           NULL, NULL);
+                           ham_updates_status_menu_item_interval_changed_cb,
+                           self, NULL, NULL);
 }
 
 static gboolean
@@ -523,8 +531,9 @@ is_file_modified_event (struct inotify_event *event,
 #define BUF_LEN 4096
 
 static gboolean
-update_notifier_inotify_cb (GIOChannel *source, GIOCondition condition,
-                            gpointer data)
+ham_updates_status_menu_item_inotify_cb (GIOChannel *source,
+                                         GIOCondition condition,
+                                         gpointer data)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
   gchar buf[BUF_LEN];
@@ -635,7 +644,8 @@ setup_inotify (HamUpdatesStatusMenuItem *self)
 
   io_channel = g_io_channel_unix_new (fd);
   priv->io_watch = g_io_add_watch (io_channel, G_IO_IN | G_IO_HUP | G_IO_ERR,
-                                   update_notifier_inotify_cb, self);
+                                   ham_updates_status_menu_item_inotify_cb,
+                                   self);
   g_io_channel_unref (io_channel);
 
   {
@@ -1271,9 +1281,9 @@ update_state (HamUpdatesStatusMenuItem *self)
 }
 
 static void
-update_notifier_connection_cb (ConIcConnection *connection,
-                               ConIcConnectionEvent *event,
-                               gpointer data)
+ham_updates_status_menu_item_connection_cb (ConIcConnection *connection,
+                                            ConIcConnectionEvent *event,
+                                            gpointer data)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
 
@@ -1318,7 +1328,8 @@ setup_connection_state (HamUpdatesStatusMenuItem *self)
       priv->conic = con_ic_connection_new ();
 
       g_signal_connect (G_OBJECT (priv->conic), "connection-event",
-                        G_CALLBACK (update_notifier_connection_cb), self);
+                        G_CALLBACK (ham_updates_status_menu_item_connection_cb),
+                        self);
       g_object_set (G_OBJECT (priv->conic),
                     "automatic-connection-events", TRUE, NULL);
     }
