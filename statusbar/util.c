@@ -31,7 +31,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <libhildonwm/hd-wm.h>
 #include <gconf/gconf-client.h>
 
 
@@ -81,6 +80,12 @@ my_log (const gchar *function, const gchar *fmt, ...)
 gboolean
 ham_is_running ()
 {
+  /* TODO:
+     libhildonwm-dev is deprecated
+     we shoud use a dbus method here, but which?
+  */
+
+#if 0
   HDWM *hdwm;
   HDWMEntryInfo *info;
   GList *apps;
@@ -100,6 +105,7 @@ ham_is_running ()
       if (appname && (strcmp (HAM_APPNAME, appname) == 0))
         return TRUE;
     }
+#endif
 
   return FALSE;
 }

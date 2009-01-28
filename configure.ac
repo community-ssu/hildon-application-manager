@@ -44,7 +44,7 @@ PKG_CHECK_MODULES(AW_DEPS, glib-2.0)
 AC_SUBST(AW_DEPS_CFLAGS)
 AC_SUBST(AW_DEPS_LIBS)
 
-NOTIFIER_PKGS="libosso libhildondesktop-1 libhildonwm gconf-2.0 dbus-1 libcurl alarm conic"
+NOTIFIER_PKGS="libosso libhildondesktop-1 gconf-2.0 dbus-1 libcurl alarm conic"
 
 PKG_CHECK_MODULES(NOTIFIER_DEPS, $NOTIFIER_PKGS)
 AC_SUBST(NOTIFIER_DEPS_LIBS)
