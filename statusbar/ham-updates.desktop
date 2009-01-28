@@ -4,4 +4,4 @@ X-Text-Domain=hildon-application-manager
 Icon=qgn_stat_new_updates
 Category=temporal
 Type=default
-X-Path=libhildon-update-notifier.so
+X-Path=ham-updates-status-menu-item.so

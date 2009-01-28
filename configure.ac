@@ -44,20 +44,17 @@ PKG_CHECK_MODULES(AW_DEPS, glib-2.0)
 AC_SUBST(AW_DEPS_CFLAGS)
 AC_SUBST(AW_DEPS_LIBS)
 
-
-NOTIFIER_PKGS="libosso libhildondesktop-1 gconf-2.0 dbus-1 libcurl alarm"
+NOTIFIER_PKGS="libosso libhildondesktop-1 libhildonwm gconf-2.0 dbus-1 libcurl alarm conic"
 
 PKG_CHECK_MODULES(NOTIFIER_DEPS, $NOTIFIER_PKGS)
 AC_SUBST(NOTIFIER_DEPS_LIBS)
 AC_SUBST(NOTIFIER_DEPS_CFLAGS)
 
-#hildonstatusbarplugindir=`pkg-config osso-af-settings --variable=hildondesktoplibdir`
-#hildonstatusbardesktopdir=`pkg-config osso-af-settings --variable=statusbardesktopentrydir`
-hildonstatusmenuplugindir="${libdir}/hildon-desktop"
-hildonstatusmenudesktopdir="${datadir}/applications/hildon-status-menu"
+hildonstatusmenudesktopentrydir=`pkg-config libhildondesktop-1 --variable=hildonstatusmenudesktopentrydir`
+AC_SUBST(hildonstatusmenudesktopentrydir)
 
-AC_SUBST(hildonstatusmenuplugindir)
-AC_SUBST(hildonstatusmenudesktopdir)
+hildondesktoplibdir=`pkg-config libhildondesktop-1 --variable=hildondesktoplibdir`
+AC_SUBST(hildondesktoplibdir)
 
 # Debian architecture
 #
@@ -66,6 +63,7 @@ AC_DEFINE_UNQUOTED(DEB_HOST_ARCH, "$DEB_HOST_ARCH", [Debian architecture])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+		 statusbar/Makefile
 		 utils/Makefile
 		 catpo/Makefile])
 AC_OUTPUT

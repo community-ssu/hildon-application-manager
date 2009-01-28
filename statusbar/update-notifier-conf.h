@@ -24,9 +24,9 @@
 #ifndef UPDATE_NOTIFIER_CONF_H
 #define UPDATE_NOTIFIER_CONF_H
 
-#define UPNO_GCONF_DIR            "/apps/hildon/update-notifier"
-#define UPNO_GCONF_CHECK_INTERVAL UPNO_GCONF_DIR "/check_interval"
-#define UPNO_DEFAULT_CHECK_INTERVAL (24*60)
+#define UPNO_GCONF_DIR              "/apps/hildon/update-notifier"
+#define UPNO_GCONF_CHECK_INTERVAL   UPNO_GCONF_DIR "/check_interval"
+#define UPNO_DEFAULT_CHECK_INTERVAL (24 * 60 * 60)
 
 #define UPNO_NOTIFIER_CONF "/etc/hildon-application-manager/notifier"
 

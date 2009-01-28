@@ -1,3 +1,33 @@
+2009-01-28  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Release 2.2.7
+
+	Replace update-notifier plugin for ham-updates-status-menu-item
+	plugin. 
+	
+	* Makefile.am (SUBDIRS): added statusbar directory.
+	(NOTIFIER_PKGS): added libhildonwm and conic.
+	* debian/control: added libtime-dev as a build dependency.
+	* src/Makefile.am: removed the compilation of the update-notifier.
+	Commented out the compilation of the test_app_killer. Removed
+	dependencies to unused header files.
+	* src/hildon-update-notifier.desktop: removed.
+	* src/hn-app-pixbuf-anim-blinker.c: moved to statusbar directory.
+	* src/hn-app-pixbuf-anim-blinker.h: moved to statusbar directory.
+	* src/update-notifier-conf.h: moved to statusbar directory.
+	* src/update-notifier.c: removed.
+	* src/update-notifier.h: removed.
+	* statusbar/Makefile.am: new automake file for
+	ham-updates-status-menu-item plugin.
+	* statusbar/ham-updates-status-menu-item.c: new plugin code for
+	hildon-desktop1.
+	* statusbar/ham-updates-status-menu-item.h: new plugin code for
+	hildon-desktop1.
+	* statusbar/ham-updates.desktop: desktop definition for
+	ham-updates-status-menu plugin.
+	* statusbar/util.c: new file. Repository for misc functions.
+	* statusbar/util.h: new file. Repository for misc functions.
+
 2009-01-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	Released 2.2.6.

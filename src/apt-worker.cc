@@ -5797,13 +5797,14 @@ write_available_updates_file ()
       if (!candidate.end ()
 	  && !installed.end()
 	  && installed.CompareVer (candidate) < 0
-	  && is_user_package (candidate))
+	  && is_user_package (candidate)
+	)
 	{
 	  xexp *x_pkg = NULL;
 	  package_record rec (candidate);
 	  int flags = get_flags (rec);
 	  int domain_index = awc->cache->extra_info[pkg->ID].cur_domain;
-	  
+
 	  if (flags & pkgflag_system_update)
 	    x_pkg = xexp_text_new ("os", pkg.Name());
 	  else if (domains[domain_index].is_certified)
