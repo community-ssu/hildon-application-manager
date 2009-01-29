@@ -1,7 +1,4 @@
 [Desktop Entry]
-Name=tncpa_li_plugin_update_notifier
-X-Text-Domain=hildon-application-manager
-Icon=qgn_stat_new_updates
-Category=temporal
+Name=HAM Updates
 Type=default
 X-Path=ham-updates-status-menu-item.so

@@ -31,7 +31,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <dbus/dbus.h>
 #include <gconf/gconf-client.h>
+
+#include "update-notifier-conf.h"
 
 
 gboolean
@@ -65,14 +68,14 @@ load_last_update_time ()
 }
 
 void
-my_log (const gchar *function, const gchar *fmt, ...)
+my_log (const gchar* file, const gchar *function, const gchar *fmt, ...)
 {
   va_list args;
   gchar *tmp;
 
   va_start (args, fmt);
   tmp = g_strdup_vprintf (fmt, args);
-  g_printerr ("update-notifier (%s): %s\n", function, tmp);
+  g_printerr ("%s (%s): %s\n", file, function, tmp);
   g_free (tmp);
   va_end (args);
 }
@@ -80,34 +83,31 @@ my_log (const gchar *function, const gchar *fmt, ...)
 gboolean
 ham_is_running ()
 {
-  /* TODO:
-     libhildonwm-dev is deprecated
-     we shoud use a dbus method here, but which?
-  */
+  DBusConnection *connection;
+  DBusError error;
+  gboolean exists;
 
-#if 0
-  HDWM *hdwm;
-  HDWMEntryInfo *info;
-  GList *apps;
-  GList *l;
-  gchar *appname;
+  LOG ("");
 
-  hdwm = hd_wm_get_singleton ();
-  hd_wm_update_client_list (hdwm);
-
-  apps = hd_wm_get_applications (hdwm);
-  for (l = apps; l; l = l->next)
+  connection = NULL;
+  dbus_error_init (&error);
+  connection = dbus_bus_get (DBUS_BUS_SYSTEM, &error);
+  if (dbus_error_is_set (&error))
     {
-      info = (HDWMEntryInfo *) l->data;
-
-      appname = hd_wm_entry_info_get_app_name (info);
-
-      if (appname && (strcmp (HAM_APPNAME, appname) == 0))
-        return TRUE;
+      dbus_error_free (&error);
+      exists = FALSE;
+      goto exit;
     }
-#endif
 
-  return FALSE;
+  dbus_error_init (&error);
+  exists = dbus_bus_name_has_owner (connection, HILDON_APP_MGR_SERVICE, &error);
+  if (dbus_error_is_set (&error))
+    dbus_error_free (&error);
+
+ exit:
+  if (connection != NULL)
+    dbus_connection_unref (connection);
+  return exists;
 }
 
 /* FIXME: this mechanism to obtain the http proxy seems to be
@@ -185,4 +185,41 @@ is_file_modified (struct inotify_event *event, int watch, const char *filename)
           && (event->mask & (IN_CLOSE_WRITE | IN_MOVED_TO))
           && event->len > 0
           && strcmp (event->name, filename) == 0);
+}
+
+GdkPixbuf *
+icon_load (const gchar *name, gint size)
+{
+  GtkIconTheme *icon_theme;
+  GdkPixbuf *pixbuf;
+  GError *error;
+
+  if (name == NULL)
+    return NULL;
+
+  pixbuf = NULL;
+  error = NULL;
+
+  icon_theme = gtk_icon_theme_get_default ();
+
+  if (size < 1)
+  {
+    gint idx;
+    /* size was smaller than one => use the largest natural size available */
+    gint *icon_sizes = gtk_icon_theme_get_icon_sizes (icon_theme, name);
+    for (idx = 0; icon_sizes[idx] != 0 && icon_sizes[idx] != -1; idx++)
+      size = icon_sizes[idx];
+    g_free (icon_sizes);
+  }
+
+  pixbuf =  gtk_icon_theme_load_icon (icon_theme, name, size,
+                                      GTK_ICON_LOOKUP_NO_SVG, &error);
+
+  if (error != NULL)
+  {
+    fprintf (stderr, "error loading pixbuf '%s': %s", name, error->message);
+    g_error_free (error);
+  }
+
+  return pixbuf;
 }

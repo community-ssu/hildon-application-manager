@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <libintl.h>
 #include <sys/inotify.h>
 #include <sys/stat.h>
 
@@ -48,18 +47,20 @@
 #define DEBUG
 
 #include "util.h"
+#include "ham-updates.h"
+#include "ham-notifier.h"
 #include "update-notifier-conf.h"
 
 /* appname for OSSO and alarmd */
-#define APPNAME                  "hildon_update_notifier"
+#define APPNAME                  "ham_updates_status_menu_item"
 
 /* inotify paths */
 #define  INOTIFY_DIR             "/var/lib/hildon-application-manager"
 
-#define STATUSBAR_HAM_ICON_SIZE  16
-#define STATUSMENU_HAM_ICON_SIZE 64
+#define STATUSBAR_ICON_NAME      "app_install_new_updates"
+#define STATUSBAR_ICON_SIZE      16
 
-#define _(x) dgettext ("hildon-application-manager", (x))
+#define BLINK_INTERVAL           500 /* milliseconds */
 
 #define HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), HAM_UPDATES_STATUS_MENU_ITEM_TYPE, HamUpdatesStatusMenuItemPrivate))
@@ -67,16 +68,16 @@
 typedef enum _State State;
 enum _State
   {
-    UPNO_STATE_INVISIBLE,
-    UPNO_STATE_STATIC,
-    UPNO_STATE_BLINKING
+    ICON_STATE_INVISIBLE,
+    ICON_STATE_STATIC,
+    ICON_STATE_BLINKING
   };
 
 typedef enum _ConState ConState;
 enum _ConState
   {
-    UPNO_CON_ONLINE,
-    UPNO_CON_OFFLINE
+    CONN_ONLINE,
+    CONN_OFFLINE
   };
 
 /* inotify watchers id */
@@ -89,8 +90,8 @@ typedef struct _HamUpdatesStatusMenuItemPrivate HamUpdatesStatusMenuItemPrivate;
 struct _HamUpdatesStatusMenuItemPrivate
 {
   /* ui */
+  GdkPixbuf *no_icon;
   GdkPixbuf *icon;
-  GtkWidget *button;
 
   /* environment */
   osso_context_t *osso;
@@ -98,6 +99,8 @@ struct _HamUpdatesStatusMenuItemPrivate
 
   /* state */
   State state;
+
+  /* alarm id */
   cookie_t alarm_cookie;
 
   /* inotify */
@@ -109,8 +112,11 @@ struct _HamUpdatesStatusMenuItemPrivate
   ConIcConnection *conic;
   ConState constate;
 
-  /* apt-worker spawn */
-  guint child_id;
+  /* blinker timeout */
+  guint blinker_id;
+
+  /* updates object */
+  HamUpdates *updates;
 };
 
 /* setup prototypes */
@@ -135,12 +141,12 @@ static State get_state (HamUpdatesStatusMenuItem *self);
 /* connection state prototypes */
 static void setup_connection_state (HamUpdatesStatusMenuItem *self);
 
-/* ham querying */
-static gboolean ham_is_showing_check_for_updates_view
-(HamUpdatesStatusMenuItem *self);
+static void ham_updates_status_menu_display_event_cb
+(osso_display_state_t state, gpointer data);
 
-/* Dialog content. Must free the return value */
-static gchar* get_dialog_content ();
+/* icon blinking */
+static void blink_icon_off (HamUpdatesStatusMenuItem *self);
+static void blink_icon_on (HamUpdatesStatusMenuItem *self);
 
 HD_DEFINE_PLUGIN_MODULE (HamUpdatesStatusMenuItem, ham_updates_status_menu_item,
                          HD_TYPE_STATUS_MENU_ITEM);
@@ -161,15 +167,20 @@ ham_updates_status_menu_item_finalize (GObject *object)
   self = HAM_UPDATES_STATUS_MENU_ITEM (object);
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
+  blink_icon_off (self);
+
   if (priv->icon != NULL)
     g_object_unref (priv->icon);
 
-  if (priv->child_id > 0)
-    g_source_remove (priv->child_id);
+  if (priv->no_icon != NULL)
+    g_object_unref (priv->no_icon);
 
   delete_all_alarms ();
 
   close_inotify (self);
+
+  if (priv->updates != NULL)
+    g_object_unref (priv->updates);
 
   if (priv->conic != NULL)
     g_object_unref (priv->conic);
@@ -202,7 +213,8 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
 
   priv->osso = NULL;
 
-  priv->state = UPNO_STATE_INVISIBLE;
+  priv->state = ICON_STATE_INVISIBLE;
+
   priv->alarm_cookie = 0;
 
   priv->inotify_fd = -1;
@@ -210,15 +222,23 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
   priv->wd[HOME] = priv->wd[VAR] = -1;
 
   priv->conic = NULL;
-  priv->constate = UPNO_CON_OFFLINE;
+  priv->constate = CONN_OFFLINE;
+
+  priv->icon = priv->no_icon = NULL;
+
+  priv->updates = NULL;
+
+  priv->blinker_id = 0;
 
   if (setup_dbus (self))
     {
-      LOG ("dbus setup");
-
       setup_gconf (self);
       setup_ui (self);
+
       setup_connection_state (self);
+      osso_hw_set_display_event_cb (priv->osso,
+                                    ham_updates_status_menu_display_event_cb,
+                                    self);
 
       if (setup_inotify (self))
         {
@@ -271,22 +291,16 @@ get_http_proxy (HamUpdatesStatusMenuItem *self)
 }
 
 static void
-check_for_updates_done (GPid pid, gint status, gpointer data)
+ham_updates_status_menu_item_check_done_cb (HamUpdatesStatusMenuItem *self,
+                                            gboolean ok, gpointer data)
 {
-  HamUpdatesStatusMenuItem *self;
   HamUpdatesStatusMenuItemPrivate *priv;
 
-  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
-
-  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
-  priv->child_id = 0;
-
-  if (status != -1 && WIFEXITED (status) && WEXITSTATUS (status) == 0)
+  if (ok)
     {
       LOG ("Check for updates done");
-      save_last_update_time (time_get_time ());
       update_state (self);
     }
   else
@@ -310,64 +324,52 @@ check_for_updates_done (GPid pid, gint status, gpointer data)
 }
 
 static void
+ham_updates_status_menu_display_event_cb (osso_display_state_t state,
+                                          gpointer data)
+{
+  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
+
+  if (get_state (HAM_UPDATES_STATUS_MENU_ITEM (data)) == ICON_STATE_BLINKING)
+    {
+      if (state == OSSO_DISPLAY_OFF)
+        blink_icon_off (HAM_UPDATES_STATUS_MENU_ITEM (data));
+      else
+        blink_icon_on (HAM_UPDATES_STATUS_MENU_ITEM (data));
+    }
+}
+
+static void
 check_for_updates (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
-  gchar *gainroot_cmd;
-  gchar *proxy;
-  GPid pid;
-  GError *error;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
-  if (priv->constate == UPNO_CON_OFFLINE)
-    return;
-
-  error = NULL;
-
-  LOG ("calling apt-worker checking for updates");
-
-  /* Choose the right gainroot command */
-  gainroot_cmd = NULL;
-  if (running_in_scratchbox ())
-    gainroot_cmd = g_strdup ("/usr/bin/fakeroot");
-  else
-    gainroot_cmd = g_strdup ("/usr/bin/sudo");
-
-  proxy = get_http_proxy (self);
-  LOG ("Proxy = %s", proxy);
-
-  /* Build command to be spawned */
-  char *argv[] = {
-    gainroot_cmd,
-    "/usr/libexec/apt-worker",
-    "check-for-updates",
-    proxy,
-    NULL
-  };
-
-  if (!g_spawn_async_with_pipes (NULL,
-				 argv,
-				 NULL,
-				 G_SPAWN_DO_NOT_REAP_CHILD,
-				 NULL,
-				 NULL,
-				 &pid,
-				 NULL,
-				 NULL,
-				 NULL,
-				 &error))
+  if (priv->constate == CONN_ONLINE)
     {
-      fprintf (stderr, "can't run %s: %s\n", argv[0], error->message);
-      g_error_free (error);
-    }
-  else
-    {
-      priv->child_id = g_child_watch_add (pid, check_for_updates_done, self);
-    }
+      gchar *proxy;
 
-  g_free (gainroot_cmd);
-  g_free (proxy);
+      proxy = get_http_proxy (self);
+      ham_updates_check (priv->updates, proxy);
+      g_free (proxy);
+    }
+}
+
+static void
+check_for_notifications (HamUpdatesStatusMenuItem *self)
+{
+  HamUpdatesStatusMenuItemPrivate *priv;
+
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  if (priv->constate == CONN_ONLINE)
+    {
+      gchar *proxy;
+
+      proxy = get_http_proxy (self);
+      ham_notifier_check (proxy);
+      g_free (proxy);
+    }
 }
 
 static gint
@@ -391,9 +393,11 @@ ham_updates_status_menu_item_rpc_cb (const gchar* interface,
 
   if (strcmp (method, UPDATE_NOTIFIER_OP_CHECK_UPDATES) == 0)
     {
-      /* Search for new avalable updates */
+      /* Search for new available updates */
       check_for_updates (self);
-      /* check_for_notifications (self); */
+
+      /* Search for new notifications */
+      check_for_notifications (self);
     }
   else if (strcmp (method, UPDATE_NOTIFIER_OP_CHECK_STATE) == 0)
     {
@@ -440,6 +444,7 @@ ham_updates_status_menu_item_interval_changed_cb (GConfClient *client,
 
   LOG ("Interval value changed");
   delete_all_alarms ();
+  HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (data)->alarm_cookie = 0;
   setup_alarm (HAM_UPDATES_STATUS_MENU_ITEM (data));
 }
 
@@ -462,63 +467,6 @@ setup_gconf (HamUpdatesStatusMenuItem *self)
                            self, NULL, NULL);
 }
 
-static gboolean
-xexp_is_tag_and_not_empty (xexp *x, const char *tag)
-{
-  return (x != NULL && xexp_is (x, tag) && !xexp_is_empty (x));
-}
-
-static gboolean
-compare_xexp_text (xexp *x_a, xexp *x_b, const char *tag)
-{
-  const char *text_a = NULL;
-  const char *text_b = NULL;
-
-  if ((x_a == NULL) || (x_b == NULL))
-    return ((x_a == NULL) && (x_b == NULL));
-
-  text_a = xexp_aref_text(x_a, tag);
-  text_b = xexp_aref_text(x_b, tag);
-
-  if ((text_a == NULL) || (text_b == NULL))
-    return ((text_a == NULL) && (text_b == NULL));
-  else
-    return (strcmp (text_a, text_b) == 0);
-}
-
-static void
-update_seen_notifications ()
-{
-  xexp *avail_notifications;
-  xexp *seen_notifications;
-
- avail_notifications = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
- seen_notifications = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
-
- if (avail_notifications && seen_notifications &&
-     xexp_is_tag_and_not_empty (avail_notifications, "info") &&
-     (!xexp_is_tag_and_not_empty (seen_notifications, "info") ||
-      (xexp_is_tag_and_not_empty (seen_notifications, "info") &&
-       !compare_xexp_text (avail_notifications, seen_notifications, "title") &&
-       !compare_xexp_text (avail_notifications, seen_notifications, "text") &&
-       !compare_xexp_text (avail_notifications, seen_notifications, "uri"))))
-   {
-     /* as we have new notifications, we no longer need the old seen ones;
-      * the writing of UFILE_SEEN_NOTIFICATIONS will trigger an inotify */
-     xexp* empty_seen_notifications;
-
-     empty_seen_notifications = xexp_list_new ("info");
-     user_file_write_xexp (UFILE_SEEN_NOTIFICATIONS, empty_seen_notifications);
-     xexp_free (empty_seen_notifications);
-   }
-
- if (avail_notifications)
-   xexp_free (avail_notifications);
-
- if (seen_notifications)
-   xexp_free (seen_notifications);
-}
-
 #define BUF_LEN 4096
 
 static gboolean
@@ -537,8 +485,6 @@ ham_updates_status_menu_item_inotify_cb (GIOChannel *source,
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (data);
   g_return_val_if_fail (priv->inotify_fd != -1, FALSE);
-
-  LOG ("inotify callback");
 
   while (TRUE)
     {
@@ -564,16 +510,12 @@ ham_updates_status_menu_item_inotify_cb (GIOChannel *source,
 
       event = (struct inotify_event *) &buf[i];
 
+      LOG ("inotify: %s", event->name);
+
       if (is_file_modified (event, priv->wd[VAR], AVAILABLE_UPDATES_FILE_NAME)
           || is_file_modified (event, priv->wd[HOME], UFILE_SEEN_UPDATES)
           || is_file_modified (event, priv->wd[HOME], UFILE_SEEN_NOTIFICATIONS))
         {
-          update_state (HAM_UPDATES_STATUS_MENU_ITEM (data));
-        }
-      else if (is_file_modified (event, priv->wd[HOME],
-                                 UFILE_AVAILABLE_NOTIFICATIONS))
-        {
-          update_seen_notifications ();
           update_state (HAM_UPDATES_STATUS_MENU_ITEM (data));
         }
 
@@ -660,8 +602,10 @@ close_inotify (HamUpdatesStatusMenuItem *self)
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   if (priv->io_watch > 0)
-    g_source_remove (priv->io_watch);
-  priv->io_watch = 0;
+    {
+      g_source_remove (priv->io_watch);
+      priv->io_watch = 0;
+    }
 
   if (priv->inotify_fd > 0)
     {
@@ -676,8 +620,8 @@ close_inotify (HamUpdatesStatusMenuItem *self)
             }
         }
       close (priv->inotify_fd);
+      priv->inotify_fd = -1;
     }
-  priv->inotify_fd = -1;
 }
 
 static void
@@ -721,43 +665,19 @@ get_last_alarm (void)
   return retval;
  }
 
-static time_t
-get_interval (HamUpdatesStatusMenuItem* self)
-{
-  HamUpdatesStatusMenuItemPrivate *priv;
-  time_t interval;
-
-  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-
-  interval = (time_t) gconf_client_get_int (priv->gconf,
-                                            UPNO_GCONF_CHECK_INTERVAL,
-                                            NULL);
-
-  if (interval <= 0)
-    {
-      /* Use default value and set it from now on */
-      interval = UPNO_DEFAULT_CHECK_INTERVAL;
-      gconf_client_set_int (priv->gconf,
-                            UPNO_GCONF_CHECK_INTERVAL,
-                            (gint) interval,
-                            NULL);
-    }
-
-  LOG ("The interval is %d", interval);
-  return interval;
-}
-
 static gboolean
 setup_alarm (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
   alarm_event_t *event;
-  alarm_action_t *action;
-  time_t interval;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
-  g_return_val_if_fail (priv->alarm_cookie == 0, FALSE);
+  if (priv->alarm_cookie != 0)
+    {
+      LOG ("a previous alarm had been set");
+      return TRUE;
+    }
 
   priv->alarm_cookie = get_last_alarm ();
   LOG ("The stored alarm id is %d", priv->alarm_cookie);
@@ -796,39 +716,10 @@ setup_alarm (HamUpdatesStatusMenuItem *self)
 
   /* Setup new alarm based on old alarm. */
   event = alarm_event_create ();
+
+  ham_updates_set_alarm (priv->updates, event);
+
   alarm_event_set_alarm_appid (event, APPNAME);
-
-  /* If the trigger time is missed (due to the device being off or
-     system time being adjusted beyond the trigger point) the alarm
-     should be run anyway. */
-  event->flags |= ALARM_EVENT_RUN_DELAYED;
-
-  /* Run only when internet connection is available. */
-  /* conic is needed */
-  /* FIXME: event->flags |= ALARM_EVENT_CONNECTED; */
-
-  /* If the system time is moved backwards, the alarm should be
-     rescheduled. */
-  event->flags |= ALARM_EVENT_BACK_RESCHEDULE;
-
-  interval = get_interval (self);
-  event->alarm_time = ALARM_RECURRING_SECONDS (time_get_time () + interval);
-
-  /* set the recurrence */
-  event->recur_count = -1; /* infinite recorrence */
-  event->recur_secs = ALARM_RECURRING_SECONDS (interval);
-
-  /* create the action */
-  action = alarm_event_add_actions (event, 1);
-
-  action->flags |= ALARM_ACTION_WHEN_TRIGGERED;
-  action->flags |= ALARM_ACTION_TYPE_DBUS;
-  action->flags |= ALARM_ACTION_DBUS_USE_ACTIVATION;
-
-  alarm_action_set_dbus_service (action, UPDATE_NOTIFIER_SERVICE);
-  alarm_action_set_dbus_path (action, UPDATE_NOTIFIER_OBJECT_PATH);
-  alarm_action_set_dbus_interface (action, UPDATE_NOTIFIER_INTERFACE);
-  alarm_action_set_dbus_name (action, UPDATE_NOTIFIER_OP_CHECK_UPDATES);
 
   if (alarm_event_is_sane (event) != -1)
     {
@@ -846,13 +737,16 @@ setup_alarm (HamUpdatesStatusMenuItem *self)
 static void
 run_service_now (HamUpdatesStatusMenuItem *self)
 {
+  HamUpdatesStatusMenuItemPrivate *priv;
   time_t now;
   time_t last_update;
   time_t interval;
 
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
   now = time_get_time ();
   last_update = load_last_update_time ();
-  interval = get_interval (self);
+  interval = ham_updates_get_interval (priv->updates);
 
   LOG ("now = %d, last update = %d, interval = %d", now, last_update, interval);
   if (now - last_update > interval)
@@ -860,7 +754,7 @@ run_service_now (HamUpdatesStatusMenuItem *self)
       LOG ("we haven't checked for updates since long time ago");
       /* Search for new avalable updates */
       check_for_updates (self);
-      /* check_for_notifications (self); */
+      check_for_notifications (self);
     }
 }
 
@@ -883,146 +777,55 @@ setup_alarm_now (gpointer data)
 }
 
 static void
-ham_updates_status_menu_item_button_click_cb (GtkButton *button, gpointer data)
-{
-  GtkWidget *parent;
-  GtkWidget *dialog;
-  HamUpdatesStatusMenuItem *self;
-  gint response;
-
-  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
-
-  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
-
-  parent = gtk_widget_get_toplevel (GTK_WIDGET (self));
-
-  dialog = gtk_dialog_new_with_buttons
-    (_("ai_sb_update_description"), GTK_WINDOW (parent),
-     GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-     _("ai_sb_update_am"), GTK_RESPONSE_YES,
-     _("ai_sb_app_push_no"), GTK_RESPONSE_NO,
-     NULL);
-
-  /* contents */
-  {
-    GtkWidget *label;
-    gchar *content;
-
-    content = get_dialog_content ();
-
-    if (content == NULL)
-      goto error;
-
-    label = gtk_label_new (NULL);
-    gtk_label_set_markup (GTK_LABEL (label), content);
-    g_free (content);
-
-    gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), label);
-  }
-
-  gtk_widget_show_all (dialog);
-
-  response = gtk_dialog_run (GTK_DIALOG (dialog));
-
-  if (response == GTK_RESPONSE_YES)
-  {
-    HamUpdatesStatusMenuItemPrivate *priv;
-    LOG ("Starts Application Manager and opens 'Check for update'");
-
-    priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-
-    osso_rpc_async_run (priv->osso,
-                        HILDON_APP_MGR_SERVICE,
-                        HILDON_APP_MGR_OBJECT_PATH,
-                        HILDON_APP_MGR_INTERFACE,
-                        HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES,
-                        NULL,
-                        NULL,
-                        DBUS_TYPE_INVALID);
-  }
-
- error:
-  gtk_widget_destroy (dialog);
-  set_state (self, UPNO_STATE_INVISIBLE);
-}
-
-static GdkPixbuf *
-icon_load (const gchar *name, gint size)
-{
-  GtkIconTheme *icon_theme;
-  GdkPixbuf *pixbuf;
-  GError *error;
-
-  if (name == NULL)
-    return NULL;
-
-  pixbuf = NULL;
-  error = NULL;
-
-  icon_theme = gtk_icon_theme_get_default ();
-
-  if (size < 1)
-  {
-    gint idx;
-    /* size was smaller than one => use the largest natural size available */
-    gint *icon_sizes = gtk_icon_theme_get_icon_sizes (icon_theme, name);
-    for (idx = 0; icon_sizes[idx] != 0 && icon_sizes[idx] != -1; idx++)
-      size = icon_sizes[idx];
-    g_free (icon_sizes);
-  }
-
-  pixbuf =  gtk_icon_theme_load_icon (icon_theme, name, size,
-                                      GTK_ICON_LOOKUP_NO_SVG, &error);
-
-  if (error != NULL)
-  {
-    fprintf (stderr, "error loading pixbuf '%s': %s", name, error->message);
-    g_error_free (error);
-  }
-
-  return pixbuf;
-}
-
-static void
-build_button (HamUpdatesStatusMenuItem *self)
+ham_execute (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
-  gchar *title;
+  LOG ("Starts Application Manager and opens 'Check for update'");
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
-  title = _("ai_sb_update_description");
+  osso_rpc_async_run (priv->osso,
+                      HILDON_APP_MGR_SERVICE,
+                      HILDON_APP_MGR_OBJECT_PATH,
+                      HILDON_APP_MGR_INTERFACE,
+                      HILDON_APP_MGR_OP_SHOW_CHECK_FOR_UPDATES,
+                      NULL,
+                      NULL,
+                      DBUS_TYPE_INVALID);
+}
 
-  priv->button = hildon_button_new_with_text
-    (HILDON_SIZE_FULLSCREEN_WIDTH | HILDON_SIZE_FINGER_HEIGHT,
-     HILDON_BUTTON_ARRANGEMENT_VERTICAL, title, "");
+static void
+ham_updates_status_menu_item_response_cb (HamUpdatesStatusMenuItem *self,
+                                          gint response, gpointer data)
+{
+  if (response == GTK_RESPONSE_YES)
+    {
+      ham_execute (self);
+      set_state (self, ICON_STATE_INVISIBLE);
+    }
+  else
+    {
+      set_state (self, ICON_STATE_STATIC);
+    }
+}
 
-  /* set icon */
-  {
-    GdkPixbuf *pixbuf;
+static void
+build_status_menu_button (HamUpdatesStatusMenuItem *self)
+{
+  HamUpdatesStatusMenuItemPrivate *priv;
 
-    pixbuf = icon_load ("general_application_manager",
-                        STATUSMENU_HAM_ICON_SIZE);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+  priv->updates = g_object_new (HAM_UPDATES_TYPE, NULL);
 
-    if (pixbuf != NULL)
-      {
-        GtkWidget *image;
+  g_signal_connect_swapped
+    (priv->updates, "check-done",
+     G_CALLBACK (ham_updates_status_menu_item_check_done_cb), self);
+  g_signal_connect_swapped
+    (priv->updates, "response",
+     G_CALLBACK (ham_updates_status_menu_item_response_cb), self);
 
-        image = gtk_image_new_from_pixbuf (pixbuf);
-
-        if (image != NULL)
-          hildon_button_set_image (HILDON_BUTTON (priv->button), image);
-
-        g_object_unref (pixbuf);
-      }
-  }
-
-  gtk_widget_show (GTK_WIDGET (priv->button));
-  g_signal_connect (G_OBJECT (priv->button), "clicked",
-                    G_CALLBACK (ham_updates_status_menu_item_button_click_cb),
-                    self);
-
-  gtk_container_add (GTK_CONTAINER (self), priv->button);
+  gtk_container_add (GTK_CONTAINER (self),
+                     ham_updates_get_button (priv->updates));
 }
 
 static void
@@ -1032,16 +835,13 @@ build_status_area_icon (HamUpdatesStatusMenuItem *self)
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
-  priv->icon = icon_load ("qgn_stat_new_updates", 0);
-
-/*   hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self), */
-/*                                               priv->icon); */
+  priv->icon = icon_load (STATUSBAR_ICON_NAME, STATUSBAR_ICON_SIZE);
 }
 
 static void
 setup_ui (HamUpdatesStatusMenuItem *self)
 {
-  build_button (self);
+  build_status_menu_button (self);
   build_status_area_icon (self);
   load_state (self);
   update_state (self);
@@ -1060,9 +860,7 @@ load_state (HamUpdatesStatusMenuItem *self)
   if (state != NULL)
     {
       set_state (self,
-                 xexp_aref_int (state, "icon-state", UPNO_STATE_INVISIBLE));
-      /* priv->alarm_cookie =
-         (cookie_t) xexp_aref_int (state, "alarm-cookie", 0); */
+                 xexp_aref_int (state, "icon-state", ICON_STATE_INVISIBLE));
       xexp_free (state);
     }
 
@@ -1072,65 +870,124 @@ load_state (HamUpdatesStatusMenuItem *self)
 static void
 save_state (HamUpdatesStatusMenuItem *self)
 {
-  HamUpdatesStatusMenuItemPrivate *priv;
   xexp *x_state = NULL;
 
-  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-
   x_state = xexp_list_new ("state");
-
-  xexp_aset_int (x_state, "icon-state", (gint) priv->state);
-  /* xexp_aset_int (x_state, "alarm-cookie", priv->alarm_cookie); */
-
+  xexp_aset_int (x_state, "icon-state", (gint) get_state (self));
   user_file_write_xexp (UFILE_UPDATE_NOTIFIER, x_state);
-
   xexp_free (x_state);
 
   LOG ("state saved");
 }
 
-static void
-update_widget_state (HamUpdatesStatusMenuItem *self)
+#include "transparent-icon.c"
+
+static gboolean
+blink_icon_cb (gpointer data)
 {
-  State state;
-  gboolean visible;
+  HamUpdatesStatusMenuItemPrivate *priv;
+  static gboolean visible = TRUE;
 
-  state = get_state (self);
-  g_object_get (G_OBJECT (self), "visible", &visible, NULL);
+  g_return_val_if_fail (HD_IS_STATUS_PLUGIN_ITEM (data), FALSE);
 
-  if (state == UPNO_STATE_INVISIBLE && visible)
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (data);
+
+  g_return_val_if_fail (priv->icon != NULL && priv->no_icon != NULL, FALSE);
+
+  if (visible)
+    hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (data),
+                                                priv->no_icon);
+  else
+    hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (data),
+                                                priv->icon);
+
+  visible = !visible;
+
+  return TRUE;
+}
+
+static void
+blink_icon_on (HamUpdatesStatusMenuItem *self)
+{
+  HamUpdatesStatusMenuItemPrivate *priv;
+  GError *error;
+
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  /* we're already blinking */
+  if (priv->blinker_id != 0)
+    return;
+
+  error = NULL;
+
+  if (priv->no_icon == NULL)
+    priv->no_icon = gdk_pixbuf_new_from_inline (-1, transparent_icon_inline,
+                                                FALSE, &error);
+  if (error != NULL)
     {
-      LOG ("turning off the widgets");
-      hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
-                                                  NULL);
-      gtk_widget_hide (GTK_WIDGET (self));
-      return;
-    }
-  else if (!visible) /* this is common to blinking and static */
-    {
-      HamUpdatesStatusMenuItemPrivate *priv;
-
-      LOG ("turning on the widgets");
-      priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-
-      gtk_widget_show (GTK_WIDGET (self));
-      hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
-                                                  priv->icon);
+      fprintf (stderr, "error loading transparent inline pixbuf: %s",
+               error->message);
+      g_error_free (error);
     }
   else
     {
-      g_assert_not_reached ();
+      priv->blinker_id = g_timeout_add (BLINK_INTERVAL, blink_icon_cb, self);
+    }
+}
+
+static void
+blink_icon_off (HamUpdatesStatusMenuItem *self)
+{
+  HamUpdatesStatusMenuItemPrivate *priv;
+
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  if (priv->no_icon != NULL)
+    {
+      g_object_unref (priv->no_icon);
+      priv->no_icon = NULL;
     }
 
-  switch ((gint) state)
+  if (priv->blinker_id > 0)
     {
-    case UPNO_STATE_STATIC:
-      /* @todo */
-      break;
-    case UPNO_STATE_BLINKING:
-      /* @todo */
-      break;
-    default:
+      g_source_remove (priv->blinker_id);
+      priv->blinker_id = 0;
+    }
+}
+
+static void
+update_icon_state (HamUpdatesStatusMenuItem *self)
+{
+  State state;
+
+  state = get_state (self);
+
+  if (state == ICON_STATE_INVISIBLE)
+    {
+      LOG ("turning off the icon");
+      blink_icon_off (self);
+      hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
+                                                  NULL);
+      return;
+    }
+  else if (state == ICON_STATE_STATIC)
+    {
+      HamUpdatesStatusMenuItemPrivate *priv;
+
+      LOG ("turning on the icon");
+      blink_icon_off (self);
+      priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+      hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
+                                                  priv->icon);
+    }
+  else if (state == ICON_STATE_BLINKING)
+    {
+      LOG ("turning blinking the icon");
+      blink_icon_on (self);
+    }
+  else
+    {
       g_assert_not_reached ();
     }
 }
@@ -1138,27 +995,31 @@ update_widget_state (HamUpdatesStatusMenuItem *self)
 static void
 set_state (HamUpdatesStatusMenuItem* self, State state)
 {
-  HamUpdatesStatusMenuItemPrivate *priv;
+  State oldstate;
 
-  g_return_if_fail (state >= UPNO_STATE_INVISIBLE &&
-                    state <= UPNO_STATE_BLINKING);
+  g_return_if_fail (state >= ICON_STATE_INVISIBLE &&
+                    state <= ICON_STATE_BLINKING);
 
-  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+  oldstate = get_state (self);
 
   /* let's avoid the obvious */
-  if (state == priv->state)
+  if (state == oldstate)
     return;
 
   /* this rule seems to be applied ever: */
   /* we can only go to blinking if we're invisible */
-  g_return_if_fail (!(state == UPNO_STATE_BLINKING
-                      && priv->state != UPNO_STATE_INVISIBLE));
+/*   if (oldstate != ICON_STATE_INVISIBLE */
+/*       && state == ICON_STATE_BLINKING) */
+/*     return; */
 
   {
+    HamUpdatesStatusMenuItemPrivate *priv;
+
+    priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
     LOG ("Changing icon state from %d to %d", priv->state, state);
     priv->state = state;
     save_state (self);
-    update_widget_state (self);
+    update_icon_state (self);
   }
 }
 
@@ -1172,332 +1033,42 @@ get_state (HamUpdatesStatusMenuItem *self)
   return priv->state;
 }
 
-/* contains and transports the number of available updates types */
-typedef struct {
-  gint os;
-  gint certified;
-  gint other;
-  gint new;
-} UpdatesCount;
-
-/* calculates the number of available updates types */
-static UpdatesCount *
-get_updates_count ()
-{
-  xexp *available_updates;
-  xexp *seen_updates;
-  UpdatesCount *retval;
-
-  retval = g_new0 (UpdatesCount, 1);
-
-  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
-
-  if (available_updates == NULL)
-    goto exit;
-
-  seen_updates = user_file_read_xexp (UFILE_SEEN_UPDATES);
-
-  if (seen_updates == NULL)
-    seen_updates = xexp_list_new ("updates");
-
-  /* preconditions ok */
-  {
-    xexp *x;
-    xexp *y;
-
-    y = NULL;
-
-    for (x = xexp_first (available_updates); x != NULL; x = xexp_rest (x))
-      {
-        if (!xexp_is_text (x))
-          continue;
-
-        if ((seen_updates != NULL) && xexp_is_list (seen_updates))
-          {
-            const gchar *pkg;
-
-            pkg = xexp_text (x);
-
-            for (y = xexp_first (seen_updates); y != NULL; y = xexp_rest (y))
-              if (xexp_is_text (y) && strcmp (pkg, xexp_text (y)) == 0)
-                break;
-          }
-
-        if (y == NULL)
-          retval->new++;
-
-        if (xexp_is (x, "os"))
-          retval->os++;
-        else if (xexp_is (x, "certified"))
-          retval->certified++;
-        else
-          retval->other++;
-      }
-
-      xexp_free (available_updates);
-
-      if (seen_updates != NULL)
-        xexp_free (seen_updates);
-    }
-
- exit:
-  LOG ("new pkgs = %d, new os = %d, new cert = %d, other = %d",
-       retval->new, retval->os, retval->certified, retval->other);
-
-  return retval;
-}
-
-static gchar*
-maybe_add_dots (gchar *str)
-{
-  gchar *tmp;
-
-  tmp = NULL;
-  if (str)
-    {
-      tmp = g_strconcat (str, "...", NULL);
-      g_free (str);
-    }
-
-  return tmp;
-}
-
-static gchar*
-build_status_menu_button_value (UpdatesCount *uc)
-{
-  gchar *retval;
-
-  g_return_val_if_fail (uc != NULL && uc->new != 0, NULL);
-
-  retval = NULL;
-
-  if (uc->os > 0)
-    retval = g_strdup_printf (_("ai_sb_update_os_%d"), uc->os);
-
-  if (uc->certified > 0)
-    {
-      retval = maybe_add_dots (retval);
-      if (!retval)
-        retval = g_strdup_printf (_("ai_sb_update_nokia_%d"), uc->certified);
-    }
-
-  if (uc->other > 0)
-    {
-      retval = maybe_add_dots (retval);
-      if (!retval)
-        retval = g_strdup_printf (_("ai_sb_update_thirdparty_%d"), uc->other);
-    }
-
-  LOG ("update string = %s", retval);
-  return retval;
-}
-
-static gboolean
-update_status_menu_button_value (HamUpdatesStatusMenuItem *self)
-{
-  UpdatesCount *uc;
-  gboolean retval;
-
-  retval = FALSE;
-
-  if ((uc = get_updates_count ()) == NULL)
-    return FALSE;
-
-  if (uc->new > 0 && !ham_is_showing_check_for_updates_view (self))
-    {
-      gchar *value;
-
-      if ((value = build_status_menu_button_value (uc)) != NULL)
-        {
-          HamUpdatesStatusMenuItemPrivate *priv;
-          priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-          hildon_button_set_value (HILDON_BUTTON (priv->button), value);
-          retval = TRUE;
-          g_free (value);
-        }
-    }
-
-  g_free (uc);
-  return retval;
-}
-
 static void
 update_state (HamUpdatesStatusMenuItem *self)
 {
+  HamUpdatesStatusMenuItemPrivate *priv;
+  gboolean updates_avail;
+  gboolean visible;
+
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
   LOG ("updating the state");
 
-  if (update_status_menu_button_value (self)
-      /* @todo || update_notifications_button_value (self) */)
-    set_state (self, UPNO_STATE_BLINKING);
-  else
-    set_state (self, UPNO_STATE_INVISIBLE);
-}
+  updates_avail = ham_updates_are_available (priv->updates, priv->osso);
 
-static gchar*
-get_package_list_string (gchar *type)
-{
-  xexp *available_updates;
-  xexp *seen_updates;
-  gchar *retval;
+  g_object_get (G_OBJECT (self), "visible", &visible, NULL);
 
-  retval = NULL;
-
-  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
-
-  if (available_updates == NULL)
-    goto exit;
-
-  seen_updates = user_file_read_xexp (UFILE_SEEN_UPDATES);
-
-  if (seen_updates == NULL)
-    seen_updates = xexp_list_new ("updates");
-
-  /* preconditions ok */
-  {
-    xexp *x;
-    xexp *y;
-    gint c;
-
-    y = NULL;
-    c = 0;
-
-    for (x = xexp_first (available_updates); x != NULL; x = xexp_rest (x))
-      {
-        if (!xexp_is_text (x))
-          continue;
-
-        if ((seen_updates != NULL) && xexp_is_list (seen_updates))
-          {
-            const gchar *pkg;
-
-            pkg = xexp_text (x);
-
-            for (y = xexp_first (seen_updates); y != NULL; y = xexp_rest (y))
-              if (xexp_is_text (y) && strcmp (pkg, xexp_text (y)) == 0)
-                break;
-          }
-
-        if (xexp_is (x, type) && c < 3)
-          {
-            const gchar *pkg;
-
-            if ((pkg = xexp_text (x)) != NULL)
-              {
-                c++;
-                if (retval != NULL)
-                  {
-                    gchar *tmp;
-
-                    tmp = retval;
-                    retval = g_strconcat (tmp, ", ", pkg, NULL);
-                    g_free (tmp);
-                  }
-                else
-                  retval = g_strdup (pkg);
-              }
-          }
-      }
-
-      xexp_free (available_updates);
-
-      if (seen_updates != NULL)
-        xexp_free (seen_updates);
-
-      if (c > 2)
-        {
-          gchar *tmp;
-
-          tmp = retval;
-          retval = g_strconcat (tmp, "...", NULL);
-          g_free (tmp);
-        }
-    }
-
- exit:
-  LOG ("pkgs = %s", retval);
-
-  return retval;
-}
-
-static gchar*
-concat_package_list (gchar *str, gchar *type)
-{
-  gchar *tmp;
-  gchar *pkgs;
-  gchar *retval;
-
-  tmp = str;
-  pkgs = get_package_list_string (type);
-  retval = g_strconcat (tmp, "<small>", pkgs, "</small>\n\n", NULL);
-  g_free (tmp);
-  g_free (pkgs);
-
-  return retval;
-}
-
-static gchar*
-build_update_type_string (gchar *str, gchar *title, gchar *type)
-{
-  gchar *retval;
-
-  if (str != NULL)
+  /* shall we show the updates button? */
+  if (updates_avail == TRUE)
     {
-      gchar *tmp;
-
-      tmp = str;
-      retval = g_strconcat (tmp, "<big>", title, "</big>\n", NULL);
-      g_free (tmp);
+      if (visible == FALSE)
+        gtk_widget_show (GTK_WIDGET (self));
     }
   else
-    retval = g_strconcat ("<big>", title, "</big>\n", NULL);
-
-  retval = concat_package_list (retval, type);
-
-  return retval;
-}
-
-static gchar*
-get_dialog_content ()
-{
-  gchar *str;
-  UpdatesCount *uc;
-
-  if ((uc = get_updates_count ()) == NULL)
-    return NULL;
-
-  if (uc->new == 0)
-    return NULL;
-
-  str = NULL;
-
-  if (uc->os > 0)
     {
-      gchar *title;
-
-      title = g_strdup_printf (_("ai_sb_update_os_%d"), uc->os);
-      str = build_update_type_string (str, title, "os");
-      g_free (title);
+      if (visible == TRUE)
+        gtk_widget_hide (GTK_WIDGET (self));
     }
 
-  if (uc->certified > 0)
+  /* shall we blink the status area icon? */
+  if (updates_avail == TRUE || ham_notifier_are_available (NULL) == TRUE)
     {
-      gchar *title;
-
-      title = g_strdup_printf (_("ai_sb_update_nokia_%d"), uc->certified);
-      str = build_update_type_string (str, title, "certified");
-      g_free (title);
+      set_state (self, ICON_STATE_BLINKING);
     }
-
-  if (uc->other > 0)
+  else
     {
-      gchar *title;
-
-      title = g_strdup_printf (_("ai_sb_update_thirdparty_%d"), uc->other);
-      str = build_update_type_string (str, title, "other");
-      g_free (title);
+      set_state (self, ICON_STATE_INVISIBLE);
     }
-
-  return str;
 }
 
 static void
@@ -1526,7 +1097,7 @@ ham_updates_status_menu_item_connection_cb (ConIcConnection *connection,
                        || strcmp (bearer, "WLAN_INFRA") == 0);
     }
 
-  LOG ("we're %s", priv->constate == UPNO_CON_OFFLINE ? "offline" : "online");
+  LOG ("we're %s", priv->constate == CONN_OFFLINE ? "offline" : "online");
 }
 
 static void
@@ -1540,7 +1111,7 @@ setup_connection_state (HamUpdatesStatusMenuItem *self)
     {
       /* if we're in scratchbox will assume that we have an inet
          connection */
-      priv->constate = UPNO_CON_ONLINE;
+      priv->constate = CONN_ONLINE;
       LOG ("we're online");
     }
   else
@@ -1553,31 +1124,4 @@ setup_connection_state (HamUpdatesStatusMenuItem *self)
       g_object_set (G_OBJECT (priv->conic),
                     "automatic-connection-events", TRUE, NULL);
     }
-}
-
-static gboolean
-ham_is_showing_check_for_updates_view (HamUpdatesStatusMenuItem *self)
-{
-  if (ham_is_running ())
-    {
-      HamUpdatesStatusMenuItemPrivate *priv;
-      osso_return_t result;
-      osso_rpc_t reply;
-
-      priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-
-      LOG ("asking if ham is showing the \"check for updates\" view");
-      result = osso_rpc_run (priv->osso,
-			     HILDON_APP_MGR_SERVICE,
-			     HILDON_APP_MGR_OBJECT_PATH,
-			     HILDON_APP_MGR_INTERFACE,
-			     HILDON_APP_MGR_OP_SHOWING_CHECK_FOR_UPDATES,
-			     &reply,
-			     DBUS_TYPE_INVALID);
-
-      if (result == OSSO_OK && reply.type == DBUS_TYPE_BOOLEAN)
-        return reply.value.b;
-    }
-
-  return FALSE;
 }

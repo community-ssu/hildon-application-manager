@@ -24,7 +24,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <glib.h>
+#include <gtk/gtk.h>
+
 #include <time.h>
 
 #include <sys/inotify.h>
@@ -34,12 +35,12 @@
 
 /* logging mechanism */
 #ifdef DEBUG
-#define LOG(...) my_log (__PRETTY_FUNCTION__, __VA_ARGS__);
+#define LOG(...) my_log (__FILE__, __PRETTY_FUNCTION__, __VA_ARGS__);
 #else
 #define LOG(...)
 #endif
 
-void my_log (const gchar *function, const gchar *fmt, ...);
+void my_log (const gchar *file, const gchar *function, const gchar *fmt, ...);
 
 /* TRUE if the application is running in the scratchbox environment */
 gboolean running_in_scratchbox ();
@@ -67,5 +68,8 @@ gchar *get_gconf_http_proxy ();
 */
 gboolean is_file_modified (struct inotify_event *event, gint watch,
 			   const gchar *filename);
+
+/* finds and loads an icon from the theme */
+GdkPixbuf *icon_load (const gchar *name, gint size);
 
 #endif 	    /* !UTIL_H */
