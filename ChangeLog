@@ -1,3 +1,56 @@
+2009-02-10  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Release 2.2.9
+
+	Removed dependencies to hildon-help (NB#100882).
+	
+	* configure.ac: removed the hildon-help pkg-config check.
+	* debian/control: removed the libhildonhelp-dev package depenency.
+	* debian/changelog: notice the dependency removal.
+	* src/menu.cc (create_menu): commented out the help menu item addition.
+	* src/main.cc: commented out the hildon/hildon-help.h include.
+	(set_dialog_help): commented out function.
+	(show_help): commented out function.
+	
+2009-02-02  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* hildon-application-manager.desktop: changed Icon and added
+	X-Text-Domain. (NB#98870)
+
+2009-01-29  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>	
+
+	New software notifications and Software Updates notifications
+	plugins. 
+	
+	* statusbar/Makefile.am (EXTRA_DIST): added ham-updates.desktop
+	(hildonstatusmenudesktopentry_DATA): added ham-updates.desktop
+	(hildondesktoplib_LTLIBRARIES): new plugin definition.
+	(ham_updates_status_menu_item_la_SOURCES): update the source list for
+	the plugin.
+	* statusbar/ham-notifier-status-menu-item.c: new file.
+	* statusbar/ham-notifier-status-menu-item.h: new file.
+	* statusbar/ham-notifier.c: new file.
+	* statusbar/ham-notifier.h: new file.
+	* statusbar/ham-notifier.desktop: new file.
+	* statusbar/ham-updates-status-menu-item.c: object rewrite.
+	* statusbar/ham-updates.c: new file.
+	* statusbar/ham-updates.h: new file.
+	* statusbar/ham-updates.desktop: removed unused entry fields.
+	* statusbar/transparent-icon.c: new file.
+	* statusbar/util.c (ham_is_running): changed to dbus.
+	(my_log): added the file name in the log message.
+	(icon_load): new function.
+	* statusbar/util.h: exported the new my_log signature and exported the
+	icon_load function.	
+
+2009-01-28  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Release 2.2.8
+
+	Removed the use of libhildonwm.
+	
+	* statusbar/util.c (ham_is_running): always return false.
+
 2009-01-28  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	Release 2.2.7
