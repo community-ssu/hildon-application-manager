@@ -282,9 +282,9 @@ create_menu (HildonWindow *window)
   add_item (tools,
 	    _("ai_me_tools_log"), NULL,
 	    show_log_dialog_flow);
-  add_item (tools,
-	    _("ai_me_tools_help"), NULL,
-	    show_help);
+//   add_item (tools,
+// 	    _("ai_me_tools_help"), NULL,
+// 	    show_help);
 
   add_item_with_shortcut (main,
 			  _("ai_me_close"), NULL,
