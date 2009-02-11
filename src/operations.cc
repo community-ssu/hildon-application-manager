@@ -1644,7 +1644,6 @@ uninstall_package (package_info *pi,
 
   ask_yes_no_with_details (_("ai_ti_confirm_uninstall"), text->str,
 			   c->pi, remove_details,
-			   "uninstallview",
 			   up_checkrm_start, c);
   g_string_free (text, 1);
 }
@@ -1985,7 +1984,7 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
 			    ? _("ai_ti_confirm_update")
 			    : _("ai_ti_confirm_install")),
 			   text->str, pi, install_details,
-			   NULL, cont, c);
+                           cont, c);
 
   g_string_free (text, 1);
 }

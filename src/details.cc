@@ -708,7 +708,6 @@ spd_with_details (void *data, bool filling_details)
       push_dialog (dialog);
 
       gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-      set_dialog_help (dialog, AI_TOPIC ("packagedetailsview"));
       respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
 
       /* Create the notebook */

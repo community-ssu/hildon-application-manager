@@ -392,7 +392,6 @@ void
 ask_yes_no_with_details (const gchar *title,
 			 const gchar *question,
 			 package_info *pi, detail_kind kind,
-			 const char *help_topic,
 			 void (*cont) (bool res, void *data),
 			 void *data)
 {
@@ -418,16 +417,6 @@ ask_yes_no_with_details (const gchar *title,
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
 		     gtk_label_new (question));
-
-  if (help_topic != NULL)
-    {
-      char *full_help_topic =
-	g_strconcat ("Utilities_ApplicationInstaller_", help_topic, NULL);
-
-      set_dialog_help (dialog, full_help_topic);
-
-      g_free (full_help_topic);
-    }
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (yes_no_response), c);
@@ -2413,8 +2402,6 @@ show_deb_file_chooser (void (*cont) (char *uri, void *data),
 
   g_signal_connect (fcd, "response",
 		    G_CALLBACK (fcd_response), c);
-
-  set_dialog_help (fcd, "Utilities_ApplicationInstaller_selectpackage");
 
   gtk_widget_show_all (fcd);
 }

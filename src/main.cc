@@ -63,7 +63,6 @@
 extern "C" {
   #include <hildon/hildon-window.h>
   #include <hildon/hildon-note.h>
-//   #include <hildon/hildon-help.h>
   #include <hildon/hildon-bread-crumb-trail.h>
 }
 
@@ -74,7 +73,6 @@ static void set_operation_label (const char *label, const char *insens);
 static void set_operation_callback (void (*func) (gpointer), gpointer data);
 static void enable_search (bool f);
 static void enable_refresh (bool f);
-static void set_current_help_topic (const char *topic);
 
 static void get_package_infos_in_background (GList *packages);
 
@@ -385,7 +383,6 @@ make_main_view (view *v)
 
   enable_search (false);
   enable_refresh (false);
-  set_current_help_topic (AI_TOPIC ("mainview"));
 
   prevent_updating ();
 
@@ -1559,7 +1556,6 @@ make_install_section_view (view *v)
 
   enable_search (true);
   enable_refresh (true);
-  set_current_help_topic (AI_TOPIC ("packagesview"));
 
   return view;
 }
@@ -1637,8 +1633,6 @@ make_install_applications_view (view *v)
       view = make_global_section_list (install_sections, view_section);
     }
 
-  set_current_help_topic (AI_TOPIC ("packagesview"));
-
   gtk_widget_show_all (view);
 
   enable_search (true);
@@ -1697,8 +1691,6 @@ make_upgrade_applications_view (view *v)
   enable_search (true);
   enable_refresh (true);
 
-  set_current_help_topic (AI_TOPIC ("updateview"));
-
   if (package_list_ready
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
@@ -1730,7 +1722,6 @@ make_uninstall_applications_view (view *v)
 
   enable_search (true);
   enable_refresh (false);
-  set_current_help_topic (AI_TOPIC ("uninstallview"));
 
   return view;
 }
@@ -1776,7 +1767,6 @@ make_search_results_view (view *v)
 
   enable_search (true);
   enable_refresh (true);
-  set_current_help_topic (AI_TOPIC ("searchresultsview"));
 
   return view;
 }
@@ -2607,28 +2597,6 @@ insensitive_operation_press (GtkButton *button, gpointer data)
 }
 
 static osso_context_t *osso_ctxt;
-
-void
-set_dialog_help (GtkWidget *dialog, const char *topic)
-{
-//   if (osso_ctxt)
-//     hildon_help_dialog_help_enable (GTK_DIALOG (dialog), topic, osso_ctxt);
-}
-
-static const char *current_topic;
-
-void
-show_help ()
-{
-//   if (osso_ctxt && current_topic)
-//     hildon_help_show (osso_ctxt, current_topic, 0);
-}
-
-static void
-set_current_help_topic (const char *topic)
-{
-  current_topic = topic;
-}
 
 static void
 call_refresh_package_cache (GtkWidget *button, gpointer data)
