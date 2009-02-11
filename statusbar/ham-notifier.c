@@ -487,6 +487,7 @@ ham_notifier_empty_seen_notifications ()
   xexp *avail_notifications;
   xexp *seen_notifications;
 
+  seen_notifications = NULL;
  avail_notifications = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
  if (avail_notifications == NULL)
    goto exit;
