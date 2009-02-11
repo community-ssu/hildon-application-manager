@@ -130,6 +130,7 @@ static toolbar_struct *updates_tb_struct = NULL;
 static toolbar_struct *current_tb_struct = NULL;
 
 static void set_current_toolbar (toolbar_struct *tb_struct);
+static void set_current_toolbar_visibility (bool f);
 
 GtkWidget *make_main_view (view *v);
 GtkWidget *make_install_applications_view (view *v);
@@ -191,10 +192,21 @@ show_view (view *v)
       cur_view = NULL;
     }
 
-   if (v == &upgrade_applications_view)
-     set_current_toolbar (updates_tb_struct);
-   else
-     set_current_toolbar (main_tb_struct);
+  if (v == &main_view)
+    {
+      // main view doesn't have toolbar
+      set_current_toolbar_visibility (false);
+    }
+  else
+    {
+      set_toolbar_visibility (true, fullscreen_toolbar);
+      set_toolbar_visibility (false, normal_toolbar);
+
+      if (v == &upgrade_applications_view)
+        set_current_toolbar (updates_tb_struct);
+      else
+        set_current_toolbar (main_tb_struct);
+    }
 
   set_details_callback (NULL, NULL);
   set_operation_label (NULL, NULL);
@@ -278,9 +290,9 @@ expose_main_view (GtkWidget *w, GdkEventExpose *ev, gpointer data)
     {
       gdk_drawable_get_size (pixmap, &pw, &ph);
       gdk_drawable_get_size (w->window, &ww, &wh);
-      
+
       gdk_draw_drawable (w->window, style->fg_gc[GTK_STATE_NORMAL],
-			 pixmap, 0, 0, ww-pw, wh-ph, pw, ph);
+                         pixmap, 0, 0, ww-pw, wh-ph, pw, ph);
     }
 
   gtk_container_propagate_expose (GTK_CONTAINER (w),
@@ -305,7 +317,7 @@ make_main_view (view *v)
   GtkWidget *btn, *label, *image;
   GtkSizeGroup *btn_group;
 
-  btn_group = gtk_size_group_new(GTK_SIZE_GROUP_BOTH);
+  btn_group = gtk_size_group_new (GTK_SIZE_GROUP_BOTH);
 
   view = gtk_event_box_new ();
   gtk_widget_set_name (view, "osso-application-installer-main-view");
@@ -318,16 +330,16 @@ make_main_view (view *v)
 
   // first label
   hbox = gtk_hbox_new (FALSE, 10);
-  image = gtk_image_new_from_icon_name ("qgn_list_filesys_divc_cls",
+  image = gtk_image_new_from_icon_name ("general_device_root_folder",
 					HILDON_ICON_SIZE_SMALL);
   gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
 
   device_label = gtk_label_new (device_name ());
-  gtk_label_set_ellipsize(GTK_LABEL (device_label), PANGO_ELLIPSIZE_END);
+  gtk_label_set_ellipsize (GTK_LABEL (device_label), PANGO_ELLIPSIZE_END);
   gtk_misc_set_alignment (GTK_MISC (device_label), 0.0, 0.5);
-  gtk_box_pack_start (GTK_BOX (hbox),  device_label, TRUE, TRUE, 0);
-  gtk_box_pack_start (GTK_BOX (vbox), hbox,  FALSE, FALSE, 0);
-  
+  gtk_box_pack_start (GTK_BOX (hbox), device_label, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
+
   g_signal_connect (device_label, "destroy",
 		    G_CALLBACK (device_label_destroyed), NULL);
 
@@ -337,15 +349,15 @@ make_main_view (view *v)
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &uninstall_applications_view);
-  gtk_size_group_add_widget(btn_group, btn);
+  gtk_size_group_add_widget (btn_group, btn);
   // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn,  FALSE, FALSE, 36); 
+  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
   gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
   grab_focus_on_map (btn);
 
   // second label
   hbox = gtk_hbox_new (FALSE, 10);
-  image = gtk_image_new_from_icon_name ("qgn_list_browser",
+  image = gtk_image_new_from_icon_name ("general_web",
 					HILDON_ICON_SIZE_SMALL);
   gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
 
@@ -360,29 +372,29 @@ make_main_view (view *v)
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &install_applications_view);
-  gtk_size_group_add_widget(btn_group, btn);
+  gtk_size_group_add_widget (btn_group, btn);
   // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn,  FALSE, FALSE, 36);
+  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
   gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
-  
+
   // third button
   hbox = gtk_hbox_new (FALSE, 0);
   btn = make_padded_button (_("ai_li_update"));
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_check_for_updates_view),
 		    NULL);
-  gtk_size_group_add_widget(btn_group, btn);
+  gtk_size_group_add_widget (btn_group, btn);
   // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn,  FALSE, FALSE, 36);
+  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
   gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
 
   gtk_widget_show_all (view);
-  g_object_unref(btn_group);
+  g_object_unref (btn_group);
 
   get_package_infos_in_background (NULL);
 
-  enable_search (false);
-  enable_refresh (false);
+  //enable_search (false);
+  //enable_refresh (false);
 
   prevent_updating ();
 
@@ -2448,7 +2460,7 @@ set_current_toolbar_visibility (bool f)
 {
   if (current_tb_struct->toolbar)
     {
-      if (f)
+      if (f && get_current_view_id () != MAIN_VIEW)
 	gtk_widget_show_all (current_tb_struct->toolbar);
       else
 	gtk_widget_hide_all (current_tb_struct->toolbar);
