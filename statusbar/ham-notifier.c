@@ -174,6 +174,7 @@ ham_notifier_set_dialog_info (HamNotifier* self, GtkDialog *dlg, gchar *content)
   label = gtk_label_new (NULL);
   gtk_label_set_markup (GTK_LABEL (label), content);
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
 
   gtk_container_add (GTK_CONTAINER (dlg->vbox), label);
 }
