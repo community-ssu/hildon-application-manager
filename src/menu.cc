@@ -60,40 +60,6 @@ add_item (GtkMenu *menu, const gchar *label, const gchar *insens,
   return item;
 }
 
-static GtkWidget *
-add_item_with_shortcut (GtkMenu *menu, const gchar *label,
-			const gchar *insens,
-			void (*func)(),
-			GtkAccelGroup *accel_group, guint key)
-{
-  GtkWidget *item = add_item (menu, label, insens, func);
-
-  gtk_widget_add_accelerator (item, "activate",
-			      accel_group,
-			      key, GDK_CONTROL_MASK,
-			      GTK_ACCEL_VISIBLE);
-
-  return item;
-}
-
-static GtkWidget *
-add_check (GtkMenu *menu, const gchar *label, void (*func)())
-{
-  GtkWidget *item = gtk_check_menu_item_new_with_label (label);
-  gtk_menu_append (menu, item);
-  if (func)
-    g_signal_connect (item, "activate", G_CALLBACK (func), NULL);
-  return item;
-}
-
-static GtkWidget *
-add_sep (GtkMenu *menu)
-{
-  GtkWidget *item = gtk_separator_menu_item_new ();
-  gtk_menu_append (menu, item);
-  return item;
-}
-
 static GtkMenu *
 add_menu (GtkMenu *menu, const gchar *label)
 {
@@ -171,39 +137,6 @@ set_operation_menu_item_sensitiveness (bool sensitive)
 }
 
 static void
-fullscreen_activated (GtkWidget *item)
-{
-  bool active =
-    gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (item));
-  set_fullscreen (active);
-}
-
-static GtkWidget *fullscreen_item;
-
-void
-set_fullscreen_menu_check (bool f)
-{
-  if (fullscreen_item)
-    gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (fullscreen_item), f);
-}
-
-static void
-normal_toolbar_activated (GtkWidget *item)
-{
-  bool active =
-    gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (item));
-  set_toolbar_visibility (false, active);
-}
-
-static void
-fullscreen_toolbar_activated (GtkWidget *item)
-{
-  bool active =
-    gtk_check_menu_item_get_active (GTK_CHECK_MENU_ITEM (item));
-  set_toolbar_visibility (true, active);
-}
-
-static void
 call_install_from_file ()
 {
   install_from_file_flow (NULL);
@@ -212,7 +145,6 @@ call_install_from_file ()
 void
 create_menu (HildonWindow *window)
 {
-  GtkWidget *item;
   GtkWidget *restore_item;
   GtkAccelGroup *accel_group;
   xexp *restore_backup = NULL;
@@ -224,8 +156,11 @@ create_menu (HildonWindow *window)
   hildon_window_set_menu (window, GTK_MENU (main));
 
   GtkMenu *packages = add_menu (main, _("ai_me_package"));
-  GtkMenu *view = add_menu (main, _("ai_me_view"));
   GtkMenu *tools = add_menu (main, _("ai_me_tools"));
+
+  add_item (main,
+            _("ai_me_view_sort"), NULL,
+            show_sort_settings_dialog_flow);
 
   operation_menu_item = add_item (packages, "", NULL, do_current_operation);
   g_signal_connect (operation_menu_item, "insensitive_press",
@@ -238,30 +173,6 @@ create_menu (HildonWindow *window)
 				_("ai_me_package_details"),
 				_("ai_ib_nothing_to_view"),
 				show_current_details);
-
-  add_item (view,
-	    _("ai_me_view_sort"), NULL,
-	    show_sort_settings_dialog_flow);
-  add_sep (view);
-  fullscreen_item = add_check (view, _("ai_me_view_fullscreen"), NULL);
-  g_signal_connect (fullscreen_item, "activate",
-		    G_CALLBACK (fullscreen_activated), NULL);
-
-  GtkMenu *toolbar = add_menu (view, _("ai_me_view_show_toolbar"));
-
-  item = add_check (toolbar, _("ai_me_view_show_toolbar_normal"), NULL);
-  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item),
-				  normal_toolbar);
-  g_signal_connect (item, "activate",
-		    G_CALLBACK (normal_toolbar_activated), NULL);
-
-  item = add_check (toolbar,
-		    _("ai_me_view_show_toolbar_fullscreen"), NULL);
-  gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item),
-				  fullscreen_toolbar);
-  g_signal_connect (item, "activate",
-		    G_CALLBACK (fullscreen_toolbar_activated), NULL);
-
 
   settings_menu_item = 
     add_item (tools,
@@ -282,14 +193,6 @@ create_menu (HildonWindow *window)
   add_item (tools,
 	    _("ai_me_tools_log"), NULL,
 	    show_log_dialog_flow);
-//   add_item (tools,
-// 	    _("ai_me_tools_help"), NULL,
-// 	    show_help);
-
-  add_item_with_shortcut (main,
-			  _("ai_me_close"), NULL,
-			  menu_close,
-			  accel_group, 'q');
 
   /* Set sensitiveness for restore_packages menu item */
   restore_backup = user_file_read_xexp (UFILE_RESTORE_BACKUP);

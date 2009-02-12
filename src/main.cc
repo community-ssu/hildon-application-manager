@@ -2512,7 +2512,6 @@ window_state_event (GtkWidget *widget, GdkEventWindowState *event,
   if (is_fullscreen != f)
     {
       is_fullscreen = f;
-      set_fullscreen_menu_check (f);
       if (is_fullscreen)
 	{
 	  gtk_container_set_border_width (GTK_CONTAINER (widget), 15);
