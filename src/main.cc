@@ -2751,7 +2751,7 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
     {
       /* Search button */
       image = gtk_image_new_from_icon_name ("qgn_toolb_gene_findbutton",
-					    HILDON_ICON_SIZE_TOOLBAR);
+					    HILDON_ICON_SIZE_FINGER);
       search_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
       gtk_tool_item_set_expand (GTK_TOOL_ITEM (search_button), TRUE);
       gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (search_button), TRUE);
@@ -2769,7 +2769,7 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
 
   /* Details button */
   image = gtk_image_new_from_icon_name ("qgn_toolb_gene_detailsbutton",
-					HILDON_ICON_SIZE_TOOLBAR);
+					HILDON_ICON_SIZE_FINGER);
   details_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
   gtk_tool_item_set_expand (GTK_TOOL_ITEM (details_button), TRUE);
   gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (details_button), TRUE);
@@ -2789,7 +2789,7 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
     {
       /* Check for updates button */
       image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
-					    HILDON_ICON_SIZE_TOOLBAR);
+					    HILDON_ICON_SIZE_FINGER);
       GtkWidget *refresh_button =
 	GTK_WIDGET (gtk_tool_button_new (image, NULL));
       gtk_tool_item_set_expand (GTK_TOOL_ITEM (refresh_button), TRUE);
