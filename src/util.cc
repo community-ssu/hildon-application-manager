@@ -1390,11 +1390,11 @@ package_info_func (GtkTreeViewColumn *column,
   const gchar *package_name = NULL;
   const gchar *package_version = NULL;
   const gchar *package_description = NULL;
-  
+
   gtk_tree_model_get (model, iter, 0, &pi, -1);
   if (!pi)
     return;
-  
+
   package_name = pi->get_display_name (global_installed);
   package_version = pi->get_display_version (global_installed);
 
@@ -1409,22 +1409,24 @@ package_info_func (GtkTreeViewColumn *column,
             package_description = pi->installed_short_description;
         }
     }
-  
+
   if (!global_icons_initialized)
     {
       GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
 
       default_icon = gtk_icon_theme_load_icon (icon_theme,
-                                               "qgn_list_gene_default_app",
+                                               "general_application_manager",
                                                26,
-                                               GtkIconLookupFlags(0),
+                                               GtkIconLookupFlags (0),
                                                NULL);
 
       broken_icon = gtk_icon_theme_load_icon (icon_theme,
-                                              "qgn_list_app_broken",
+                                              "app_install_broken_application",
                                               26,
-                                              GtkIconLookupFlags(0),
+                                              GtkIconLookupFlags (0),
                                               NULL);
+
+      global_icons_initialized = true;
     }
 
   GdkPixbuf *icon;
@@ -1442,7 +1444,7 @@ package_info_func (GtkTreeViewColumn *column,
 		"package-name", package_name,
                 "package-version", package_version,
                 "package-description", package_description,
-                "pixbuf", icon? icon : default_icon,
+                "pixbuf", icon ? icon : default_icon,
 		NULL);
 }
 
