@@ -4138,7 +4138,7 @@ cmd_install_check ()
 #include <mntent.h>
 
 /* MMC mountpoints */
-#define INTERNAL_MMC_MOUNTPOINT "/media/mmc2"
+#define INTERNAL_MMC_MOUNTPOINT  "/home/user/MyDocs"
 #define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
 
 /* global variable to report the download size to the frontend */
@@ -4148,7 +4148,7 @@ static bool
 volume_is_readwrite (char* option)
 {
   g_return_val_if_fail (option, FALSE);
-  
+
   enum
   {
     RW = 0,
@@ -4226,7 +4226,7 @@ volume_path_is_mounted_writable (const gchar *path)
     }
 
   endmntent (fp);
-  
+
   return result;
 }
 
@@ -4262,7 +4262,7 @@ cmd_download_package ()
               alt_download_root = INTERNAL_MMC_MOUNTPOINT;
               result_code = operation (false, alt_download_root, true);
             }
-          
+
           if (flag_download_packages_to_mmc &&
               result_code == rescode_out_of_space &&
               volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT))
@@ -4913,8 +4913,10 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
 
   /* what if after downloaded the bytes in DEFAULT_DIR_CACHE_ARCHIVES
    * there's not enough space to install them? */
-  if (!strstr (archive_dir, INTERNAL_MMC_MOUNTPOINT) &&
-      !strstr (archive_dir, REMOVABLE_MMC_MOUNTPOINT))
+  if (INTERNAL_MMC_MOUNTPOINT
+      && !strstr (archive_dir, INTERNAL_MMC_MOUNTPOINT)
+      && REMOVABLE_MMC_MOUNTPOINT
+      && !strstr (archive_dir, REMOVABLE_MMC_MOUNTPOINT))
     {
       /* Should we add install_user_size_delta value */
       size += get_pkg_required_free_space ();
