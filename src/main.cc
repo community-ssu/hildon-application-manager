@@ -63,7 +63,6 @@
 extern "C" {
   #include <hildon/hildon-window.h>
   #include <hildon/hildon-note.h>
-//   #include <hildon/hildon-help.h>
   #include <hildon/hildon-bread-crumb-trail.h>
 }
 
@@ -74,7 +73,6 @@ static void set_operation_label (const char *label, const char *insens);
 static void set_operation_callback (void (*func) (gpointer), gpointer data);
 static void enable_search (bool f);
 static void enable_refresh (bool f);
-static void set_current_help_topic (const char *topic);
 
 static void get_package_infos_in_background (GList *packages);
 
@@ -132,6 +130,7 @@ static toolbar_struct *updates_tb_struct = NULL;
 static toolbar_struct *current_tb_struct = NULL;
 
 static void set_current_toolbar (toolbar_struct *tb_struct);
+static void set_current_toolbar_visibility (bool f);
 
 GtkWidget *make_main_view (view *v);
 GtkWidget *make_install_applications_view (view *v);
@@ -193,10 +192,21 @@ show_view (view *v)
       cur_view = NULL;
     }
 
-   if (v == &upgrade_applications_view)
-     set_current_toolbar (updates_tb_struct);
-   else
-     set_current_toolbar (main_tb_struct);
+  if (v == &main_view)
+    {
+      // main view doesn't have toolbar
+      set_current_toolbar_visibility (false);
+    }
+  else
+    {
+      set_toolbar_visibility (true, fullscreen_toolbar);
+      set_toolbar_visibility (false, normal_toolbar);
+
+      if (v == &upgrade_applications_view)
+        set_current_toolbar (updates_tb_struct);
+      else
+        set_current_toolbar (main_tb_struct);
+    }
 
   set_details_callback (NULL, NULL);
   set_operation_label (NULL, NULL);
@@ -280,9 +290,9 @@ expose_main_view (GtkWidget *w, GdkEventExpose *ev, gpointer data)
     {
       gdk_drawable_get_size (pixmap, &pw, &ph);
       gdk_drawable_get_size (w->window, &ww, &wh);
-      
+
       gdk_draw_drawable (w->window, style->fg_gc[GTK_STATE_NORMAL],
-			 pixmap, 0, 0, ww-pw, wh-ph, pw, ph);
+                         pixmap, 0, 0, ww-pw, wh-ph, pw, ph);
     }
 
   gtk_container_propagate_expose (GTK_CONTAINER (w),
@@ -306,8 +316,9 @@ make_main_view (view *v)
   GtkWidget *vbox, *hbox;
   GtkWidget *btn, *label, *image;
   GtkSizeGroup *btn_group;
+  gchar *devname;
 
-  btn_group = gtk_size_group_new(GTK_SIZE_GROUP_BOTH);
+  btn_group = gtk_size_group_new (GTK_SIZE_GROUP_BOTH);
 
   view = gtk_event_box_new ();
   gtk_widget_set_name (view, "osso-application-installer-main-view");
@@ -320,16 +331,18 @@ make_main_view (view *v)
 
   // first label
   hbox = gtk_hbox_new (FALSE, 10);
-  image = gtk_image_new_from_icon_name ("qgn_list_filesys_divc_cls",
+  image = gtk_image_new_from_icon_name ("general_device_root_folder",
 					HILDON_ICON_SIZE_SMALL);
   gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
 
-  device_label = gtk_label_new (device_name ());
-  gtk_label_set_ellipsize(GTK_LABEL (device_label), PANGO_ELLIPSIZE_END);
+  devname = g_strdup_printf (_("ai_li_device"), device_name ());
+  device_label = gtk_label_new (devname);
+  g_free (devname);
+  gtk_label_set_ellipsize (GTK_LABEL (device_label), PANGO_ELLIPSIZE_END);
   gtk_misc_set_alignment (GTK_MISC (device_label), 0.0, 0.5);
-  gtk_box_pack_start (GTK_BOX (hbox),  device_label, TRUE, TRUE, 0);
-  gtk_box_pack_start (GTK_BOX (vbox), hbox,  FALSE, FALSE, 0);
-  
+  gtk_box_pack_start (GTK_BOX (hbox), device_label, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
+
   g_signal_connect (device_label, "destroy",
 		    G_CALLBACK (device_label_destroyed), NULL);
 
@@ -339,15 +352,15 @@ make_main_view (view *v)
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &uninstall_applications_view);
-  gtk_size_group_add_widget(btn_group, btn);
+  gtk_size_group_add_widget (btn_group, btn);
   // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn,  FALSE, FALSE, 36); 
+  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
   gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
   grab_focus_on_map (btn);
 
   // second label
   hbox = gtk_hbox_new (FALSE, 10);
-  image = gtk_image_new_from_icon_name ("qgn_list_browser",
+  image = gtk_image_new_from_icon_name ("general_web",
 					HILDON_ICON_SIZE_SMALL);
   gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
 
@@ -362,30 +375,29 @@ make_main_view (view *v)
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &install_applications_view);
-  gtk_size_group_add_widget(btn_group, btn);
+  gtk_size_group_add_widget (btn_group, btn);
   // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn,  FALSE, FALSE, 36);
+  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
   gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
-  
+
   // third button
   hbox = gtk_hbox_new (FALSE, 0);
   btn = make_padded_button (_("ai_li_update"));
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_check_for_updates_view),
 		    NULL);
-  gtk_size_group_add_widget(btn_group, btn);
+  gtk_size_group_add_widget (btn_group, btn);
   // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn,  FALSE, FALSE, 36);
+  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
   gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
 
   gtk_widget_show_all (view);
-  g_object_unref(btn_group);
+  g_object_unref (btn_group);
 
   get_package_infos_in_background (NULL);
 
-  enable_search (false);
-  enable_refresh (false);
-  set_current_help_topic (AI_TOPIC ("mainview"));
+  //enable_search (false);
+  //enable_refresh (false);
 
   prevent_updating ();
 
@@ -1559,7 +1571,6 @@ make_install_section_view (view *v)
 
   enable_search (true);
   enable_refresh (true);
-  set_current_help_topic (AI_TOPIC ("packagesview"));
 
   return view;
 }
@@ -1637,8 +1648,6 @@ make_install_applications_view (view *v)
       view = make_global_section_list (install_sections, view_section);
     }
 
-  set_current_help_topic (AI_TOPIC ("packagesview"));
-
   gtk_widget_show_all (view);
 
   enable_search (true);
@@ -1697,8 +1706,6 @@ make_upgrade_applications_view (view *v)
   enable_search (true);
   enable_refresh (true);
 
-  set_current_help_topic (AI_TOPIC ("updateview"));
-
   if (package_list_ready
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
@@ -1730,7 +1737,6 @@ make_uninstall_applications_view (view *v)
 
   enable_search (true);
   enable_refresh (false);
-  set_current_help_topic (AI_TOPIC ("uninstallview"));
 
   return view;
 }
@@ -1776,7 +1782,6 @@ make_search_results_view (view *v)
 
   enable_search (true);
   enable_refresh (true);
-  set_current_help_topic (AI_TOPIC ("searchresultsview"));
 
   return view;
 }
@@ -2458,7 +2463,7 @@ set_current_toolbar_visibility (bool f)
 {
   if (current_tb_struct->toolbar)
     {
-      if (f)
+      if (f && get_current_view_id () != MAIN_VIEW)
 	gtk_widget_show_all (current_tb_struct->toolbar);
       else
 	gtk_widget_hide_all (current_tb_struct->toolbar);
@@ -2507,7 +2512,6 @@ window_state_event (GtkWidget *widget, GdkEventWindowState *event,
   if (is_fullscreen != f)
     {
       is_fullscreen = f;
-      set_fullscreen_menu_check (f);
       if (is_fullscreen)
 	{
 	  gtk_container_set_border_width (GTK_CONTAINER (widget), 15);
@@ -2607,28 +2611,6 @@ insensitive_operation_press (GtkButton *button, gpointer data)
 }
 
 static osso_context_t *osso_ctxt;
-
-void
-set_dialog_help (GtkWidget *dialog, const char *topic)
-{
-//   if (osso_ctxt)
-//     hildon_help_dialog_help_enable (GTK_DIALOG (dialog), topic, osso_ctxt);
-}
-
-static const char *current_topic;
-
-void
-show_help ()
-{
-//   if (osso_ctxt && current_topic)
-//     hildon_help_show (osso_ctxt, current_topic, 0);
-}
-
-static void
-set_current_help_topic (const char *topic)
-{
-  current_topic = topic;
-}
 
 static void
 call_refresh_package_cache (GtkWidget *button, gpointer data)
@@ -2770,8 +2752,8 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
   if (show_search_button)
     {
       /* Search button */
-      image = gtk_image_new_from_icon_name ("qgn_toolb_gene_findbutton",
-					    HILDON_ICON_SIZE_TOOLBAR);
+      image = gtk_image_new_from_icon_name ("general_search",
+					    HILDON_ICON_SIZE_FINGER);
       search_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
       gtk_tool_item_set_expand (GTK_TOOL_ITEM (search_button), TRUE);
       gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (search_button), TRUE);
@@ -2788,8 +2770,8 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
     }
 
   /* Details button */
-  image = gtk_image_new_from_icon_name ("qgn_toolb_gene_detailsbutton",
-					HILDON_ICON_SIZE_TOOLBAR);
+  image = gtk_image_new_from_icon_name ("general_information",
+					HILDON_ICON_SIZE_FINGER);
   details_button = GTK_WIDGET (gtk_tool_button_new (image, NULL));
   gtk_tool_item_set_expand (GTK_TOOL_ITEM (details_button), TRUE);
   gtk_tool_item_set_homogeneous (GTK_TOOL_ITEM (details_button), TRUE);
@@ -2808,8 +2790,8 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
   if (!red_pill_check_always)
     {
       /* Check for updates button */
-      image = gtk_image_new_from_icon_name ("qgn_toolb_gene_refresh",
-					    HILDON_ICON_SIZE_TOOLBAR);
+      image = gtk_image_new_from_icon_name ("general_refresh",
+					    HILDON_ICON_SIZE_FINGER);
       GtkWidget *refresh_button =
 	GTK_WIDGET (gtk_tool_button_new (image, NULL));
       gtk_tool_item_set_expand (GTK_TOOL_ITEM (refresh_button), TRUE);
@@ -2817,7 +2799,7 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
       g_signal_connect (refresh_button, "clicked",
 			G_CALLBACK (call_refresh_package_cache),
 			NULL);
-      
+
       gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
 			  GTK_TOOL_ITEM (refresh_button),
 			  -1);
@@ -2825,7 +2807,7 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
     }
   else
     tb_struct->refresh_button = NULL;
-    
+
   return tb_struct;
 }
 

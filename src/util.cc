@@ -392,7 +392,6 @@ void
 ask_yes_no_with_details (const gchar *title,
 			 const gchar *question,
 			 package_info *pi, detail_kind kind,
-			 const char *help_topic,
 			 void (*cont) (bool res, void *data),
 			 void *data)
 {
@@ -418,16 +417,6 @@ ask_yes_no_with_details (const gchar *title,
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
 		     gtk_label_new (question));
-
-  if (help_topic != NULL)
-    {
-      char *full_help_topic =
-	g_strconcat ("Utilities_ApplicationInstaller_", help_topic, NULL);
-
-      set_dialog_help (dialog, full_help_topic);
-
-      g_free (full_help_topic);
-    }
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (yes_no_response), c);
@@ -1401,11 +1390,11 @@ package_info_func (GtkTreeViewColumn *column,
   const gchar *package_name = NULL;
   const gchar *package_version = NULL;
   const gchar *package_description = NULL;
-  
+
   gtk_tree_model_get (model, iter, 0, &pi, -1);
   if (!pi)
     return;
-  
+
   package_name = pi->get_display_name (global_installed);
   package_version = pi->get_display_version (global_installed);
 
@@ -1420,22 +1409,24 @@ package_info_func (GtkTreeViewColumn *column,
             package_description = pi->installed_short_description;
         }
     }
-  
+
   if (!global_icons_initialized)
     {
       GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
 
       default_icon = gtk_icon_theme_load_icon (icon_theme,
-                                               "qgn_list_gene_default_app",
+                                               "general_application_manager",
                                                26,
-                                               GtkIconLookupFlags(0),
+                                               GtkIconLookupFlags (0),
                                                NULL);
 
       broken_icon = gtk_icon_theme_load_icon (icon_theme,
-                                              "qgn_list_app_broken",
+                                              "app_install_broken_application",
                                               26,
-                                              GtkIconLookupFlags(0),
+                                              GtkIconLookupFlags (0),
                                               NULL);
+
+      global_icons_initialized = true;
     }
 
   GdkPixbuf *icon;
@@ -1453,7 +1444,7 @@ package_info_func (GtkTreeViewColumn *column,
 		"package-name", package_name,
                 "package-version", package_version,
                 "package-description", package_description,
-                "pixbuf", icon? icon : default_icon,
+                "pixbuf", icon ? icon : default_icon,
 		NULL);
 }
 
@@ -2413,8 +2404,6 @@ show_deb_file_chooser (void (*cont) (char *uri, void *data),
 
   g_signal_connect (fcd, "response",
 		    G_CALLBACK (fcd_response), c);
-
-  set_dialog_help (fcd, "Utilities_ApplicationInstaller_selectpackage");
 
   gtk_widget_show_all (fcd);
 }

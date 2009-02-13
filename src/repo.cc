@@ -525,11 +525,6 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
-  // XXX - there is no help for the "edit" version of this dialog.
-  //
-  if (isnew)
-    set_dialog_help (dialog, AI_TOPIC ("newrepository"));
-
   if (!c->readonly)
     vbox = GTK_DIALOG (dialog)->vbox;
   else
@@ -1248,8 +1243,6 @@ show_catalogue_dialog (xexp *catalogues,
 
       g_signal_connect (c->edit_button, "insensitive_press",
                         G_CALLBACK (insensitive_cat_edit_press), c);
-
-      set_dialog_help (dialog, AI_TOPIC ("repository"));
     }
 
   gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox),

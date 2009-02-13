@@ -190,7 +190,6 @@ void ask_custom (const gchar *question,
 void ask_yes_no_with_details (const gchar *title,
 			      const gchar *question,
 			      package_info *pi, detail_kind kind,
-			      const char *help_topic,
 			      void (*cont) (bool res, void *data), void *data);
 
 void ask_yes_no_with_arbitrary_details (const gchar *title,

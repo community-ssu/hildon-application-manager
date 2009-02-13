@@ -1,3 +1,107 @@
+2009-02-13  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+	
+	Hardcoded the new mountpoint for the internal MMC (N101683).
+    
+	* src/apt-worker.cc: INTERNAL_MMC_MOUNTPOINT is now
+	/home/user/MyDocs. 
+	(is_there_enough_free_space): verify if the macros are not null.
+	
+2009-02-12  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Adapted the menu to the current UI spec (N89415).
+    
+	* src/main.cc (window_state_event): removed the
+	set_fullscreen_menu_check function call.
+	* src/menu.cc (add_item_with_shortcut): removed.
+	(add_check): removed.
+	(add_sep): removed.
+	(fullscreen_activated): removed.
+	(set_fullscreen_menu_check): removed.
+	(normal_toolbar_activated): removed.
+	(fullscreen_toolbar_activated): removed.
+	(create_menu): adapt the menu to the current UI spec
+
+2009-02-12  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Use the logical string to show the device name.
+    
+	* src/main.cc (make_main_view): use the logical string to display the
+	device name.
+
+2009-02-12  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Updated the icons used in the package lists.
+    
+	* src/util.cc (package_info_func): updated the icons showed in the
+	toolbars according to the spec. Honored the global_icons_initialized
+	variable.
+	
+2009-02-12  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Updated the icons used in the toolbars.
+    
+	* src/main.cc (create_toolbar): updated the icons showed in the
+	toolbars according to the spec.
+
+2009-02-11  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Use ellipsize in the labels of the dialogs.
+    
+	* statusbar/ham-updates.c (build_category_string): remove our own
+	ellipses. 
+	(ham_updates_set_dialog_info): ellipsize the label.
+	* statusbar/ham-notifier.c (ham_notifier_set_dialog_info): ellipsize
+	the label.
+
+2009-02-11  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Prevented show the toolbar in the main view (N93822).
+    
+	* src/main.cc (show_view): Checks if the requested view is the main
+	view and hide the toolbar if it is. Otherwise set the current
+	configuration value.
+	(make_main_view): Changed to the new label strings. Comment out the
+	configuration of the toolbar.
+	(set_current_toolbar_visibility): if it is requested show the toolbar
+	the current view is verified.
+
+2009-02-11  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Initialize seen_notifications in order to shut the compiler.
+    
+	* statusbar/ham-notifier.c (ham_notifier_empty_seen_notifications):
+	put NULL to seen_notification at the top of the function.
+	
+2009-02-11  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	 Removed all commented out code related to libhildon-help (N100882).
+	
+	* src/details.cc (spd_with_details): removed set_dialog_help call.
+	(show_log_dialog_flow): removed set_dialog_help call.
+	* src/main.cc (make_main_view): removed set_current_help_topic calls.
+	(make_install_section_view): removed set_dialog_help call.
+	(set_dialog_help): removed.
+	(show_help): removed.
+	(set_current_help_topic): removed.
+	* src/operations.cc (uninstall_package): removed the help_topic
+	parameter in ask_yes_no_with_details call.
+	(if_details_reply): removed the help_topic parameter in
+	ask_yes_no_with_details call.
+	* src/repo.cc (show_cat_edit_dialog): removed set_dialog_help call.
+	(show_catalogue_dialog): removed set_dialog_help call.
+	* src/search.cc (show_search_dialog_flow): removed set_dialog_help
+	call. 
+	* src/util.cc (ask_yes_no_with_details): removed the help_topic
+	parameter. 
+	(show_deb_file_chooser): removed set_dialog_help call.
+	* src/util.h: removed the help_topic in ask_yes_no_with_details
+	signature. 
+
+2009-02-11  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+	
+	* statusbar/hn-app-pixbuf-anim-blinker.c: removed unused file.
+	* statusbar/hn-app-pixbuf-anim-blinker.h: removed unused file.
+
 2009-02-10  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	Release 2.2.9
