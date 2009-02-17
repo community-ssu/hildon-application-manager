@@ -36,7 +36,7 @@
 #include <xexp.h>
 #include <user_files.h>
 
-#define DEBUG
+/* #define DEBUG */
 #include "util.h"
 #include "update-notifier-conf.h"
 
@@ -149,30 +149,38 @@ ham_updates_dialog_response_cb (GtkDialog *dialog,
 }
 
 static void
-build_category_string (GString *str, gchar *title, GSList *list)
+build_category_string (GString *str, const gchar *title, GSList *list)
 {
   GSList *l;
   gint c;
+  gchar *summary, *pkglist;
 
-  /* spaces */
-  if (str->len > 0)
-    g_string_append (str, "\n\n");
+  summary = g_strdup_printf (title, g_slist_length (list));
 
-  /* title */
-  g_string_append (str, "<big>");
-  g_string_append_printf (str, title, g_slist_length (list));
-  g_string_append (str, "</big>\n");
-
-  /* packages */
-  g_string_append (str, "<small>");
   c = 0;
+  pkglist = NULL;
   for (l = list; l != NULL && c < 3; l = l->next)
     {
-      if (c++ > 0)
-	g_string_append (str, ", ");
-      g_string_append (str, l->data);
+      gchar *tmp;
+
+      tmp = g_strdup_printf ("%s%s%s",
+                             (pkglist != NULL) ? pkglist : "",
+                             (c++ > 0) ? ", " : "",
+                             (gchar *) l->data);
+      if (tmp != NULL)
+        {
+          g_free (pkglist);
+          pkglist = tmp;
+        }
     }
-  g_string_append (str, "</small>");
+
+  if (summary != NULL && pkglist != NULL)
+    g_string_append_printf (str, "%s<big>%s</big>\n<small>%s</small>",
+                            (str->len > 0) ? "\n\n" : "",
+                            summary, pkglist);
+
+  g_free (summary);
+  g_free (pkglist);
 }
 
 static gchar*
@@ -451,19 +459,22 @@ ham_updates_get_button (HamUpdates *self)
 }
 
 static gchar*
-build_category_title (gchar *title, GSList *list)
+build_category_title (const gchar *title, GSList *list)
 {
   gint count;
 
   count = g_slist_length (list);
   if (count > 0)
     {
-      GString *str;
+      gchar *summary, *tmp;
 
-      str = g_string_new (NULL);
-      g_string_append_printf (str, title, count);
-      g_string_append (str, "...");
-      return g_string_free (str, FALSE);
+      tmp = g_strdup_printf (title, count);
+      if (tmp != NULL)
+        {
+          summary = g_strdup_printf ("%s...", tmp);
+          g_free (tmp);
+          return summary;
+        }
     }
 
   return NULL;

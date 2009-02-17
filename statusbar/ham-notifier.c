@@ -40,7 +40,7 @@
 #include <xexp.h>
 #include <user_files.h>
 
-#define DEBUG
+/* #define DEBUG */
 #include "util.h"
 #include "update-notifier-conf.h"
 
@@ -206,24 +206,16 @@ build_dialog_content ()
 
       if (title != NULL && desc != NULL && uri != NULL && provider != NULL)
         {
-          GString *string;
+          gchar *by;
 
-          string = g_string_new (NULL);
-          g_string_append (string, "<big>");
-          g_string_append (string, title);
-          g_string_append (string, "\n");
-          g_string_append_printf (string, _("apma_fi_by_provider"), provider);
-          g_string_append (string, "</big>");
-          g_string_append (string, "\n\n");
-          g_string_append (string, "<small>");
-          g_string_append (string, desc);
-          g_string_append (string, "</small>");
-          g_string_append (string, "\n\n");
-          g_string_append (string, "<b>");
-          g_string_append (string, uri);
-          g_string_append (string, "</b>");
+          by = g_strdup_printf (_("apma_fi_by_provider"), provider);
 
-          content = g_string_free (string, FALSE);
+          content = g_strdup_printf ("<big>%s\n%s</big>\n\n"
+                                     "<small>%s</small>\n\n"
+                                     "<b>%s</b>",
+                                     title, by, desc, uri);
+
+          g_free (by);
         }
     }
 
