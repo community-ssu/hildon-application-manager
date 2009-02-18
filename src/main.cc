@@ -69,7 +69,7 @@ extern "C" {
 using namespace std;
 
 static void set_details_callback (void (*func) (gpointer), gpointer data);
-static void set_operation_label (const char *label, const char *insens);
+static void set_operation_label (const char *label);
 static void set_operation_callback (void (*func) (gpointer), gpointer data);
 static void enable_search (bool f);
 static void enable_refresh (bool f);
@@ -209,7 +209,7 @@ show_view (view *v)
     }
 
   set_details_callback (NULL, NULL);
-  set_operation_label (NULL, NULL);
+  set_operation_label (NULL);
   set_operation_callback (NULL, NULL);
 
   allow_updating ();
@@ -1517,20 +1517,18 @@ installed_package_selected (package_info *pi)
     {
       set_details_callback (installed_package_details, pi);
       set_operation_callback (uninstall_operation_callback, pi);
-      set_operation_label (_("ai_me_package_uninstall"),
-                           _("ai_ni_unable_to_uninstall_system_update"));
+      set_operation_label (_("ai_me_package_uninstall"));
       set_operation_menu_item_sensitiveness (!(pi->flags & pkgflag_system_update));
 
       if (current_tb_struct->operation_button)
-        gtk_widget_set_sensitive (current_tb_struct->operation_button, 
+        gtk_widget_set_sensitive (current_tb_struct->operation_button,
                                   !(pi->flags & pkgflag_system_update));
     }
   else
     {
       set_details_callback (NULL, NULL);
       set_operation_callback (NULL, NULL);
-      set_operation_label (_("ai_me_package_uninstall"),
-                           _("ai_ib_nothing_to_uninstall"));
+      set_operation_label (_("ai_me_package_uninstall"));
     }
 }
 
@@ -1548,8 +1546,7 @@ make_install_section_view (view *v)
 {
   GtkWidget *view;
 
-  set_operation_label (_("ai_me_package_install"),
-		       _("ai_ib_nothing_to_install"));
+  set_operation_label (_("ai_me_package_install"));
 
   section_info *si = find_section_info (&install_sections,
 					cur_section_rank, cur_section_name);
@@ -1626,8 +1623,7 @@ make_install_applications_view (view *v)
 
   check_catalogues ();
 
-  set_operation_label (_("ai_me_package_install"),
-		       _("ai_ib_nothing_to_install"));
+  set_operation_label (_("ai_me_package_install"));
 
   if (install_sections && install_sections->next == NULL)
     {
@@ -1686,8 +1682,7 @@ make_upgrade_applications_view (view *v)
 
   check_catalogues ();
 
-  set_operation_label (_("ai_me_package_update"),
-		       _("ai_ib_nothing_to_update"));
+  set_operation_label (_("ai_me_package_update"));
 
   view =
     make_global_package_list (upgradeable_packages,
@@ -1722,8 +1717,7 @@ make_uninstall_applications_view (view *v)
 {
   GtkWidget *view;
 
-  set_operation_label (_("ai_me_package_uninstall"),
-		       _("ai_ib_nothing_to_uninstall"));
+  set_operation_label (_("ai_me_package_uninstall"));
 
   view = make_global_package_list (installed_packages,
 				   true,
@@ -1751,10 +1745,7 @@ make_search_results_view (view *v)
     {
       set_operation_label (v->parent == &install_applications_view
 			   ? _("ai_me_package_install")
-			   : _("ai_me_package_update"),
-			   v->parent == &install_applications_view
-			   ? _("ai_ib_nothing_to_install")
-			   : _("ai_ib_nothing_to_update"));
+			   : _("ai_me_package_update"));
 
       view = make_global_package_list (search_result_packages,
 				       false,
@@ -1768,8 +1759,7 @@ make_search_results_view (view *v)
     }
   else
     {
-      set_operation_label (_("ai_me_package_uninstall"),
-			   _("ai_ib_nothing_to_uninstall"));
+      set_operation_label (_("ai_me_package_uninstall"));
 
       view = make_global_package_list (search_result_packages,
 				       true,
@@ -2144,7 +2134,6 @@ set_details_callback (void (*func) (gpointer), gpointer data)
 static void (*operation_func) (gpointer);
 static gpointer operation_data;
 static const char *operation_label;
-static const char *insensitive_operation_press_label = NULL;
 
 void
 do_current_operation ()
@@ -2156,19 +2145,12 @@ do_current_operation ()
 static void set_operation_toolbar_label (const char *label, bool enable);
 
 static void
-set_operation_label (const char *label, const char *insens)
+set_operation_label (const char *label)
 {
   if (label == NULL)
-    {
-      label = _("ai_me_package_install");
-      insens = _("ai_ib_nothing_to_install");
-    }
-
-  if (insens == NULL)
-    insens = _("ai_ib_not_available");
+    label = _("ai_me_package_install");
 
   operation_label = label;
-  insensitive_operation_press_label = insens;
   set_operation_menu_label (label, operation_func != NULL);
   set_operation_toolbar_label (label, operation_func != NULL);
 }
@@ -2178,8 +2160,7 @@ set_operation_callback (void (*func) (gpointer), gpointer data)
 {
   operation_data = data;
   operation_func = func;
-  set_operation_label (operation_label,
-		       insensitive_operation_press_label);
+  set_operation_label (operation_label);
 
   /* Set sensitiveness for 'Update all' button if needed */
   if (current_tb_struct->update_all_button)
@@ -2597,19 +2578,6 @@ enable_refresh (bool f)
     gtk_widget_set_sensitive (current_tb_struct->refresh_button, f);
 }
 
-static void
-insensitive_press (GtkButton *button, gpointer data)
-{
-  char *text = (char *)data;
-  irritate_user (text);
-}
-
-static void
-insensitive_operation_press (GtkButton *button, gpointer data)
-{
-  irritate_user (insensitive_operation_press_label);
-}
-
 static osso_context_t *osso_ctxt;
 
 static void
@@ -2714,8 +2682,6 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
   g_signal_connect (operation_button, "clicked",
 		    G_CALLBACK (do_current_operation),
 		    NULL);
-  g_signal_connect (G_OBJECT (operation_button), "insensitive_press",
-		    G_CALLBACK (insensitive_operation_press), NULL);
 
   gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
 		      GTK_TOOL_ITEM (operation_button),
@@ -2738,8 +2704,6 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
 			G_CALLBACK (update_all_packages_callback),
 			NULL);
 
-      g_signal_connect (G_OBJECT (update_all_button), "insensitive_press",
-			G_CALLBACK (insensitive_operation_press), NULL);
       gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
 			  GTK_TOOL_ITEM (update_all_button),
 			  -1);
@@ -2760,9 +2724,6 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
       g_signal_connect (search_button, "clicked",
 			G_CALLBACK (show_search_dialog_flow),
 			NULL);
-      g_signal_connect (G_OBJECT (search_button), "insensitive_press",
-			G_CALLBACK (insensitive_press),
-			_("ai_ib_unable_search"));
       gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
 			  GTK_TOOL_ITEM (search_button),
 			  -1);
@@ -2778,9 +2739,6 @@ create_toolbar (bool show_update_all_button, bool show_search_button)
   g_signal_connect (details_button, "clicked",
 		    G_CALLBACK (show_current_details),
 		    NULL);
-  g_signal_connect (G_OBJECT (details_button), "insensitive_press",
-		    G_CALLBACK (insensitive_press),
-		    _("ai_ib_nothing_to_view"));
 
   gtk_toolbar_insert (GTK_TOOLBAR (toolbar),
 		      GTK_TOOL_ITEM (details_button),
