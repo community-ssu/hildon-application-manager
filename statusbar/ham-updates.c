@@ -143,9 +143,19 @@ static void
 ham_updates_dialog_response_cb (GtkDialog *dialog,
 				gint response, gpointer data)
 {
-  g_signal_emit (data, ham_updates_signals[RESPONSE], 0, response);
+  if ((response != GTK_RESPONSE_YES && response == GTK_RESPONSE_NO)
+      || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
+    {
+      gtk_widget_destroy (GTK_WIDGET (dialog));
+      g_signal_emit (data, ham_updates_signals[RESPONSE], 0, response);
+    }
+}
 
-  gtk_widget_destroy (GTK_WIDGET (dialog));
+static gint
+ham_updates_dialog_delete_cb (GtkDialog *dialog,
+                              GdkEventAny *event, gpointer data)
+{
+  return TRUE; /* do no destroy */
 }
 
 static void
@@ -247,7 +257,7 @@ ham_updates_button_clicked_cb (GtkButton *button, gpointer data)
     {
       dlg = gtk_dialog_new_with_buttons
 	(_("ai_sb_update_description"), NULL,
-	 GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR,
+	 GTK_DIALOG_MODAL,
 	 _("ai_sb_update_am"), GTK_RESPONSE_YES,
 	 _("ai_sb_app_push_no"), GTK_RESPONSE_NO,
 	 NULL);
@@ -258,6 +268,9 @@ ham_updates_button_clicked_cb (GtkButton *button, gpointer data)
       g_signal_connect (G_OBJECT (dlg), "response",
 			G_CALLBACK (ham_updates_dialog_response_cb),
 			self);
+      g_signal_connect (G_OBJECT (dlg), "delete-event",
+                        G_CALLBACK (ham_updates_dialog_delete_cb),
+                        NULL);
 
       gtk_widget_show_all (dlg);
     }
