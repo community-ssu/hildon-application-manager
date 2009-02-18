@@ -38,24 +38,13 @@
 
 #define _(x) gettext (x)
 
-static void
-insensitive_press (GtkButton *button, gpointer data)
-{
-  irritate_user ((const gchar *)data);
-}
-
 static GtkWidget *
-add_item (GtkMenu *menu, const gchar *label, const gchar *insens,
-	  void (*func)())
+add_item (GtkMenu *menu, const gchar *label, void (*func)())
 {
   GtkWidget *item = gtk_menu_item_new_with_label (label);
   gtk_menu_append (menu, item);
   if (func)
     g_signal_connect (item, "activate", G_CALLBACK (func), NULL);
-
-  if (insens)
-    g_signal_connect (item, "insensitive_press",
-		      G_CALLBACK (insensitive_press), (void *)insens);
 
   return item;
 }
@@ -64,7 +53,7 @@ static GtkMenu *
 add_menu (GtkMenu *menu, const gchar *label)
 {
   GtkWidget *sub = gtk_menu_new ();
-  GtkWidget *item = add_item (menu, label, NULL, NULL);
+  GtkWidget *item = add_item (menu, label, NULL);
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), sub);
   return GTK_MENU (sub);
 }
@@ -107,26 +96,15 @@ set_search_menu_sensitive (bool flag)
     gtk_widget_set_sensitive (search_menu_item, flag);
 }
 
-static const gchar *insensitive_operation_press_label;
-
-static void
-insensitive_operation_press (GtkButton *button, gpointer data)
-{
-  irritate_user (insensitive_operation_press_label);
-}
-
 void
-set_operation_menu_label (const char *label, bool sensitive,
-			  const gchar *insens)
+set_operation_menu_label (const char *label, bool sensitive)
 {
   if (operation_menu_item)
     {
-      gtk_label_set 
+      gtk_label_set
 	(GTK_LABEL (gtk_bin_get_child (GTK_BIN (operation_menu_item))),
 	 label);
       gtk_widget_set_sensitive (operation_menu_item, sensitive);
-
-      insensitive_operation_press_label = insens;
     }
 }
 
@@ -159,39 +137,35 @@ create_menu (HildonWindow *window)
   GtkMenu *tools = add_menu (main, _("ai_me_tools"));
 
   add_item (main,
-            _("ai_me_view_sort"), NULL,
+            _("ai_me_view_sort"),
             show_sort_settings_dialog_flow);
 
-  operation_menu_item = add_item (packages, "", NULL, do_current_operation);
-  g_signal_connect (operation_menu_item, "insensitive_press",
-		    G_CALLBACK (insensitive_operation_press), NULL);
+  operation_menu_item = add_item (packages, "", do_current_operation);
 
   add_item (packages,
-	    _("ai_me_package_install_file"), NULL,
+	    _("ai_me_package_install_file"),
 	    call_install_from_file);
   details_menu_item = add_item (packages,
 				_("ai_me_package_details"),
-				_("ai_ib_nothing_to_view"),
 				show_current_details);
 
-  settings_menu_item = 
+  settings_menu_item =
     add_item (tools,
-	      _("Settings"), NULL,
+	      _("Settings"),
 	      show_settings_dialog_flow);
 
   add_item (tools,
-	    _("ai_me_tools_repository"), NULL,
+	    _("ai_me_tools_repository"),
 	    show_catalogue_dialog_flow);
   search_menu_item =
     add_item (tools,
-	      _("ai_me_tools_search"), _("ai_ib_unable_search"),
+	      _("ai_me_tools_search"),
 	      show_search_dialog_flow);
   restore_item = add_item (tools,
-			   _("ai_me_tools_restore"), 
-			   _("ai_ib_nothing_restore"),
+			   _("ai_me_tools_restore"),
 			   restore_packages_flow);
   add_item (tools,
-	    _("ai_me_tools_log"), NULL,
+	    _("ai_me_tools_log"),
 	    show_log_dialog_flow);
 
   /* Set sensitiveness for restore_packages menu item */
@@ -206,18 +180,15 @@ create_menu (HildonWindow *window)
 }
 
 GtkWidget *
-create_package_menu (const char *op_label,
-                     const char *insensitive_op_press_label)
+create_package_menu (const char *op_label)
 {
   GtkWidget *menu = gtk_menu_new ();
 
   add_item (GTK_MENU (menu),
             op_label,
-            insensitive_op_press_label,
             do_current_operation);
   add_item (GTK_MENU (menu),
 	    _("ai_me_cs_details"),
-            NULL,
 	    show_current_details);
 
   return menu;

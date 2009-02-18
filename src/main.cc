@@ -2169,7 +2169,7 @@ set_operation_label (const char *label, const char *insens)
 
   operation_label = label;
   insensitive_operation_press_label = insens;
-  set_operation_menu_label (label, operation_func != NULL, insens);
+  set_operation_menu_label (label, operation_func != NULL);
   set_operation_toolbar_label (label, operation_func != NULL);
 }
 

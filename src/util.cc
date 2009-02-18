@@ -1722,8 +1722,7 @@ make_global_package_list (GList *packages,
   /* Create the contextual menu */
   if (installed)
     {
-      menu = create_package_menu (op_label,
-                                  _("ai_ni_unable_to_uninstall_system_update"));
+      menu = create_package_menu (op_label);
 
       /* Connect the tap_and_hold signal to change the sensitiveness of
          the first CSM item when it's not uninstallable */
@@ -1733,7 +1732,7 @@ make_global_package_list (GList *packages,
   else
     {
       /* If not in uninstall view, don't set an insensitive text */
-      menu = create_package_menu (op_label, NULL);
+      menu = create_package_menu (op_label);
     }
 
   gtk_widget_show_all (menu);

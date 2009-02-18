@@ -31,12 +31,10 @@ void create_menu (HildonWindow *window);
 void set_settings_menu_visible (bool);
 void set_details_menu_sensitive (bool);
 void set_search_menu_sensitive (bool);
-void set_operation_menu_label (const gchar *label, bool sensitive,
-			       const gchar *insens);
+void set_operation_menu_label (const gchar *label, bool sensitive);
 void set_operation_menu_item_sensitiveness (bool sensitive);
 
-GtkWidget *create_package_menu (const char *op_label,
-                                const char *insensitive_op_press_label);
+GtkWidget *create_package_menu (const char *op_label);
 
 void menu_close ();
 
