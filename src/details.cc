@@ -701,8 +701,6 @@ spd_with_details (void *data, bool filling_details)
       dialog = gtk_dialog_new_with_buttons (_("ai_ti_details"),
 					    NULL,
 					    GTK_DIALOG_MODAL,
-					    _("ai_bd_details_close"),
-					    GTK_RESPONSE_OK,
 					    NULL);
 
       push_dialog (dialog);
