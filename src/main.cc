@@ -2210,7 +2210,7 @@ restore_packages_flow ()
       /* Check if there is no base packages.backup file yet */
       if (stat (BACKUP_PACKAGES, &buf) && (errno == ENOENT))
         {
-          annoy_user (_("ai_ib_nothing_restore"), rp_unsuccessful, NULL);
+          annoy_user (_("ai_ni_all_installed"), rp_unsuccessful, NULL);
           return;
         }
 

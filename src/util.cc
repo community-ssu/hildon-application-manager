@@ -2105,12 +2105,6 @@ void select_package_list_response (GtkDialog *dialog,
 }
 
 void
-packages_list_insensitive_ok_button (GtkWidget *widget, gpointer user_data)
-{
-  irritate_user (_("ai_ib_nothing_to_install"));
-}
-
-void
 package_selected_toggled_callback (GtkCellRendererToggle *cell,
 				   char *path_string,
 				   gpointer user_data)
@@ -2232,9 +2226,6 @@ select_package_list_with_info (void *data)
   g_signal_connect (list_store, "row-changed",
 		    G_CALLBACK (update_packages_list_selection),
 		    upls_data);
-  g_signal_connect (ok_button, "insensitive_press",
-		    G_CALLBACK (packages_list_insensitive_ok_button),
-		    NULL);
 
   gtk_widget_set_usize (dialog, 600, 320);
   gtk_widget_show_all (dialog);
