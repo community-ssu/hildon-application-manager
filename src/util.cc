@@ -719,22 +719,12 @@ scare_user_with_legalese (bool sure,
 
   GtkWidget *dialog;
 
-  dialog = gtk_dialog_new_with_buttons
-    (_("ai_ti_notice"),
-     NULL,
-     GTK_DIALOG_MODAL,
-     _("ai_bd_notice_ok"),      GTK_RESPONSE_OK,
-     NULL);
-  push_dialog (dialog);
-
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   const char *text = (sure
 		      ? _("ai_nc_non_verified_package")
 		      : _("ai_nc_unsure_package"));
 
-  GtkWidget *label = gtk_label_new (text);
-  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), label);
+  dialog = hildon_note_new_confirmation (NULL, text);
+  push_dialog (dialog);
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (yes_no_response), c);
