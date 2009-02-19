@@ -231,8 +231,6 @@ show_log_dialog_flow ()
 					    RESPONSE_SAVE,
 					    _("ai_bd_log_clear"),
 					    RESPONSE_CLEAR,
-					    _("ai_bd_log_close"),
-					    GTK_RESPONSE_CLOSE,
 					    NULL);
       push_dialog (dialog);
       respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
