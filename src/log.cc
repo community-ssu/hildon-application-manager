@@ -54,7 +54,7 @@ static void
 save_log_cont (bool res, void *data)
 {
   char *uri = (char *)data;
-  bool success = true;
+  bool success = res;
 
   if (res)
     {
@@ -145,8 +145,8 @@ save_log (char *uri, void *data)
   if (result == GNOME_VFS_OK)
     {
       ask_custom (dgettext ("hildon-fm", "docm_nc_replace_file"),
-		  dgettext ("hildon-fm", "docm_bd_replace_file_ok"),
-		  dgettext ("hildon-fm", "docm_bd_replace_file_cancel"),
+		  dgettext ("hildon-libs", "wdgt_bd_yes"),
+		  dgettext ("hildon-libs", "wdgt_bd_no"),
 		  save_log_cont, uri);
     }
   else if (result != GNOME_VFS_ERROR_NOT_FOUND)
