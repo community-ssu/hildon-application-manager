@@ -349,7 +349,6 @@ ask_yes_no_with_title (const gchar *title,
      NULL,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
-     _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
 
@@ -410,7 +409,6 @@ ask_yes_no_with_details (const gchar *title,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
      _("ai_bd_confirm_details"), 1,
-     _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
 
@@ -443,7 +441,6 @@ ask_yes_no_with_arbitrary_details (const gchar *title,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
      _("ai_bd_confirm_details"), 1,
-     _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
 

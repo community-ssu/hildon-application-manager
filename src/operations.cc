@@ -803,7 +803,6 @@ ip_warn_about_reboot (ip_clos *c)
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
      _("ai_bd_create_backup"), HAM_BACKUP_RESPONSE,
-     _("ai_bd_confirm_cancel"), GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
 
