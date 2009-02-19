@@ -1467,7 +1467,6 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	     final_msg,
 	     _("ai_bd_ok"), GTK_RESPONSE_OK,
 	     _("ai_ni_bd_details"), 1,
-	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
     }
@@ -1487,7 +1486,6 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	    (NULL,
 	     final_msg,
 	     _("ai_bd_ok"), GTK_RESPONSE_OK,
-	     _("ai_bd_notice_cancel"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
     }

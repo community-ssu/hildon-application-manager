@@ -724,7 +724,6 @@ scare_user_with_legalese (bool sure,
      NULL,
      GTK_DIALOG_MODAL,
      _("ai_bd_notice_ok"),      GTK_RESPONSE_OK,
-     _("ai_bd_notice_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
 
