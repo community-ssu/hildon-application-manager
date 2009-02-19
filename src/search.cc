@@ -148,8 +148,6 @@ show_search_dialog_flow ()
 					    GTK_DIALOG_MODAL,
 					    _("ai_bd_search_ok"),
 					    GTK_RESPONSE_OK,
-					    _("ai_bd_search_cancel"),
-					    GTK_RESPONSE_CANCEL,
 					    NULL);
       gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
       push_dialog (dialog);
