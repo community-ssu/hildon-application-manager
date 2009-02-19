@@ -382,6 +382,8 @@ AptWorkerCache::Initialize (void)
         }
 
       _config->Set ("DPkg::Options::", "--force-confold");
+      _config->Set ("Dir::Log", "var/log");
+      _config->Set ("Dir::Log::Terminal", "");
       global_initialized = true;
     }
 
