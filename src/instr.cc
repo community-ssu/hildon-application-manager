@@ -595,9 +595,12 @@ open_local_install_instructions (const char *filename,
   else if (g_key_file_has_group (keyfile, "catalogues"))
     execute_add_catalogues (keyfile, "catalogues",
 			    cont, data);
-  else if (g_key_file_has_group (keyfile, "card_install"))
-    execute_card_install (keyfile, "card_install", filename,
-			  cont, data);
+// FIXME: the memory card installation is dropped in Fremantle
+//        but won't delete the code, if the community wants to
+//        reenable it.
+//  else if (g_key_file_has_group (keyfile, "card_install"))
+//    execute_card_install (keyfile, "card_install", filename,
+//			  cont, data);
   else
     {
       add_log ("Unrecognized .install file variant\n");
