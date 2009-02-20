@@ -349,7 +349,6 @@ ask_yes_no_with_title (const gchar *title,
      NULL,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
-     _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
 
@@ -410,7 +409,6 @@ ask_yes_no_with_details (const gchar *title,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
      _("ai_bd_confirm_details"), 1,
-     _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
 
@@ -443,7 +441,6 @@ ask_yes_no_with_arbitrary_details (const gchar *title,
      GTK_DIALOG_MODAL,
      _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
      _("ai_bd_confirm_details"), 1,
-     _("ai_bd_confirm_cancel"),  GTK_RESPONSE_CANCEL,
      NULL);
   push_dialog (dialog);
 
@@ -722,23 +719,12 @@ scare_user_with_legalese (bool sure,
 
   GtkWidget *dialog;
 
-  dialog = gtk_dialog_new_with_buttons
-    (_("ai_ti_notice"),
-     NULL,
-     GTK_DIALOG_MODAL,
-     _("ai_bd_notice_ok"),      GTK_RESPONSE_OK,
-     _("ai_bd_notice_cancel"),  GTK_RESPONSE_CANCEL,
-     NULL);
-  push_dialog (dialog);
-
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   const char *text = (sure
 		      ? _("ai_nc_non_verified_package")
 		      : _("ai_nc_unsure_package"));
 
-  GtkWidget *label = gtk_label_new (text);
-  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), label);
+  dialog = hildon_note_new_confirmation (NULL, text);
+  push_dialog (dialog);
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (yes_no_response), c);
@@ -1722,8 +1708,7 @@ make_global_package_list (GList *packages,
   /* Create the contextual menu */
   if (installed)
     {
-      menu = create_package_menu (op_label,
-                                  _("ai_ni_unable_to_uninstall_system_update"));
+      menu = create_package_menu (op_label);
 
       /* Connect the tap_and_hold signal to change the sensitiveness of
          the first CSM item when it's not uninstallable */
@@ -1733,7 +1718,7 @@ make_global_package_list (GList *packages,
   else
     {
       /* If not in uninstall view, don't set an insensitive text */
-      menu = create_package_menu (op_label, NULL);
+      menu = create_package_menu (op_label);
     }
 
   gtk_widget_show_all (menu);
@@ -2106,12 +2091,6 @@ void select_package_list_response (GtkDialog *dialog,
 }
 
 void
-packages_list_insensitive_ok_button (GtkWidget *widget, gpointer user_data)
-{
-  irritate_user (_("ai_ib_nothing_to_install"));
-}
-
-void
 package_selected_toggled_callback (GtkCellRendererToggle *cell,
 				   char *path_string,
 				   gpointer user_data)
@@ -2233,9 +2212,6 @@ select_package_list_with_info (void *data)
   g_signal_connect (list_store, "row-changed",
 		    G_CALLBACK (update_packages_list_selection),
 		    upls_data);
-  g_signal_connect (ok_button, "insensitive_press",
-		    G_CALLBACK (packages_list_insensitive_ok_button),
-		    NULL);
 
   gtk_widget_set_usize (dialog, 600, 320);
   gtk_widget_show_all (dialog);

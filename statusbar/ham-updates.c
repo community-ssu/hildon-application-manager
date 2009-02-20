@@ -36,7 +36,7 @@
 #include <xexp.h>
 #include <user_files.h>
 
-#define DEBUG
+/* #define DEBUG */
 #include "util.h"
 #include "update-notifier-conf.h"
 
@@ -143,36 +143,54 @@ static void
 ham_updates_dialog_response_cb (GtkDialog *dialog,
 				gint response, gpointer data)
 {
-  g_signal_emit (data, ham_updates_signals[RESPONSE], 0, response);
+  if ((response != GTK_RESPONSE_YES && response == GTK_RESPONSE_NO)
+      || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
+    {
+      gtk_widget_destroy (GTK_WIDGET (dialog));
+      g_signal_emit (data, ham_updates_signals[RESPONSE], 0, response);
+    }
+}
 
-  gtk_widget_destroy (GTK_WIDGET (dialog));
+static gint
+ham_updates_dialog_delete_cb (GtkDialog *dialog,
+                              GdkEventAny *event, gpointer data)
+{
+  return TRUE; /* do no destroy */
 }
 
 static void
-build_category_string (GString *str, gchar *title, GSList *list)
+build_category_string (GString *str, const gchar *title, GSList *list)
 {
   GSList *l;
   gint c;
+  gchar *summary, *pkglist;
 
-  /* spaces */
-  if (str->len > 0)
-    g_string_append (str, "\n\n");
+  summary = g_strdup_printf (title, g_slist_length (list));
 
-  /* title */
-  g_string_append (str, "<big>");
-  g_string_append_printf (str, title, g_slist_length (list));
-  g_string_append (str, "</big>\n");
-
-  /* packages */
-  g_string_append (str, "<small>");
   c = 0;
+  pkglist = NULL;
   for (l = list; l != NULL && c < 3; l = l->next)
     {
-      if (c++ > 0)
-	g_string_append (str, ", ");
-      g_string_append (str, l->data);
+      gchar *tmp;
+
+      tmp = g_strdup_printf ("%s%s%s",
+                             (pkglist != NULL) ? pkglist : "",
+                             (c++ > 0) ? ", " : "",
+                             (gchar *) l->data);
+      if (tmp != NULL)
+        {
+          g_free (pkglist);
+          pkglist = tmp;
+        }
     }
-  g_string_append (str, "</small>");
+
+  if (summary != NULL && pkglist != NULL)
+    g_string_append_printf (str, "%s<big>%s</big>\n<small>%s</small>",
+                            (str->len > 0) ? "\n\n" : "",
+                            summary, pkglist);
+
+  g_free (summary);
+  g_free (pkglist);
 }
 
 static gchar*
@@ -239,7 +257,7 @@ ham_updates_button_clicked_cb (GtkButton *button, gpointer data)
     {
       dlg = gtk_dialog_new_with_buttons
 	(_("ai_sb_update_description"), NULL,
-	 GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR,
+	 GTK_DIALOG_MODAL,
 	 _("ai_sb_update_am"), GTK_RESPONSE_YES,
 	 _("ai_sb_app_push_no"), GTK_RESPONSE_NO,
 	 NULL);
@@ -250,6 +268,9 @@ ham_updates_button_clicked_cb (GtkButton *button, gpointer data)
       g_signal_connect (G_OBJECT (dlg), "response",
 			G_CALLBACK (ham_updates_dialog_response_cb),
 			self);
+      g_signal_connect (G_OBJECT (dlg), "delete-event",
+                        G_CALLBACK (ham_updates_dialog_delete_cb),
+                        NULL);
 
       gtk_widget_show_all (dlg);
     }
@@ -451,19 +472,22 @@ ham_updates_get_button (HamUpdates *self)
 }
 
 static gchar*
-build_category_title (gchar *title, GSList *list)
+build_category_title (const gchar *title, GSList *list)
 {
   gint count;
 
   count = g_slist_length (list);
   if (count > 0)
     {
-      GString *str;
+      gchar *summary, *tmp;
 
-      str = g_string_new (NULL);
-      g_string_append_printf (str, title, count);
-      g_string_append (str, "...");
-      return g_string_free (str, FALSE);
+      tmp = g_strdup_printf (title, count);
+      if (tmp != NULL)
+        {
+          summary = g_strdup_printf ("%s...", tmp);
+          g_free (tmp);
+          return summary;
+        }
     }
 
   return NULL;

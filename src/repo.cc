@@ -1229,8 +1229,6 @@ show_catalogue_dialog (xexp *catalogues,
       gtk_dialog_add_button (GTK_DIALOG (dialog), 
 			     _("ai_bd_repository_delete"), REPO_RESPONSE_REMOVE);
 
-  gtk_dialog_add_button (GTK_DIALOG (dialog),
-			 _("ai_bd_repository_close"), GTK_RESPONSE_CLOSE);
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
   
   gtk_widget_set_sensitive (c->new_button, FALSE);

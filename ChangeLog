@@ -1,3 +1,192 @@
+2009-02-20  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Dropped memory card installation flow.
+    
+	* src/instr.cc (open_local_install_instructions): commented out the
+	trigger for memory card installation.
+
+2009-02-20  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Ripped out all the logic for fullscreen management and toolbar
+	visibility. 
+    
+	* src/main.cc (show_view): when is not the main view always show the
+	current toolbar.
+	(set_current_toolbar): don't check the fullscreen state when setting
+	the current toolbar.
+	(set_fullscreen): removed function.
+	(toggle_fullscreen): removed function.
+	(set_toolbar_visibility): removed function.
+	(window_state_event): removed function.
+	(key_event): don't toggle to fullscreen.
+	(main): don't load the h-a-m visibility state; remove the
+	window_state_event signal connection; don't show the toolbar by
+	default.
+	* src/settings.cc (load_state): removed function.
+	(save_state): removed function.
+	* src/user_files.h: removed the state file name macro.
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Unset the apt's log file (NB#90586)
+    
+	* src/apt-worker.cc (AptWorkerCache::Initialize): set the directory
+	log to /var/log -which I assume it will always exist- and the log file
+	to empty, so apt won't write log messages.
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the use of ai_ti_notice and ai_bd_notice_ok logical strings.
+    
+	* src/util.cc (scare_user_with_legalese): changed the dialog into a
+	hildon confirmation note.
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the use of the docm_bd_replace_file_cancel logical string.
+    
+	* src/log.cc (save_log_cont): the success depends on the response: If
+	we don't want replace the file, the "save" banner shouldn't be shown.
+	(save_log): used the hildon-libs strings for Yes and No.
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the use of ai_bd_log_close logical string.
+    
+	* src/log.cc (show_log_dialog_flow): removed the unused cancel
+	button. It's replaced by the outside tapping.
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the use of the ai_bd_search_cancel logical string
+    
+	* src/search.cc (show_search_dialog_flow): removed the unused cancel
+	button. It's replaced by the outside tapping.
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the ai_bd_details_close logical string.
+    
+	* src/details.cc (spd_with_details): removed the ok button, it's not
+	needed because the outtapping.
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the logical string ai_bd_repository_close.
+    
+	* src/repo.cc (show_catalogue_dialog): removed the unused close
+	button. 
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the ai_bd_notice_cancel logical string.
+    
+	* src/operations.cc (ip_abort_cur): removed the cancel option because
+	it is implied at tapping outside.
+	* src/util.cc (scare_user_with_legalese): removed the cancel option
+	because it is implied at tapping outside.
+	
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the unused the ai_bd_confirm_cancel logical string.
+    
+	* src/operations.cc (ip_warn_about_reboot): removed the
+	ai_bd_confirm_cancel logical string. 
+	* src/util.cc (ask_yes_no_with_title): removed the
+	ai_bd_confirm_cancel logical string.
+	(ask_yes_no_with_details): removed the ai_bd_confirm_cancel logical
+	string.
+	(ask_yes_no_with_arbitrary_details): removed the ai_bd_confirm_cancel
+	logical string.
+
+2009-02-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed deprecated information banners.
+    
+	* src/main.cc (restore_packages_flow): changed ai_ib_nothing_restore
+	with ai_ni_all_installed.
+	* src/util.cc (packages_list_insensitive_ok_button): removed function.
+	(package_selected_toggled_callback): removed the insensitive_press
+	signal connection for the ok button.
+
+2009-02-18  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the banner display when a disabled toolbar button is pressed. 
+    
+	* src/main.cc (show_view): taked out unused parameter from function
+	set_operation_label.
+	(installed_package_selected): taked out unused parameter from function
+	set_operation_label.
+	(make_install_section_view): taked out unused parameter from function
+	set_operation_label.
+	(make_upgrade_applications_view): taked out unused parameter from
+	function set_operation_label.
+	(make_uninstall_applications_view): taked out unused parameter from
+	function set_operation_label.
+	(set_operation_label): changed the function signature and don't save
+	the insensitive label.
+	(set_operation_callback): taked out unused parameter from function
+	set_operation_label.
+	(insensitive_press): removed function.
+	(insensitive_operation_press): removed function.
+	(create_toolbar): removed the insensitive_press callback connection
+	for the toolbar buttons.
+
+2009-02-18  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the banner display when a disabled menu item is pressed.
+    
+	* src/menu.cc (insensitive_press): removed function.
+	(add_item): changed the function signature and removed the
+	insensitive_press callback assignation.
+	(add_menu): taked out the extra parameter in add_item.
+	(insensitive_operation_press): removed function.
+	(set_operation_menu_label): changed the function signature and taked
+	out the unsensitive label setting.
+	(create_menu): taked out the extra parameter in add_item and removed
+	the insensitive_press callback connection for each menu items.
+	(create_package_menu): taked out the extra parameter in add_menu.
+	* src/menu.h: reflect the function signature modifications.
+	* src/util.cc (make_global_package_list): taked out the extra
+	parameter in create_package_menu.
+	* src/main.cc (set_operation_label): taked out the extra parameter in
+	set_operation_menu_label.
+
+2009-02-18  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Handle the delete-event for the status-menu-item's dialogs (NB#102047)
+    
+	* statusbar/ham-notifier.c (ham_notifier_dialog_response_cb):
+	validated the response type.
+	(ham_notifier_dialog_delete_cb): new callback function to ignore the
+	delete-event.
+	(ham_notifier_button_clicked_cb): handle the delete-event of the
+	dialog. 
+	* statusbar/ham-updates.c (ham_updates_dialog_response_cb): validated
+	the response type.
+	(ham_updates_dialog_delete_cb): new callback function to ignore the
+	delete-event.
+	(ham_updates_button_clicked_cb): handle the delete-event of the
+	dialog. 
+
+2009-02-17  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Avoided the "Painter's syndrome"
+    
+	* statusbar/ham-notifier.c (build_dialog_content): changed the append
+	method for a more simple printf.
+	* statusbar/ham-updates.c (build_category_string): changed the append
+	method for a more simple printf.
+	(build_category_title): changed the append method for a more simple
+	printf.
+
+2009-02-17  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Executes the check if and only if the alarm could be set.
+    
+	* statusbar/ham-updates-status-menu-item.c: (setup_alarm_now): run the
+	service if the alarm is setup.
+
 2009-02-13  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 	
 	Hardcoded the new mountpoint for the internal MMC (N101683).

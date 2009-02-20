@@ -180,11 +180,6 @@ GtkWindow *get_main_window ();
 GtkWidget *get_main_trail ();
 GtkWidget *get_device_label ();
 
-void set_fullscreen (bool);
-void toggle_fullscreen ();
-
-void set_toolbar_visibility (bool fullscreen, bool visibility);
-
 #define AI_TOPIC(x) ("Utilities_ApplicationInstaller_" x)
 
 void set_dialog_help (GtkWidget *dialog, const char *topic);

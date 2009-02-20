@@ -767,10 +767,11 @@ setup_alarm_now (gpointer data)
 
   self = HAM_UPDATES_STATUS_MENU_ITEM (data);
 
-  run_service_now (self);
-
   if (setup_alarm (self))
-    return FALSE;
+    {
+      run_service_now (self);
+      return FALSE;
+    }
 
   /* Try again in one minute. */
   return TRUE;

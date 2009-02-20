@@ -40,7 +40,7 @@
 #include <xexp.h>
 #include <user_files.h>
 
-#define DEBUG
+/* #define DEBUG */
 #include "util.h"
 #include "update-notifier-conf.h"
 
@@ -159,11 +159,20 @@ static void
 ham_notifier_dialog_response_cb (GtkDialog *dialog,
                                  gint response, gpointer data)
 {
-  update_seen_notifications ();
+  if ((response != GTK_RESPONSE_YES && response == GTK_RESPONSE_NO)
+      || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
+    {
+      update_seen_notifications ();
+      gtk_widget_destroy (GTK_WIDGET (dialog));
+      g_signal_emit (data, ham_notifier_signals[RESPONSE], 0, response);
+    }
+}
 
-  g_signal_emit (data, ham_notifier_signals[RESPONSE], 0, response);
-
-  gtk_widget_destroy (GTK_WIDGET (dialog));
+static gint
+ham_notifier_dialog_delete_cb (GtkDialog *dialog,
+                               GdkEventAny *event, gpointer data)
+{
+  return TRUE; /* do no destroy */
 }
 
 static void
@@ -206,24 +215,16 @@ build_dialog_content ()
 
       if (title != NULL && desc != NULL && uri != NULL && provider != NULL)
         {
-          GString *string;
+          gchar *by;
 
-          string = g_string_new (NULL);
-          g_string_append (string, "<big>");
-          g_string_append (string, title);
-          g_string_append (string, "\n");
-          g_string_append_printf (string, _("apma_fi_by_provider"), provider);
-          g_string_append (string, "</big>");
-          g_string_append (string, "\n\n");
-          g_string_append (string, "<small>");
-          g_string_append (string, desc);
-          g_string_append (string, "</small>");
-          g_string_append (string, "\n\n");
-          g_string_append (string, "<b>");
-          g_string_append (string, uri);
-          g_string_append (string, "</b>");
+          by = g_strdup_printf (_("apma_fi_by_provider"), provider);
 
-          content = g_string_free (string, FALSE);
+          content = g_strdup_printf ("<big>%s\n%s</big>\n\n"
+                                     "<small>%s</small>\n\n"
+                                     "<b>%s</b>",
+                                     title, by, desc, uri);
+
+          g_free (by);
         }
     }
 
@@ -248,7 +249,7 @@ ham_notifier_button_clicked_cb (GtkButton *button, gpointer data)
     {
       dlg = gtk_dialog_new_with_buttons
 	(_("ai_sb_app_push_desc"), NULL,
-	 GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR,
+	 GTK_DIALOG_MODAL,
 	 _("ai_sb_app_push_link"), GTK_RESPONSE_YES,
 	 _("ai_sb_app_push_no"), GTK_RESPONSE_NO,
 	 NULL);
@@ -259,6 +260,10 @@ ham_notifier_button_clicked_cb (GtkButton *button, gpointer data)
       g_signal_connect (G_OBJECT (dlg), "response",
 			G_CALLBACK (ham_notifier_dialog_response_cb),
 			self);
+
+      g_signal_connect (G_OBJECT (dlg), "delete-event",
+                        G_CALLBACK (ham_notifier_dialog_delete_cb),
+                        NULL);
 
       gtk_widget_show_all (dlg);
     }
