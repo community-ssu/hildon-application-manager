@@ -381,56 +381,6 @@ show_sort_settings_dialog_flow ()
     }
 }
 
-/* Persistent state
- */
-
-bool fullscreen_toolbar = true;
-bool normal_toolbar = true;
-
-void
-load_state ()
-{
-  FILE *f = user_file_open_for_read (UFILE_HAM_STATE);
-
-  if (f)
-    {
-      char *line = NULL;
-      size_t len = 0;
-      ssize_t n;
-      while ((n = getline (&line, &len, f)) != -1)
-	{
-	  int val;
-
-	  if (n > 0 && line[n-1] == '\n')
-	    line[n-1] = '\0';
-
-	  if (sscanf (line, "fullscreen-toolbar %d", &val) == 1)
-	    fullscreen_toolbar = val;
-	  else if (sscanf (line, "normal-toolbar %d", &val) == 1)
-	    normal_toolbar = val;
-	  else
-	    add_log ("Unrecognized state line: '%s'\n", line);
-	}
-      free (line);
-      fclose (f);
-    }
-}
-
-void
-save_state ()
-{
-  FILE *f = user_file_open_for_write (UFILE_HAM_STATE);
-
-  if (f)
-    {
-      fprintf (f, "fullscreen-toolbar %d\n", fullscreen_toolbar);
-      fprintf (f, "normal-toolbar %d\n", normal_toolbar);
-      fflush (f);
-      fsync (fileno (f));
-      fclose (f);
-    }
-}
-
 const char *
 backend_options ()
 {

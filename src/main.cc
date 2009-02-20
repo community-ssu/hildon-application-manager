@@ -199,8 +199,7 @@ show_view (view *v)
     }
   else
     {
-      set_toolbar_visibility (true, fullscreen_toolbar);
-      set_toolbar_visibility (false, normal_toolbar);
+      set_current_toolbar_visibility (true);
 
       if (v == &upgrade_applications_view)
         set_current_toolbar (updates_tb_struct);
@@ -2399,8 +2398,6 @@ set_operation_toolbar_label (const char *label, bool sensitive)
     gtk_widget_set_sensitive (current_tb_struct->operation_button, sensitive);
 }
 
-static bool is_fullscreen = false;
-
 GtkWindow *
 get_main_window ()
 {
@@ -2428,13 +2425,7 @@ set_current_toolbar (toolbar_struct *tb_struct)
   if (current_tb_struct != tb_struct)
     {
       gtk_widget_hide_all (current_tb_struct->toolbar);
-
-      if ((!is_fullscreen && normal_toolbar) ||
-	  (is_fullscreen && fullscreen_toolbar))
-	{
-	  gtk_widget_show_all (tb_struct->toolbar);
-	}
-
+      gtk_widget_show_all (tb_struct->toolbar);
       current_tb_struct = tb_struct;
     }
 }
@@ -2449,63 +2440,6 @@ set_current_toolbar_visibility (bool f)
       else
 	gtk_widget_hide_all (current_tb_struct->toolbar);
     }
-}
-
-void
-set_fullscreen (bool f)
-{
-  if (f)
-    gtk_window_fullscreen (main_window);
-  else
-    gtk_window_unfullscreen (main_window);
-}
-
-void
-toggle_fullscreen ()
-{
-  set_fullscreen (!is_fullscreen);
-}
-
-void
-set_toolbar_visibility (bool fullscreen, bool visibility)
-{
-  if (fullscreen)
-    {
-      fullscreen_toolbar = visibility;
-      if (is_fullscreen)
-	set_current_toolbar_visibility (visibility);
-    }
-  else
-    {
-      normal_toolbar = visibility;
-      if (!is_fullscreen)
-	set_current_toolbar_visibility (visibility);
-    }
-  save_state ();
-}
-
-static gboolean
-window_state_event (GtkWidget *widget, GdkEventWindowState *event,
-		    gpointer unused)
-{
-  bool f = (event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN);
-
-  if (is_fullscreen != f)
-    {
-      is_fullscreen = f;
-      if (is_fullscreen)
-	{
-	  gtk_container_set_border_width (GTK_CONTAINER (widget), 15);
-	  set_current_toolbar_visibility (fullscreen_toolbar);
-	}
-      else
-	{
-	  gtk_container_set_border_width (GTK_CONTAINER (widget), 0);
-	  set_current_toolbar_visibility (normal_toolbar);
-	}
-    }
-
-  return FALSE;
 }
 
 static void
@@ -2535,7 +2469,6 @@ key_event (GtkWidget *widget,
       event->keyval == HILDON_HARDKEY_FULLSCREEN &&
       !fullscreen_key_repeating)
     {
-      toggle_fullscreen ();
       fullscreen_key_repeating = true;
       return TRUE;
     }
@@ -2546,7 +2479,7 @@ key_event (GtkWidget *widget,
       fullscreen_key_repeating = false;
       return TRUE;
     }
-      
+
   if (event->type == GDK_KEY_PRESS &&
       event->keyval == HILDON_HARDKEY_ESC)
     {
@@ -2811,7 +2744,6 @@ main (int argc, char **argv)
 
   load_system_settings ();
   load_settings ();
-  load_state ();
 
   gtk_init (&argc, &argv);
 
@@ -2833,8 +2765,6 @@ main (int argc, char **argv)
 
   main_window = GTK_WINDOW (window);
 
-  g_signal_connect (window, "window_state_event",
-		    G_CALLBACK (window_state_event), NULL);
   g_signal_connect(G_OBJECT(window), "notify::is-topmost",
                    G_CALLBACK(is_topmost_cb), NULL);
   g_signal_connect (window, "key_press_event",
@@ -2850,10 +2780,6 @@ main (int argc, char **argv)
   main_tb_struct = m_tb_struct;
   updates_tb_struct = u_tb_struct;
   current_tb_struct = main_tb_struct;
-
-  /* If the normal toolbar is visible, show it */
-  if (normal_toolbar)
-    gtk_widget_show_all (current_tb_struct->toolbar);
 
   /* Add toolbars */
   hildon_window_add_toolbar (HILDON_WINDOW (window),
@@ -2882,8 +2808,6 @@ main (int argc, char **argv)
   create_menu (HILDON_WINDOW (window));
 
   show_view (&main_view);
-  set_toolbar_visibility (true, fullscreen_toolbar);
-  set_toolbar_visibility (false, normal_toolbar);
 
   if (!start_apt_worker (apt_worker_prog))
     what_the_fock_p ();

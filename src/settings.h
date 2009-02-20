@@ -54,14 +54,6 @@ extern bool red_pill_ignore_wrong_domains;
 void show_settings_dialog_flow ();
 void show_sort_settings_dialog_flow ();
 
-// Persistent state
-//
-extern bool fullscreen_toolbar;
-extern bool normal_toolbar;
-
-void load_state ();
-void save_state ();
-
 // Backend options
 
 const char *backend_options ();
