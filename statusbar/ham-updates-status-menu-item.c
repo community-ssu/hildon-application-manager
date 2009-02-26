@@ -799,15 +799,10 @@ static void
 ham_updates_status_menu_item_response_cb (HamUpdatesStatusMenuItem *self,
                                           gint response, gpointer data)
 {
+  set_state (self, ICON_STATE_INVISIBLE);
+
   if (response == GTK_RESPONSE_YES)
-    {
-      ham_execute (self);
-      set_state (self, ICON_STATE_INVISIBLE);
-    }
-  else
-    {
-      set_state (self, ICON_STATE_STATIC);
-    }
+    ham_execute (self);
 }
 
 static void
