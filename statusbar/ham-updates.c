@@ -433,7 +433,7 @@ ham_updates_get_interval (HamUpdates *self)
 
   g_object_unref (gconf);
 
-  return interval;
+  return interval * 60; /* in seconds */
 }
 
 gboolean
