@@ -451,7 +451,8 @@ ham_updates_set_alarm (HamUpdates *self, alarm_event_t *event)
 
   /* Run only when internet connection is available. */
   /* conic is needed */
-  /* FIXME: event->flags |= ALARM_EVENT_CONNECTED; */
+  if (!running_in_scratchbox ())
+    event->flags |= ALARM_EVENT_CONNECTED;
 
   /* If the system time is moved backwards, the alarm should be
      rescheduled. */
