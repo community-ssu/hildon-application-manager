@@ -140,12 +140,29 @@ ham_updates_init (HamUpdates *self)
 }
 
 static void
+update_seen_updates_file (void)
+{
+  xexp *available_updates;
+
+  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
+
+  if (available_updates  != NULL)
+    {
+      user_file_write_xexp (UFILE_SEEN_UPDATES, available_updates);
+      xexp_free (available_updates);
+    }
+}
+
+static void
 ham_updates_dialog_response_cb (GtkDialog *dialog,
 				gint response, gpointer data)
 {
   if ((response != GTK_RESPONSE_YES && response == GTK_RESPONSE_NO)
       || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
     {
+      if (response == GTK_RESPONSE_NO)
+        update_seen_updates_file ();
+
       gtk_widget_destroy (GTK_WIDGET (dialog));
       g_signal_emit (data, ham_updates_signals[RESPONSE], 0, response);
     }
@@ -416,7 +433,7 @@ ham_updates_get_interval (HamUpdates *self)
 
   g_object_unref (gconf);
 
-  return interval;
+  return interval * 60; /* in seconds */
 }
 
 gboolean
@@ -434,7 +451,8 @@ ham_updates_set_alarm (HamUpdates *self, alarm_event_t *event)
 
   /* Run only when internet connection is available. */
   /* conic is needed */
-  /* FIXME: event->flags |= ALARM_EVENT_CONNECTED; */
+  if (!running_in_scratchbox ())
+    event->flags |= ALARM_EVENT_CONNECTED;
 
   /* If the system time is moved backwards, the alarm should be
      rescheduled. */

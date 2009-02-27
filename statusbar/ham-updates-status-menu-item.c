@@ -799,15 +799,10 @@ static void
 ham_updates_status_menu_item_response_cb (HamUpdatesStatusMenuItem *self,
                                           gint response, gpointer data)
 {
+  set_state (self, ICON_STATE_INVISIBLE);
+
   if (response == GTK_RESPONSE_YES)
-    {
-      ham_execute (self);
-      set_state (self, ICON_STATE_INVISIBLE);
-    }
-  else
-    {
-      set_state (self, ICON_STATE_STATIC);
-    }
+    ham_execute (self);
 }
 
 static void
@@ -1078,24 +1073,30 @@ ham_updates_status_menu_item_connection_cb (ConIcConnection *connection,
                                             gpointer data)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
+  ConIcConnectionStatus status;
 
   g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (data);
 
-  LOG ("got a connect notification");
+  status = con_ic_connection_event_get_status (event);
+  LOG ("got a connect notification %d", status);
 
-  if (con_ic_connection_event_get_status (event) == CON_IC_STATUS_CONNECTED)
+  if (status == CON_IC_STATUS_CONNECTED)
     {
       const gchar *bearer;
 
       bearer = con_ic_event_get_bearer_type (CON_IC_EVENT (event));
+      LOG ("bearer = %s", bearer);
 
       /* XXX - only the WLAN_INFRA and the WLAN_ADHOC bearers are
                considered cheap.  There should be a general platform
                feature that tells us whether we need to be careful with
                network access or not.  */
-      priv->constate = (strcmp (bearer, "WLAN_ADHOC") == 0
-                       || strcmp (bearer, "WLAN_INFRA") == 0);
+      if (g_strcmp0 (bearer, "WLAN_ADHOC") == 0
+          || g_strcmp0 (bearer, "WLAN_INFRA") == 0)
+        priv->constate = CONN_ONLINE;
+      else
+        priv->constate = CONN_OFFLINE;
     }
 
   LOG ("we're %s", priv->constate == CONN_OFFLINE ? "offline" : "online");

@@ -1,3 +1,38 @@
+2009-02-26  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Fixed the connection state verification.
+    
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_connection_cb): the connection state now
+	is treated as enum, not a boolean.
+
+2009-02-26  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	The alarm interval is specified in minutes again.
+    
+	* statusbar/ham-updates (ham_updates_get_interval): the gconf return
+	value is mutiplied by 60.
+	* statusbar/update-notifier-conf.h: the default value is in minutes.
+
+2009-02-26  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Enable the CONNECT event flag in the alarm configuration.
+    
+	* statusbar/ham-updates.c (ham_updates_set_alarm): if we aren't in
+	scratchbox enable the ALARM_EVENT_CONNECTED.
+
+2009-02-26  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Update the seen-updates file after the update plugin dialog is
+	shown. (NB#102057) 
+    
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_response_cb): always put the icon in
+	invisible state afther any dialog response.
+	* statusbar/ham-updates.c (update_seen_updates_file): new function.
+	(ham_updates_dialog_response_cb): if response is "ignore" the
+	seen-updates is updated. 
+
 2009-02-20  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	Dropped memory card installation flow.
