@@ -242,7 +242,7 @@ file_last_modified (const char *file_name)
 {
   struct stat buf;
 
-  if (stat(DOMAIN_CONF, &buf) == -1)
+  if (stat(file_name, &buf) == -1)
     {
       perror ("error retriving file info");
       return -1;
