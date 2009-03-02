@@ -384,11 +384,11 @@ get_uri ()
   xexp *conf;
 
   uri = NULL;
-  conf = xexp_read_file (UPNO_NOTIFIER_CONF);
+  conf = xexp_read_file (SYSTEM_SETTINGS_DEFAULTS_FILE);
 
   if (conf != NULL)
     {
-      uri = uri_eval (xexp_aref_text (conf, "uri"));
+      uri = uri_eval (xexp_aref_text (conf, "notifier-uri"));
       xexp_free (conf);
     }
 
