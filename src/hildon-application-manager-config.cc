@@ -58,8 +58,6 @@
 
 #include "confutils.h"
 
-#include "catalogues.h"
-
 #ifdef DEBUG
 static void
 DBG (const char *str, xexp *cat)
@@ -92,7 +90,7 @@ read_conf ()
   if (catalogues == NULL)
     catalogues = xexp_list_new ("catalogues");
 
-  domains = xexp_read_file (DOMAIN_CONF);
+  domains = read_domains ();
   if (domains == NULL)
     domains = xexp_list_new ("domains");
 

@@ -61,9 +61,8 @@ hildon_application_manager_config_SOURCES =		\
                xexp.h					\
                xexp.c					\
                confutils.h				\
-               confutils.cc				\
-               catalogues.h                             \
-               catalogues.cc
+               confutils.cc
+
 hildon_application_manager_config_CFLAGS = $(AW_DEPS_CFLAGS)
 hildon_application_manager_config_CXXFLAGS = $(AW_DEPS_CFLAGS)
 hildon_application_manager_config_LDADD = $(AW_DEPS_LIBS)
@@ -74,9 +73,7 @@ apt_worker_SOURCES = apt-worker.cc  	 \
                      apt-worker-proto.h  \
                      apt-worker-proto.cc \
                      confutils.h	 \
-                     confutils.cc        \
-                     catalogues.h        \
-                     catalogues.cc
+                     confutils.cc
 
 apt_worker_CFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)

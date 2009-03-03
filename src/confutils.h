@@ -40,13 +40,25 @@ extern "C" {
  */
 #define CATALOGUE_CONF "/etc/hildon-application-manager/catalogues"
 
-/* The file where we store our ctalogues for apt-pkg to read
+/* The file where we store our catalogues for apt-pkg to read.
  */
 #define CATALOGUE_APT_SOURCE "/etc/apt/sources.list.d/hildon-application-manager.list"
 
-/* The file where we store our domain information
+/* The directory where packages store their catalogues.
+ */
+#define PACKAGE_CATALOGUES "/usr/share/hildon-application-manager/catalogues/"
+
+/* The file extension for system-wide configuration files.
+ */
+#define SYSTEM_CONFIG_EXT "xexp"
+
+/* The file where we store our domain information.
  */
 #define DOMAIN_CONF "/etc/hildon-application-manager/domains"
+
+/* The directory where packages store their domains.
+ */
+#define PACKAGE_DOMAINS "/usr/share/hildon-application-manager/domains/"
 
 /* The file were we define parameters for the update notifier status bar icon
  */
@@ -79,17 +91,52 @@ extern const char *default_distribution;
 /* Catalogues
  */
 
+/* Only reads the package catalogues
+ */
+xexp *read_package_catalogues (void);
+
+/* Reads the package catalogues and merges them with the user's catalogue.
+ */
+xexp *read_catalogues (void);
+
+/* Writes the user catalogues filtering the packages catalogues.
+ */
+int write_user_catalogues (xexp *catalogues);
+
+/* Retrieves a package catalogue entry given the id and the file.
+ */
+xexp* find_package_catalogue (const gchar *id, const gchar *file, xexp* pkgcat);
+
+/* Returns true if both catalogue are equal.
+ */
 bool catalogue_equal (xexp *cat1, xexp *cat2);
+
+/* Given a list of catalogues return the catalogue which is equal to
+ * the specified.
+ */
 xexp *find_catalogue (xexp *catalogues, xexp *cat);
+
+/* Verify if the catalogue is valid in the current distribution.
+ */
 bool catalogue_is_valid (xexp *cat);
 
+/* Generate an apt source list file given a catalogue list.
+ */
 bool write_sources_list (const char *filename, xexp *catalogues);
 
+/* Backup the user's catalogues.
+ */
 void backup_catalogues ();
 
 /* Domains
  */
 
+/* Reads the package domains and merges them with the user's domains.
+ */
+xexp *read_domains (void);
+
+/* Returns true if both domians are equal.
+ */
 bool domain_equal (xexp *a, xexp *b);
 
 #endif /* !CONFUTILS_H */
