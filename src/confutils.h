@@ -60,10 +60,6 @@ extern "C" {
  */
 #define PACKAGE_DOMAINS "/usr/share/hildon-application-manager/domains/"
 
-/* The file were we define parameters for the update notifier status bar icon
- */
-#define NOTIFIER_CONF "/etc/hildon-application-manager/notifier"
-
 /* The files where we store our backup data.
  *
  * See backup_catalogues for an explanation why we have two backups of

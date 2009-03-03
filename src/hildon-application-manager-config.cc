@@ -76,10 +76,6 @@ read_conf ()
   if (domains == NULL)
     domains = xexp_list_new ("domains");
 
-  notifier = xexp_read_file (NOTIFIER_CONF);
-  if (notifier == NULL)
-    notifier = xexp_list_new ("notifier");
-  
   settings = xexp_read_file (SYSTEM_SETTINGS_FILE);
   if (settings == NULL)
     settings = xexp_list_new ("settings");
@@ -90,7 +86,6 @@ reset_conf ()
 {
   catalogues = xexp_list_new ("catalogues");
   domains = xexp_list_new ("domains");
-  notifier = xexp_list_new ("notifier");
   settings = xexp_list_new ("settings");
 }
 
@@ -100,11 +95,8 @@ write_conf ()
   if (!xexp_write_file (SYSTEM_SETTINGS_FILE, settings))
     exit (1);
 
-  if (!xexp_write_file (NOTIFIER_CONF, notifier))
-    exit (1);
-
-  if (!xexp_write_file (DOMAIN_CONF, domains))
-    exit (1);
+   if (!xexp_write_file (DOMAIN_CONF, domains))
+     exit (1);
 
   if (!write_user_catalogues (catalogues))
     exit (1);
@@ -205,11 +197,6 @@ handle_element (xexp *element, bool add)
       conf = domains;
       equal = domain_equal;
       description = name_description;
-    }
-  else if (xexp_is (element, "notifier"))
-    {
-      conf = notifier;
-      is_alist = true;
     }
   else if (xexp_is (element, "settings"))
     {
