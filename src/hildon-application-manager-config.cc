@@ -58,23 +58,6 @@
 
 #include "confutils.h"
 
-#ifdef DEBUG
-static void
-DBG (const char *str, xexp *cat)
-{
-  fprintf (stderr, "%s:\n", str);
-  if (cat)
-    xexp_write (stderr, cat);
-  else
-    fprintf (stderr, "NULL\n");
-}
-#else
-static void
-DBG (const char *str, xexp *cat)
-{
-}
-#endif
-
 bool verbose = false;
 
 xexp *catalogues;
@@ -85,7 +68,6 @@ xexp *settings;
 void
 read_conf ()
 {
-  // catalogues = xexp_read_file (CATALOGUE_CONF);
   catalogues = read_catalogues ();
   if (catalogues == NULL)
     catalogues = xexp_list_new ("catalogues");
@@ -124,7 +106,6 @@ write_conf ()
   if (!xexp_write_file (DOMAIN_CONF, domains))
     exit (1);
 
-  // if (!xexp_write_file (CATALOGUE_CONF, catalogues))
   if (!write_user_catalogues (catalogues))
     exit (1);
 }
