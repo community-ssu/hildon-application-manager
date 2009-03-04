@@ -72,9 +72,9 @@ read_conf ()
   if (catalogues == NULL)
     catalogues = xexp_list_new ("catalogues");
 
-  domains = read_domains ();
-  if (domains == NULL)
-    domains = xexp_list_new ("domains");
+   domains = read_domains ();
+   if (domains == NULL)
+     domains = xexp_list_new ("domains");
 
   settings = xexp_read_file (SYSTEM_SETTINGS_FILE);
   if (settings == NULL)
@@ -95,8 +95,8 @@ write_conf ()
   if (!xexp_write_file (SYSTEM_SETTINGS_FILE, settings))
     exit (1);
 
-   if (!xexp_write_file (DOMAIN_CONF, domains))
-     exit (1);
+//   if (!xexp_write_file (DOMAIN_CONF, domains))
+//     exit (1);
 
   if (!write_user_catalogues (catalogues))
     exit (1);
@@ -192,12 +192,12 @@ handle_element (xexp *element, bool add)
       equal = catalogue_equal;
       description = name_description;
     }
-  else if (xexp_is (element, "domain"))
-    {
-      conf = domains;
-      equal = domain_equal;
-      description = name_description;
-    }
+//   else if (xexp_is (element, "domain"))
+//     {
+//       conf = domains;
+//       equal = domain_equal;
+//       description = name_description;
+//     }
   else if (xexp_is (element, "settings"))
     {
       conf = settings;
