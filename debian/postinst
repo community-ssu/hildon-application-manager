@@ -41,32 +41,8 @@ add_inittab "resc::bootwait:/usr/libexec/apt-worker rescue"
 # get rid of it.
 rem_inittab "resc::bootwait:/usr/libexec/apt-worker.bin rescue"
 
-## Migrate some files to their new names.
-
-migrate ()
-{
-    old="$1"
-    new="$2"
-    if [ -e "$old" -a ! -e "$new" ]; then
-	echo "Migrating $old to $new"
-	mv -f "$old" "$new"
-    fi
-}
-
-migrate /home/user/.osso/appinstaller \
-        /home/user/.osso/hildon-application-manager
-
-migrate /etc/osso-application-installer \
-        /etc/hildon-application-manager
-
-migrate /var/lib/osso-application-installer \
-        /var/lib/hildon-application-manager
-
 if [ ! -d /var/lib/hildon-application-manager ]; then
   mkdir /var/lib/hildon-application-manager
-fi
-if [ ! -e /var/lib/osso-application-installer ]; then
-  ln -s hildon-application-manager /var/lib/osso-application-installer
 fi
 
 ## Clean away old configuration files
