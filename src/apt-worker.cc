@@ -1400,6 +1400,18 @@ cmd_set_options ()
   set_options (options);
 }
 
+char*
+is_fifo (const char *filename)
+{
+  struct stat statstruct;
+
+  if ((stat (filename, &statstruct) == 0)
+      && (S_ISFIFO (statstruct.st_mode)))
+    return g_strdup (filename);
+
+  return NULL;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1421,10 +1433,31 @@ main (int argc, char **argv)
 
       DBG ("starting up");
 
-      input_fd = must_open (argv[1], O_RDONLY | O_NONBLOCK);
-      cancel_fd = must_open (argv[4], O_RDONLY | O_NONBLOCK);
-      output_fd = must_open (argv[2], O_WRONLY);
-      status_fd = must_open (argv[3], O_WRONLY);
+      char *input_pipe = is_fifo (argv[1]);
+      char *output_pipe = is_fifo (argv[2]);
+      char *status_pipe = is_fifo (argv[3]);
+      char *cancel_pipe = is_fifo (argv[4]);
+
+      if (!(input_pipe && output_pipe && status_pipe && cancel_pipe))
+	{
+	  g_free (input_pipe);
+	  g_free (output_pipe);
+	  g_free (status_pipe);
+	  g_free (cancel_pipe);
+
+	  log_stderr ("wrong fifo pipes specified");
+	  exit (1);
+	}
+
+      input_fd = must_open (input_pipe, O_RDONLY | O_NONBLOCK);
+      cancel_fd = must_open (cancel_pipe, O_RDONLY | O_NONBLOCK);
+      output_fd = must_open (output_pipe, O_WRONLY);
+      status_fd = must_open (status_pipe, O_WRONLY);
+
+      g_free (input_pipe);
+      g_free (output_pipe);
+      g_free (status_pipe);
+      g_free (cancel_pipe);
 
       /* This tells the frontend that the fifos are open.
        */
