@@ -1,3 +1,13 @@
+2009-03-16  dkedves <dkedves@blumsoft.eu>
+
+	Use dbus for closing applications.
+    
+	* src/Makefile.am: bring to life again the test_app_killer.
+	* src/test-app-killer.c: rewrited the app in order to close running
+	applications via dbus.
+	* src/util.cc (close_apps): rewrite and enable the function in order to
+	use dbus for close running applications.
+
 2009-03-10  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	Removed the migration scripts (NB#105192)
