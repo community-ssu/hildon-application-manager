@@ -2881,10 +2881,11 @@ close_apps (void)
   DBusMessage    *msg;
 
   conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
-  if (!conn) {
-    g_warning ("Could not get session bus.");
-    return;
-  }
+  if (!conn)
+    {
+      g_warning ("Could not get session bus.");
+      return;
+    }
 
   /*
    * This signal will close all non shown applications...
