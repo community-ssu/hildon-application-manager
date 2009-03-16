@@ -96,10 +96,10 @@ mime_server_CFLAGS =   $(HAM_DEPS_CFLAGS)
 mime_server_CXXFLAGS = $(HAM_DEPS_CFLAGS)
 mime_server_LDADD =    $(HAM_DEPS_LIBS)
 
-#test_app_killer_SOURCES = test-app-killer.c
-#test_app_killer_CFLAGS = $(HAM_DEPS_CFLAGS)
-#test_app_killer_CXXFLAGS = $(HAM_DEPS_CFLAGS)
-#test_app_killer_LDADD = $(HAM_DEPS_LIBS)
+test_app_killer_SOURCES = test-app-killer.c
+test_app_killer_CFLAGS = $(HAM_DEPS_CFLAGS)
+test_app_killer_CXXFLAGS = $(HAM_DEPS_CFLAGS)
+test_app_killer_LDADD = $(HAM_DEPS_LIBS)
 
 EXTRA_DIST = export.map
 

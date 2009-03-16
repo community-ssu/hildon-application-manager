@@ -30,7 +30,7 @@
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
 
-#include <libhildonwm/hd-wm.h>
+#include <dbus/dbus.h>
 
 #define RUN_TEST_BLURB                                                          \
         "\n"                                                                    \
@@ -44,101 +44,59 @@
 
 
 static gboolean      run_tests = FALSE;
-static gboolean      list_apps = FALSE;
-static const gchar  *veto = NULL;
 static GOptionEntry  entries[] = {
         { "run", 'r', 0, G_OPTION_ARG_NONE, &run_tests, "Actually start the test.", NULL },
-        { "list-apps", 'l', 0, G_OPTION_ARG_NONE, &list_apps, "Just list applications.", NULL },
-        { "veto", 'v', 0, G_OPTION_ARG_STRING, &veto, "Ignore a particular application when killing all.", NULL },
         { NULL }
 };
 
-static void
-test_get_apps (HDWM *hdwm)
+void
+close_apps (void)
 {
-        GList *applications, *l;
+  DBusConnection *conn;
+  DBusMessage    *msg;
 
-        hd_wm_update_client_list (hdwm);
-        applications = hd_wm_get_applications (hdwm);
+  conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+  if (!conn) {
+    g_warning ("Could not get session bus.");
+    return;
+  }
 
-        g_print ("Found %d applications\n", g_list_length (applications));
-        
-        for (l = applications; l; l = l->next) {
-                HDWMEntryInfo *info;
+  /*
+   * This signal will close all non shown applications...
+   */
+  msg = dbus_message_new_signal ("/com/nokia/osso_app_killer",
+                                 "com.nokia.osso_app_killer",
+                                 "exit");
 
-                info = l->data;
+  dbus_connection_send (conn, msg, NULL);
+  dbus_connection_flush (conn);
 
-                g_print ("\tApp:'%s', Title:'%s', has %d children, active:%s, hibernating:%s\n", 
-                         hd_wm_entry_info_get_app_name (info),
-                         hd_wm_entry_info_get_title (info),
-                         hd_wm_entry_info_get_n_children (info),
-                         hd_wm_entry_info_is_active (info) ? "Yes" : "No", 
-                         hd_wm_entry_info_is_hibernating (info) ? "Yes" : "No");
-        }
+  dbus_connection_unref (conn);
+  g_debug("close_apps(): message sent");
 }
 
-static void
-test_kill_apps (HDWM *hdwm)
-{
-        GList *applications, *l;
-
-        hd_wm_update_client_list (hdwm);
-        applications = hd_wm_get_applications (hdwm);
-
-        g_print ("Closing %d applications:\n", g_list_length (applications));
-
-        for (l = applications; l; l = l->next) {
-                HDWMEntryInfo *info;
-
-                info = l->data;
-
-		if (veto) {
-			const gchar *name;
-			
-			name = hd_wm_entry_info_get_app_name (info);
-			if (name && strcmp (veto, name) == 0) {
-                		g_print ("\tApp:'%s', Title:'%s' (IGNORED)\n", 
-		                         hd_wm_entry_info_get_app_name (info),
-                		         hd_wm_entry_info_get_title (info));
-				continue;
-			}
-		}	
-
-                g_print ("\tApp:'%s', Title:'%s'\n", 
-                         hd_wm_entry_info_get_app_name (info),
-                         hd_wm_entry_info_get_title (info));
-
-                hd_wm_close_application (hdwm, info);
-        }
-}
 
 int
 main (int argc, char **argv)
 {
-        HDWM           *hdwm;
-        GOptionContext *context;
+    GOptionContext *context;
 
-        gtk_init (&argc,&argv);
+    gtk_init (&argc,&argv);
 
-        context = g_option_context_new ("- test app killing hildon-desktop API");
-	g_option_context_add_main_entries (context, entries, NULL);
-        g_option_context_parse (context, &argc, &argv, NULL);
-        g_option_context_free (context);
+    context = g_option_context_new ("- test app killing hildon-desktop API");
+    g_option_context_add_main_entries (context, entries, NULL);
+    g_option_context_parse (context, &argc, &argv, NULL);
+    g_option_context_free (context);
 
-        if (!run_tests && !list_apps) {
-                g_printerr (RUN_TEST_BLURB);
-                return EXIT_SUCCESS;
-        }
+    if (!run_tests) {
+        g_printerr (RUN_TEST_BLURB);
+        return EXIT_SUCCESS;
+    }
 
-        hdwm = hd_wm_get_singleton ();
+    g_debug("close_apps()");
 
-        if (list_apps) {
-                test_get_apps (hdwm);
-                return EXIT_SUCCESS;
-        }
+    close_apps();
 
-        test_kill_apps (hdwm);
-
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 

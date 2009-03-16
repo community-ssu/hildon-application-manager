@@ -41,6 +41,7 @@
 #include <hildon/hildon-defines.h>
 #include <conic.h>
 #include <libgnomevfs/gnome-vfs.h>
+#include <dbus/dbus.h>
 
 #include "main.h"
 #include "util.h"
@@ -2873,54 +2874,30 @@ run_cmd (char **argv,
   g_child_watch_add (child_pid, reap_process, c);
 }
 
-#if 0
 void
 close_apps (void)
 {
-  HDWM *hdwm = NULL;
-  HDWMEntryInfo *info = NULL;
-  GList *applications = NULL;
-  GList *l = NULL;
-  gchar *ham_appname = NULL;
-  gchar *current_appname = NULL;
+  DBusConnection *conn;
+  DBusMessage    *msg;
 
-  /* Get the HDM instance and the running applications list */
-  hdwm = hd_wm_get_singleton ();
-  hd_wm_update_client_list (hdwm);
-  applications = hd_wm_get_applications (hdwm);
+  conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+  if (!conn) {
+    g_warning ("Could not get session bus.");
+    return;
+  }
 
-  add_log ("Closing %d applications\n", g_list_length (applications) - 1);
+  /*
+   * This signal will close all non shown applications...
+   */
+  msg = dbus_message_new_signal ("/com/nokia/osso_app_killer",
+                                 "com.nokia.osso_app_killer",
+                                 "exit");
 
-  /* Close all running applications except the HAM */
-  ham_appname = g_strdup ("Application manager");
-  for (l = applications; l; l = l->next)
-    {
-      info = (HDWMEntryInfo *) l->data;
+  dbus_connection_send (conn, msg, NULL);
+  dbus_connection_flush (conn);
 
-      /* Avoid closing HAM */
-      if (current_appname != NULL)
-	g_free (current_appname);
-      current_appname = g_strdup (hd_wm_entry_info_get_app_name (info));
-      if (!current_appname || strcmp (ham_appname, current_appname) != 0)
-	{
-	  add_log ("\tApp:'%s', Title:'%s'\n",
-		   hd_wm_entry_info_get_app_name (info),
-		   hd_wm_entry_info_get_title (info));
-
-	  hd_wm_close_application (hdwm, info);
-	}
-    }
-
-  /* Free allocated resources */
-  g_free (ham_appname);
-  g_free (current_appname);
+  dbus_connection_unref (conn);
 }
-#else
-void
-close_apps (void)
-{
-}
-#endif
 
 const char *
 skip_whitespace (const char *str)
