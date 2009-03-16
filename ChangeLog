@@ -1,3 +1,71 @@
+2009-03-10  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed the migration scripts (NB#105192)
+    
+	* debian/postinst: now there's no need of migration script in this new
+	device. 
+
+2009-03-04  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Commented out the domain writing through the h-a-m-config
+    
+	* src/hildon-application-manager-config.cc (write_conf): avoid write
+	the /etc/h-a-m/domain file.
+	(handle_element): commented out the domain element handling.
+
+2009-03-03  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Handle the domains as installable packages.
+    
+	* src/Makefile.am: dropped the catalogue.cc and catalogue.h compilation
+	* src/apt-worker.cc: removed the catalogue.h inclusion
+	(read_domain_conf): use the read domains function instead of the
+	simple xexp file read, the last modification time now uses the
+	directory last modifcation.
+	(handle_request): the last modification time now uses the directory
+	last modifcation.
+	* src/catalogues.cc: removed file.
+	* src/catalogues.h: removed file.
+	* src/confutils.cc: added the headers glib.h and glib/gstdio.h; added
+	debug macro.
+	(find_package_catalogue): new function.
+	(file_is_valid): new function.
+	(read_package_config_files): new function.
+	(add_package_catalogues): new function.
+	(add_user_catalogues): new function.
+	(read_catalogues): new function.
+	(read_domains): new function.
+	* src/confutils.h: new macro defines and function declarations.
+	* src/hildon-application-manager-config.cc: removed the header
+	catalogues.h 
+	(read_conf): use the read domains function instead of the simple xexp
+	file read.
+
+	Removed unused code.
+	
+	* src/hildon-application-manager-config.cc: removed the debug printing
+	macro. 
+	(read_conf): removed old commented out code.
+	(write_conf): removed old commented out code.
+
+	Rid out of the notifier handling in h-a-m-config.
+    
+	* src/confutils.h: removed the NOTIFIER_CONF macro.
+	* src/hildon-application-manager-config.cc (read_conf): removed the
+	notifier configuration reading.
+	(reset_conf): removed the notifier config handling.
+	(write_conf): removed the notifier config writing.
+	(handle_element): removed the notifier tag handling.
+
+
+2009-03-02  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* statusbar/ham-notifier.c (get_uri): use the default system settings
+	file to obtain the notifier uri.
+	* Updated the PAST and FUTURE files.
+	* src/apt-worker.cc (file_last_modified): honored the filename
+	parameter in the function.
+
 2009-02-26  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	Fixed the connection state verification.

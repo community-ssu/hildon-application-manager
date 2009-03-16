@@ -3,6 +3,17 @@ Completed features of the Hildon Application Manager
 
 See FUTURE for planned features.
 
+* Drop support for memory cards completely [vjaquez]
+
+Everything related to installation from memory cards should be
+removed.
+
+* Update the notification plugin for the new hildon status menu in
+  hildon-desktop [vjaquez]
+
+* Remove the free space verification from the UI and move it to the
+  apt-worker [vjaquez]
+
 * Avoiding invisible interaction flows
 
 Currently, it is possible to start an interaction flow (using

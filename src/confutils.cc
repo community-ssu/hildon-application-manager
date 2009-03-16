@@ -25,8 +25,24 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <glib.h>
+#include <glib/gstdio.h>
 
 #include "confutils.h"
+
+#ifdef DEBUG
+static void
+DBG (const char *str, xexp *cat)
+{
+  fprintf (stderr, "%s:\n", str);
+  xexp_write (stderr, cat);
+}
+#else
+static void
+DBG (const char *str, xexp *cat)
+{
+}
+#endif
 
 xexp *system_settings = NULL;
 
@@ -97,7 +113,7 @@ tokens_equal (const char *str1, const char *str2)
       else
 	break;
     }
-  
+
   str1 = skip_whitespace (str1);
   str2 = skip_whitespace (str2);
 
@@ -142,24 +158,24 @@ write_sources_list (const char *filename, xexp *catalogues)
   if (f)
     {
       for (xexp *x = xexp_first (catalogues); x; x = xexp_rest (x))
-	if (xexp_is (x, "catalogue") 
+	if (xexp_is (x, "catalogue")
 	    && !xexp_aref_bool (x, "disabled"))
 	  {
 	    const char *uri = xexp_aref_text (x, "uri");
 	    const char *dist = xexp_aref_text (x, "dist");
 	    const char *comps = xexp_aref_text (x, "components");
-	    
+
 	    if (uri == NULL)
 	      continue;
 	    if (dist == NULL)
 	      dist = default_distribution;
 	    if (comps == NULL)
 	      comps = "";
-	    
+
 	    fprintf (f, "deb %s %s %s\n", uri, dist, comps);
 	  }
     }
-  
+
   if (f == NULL || ferror (f) || fflush (f) || fsync (fileno (f)) || fclose (f))
     {
       fprintf (stderr, "%s: %s\n", filename, strerror (errno));
@@ -188,7 +204,7 @@ backup_catalogues ()
      are in two backup categories ("Settings" and "List of
      Applications") and osso-backup can not put one file into two
      categories.
-     
+
      When restoring, we use the one that has been restored.  When both
      have been restored, we use either one since they will be identical.
   */
@@ -200,6 +216,197 @@ backup_catalogues ()
       xexp_write_file (BACKUP_CATALOGUES2, catalogues);
       xexp_free (catalogues);
     }
+}
+
+xexp*
+find_package_catalogue (const gchar *id, const gchar *file, xexp* pkgcat)
+{
+  if (!file || !id || !pkgcat)
+    return NULL;
+
+  for (xexp *m = xexp_first (pkgcat); m; m = xexp_rest (m))
+  {
+    const gchar *pfile = xexp_aref_text (m, "file");
+    const gchar *pid   = xexp_aref_text (m, "id");
+
+    if (!pfile || !pid)
+      continue;
+
+    if (!g_ascii_strcasecmp (file, pfile) &&
+        !g_ascii_strcasecmp (id, pid))
+      return m;
+  }
+
+  return NULL;
+}
+
+static bool
+file_is_valid (gchar *filepath)
+{
+  g_return_val_if_fail (filepath, false);
+
+  struct stat filestat;
+  return (g_stat (filepath, &filestat) != 0 || !S_ISREG (filestat.st_mode));
+}
+
+static void
+read_package_config_files (xexp *pkgcat, const gchar* dir,
+			   void (*add_config) (xexp *, xexp *, gchar *))
+{
+  g_return_if_fail (pkgcat && dir);
+
+  GDir* catdir = g_dir_open (dir, 0, NULL);
+  if (!catdir)
+    return;
+
+  while (true)
+    {
+      const gchar *dirent = g_dir_read_name (catdir);
+      if (dirent == NULL)
+	break;
+
+      gchar *ext = g_strrstr (dirent, ".");
+      if (ext == NULL)
+	continue;
+
+      if (g_ascii_strcasecmp (ext + 1, SYSTEM_CONFIG_EXT))
+	continue; /* not valid file extension */
+
+      gchar *filepath = g_strconcat (dir, dirent, NULL);
+      if (file_is_valid (filepath))
+	{
+	  g_free (filepath);
+	  continue;
+	}
+
+      xexp *cat = xexp_read_file (filepath);
+      g_free (filepath);
+
+      if (cat)
+	{
+	  if (add_config)
+	    {
+	      gchar* filename;
+	      filename = g_strndup (dirent, ext - dirent);
+	      add_config (pkgcat, cat, filename);
+	      if (filename)
+		g_free (filename);
+	      xexp_free (cat);
+	    }
+	  else
+	    xexp_append (pkgcat, cat);
+	}
+    }
+
+  g_dir_close (catdir);
+}
+
+/* this function is the same as merge_package_catalogues without
+ * avoiding duplicated catalogues */
+static void
+add_package_catalogues (xexp *pkgcat, xexp *cat, gchar* file)
+{
+  while (xexp *m = xexp_pop (cat))
+    {
+      if (xexp_aref_text (m, "id") == NULL)
+	{
+	  fprintf (stderr, "%s.%s: catalogues must have 'id' element.\n",
+		   file, SYSTEM_CONFIG_EXT);
+	  continue;
+	}
+
+      if (!catalogue_is_valid (m))
+	{
+	  DBG ("Ignoring", m);
+	  xexp_free (m);
+	  continue;
+	}
+
+      xexp_aset_text (m, "file", file);
+
+      DBG ("Adding", m);
+      xexp_append_1 (pkgcat, m);
+    }
+}
+
+static void
+add_user_catalogues (xexp *global)
+{
+  g_return_if_fail (global);
+
+  xexp *syscat = xexp_read_file (CATALOGUE_CONF);
+
+  if (syscat)
+    {
+      while (xexp *m = xexp_pop (syscat))
+	{
+	  const gchar *sfile = xexp_aref_text (m, "file");
+	  const gchar *sid   = xexp_aref_text (m, "id");
+
+	  if ((!sfile || !sid) /* is a reference to a pkg catalogue? */
+	      && catalogue_is_valid (m)) /* is a valid catalogue? */
+	    {
+	      DBG ("Adding user's cat to global", m);
+	      xexp_append_1 (global, m);
+	    }
+	  else
+	    {
+	      gboolean sdisabled = xexp_aref_bool (m, "disabled");
+	      xexp* x = find_package_catalogue (sid, sfile, global);
+	      if (x)
+		xexp_aset_bool (x, "disabled", sdisabled);
+	      xexp_free (m);
+	    }
+	}
+      xexp_free (syscat);
+    }
+}
+
+xexp*
+read_catalogues (void)
+{
+  xexp* global = xexp_list_new ("catalogues");
+  read_package_config_files (global, PACKAGE_CATALOGUES,
+			     add_package_catalogues);
+  add_user_catalogues (global);
+
+  return global;
+}
+
+int
+write_user_catalogues (xexp *catalogues)
+{
+  if (catalogues == NULL)
+    return 0;
+
+  xexp *usercat = xexp_list_new ("catalogues");
+
+  /* lets' filter the current catalogues list */
+  for (xexp *x = xexp_first (catalogues); x; x = xexp_rest (x))
+    {
+      if (xexp_is (x, "catalogue"))
+	{
+	  xexp* newrep = NULL;
+
+	  if (xexp_aref_text (x, "file") &&       /* it is package catalogue */
+	      xexp_aref_text (x, "id"))
+	    {
+	      newrep = xexp_list_new ("catalogue");
+	      xexp_aset_bool (newrep, "disabled",
+			      xexp_aref_bool (x, "disabled"));
+	      xexp_aset_text (newrep, "id", xexp_aref_text (x, "id"));
+	      xexp_aset_text (newrep, "file", xexp_aref_text (x, "file"));
+	      xexp_append_1 (usercat, newrep);
+	    }
+	  else
+	    xexp_append_1 (usercat, xexp_copy (x));
+	}
+    }
+
+  gint retval = xexp_write_file (CATALOGUE_CONF, usercat);
+  xexp_free (usercat);
+
+  return retval;
 }
 
 /* Domains
@@ -214,4 +421,13 @@ domain_equal (xexp *a, xexp *b)
   if (a_name == NULL || b_name == NULL)
     return false;
   return strcmp (a_name, b_name) == 0;
+}
+
+xexp*
+read_domains (void)
+{
+  xexp *global = xexp_list_new ("domains");
+  read_package_config_files (global, PACKAGE_DOMAINS, NULL);
+
+  return global;
 }

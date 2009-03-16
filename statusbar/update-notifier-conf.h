@@ -28,8 +28,6 @@
 #define UPNO_GCONF_CHECK_INTERVAL   UPNO_GCONF_DIR "/check_interval"
 #define UPNO_DEFAULT_CHECK_INTERVAL (24 * 60)
 
-#define UPNO_NOTIFIER_CONF "/etc/hildon-application-manager/notifier"
-
 #define UPDATE_NOTIFIER_SERVICE "com.nokia.hildon_update_notifier"
 #define UPDATE_NOTIFIER_OBJECT_PATH "/com/nokia/hildon_update_notifier"
 #define UPDATE_NOTIFIER_INTERFACE "com.nokia.hildon_update_notifier"
@@ -46,9 +44,10 @@
 
 #define AVAILABLE_UPDATES_FILE_NAME "available-updates"
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/" AVAILABLE_UPDATES_FILE_NAME
-#define AVAILABLE_NOTIFICATIONS_MENU_WIDTH 500
-#define AVAILABLE_NOTIFICATIONS_MENU_LEFT_PADDING 80 + 9
-#define AVAILABLE_NOTIFICATIONS_MENU_TOP_PADDING 9
+
+/* The file with the default values of the system-wide settings.
+ */
+#define SYSTEM_SETTINGS_DEFAULTS_FILE "/usr/share/hildon-application-manager/defaults"
 
 #define URL_VARIABLE_PREFIX     "$\{"
 #define URL_VARIABLE_SUFFIX     "}"

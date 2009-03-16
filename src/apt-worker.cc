@@ -100,7 +100,6 @@
 
 #include "apt-worker-proto.h"
 #include "confutils.h"
-#include "catalogues.h"
 
 #include "update-notifier-conf.h"
 
@@ -242,7 +241,7 @@ file_last_modified (const char *file_name)
 {
   struct stat buf;
 
-  if (stat(DOMAIN_CONF, &buf) == -1)
+  if (stat (file_name, &buf) == -1)
     {
       perror ("error retriving file info");
       return -1;
@@ -257,7 +256,7 @@ read_domain_conf ()
   delete[] domains;
   xexp_free (domain_conf);
 
-  domain_conf = xexp_read_file (DOMAIN_CONF);
+  domain_conf = read_domains ();
 
   int n_domains = 2;
   if (domain_conf)
@@ -299,7 +298,7 @@ read_domain_conf ()
 
   /* Update domains number and last modified timestamp */
   domains_number = i;
-  domains_last_modified = file_last_modified (DOMAIN_CONF);
+  domains_last_modified = file_last_modified (PACKAGE_DOMAINS);
 }
 
 static domain_t
@@ -1091,7 +1090,7 @@ handle_request ()
   awc->init_cache_after_request = false; // let's reset it now
 
   /* Re-read domains conf file if modified */
-  last_modified = file_last_modified (DOMAIN_CONF);
+  last_modified = file_last_modified (PACKAGE_DOMAINS);
   if (last_modified != domains_last_modified)
     read_domain_conf ();
 
