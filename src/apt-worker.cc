@@ -5317,7 +5317,7 @@ get_deb_record (const char *filename)
       int status = pclose (f);
       if (status != 0)
 	{
-	  delete (record);
+	  delete [] record;
 	  return NULL;
 	}
 
