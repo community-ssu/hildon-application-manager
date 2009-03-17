@@ -53,18 +53,20 @@ repository_uri_is_valid (const gchar* uri)
   gchar *tmp, *repo_uri;
   gboolean result = FALSE;
 
-  if (uri == NULL || strlen (uri) == 0 ||
-      all_whitespace (uri) || !g_utf8_validate (uri, -1, NULL))
+  if (uri == NULL
+      || strlen (uri) == 0
+      || all_whitespace (uri)
+      || !g_utf8_validate (uri, -1, NULL))
     return FALSE;
 
-  repo_uri = g_strdup (uri);
-  g_strstrip (repo_uri);
-
+  repo_uri = g_strstrip (g_strdup (uri));
   tokens = g_strsplit (repo_uri, delimiter, 2);
 
   /* Check APT method */
-  if ((tokens != NULL) && (tokens[1] != NULL) &&
-      (strlen (tokens[0]) > 0) && (strlen (tokens[1]) > 0))
+  if ((tokens != NULL)
+      && (tokens[1] != NULL)
+      && (strlen (tokens[0]) > 0)
+      && (strlen (tokens[1]) > 0))
     {
       /* Check also that the uri is not just "<aptm-method>://" */
       gchar *uri_prefix = g_strdup_printf ("%s://", tokens[0]);
@@ -76,7 +78,9 @@ repository_uri_is_valid (const gchar* uri)
         }
       g_free (uri_prefix);
     }
-  g_strfreev(tokens);
+
+  g_free (repo_uri);
+  g_strfreev (tokens);
 
   /* At last, look for blanks in the middle of the uri */
   if (g_strrstr (uri, " ") != NULL)
@@ -406,11 +410,6 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
   else if (response == GTK_RESPONSE_OK && !c->readonly)
     {
       const char *name = gtk_entry_get_text (GTK_ENTRY (c->name_entry));
-      char *uri = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c->uri_entry))));
-      char *dist = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c->dist_entry))));
-      char *comps = g_strstrip (g_strdup (gtk_entry_get_text (GTK_ENTRY (c->components_entry))));
-      bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
-						    (c->disabled_button));
 
       if (all_whitespace (name))
       {
@@ -418,15 +417,28 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
         gtk_widget_grab_focus (c->name_entry);
         return;
       }
-      /* validate repository location                                         */ 
+
+      char *uri = g_strstrip (g_strdup (gtk_entry_get_text
+                                        (GTK_ENTRY (c->uri_entry))));
+
+      /* validate repository location                                         */
+
       /* TODO we need a more general text, like "Invalid repository location" */
       /* TODO encode URI to scape special characters?                         */
       if (!repository_uri_is_valid (uri))
         {
           irritate_user (_("ai_ib_enter_web_address"));
           gtk_widget_grab_focus (c->uri_entry);
+          g_free (uri);
           return;
         }
+
+      char *dist = g_strstrip (g_strdup (gtk_entry_get_text
+                                         (GTK_ENTRY (c->dist_entry))));
+      char *comps = g_strstrip (g_strdup (gtk_entry_get_text
+                                          (GTK_ENTRY (c->components_entry))));
+      bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON
+						    (c->disabled_button));
 
       if (all_whitespace (comps))
         {

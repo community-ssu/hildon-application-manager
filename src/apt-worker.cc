@@ -691,14 +691,14 @@ myCacheFile::load_extra_info ()
       char *name =
 	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
 			 domains[i].name);
-      
+
       FILE *f = fopen (name, "r");
       if (f)
 	{
 	  char *line = NULL;
 	  size_t len = 0;
 	  ssize_t n;
-	  
+
 	  while ((n = getline (&line, &len, f)) != -1)
 	    {
 	      if (n > 0 && line[n-1] == '\n')
@@ -715,6 +715,8 @@ myCacheFile::load_extra_info ()
 	  free (line);
 	  fclose (f);
 	}
+
+      g_free (name);
     }
 }
 
@@ -1400,6 +1402,18 @@ cmd_set_options ()
   set_options (options);
 }
 
+char*
+is_fifo (const char *filename)
+{
+  struct stat statstruct;
+
+  if ((stat (filename, &statstruct) == 0)
+      && (S_ISFIFO (statstruct.st_mode)))
+    return g_strdup (filename);
+
+  return NULL;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -1421,10 +1435,31 @@ main (int argc, char **argv)
 
       DBG ("starting up");
 
-      input_fd = must_open (argv[1], O_RDONLY | O_NONBLOCK);
-      cancel_fd = must_open (argv[4], O_RDONLY | O_NONBLOCK);
-      output_fd = must_open (argv[2], O_WRONLY);
-      status_fd = must_open (argv[3], O_WRONLY);
+      char *input_pipe = is_fifo (argv[1]);
+      char *output_pipe = is_fifo (argv[2]);
+      char *status_pipe = is_fifo (argv[3]);
+      char *cancel_pipe = is_fifo (argv[4]);
+
+      if (!(input_pipe && output_pipe && status_pipe && cancel_pipe))
+	{
+	  g_free (input_pipe);
+	  g_free (output_pipe);
+	  g_free (status_pipe);
+	  g_free (cancel_pipe);
+
+	  log_stderr ("wrong fifo pipes specified");
+	  exit (1);
+	}
+
+      input_fd = must_open (input_pipe, O_RDONLY | O_NONBLOCK);
+      cancel_fd = must_open (cancel_pipe, O_RDONLY | O_NONBLOCK);
+      output_fd = must_open (output_pipe, O_WRONLY);
+      status_fd = must_open (status_pipe, O_WRONLY);
+
+      g_free (input_pipe);
+      g_free (output_pipe);
+      g_free (status_pipe);
+      g_free (cancel_pipe);
 
       /* This tells the frontend that the fifos are open.
        */
@@ -3841,14 +3876,7 @@ cmd_check_updates (bool with_status)
       DBG ("https_proxy: %s", https_proxy);
     }
 
-  xexp *catalogues;
-  // @todo how we'll manage this?
-  // if (AptWorkerState::IsTemp ())
-  //  catalogues = xexp_read_file (TEMP_CATALOGUE_CONF);
-  // else
-  {
-    catalogues = read_catalogues ();
-  }
+  xexp *catalogues = read_catalogues ();
 
   reset_catalogue_errors (catalogues);
 
@@ -3862,6 +3890,9 @@ cmd_check_updates (bool with_status)
 
   response.encode_xexp (catalogues);
   response.encode_int (result_code);
+
+  if (catalogues)
+    xexp_free (catalogues);
 
   return result_code;
 }
@@ -5284,7 +5315,7 @@ get_deb_record (const char *filename)
       int status = pclose (f);
       if (status != 0)
 	{
-	  delete (record);
+	  delete [] record;
 	  return NULL;
 	}
 
@@ -5820,6 +5851,9 @@ write_available_updates_file ()
     }
 
   xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
+
+  if (x_updates)
+    xexp_free (x_updates);
 }
 
 static xexp *

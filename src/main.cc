@@ -2255,7 +2255,7 @@ rp_restore (bool keep_going, void *data)
       names[i] = NULL;
       install_named_packages (names, INSTALL_TYPE_BACKUP, false,
                               NULL, NULL, rp_end, backup);
-      delete names;
+      delete [] names;
     }
   else
     rp_end (0, backup);

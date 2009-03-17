@@ -56,10 +56,11 @@ close_apps (void)
   DBusMessage    *msg;
 
   conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
-  if (!conn) {
-    g_warning ("Could not get session bus.");
-    return;
-  }
+  if (!conn)
+    {
+      g_warning ("Could not get session bus.");
+      return;
+    }
 
   /*
    * This signal will close all non shown applications...
@@ -88,10 +89,11 @@ main (int argc, char **argv)
     g_option_context_parse (context, &argc, &argv, NULL);
     g_option_context_free (context);
 
-    if (!run_tests) {
+    if (!run_tests)
+      {
         g_printerr (RUN_TEST_BLURB);
         return EXIT_SUCCESS;
-    }
+      }
 
     g_debug("close_apps()");
 
