@@ -3874,14 +3874,7 @@ cmd_check_updates (bool with_status)
       DBG ("https_proxy: %s", https_proxy);
     }
 
-  xexp *catalogues;
-  // @todo how we'll manage this?
-  // if (AptWorkerState::IsTemp ())
-  //  catalogues = xexp_read_file (TEMP_CATALOGUE_CONF);
-  // else
-  {
-    catalogues = read_catalogues ();
-  }
+  xexp *catalogues = read_catalogues ();
 
   reset_catalogue_errors (catalogues);
 
@@ -3895,6 +3888,9 @@ cmd_check_updates (bool with_status)
 
   response.encode_xexp (catalogues);
   response.encode_int (result_code);
+
+  if (catalogues)
+    xexp_free (catalogues);
 
   return result_code;
 }
