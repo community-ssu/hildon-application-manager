@@ -5849,6 +5849,9 @@ write_available_updates_file ()
     }
 
   xexp_write_file (AVAILABLE_UPDATES_FILE, x_updates);
+
+  if (x_updates)
+    xexp_free (x_updates);
 }
 
 static xexp *
