@@ -1579,7 +1579,7 @@ ip_reboot_now (void *data)
   user_file_write_xexp (UFILE_BOOT, boot);
   xexp_free (boot);
 
-  package_info *pi = (package_info *)(c->cur->data);
+  // package_info *pi = (package_info *)(c->cur->data);
 
   apt_worker_reboot (ip_reboot_reply, c);
 
