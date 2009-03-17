@@ -732,19 +732,22 @@ ip_check_domain_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   if (some_domains_changed)
     {
-      package_info *pi = (package_info *)(c->cur->data);
-      gchar *msg = g_strdup_printf (_("ai_ni_error_broken_path_%s"),
-				    pi->get_display_name (false));
+      gchar *msg = NULL;
 
       if (red_pill_mode)
 	{
 	  msg = g_strdup_printf ("%s\nInstall anyway?", msg);
-	    
+
 	  ask_custom (msg, "Yes", "No",
 		      ip_install_anyway, c);
 	}
       else
-	ip_abort_cur (c, msg, false);
+        {
+          package_info *pi = (package_info *)(c->cur->data);
+          msg = g_strdup_printf (_("ai_ni_error_broken_path_%s"),
+                                 pi->get_display_name (false));
+          ip_abort_cur (c, msg, false);
+        }
 
       g_free (msg);
     }
