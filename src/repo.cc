@@ -53,18 +53,20 @@ repository_uri_is_valid (const gchar* uri)
   gchar *tmp, *repo_uri;
   gboolean result = FALSE;
 
-  if (uri == NULL || strlen (uri) == 0 ||
-      all_whitespace (uri) || !g_utf8_validate (uri, -1, NULL))
+  if (uri == NULL
+      || strlen (uri) == 0
+      || all_whitespace (uri)
+      || !g_utf8_validate (uri, -1, NULL))
     return FALSE;
 
-  repo_uri = g_strdup (uri);
-  g_strstrip (repo_uri);
-
+  repo_uri = g_strstrip (g_strdup (uri));
   tokens = g_strsplit (repo_uri, delimiter, 2);
 
   /* Check APT method */
-  if ((tokens != NULL) && (tokens[1] != NULL) &&
-      (strlen (tokens[0]) > 0) && (strlen (tokens[1]) > 0))
+  if ((tokens != NULL)
+      && (tokens[1] != NULL)
+      && (strlen (tokens[0]) > 0)
+      && (strlen (tokens[1]) > 0))
     {
       /* Check also that the uri is not just "<aptm-method>://" */
       gchar *uri_prefix = g_strdup_printf ("%s://", tokens[0]);
@@ -76,7 +78,9 @@ repository_uri_is_valid (const gchar* uri)
         }
       g_free (uri_prefix);
     }
-  g_strfreev(tokens);
+
+  g_free (repo_uri);
+  g_strfreev (tokens);
 
   /* At last, look for blanks in the middle of the uri */
   if (g_strrstr (uri, " ") != NULL)
