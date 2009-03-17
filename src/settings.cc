@@ -186,7 +186,7 @@ struct settings_closure {
 };
 
 static void
-make_boolean_option (settings_closure *c, 
+make_boolean_option (settings_closure *c,
 		     GtkWidget *box, GtkSizeGroup *group,
 		     const int id, const char *text, bool *var)
 {
@@ -198,7 +198,7 @@ make_boolean_option (settings_closure *c,
 				NULL, HILDON_CAPTION_OPTIONAL);
   gtk_box_pack_start (GTK_BOX (box), caption, FALSE, FALSE, 0);
 
-  if (id > NUM_BOOLEAN_OPTIONS)
+  if (id >= NUM_BOOLEAN_OPTIONS)
     abort ();
 
   c->boolean_btn[id] = btn;
