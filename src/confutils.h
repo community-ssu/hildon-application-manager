@@ -36,7 +36,8 @@ extern "C" {
  */
 #define SYSTEM_SETTINGS_DEFAULTS_FILE "/usr/share/hildon-application-manager/defaults"
 
-/* The file where we store our catalogues for ourselves.
+/* The file where we store the user-controlled bits of the catalogue
+   configuration.
  */
 #define CATALOGUE_CONF "/etc/hildon-application-manager/catalogues"
 
@@ -51,10 +52,6 @@ extern "C" {
 /* The file extension for system-wide configuration files.
  */
 #define SYSTEM_CONFIG_EXT "xexp"
-
-/* The file where we store our domain information.
- */
-#define DOMAIN_CONF "/etc/hildon-application-manager/domains"
 
 /* The directory where packages store their domains.
  */
