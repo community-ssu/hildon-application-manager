@@ -29,9 +29,6 @@ install-data-local:
 	if [ ! -f $(DESTDIR)$(etcdir)/catalogues ]; then \
           echo "<catalogues/>" >$(DESTDIR)$(etcdir)/catalogues; \
         fi
-	if [ ! -f $(DESTDIR)$(etcdir)/domains ]; then \
-          echo "<domains/>" >$(DESTDIR)$(etcdir)/domains; \
-        fi
 	if [ ! -f $(DESTDIR)$(etcdir)/notifier ]; then \
           echo "<notifier/>" >$(DESTDIR)$(etcdir)/notifier; \
         fi

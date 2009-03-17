@@ -95,9 +95,6 @@ write_conf ()
   if (!xexp_write_file (SYSTEM_SETTINGS_FILE, settings))
     exit (1);
 
-//   if (!xexp_write_file (DOMAIN_CONF, domains))
-//     exit (1);
-
   if (!write_user_catalogues (catalogues))
     exit (1);
 }
