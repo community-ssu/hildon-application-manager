@@ -33,22 +33,22 @@
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>
 
-static char* type_to_name (int message_type)
-{
-    switch (message_type)
-    {
-      case DBUS_MESSAGE_TYPE_SIGNAL:
-	return "signal";
-      case DBUS_MESSAGE_TYPE_METHOD_CALL:
-	return "method call";
-      case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-	return "method return";
-      case DBUS_MESSAGE_TYPE_ERROR:
-	return "error";
-      default:
-	return "(unknown message type)";
-    }
-}
+/* static char* type_to_name (int message_type) */
+/* { */
+/*     switch (message_type) */
+/*     { */
+/*       case DBUS_MESSAGE_TYPE_SIGNAL: */
+/* 	return "signal"; */
+/*       case DBUS_MESSAGE_TYPE_METHOD_CALL: */
+/* 	return "method call"; */
+/*       case DBUS_MESSAGE_TYPE_METHOD_RETURN: */
+/* 	return "method return"; */
+/*       case DBUS_MESSAGE_TYPE_ERROR: */
+/* 	return "error"; */
+/*       default: */
+/* 	return "(unknown message type)"; */
+/*     } */
+/* } */
 
 DBusHandlerResult 
 handler (DBusConnection *conn, DBusMessage *message, void *data)
