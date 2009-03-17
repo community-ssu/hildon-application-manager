@@ -691,14 +691,14 @@ myCacheFile::load_extra_info ()
       char *name =
 	g_strdup_printf ("/var/lib/hildon-application-manager/domain.%s",
 			 domains[i].name);
-      
+
       FILE *f = fopen (name, "r");
       if (f)
 	{
 	  char *line = NULL;
 	  size_t len = 0;
 	  ssize_t n;
-	  
+
 	  while ((n = getline (&line, &len, f)) != -1)
 	    {
 	      if (n > 0 && line[n-1] == '\n')
@@ -715,6 +715,8 @@ myCacheFile::load_extra_info ()
 	  free (line);
 	  fclose (f);
 	}
+
+      g_free (name);
     }
 }
 
