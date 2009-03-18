@@ -1387,12 +1387,15 @@ set_options (const char *options)
 {
   if (strchr (options, 'B'))
     flag_break_locks = true;
-  
+
   if (strchr (options, 'D'))
     flag_allow_wrong_domains = true;
 
   if (strchr (options, 'M'))
     flag_download_packages_to_mmc = true;
+
+  if (strchr (options, 'A'))
+    flag_use_apt_algorithms = true;
 }
 
 void
@@ -1483,9 +1486,6 @@ main (int argc, char **argv)
 	   options);
 
       set_options (options);
-
-      if (strchr (options, 'A'))
-	flag_use_apt_algorithms = true;
 
       /* Don't let our heavy lifting starve the UI.
        */
