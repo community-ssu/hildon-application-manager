@@ -1,3 +1,52 @@
+2009-03-17  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Fixed possible memory leaks and array overrun. (NB#102378)
+    
+	* src/main.cc (rp_restore): use delete [].
+	* src/apt-worker.cc (get_deb_record): use delete [].
+	src/repo.cc (cat_edit_response): the allocaton of strings are done
+	after the possible function exits.
+	* src/repo.cc (repository_uri_is_valid): free an allocated string and
+	reformat some lines.
+	* src/operations.cc (ip_check_domain_reply): a previously allocated
+	string is overwritten if in red pill mode.
+	* src/apt-worker.cc (cmd_check_updates): removed some commented out
+	code and free the catalogues structure after used.
+	* src/apt-worker.cc (write_available_updates_file): free the x_updates
+	structure after is used.
+	* src/apt-worker.cc (myCacheFile::load_extra_info): free string after
+	is used and removed trailing spaces.
+	* src/settings.cc (make_boolean_option): id can't be bigger neither
+	equal to NUM_BOOLEAN_OPTIONS.
+
+	Silence the compiler warnings.
+	
+	* src/operations.cc (ip_reboot_now): commented out an unused variable
+	assignation.
+	* src/mime-server.c (type_to_name): commented out this unused
+	function. 
+
+2009-03-17  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	Removed DOMAIN_CONF for good; we don't support it anymore.
+    
+	* Makefile.am (install-data-local): Here.
+	* src/confutils.h: Here.
+	* src/hildon-application-manager-config.cc (write_conf): And here.
+
+2009-03-16  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Untaint the fifo pipes passed to the backend.  (NB#102378)
+	
+	* src/apt-worker.cc (is_fifo): new function.
+	(main): validate each pipe in order to untaint them. 
+
+	Corrected the gnu c style.
+	
+	* src/test-app-killer.c (close_apps): Here.
+	(main) Here.
+	* src/util.cc (close_apps): And here.
+
 2009-03-16  dkedves <dkedves@blumsoft.eu>
 
 	Use dbus for closing applications.
