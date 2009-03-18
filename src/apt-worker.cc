@@ -1862,8 +1862,6 @@ cache_init (bool with_status)
 
   cache_reset ();
 
-  // @todo verify this
-  // if (!AptWorkerState::IsTemp () && state->cache != NULL)
   if (awc->cache)
     write_available_updates_file ();
 }
@@ -3827,22 +3825,9 @@ update_sources_list (xexp *catalogues)
 {
   gboolean success = FALSE;
 
-  // @todo Is this correct? I think it is now, because in the temporal
-  // source flow, the below function is used.
-//   if (AptWorkerState::IsTemp ())
-//     {
-//       /* @check */
-//       success =
-// 	(xexp_write_file (TEMP_CATALOGUE_CONF, catalogues)
-// 	 && write_sources_list (TEMP_APT_SOURCE_LIST, catalogues));
-//     }
-//   else
-    {
-      /* Write the new sources list to disk */
-      success =
-        (write_user_catalogues (catalogues)
-         && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
-    }
+  /* Write the new sources list to disk */
+  success = (write_user_catalogues (catalogues)
+	     && write_sources_list (CATALOGUE_APT_SOURCE, catalogues));
 
   return success;
 }
@@ -4070,22 +4055,17 @@ cmd_set_catalogues ()
   xexp *catalogues = request.decode_xexp ();
   xexp_adel (catalogues, "source");
 
-  // @todo I think this is correct now because the in temporal sources
-  // this command is no longer used
-  //if (!AptWorkerState::IsTemp ())
-    {
-      /* Map the catalogue report to delete error reports from it */
-      xexp *mapped_catalogues =
-	xexp_list_map (catalogues, map_catalogue_error_details);
+  /* Map the catalogue report to delete error reports from it */
+  xexp *mapped_catalogues = xexp_list_map (catalogues,
+					   map_catalogue_error_details);
 
-      /* Update failed catalogues file */
-      save_failed_catalogues (catalogues);
+  /* Update failed catalogues file */
+  save_failed_catalogues (catalogues);
 
-      /* Prepare mapped_catalogues to be used for updating the
-         sources.list file later, freeing catalogues first */
-      xexp_free (catalogues);
-      catalogues = mapped_catalogues;
-    }
+  /* Prepare mapped_catalogues to be used for updating the
+     sources.list file later, freeing catalogues first */
+  xexp_free (catalogues);
+  catalogues = mapped_catalogues;
 
   /* Update sources.list file */
   update_sources_list (catalogues);
