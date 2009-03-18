@@ -3,7 +3,7 @@ AM_CPPFLAGS = -I $(top_srcdir)/statusbar
 bin_PROGRAMS = hildon-application-manager.launch \
                hildon-application-manager-config
 dist_bin_SCRIPTS = hildon-application-manager-util
-noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server
+noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server test-app-killer
 libexec_PROGRAMS = apt-worker ham-after-boot.launch
 
 hildon_application_manager_launch_SOURCES = main.h			\
