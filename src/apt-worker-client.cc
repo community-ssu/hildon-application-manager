@@ -830,3 +830,30 @@ apt_worker_set_options (const char *options,
 		   request.get_buf (), request.get_len (),
 		   callback, data);
 }
+
+void
+apt_worker_set_env (apt_worker_callback *callback,
+                    void *data)
+{
+  request.reset ();
+
+  char *http_proxy = get_http_proxy ();
+  request.encode_string (http_proxy);
+  g_free (http_proxy);
+
+  char *https_proxy = get_https_proxy ();
+  request.encode_string (https_proxy);
+  g_free (https_proxy);
+
+  char *internal_mmc = g_strdup (getenv ("INTERNAL_MMC_MOUNTPOINT"));
+  request.encode_string (internal_mmc);
+  g_free (internal_mmc);
+
+  char *removable_mmc = g_strdup (getenv ("MMC_MOUNTPOINT"));
+  request.encode_string (removable_mmc);
+  g_free (removable_mmc);
+
+  call_apt_worker (APTCMD_SET_ENV,
+                   request.get_buf (), request.get_len (),
+                   callback, data);
+}

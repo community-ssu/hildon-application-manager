@@ -142,5 +142,7 @@ void apt_worker_set_options (const char *options,
 			     apt_worker_callback *callback,
 			     void *data);
 
+void apt_worker_set_env (apt_worker_callback *callback,
+			 void *data);
 
 #endif /* !APT_WORKER_CLIENT_H */
