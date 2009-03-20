@@ -992,6 +992,7 @@ void cmd_save_backup_data ();
 void cmd_get_system_update_packages ();
 void cmd_reboot ();
 void cmd_set_options ();
+void cmd_set_env ();
 
 int cmdline_check_updates (char **argv);
 int cmdline_rescue (char **argv);
@@ -1062,7 +1063,8 @@ static const char *cmd_names[] = {
   "SAVE_BACKUP_DATA",
   "GET_SYSTEM_UPDATE_PACKAGES",
   "FLASH_AND_REBOOT",
-  "SET_OPTIONS"
+  "SET_OPTIONS",
+  "SET_ENV"
 };
 #endif
 
@@ -1182,6 +1184,10 @@ handle_request ()
 
     case APTCMD_SET_OPTIONS:
       cmd_set_options ();
+      break;
+
+    case APTCMD_SET_ENV:
+      cmd_set_env ();
       break;
 
     default:
@@ -1361,6 +1367,10 @@ get_apt_worker_lock (bool weak)
     }
 }
 
+/* MMC default mountpoints */
+#define INTERNAL_MMC_MOUNTPOINT  "/home/user/MyDocs"
+#define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
+
 static void
 misc_init ()
 {
@@ -1381,6 +1391,10 @@ misc_init ()
 #endif
 
   clean_temp_catalogues ();
+
+  // initialize the MMC mount points with defaults
+  setenv ("INTERNAL_MMC_MOUNTPOINT", INTERNAL_MMC_MOUNTPOINT, 1);
+  setenv ("REMOVABLE_MMC_MOUNTPOINT", REMOVABLE_MMC_MOUNTPOINT, 1);
 }
 
 void
@@ -1404,6 +1418,39 @@ cmd_set_options ()
 {
   const char *options = request.decode_string_in_place ();
   set_options (options);
+}
+
+void
+cmd_set_env ()
+{
+  const char *http_proxy = request.decode_string_in_place ();
+  const char *https_proxy = request.decode_string_in_place ();
+  const char *internal_mmc = request.decode_string_in_place ();
+  const char *removable_mmc = request.decode_string_in_place ();
+
+  if (http_proxy)
+    {
+      setenv ("http_proxy", http_proxy, 1);
+      DBG ("http_proxy: %s", http_proxy);
+    }
+
+  if (https_proxy)
+    {
+      setenv ("https_proxy", https_proxy, 1);
+      DBG ("https_proxy: %s", https_proxy);
+    }
+
+  if (internal_mmc)
+    {
+      setenv ("INTERNAL_MMC_MOUNTPOINT", internal_mmc, 1);
+      DBG ("INTERNAL_MMC_MOUNTPOINT: %s", internal_mmc);
+    }
+
+  if (removable_mmc)
+    {
+      setenv ("REMOVABLE_MMC_MOUNTPOINT", removable_mmc, 1);
+      DBG ("REMOVABLE_MMC_MOUNTPOINT: %s", removable_mmc);
+    }
 }
 
 char*
@@ -4149,10 +4196,6 @@ cmd_install_check ()
 
 #include <sys/statvfs.h>
 #include <mntent.h>
-
-/* MMC mountpoints */
-#define INTERNAL_MMC_MOUNTPOINT  "/home/user/MyDocs"
-#define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
 
 /* global variable to report the download size to the frontend */
 static int64_t download_size = 0;
