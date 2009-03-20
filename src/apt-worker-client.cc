@@ -607,22 +607,30 @@ apt_worker_get_package_list (bool only_user,
                    callback, data);
 }
 
+static void
+apt_worker_update_cache_cont (int cmd, apt_proto_decoder *dec, void *data)
+{
+  cmd_clos *clos = (cmd_clos *) data;
+
+  request.reset ();
+
+  call_apt_worker (APTCMD_CHECK_UPDATES,
+                   request.get_buf (), request.get_len (),
+                   clos->callback, clos->data);
+
+  delete clos;
+}
+
 void
 apt_worker_update_cache (apt_worker_callback *callback, void *data)
 {
-  request.reset ();
-  
-  char *http_proxy = get_http_proxy ();
-  request.encode_string (http_proxy);
-  g_free (http_proxy);
-  
-  char *https_proxy = get_https_proxy ();
-  request.encode_string (https_proxy);
-  g_free (https_proxy);
-  
-  call_apt_worker (APTCMD_CHECK_UPDATES,  
-                   request.get_buf (), request.get_len (),
-                   callback, data);
+  cmd_clos *clos = new cmd_clos;
+  clos->callback = callback;
+  clos->package = NULL;
+  clos->alt_download_root = NULL;
+  clos->data = data;
+
+  apt_worker_set_env (apt_worker_update_cache_cont, clos);
 }
 
 void
@@ -713,7 +721,6 @@ apt_worker_download_package_cont (int cmd, apt_proto_decoder *dec, void *data)
   call_apt_worker (APTCMD_DOWNLOAD_PACKAGE,
                    request.get_buf (), request.get_len (),
                    clos->callback, clos->data);
-
 
   delete clos;
 }

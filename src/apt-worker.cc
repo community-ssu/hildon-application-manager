@@ -3894,21 +3894,6 @@ add_temp_sources_list (xexp *tempcat)
 int
 cmd_check_updates (bool with_status)
 {
-  const char *http_proxy = request.decode_string_in_place ();
-  const char *https_proxy = request.decode_string_in_place ();
-
-  if (http_proxy)
-    {
-      setenv ("http_proxy", http_proxy, 1);
-      DBG ("http_proxy: %s", http_proxy);
-    }
-
-  if (https_proxy)
-    {
-      setenv ("https_proxy", https_proxy, 1);
-      DBG ("https_proxy: %s", https_proxy);
-    }
-
   xexp *catalogues = read_catalogues ();
 
   reset_catalogue_errors (catalogues);
