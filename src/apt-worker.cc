@@ -4934,12 +4934,20 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
       return false;
     }
 
+  const char *internal_mmc_mountpoint = getenv ("INTERNAL_MMC_MOUNTPOINT");
+  if (!internal_mmc_mountpoint)
+    internal_mmc_mountpoint = INTERNAL_MMC_MOUNTPOINT;
+
+  const char *removable_mmc_mountpoint = getenv ("REMOVABLE_MMC_MOUNTPOINT");
+  if (!removable_mmc_mountpoint)
+    removable_mmc_mountpoint = REMOVABLE_MMC_MOUNTPOINT;
+
   /* what if after downloaded the bytes in DEFAULT_DIR_CACHE_ARCHIVES
    * there's not enough space to install them? */
-  if (INTERNAL_MMC_MOUNTPOINT
-      && !strstr (archive_dir, INTERNAL_MMC_MOUNTPOINT)
-      && REMOVABLE_MMC_MOUNTPOINT
-      && !strstr (archive_dir, REMOVABLE_MMC_MOUNTPOINT))
+  if (internal_mmc_mountpoint
+      && !strstr (archive_dir, internal_mmc_mountpoint)
+      && removable_mmc_mountpoint
+      && !strstr (archive_dir, removable_mmc_mountpoint))
     {
       /* Should we add install_user_size_delta value */
       size += get_pkg_required_free_space ();
