@@ -572,6 +572,7 @@ typedef struct {
   apt_worker_callback *callback;
   void *data;
   char *package;
+  char *alt_download_root;
 } cmd_clos;
 
 void
@@ -724,9 +725,27 @@ apt_worker_download_package (const char *package,
   cmd_clos *clos = new cmd_clos;
   clos->callback = callback;
   clos->package = (char *) package;
+  clos->alt_download_root = NULL;
   clos->data = data;
 
   apt_worker_set_env (apt_worker_download_package_cont, clos);
+}
+
+static void
+apt_worker_install_package_cont (int cmd, apt_proto_decoder *dec, void *data)
+{
+  cmd_clos *clos = (cmd_clos *) data;
+
+  request.reset ();
+  request.encode_string (clos->package);
+  request.encode_string (clos->alt_download_root);
+
+  /* Install the package */
+  call_apt_worker (APTCMD_INSTALL_PACKAGE,
+                   request.get_buf (), request.get_len (),
+                   clos->callback, clos->data);
+
+  delete clos;
 }
 
 void
@@ -734,22 +753,13 @@ apt_worker_install_package (const char *package,
 			    const char *alt_download_root,
 			    apt_worker_callback *callback, void *data)
 {
-  request.reset ();
-  request.encode_string (package);
-  request.encode_string (alt_download_root);
+  cmd_clos *clos = new cmd_clos;
+  clos->callback = callback;
+  clos->package = (char *) package;
+  clos->alt_download_root = (char *) alt_download_root;
+  clos->data = data;
 
-  char *http_proxy = get_http_proxy ();
-  request.encode_string (http_proxy);
-  g_free (http_proxy);
-  
-  char *https_proxy = get_https_proxy ();
-  request.encode_string (https_proxy);
-  g_free (https_proxy);
-
-  /* Install the package */
-  call_apt_worker (APTCMD_INSTALL_PACKAGE,
-                   request.get_buf (), request.get_len (),
-                   callback, data);
+  apt_worker_set_env (apt_worker_install_package_cont, clos);
 }
 
 void

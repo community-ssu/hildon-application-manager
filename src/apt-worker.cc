@@ -4353,22 +4353,8 @@ cmd_install_package ()
 {
   const char *package = request.decode_string_in_place ();
   const char *alt_download_root = request.decode_string_in_place ();
-  const char *http_proxy = request.decode_string_in_place ();
-  const char *https_proxy = request.decode_string_in_place ();
 
   int result_code = rescode_failure;
-
-  if (http_proxy)
-    {
-      setenv ("http_proxy", http_proxy, 1);
-      DBG ("http_proxy: %s", http_proxy);
-    }
-
-  if (https_proxy)
-    {
-      setenv ("https_proxy", https_proxy, 1);
-      DBG ("https_proxy: %s", https_proxy);
-    }
 
   if (ensure_cache (true))
     {
