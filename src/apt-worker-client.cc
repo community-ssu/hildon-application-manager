@@ -568,6 +568,12 @@ handle_one_apt_worker_response ()
 
 static apt_proto_encoder request;
 
+typedef struct {
+  apt_worker_callback *callback;
+  void *data;
+  char *package;
+} cmd_clos;
+
 void
 apt_worker_set_status_callback (apt_worker_callback *callback, void *data)
 {
@@ -694,25 +700,33 @@ apt_worker_install_check (const char *package,
                    callback, data);
 }
 
-void
-apt_worker_download_package (const char *package,
-			     apt_worker_callback *callback, void *data)
+static void
+apt_worker_download_package_cont (int cmd, apt_proto_decoder *dec, void *data)
 {
-  request.reset ();
-  request.encode_string (package);
+  cmd_clos *clos = (cmd_clos *) data;
 
-  char *http_proxy = get_http_proxy ();
-  request.encode_string (http_proxy);
-  g_free (http_proxy);
-  
-  char *https_proxy = get_https_proxy ();
-  request.encode_string (https_proxy);
-  g_free (https_proxy);
+  request.reset ();
+  request.encode_string (clos->package);
 
   /* Download the package, and then install it */
   call_apt_worker (APTCMD_DOWNLOAD_PACKAGE,
                    request.get_buf (), request.get_len (),
-                   callback, data);
+                   clos->callback, clos->data);
+
+
+  delete clos;
+}
+
+void
+apt_worker_download_package (const char *package,
+			     apt_worker_callback *callback, void *data)
+{
+  cmd_clos *clos = new cmd_clos;
+  clos->callback = callback;
+  clos->package = (char *) package;
+  clos->data = data;
+
+  apt_worker_set_env (apt_worker_download_package_cont, clos);
 }
 
 void
