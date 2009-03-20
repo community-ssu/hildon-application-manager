@@ -4290,40 +4290,36 @@ void
 cmd_download_package ()
 {
   const char *package = request.decode_string_in_place ();
-  const char *http_proxy = request.decode_string_in_place ();
-  const char *https_proxy = request.decode_string_in_place ();
 
   const char *alt_download_root = NULL;
   int result_code = rescode_out_of_space;
 
-  if (http_proxy)
-    {
-      setenv ("http_proxy", http_proxy, 1);
-      DBG ("http_proxy: %s", http_proxy);
-    }
+  const char *internal_mmc_mountpoint = getenv ("INTERNAL_MMC_MOUNTPOINT");
+  if (!internal_mmc_mountpoint)
+    internal_mmc_mountpoint = INTERNAL_MMC_MOUNTPOINT;
 
-  if (https_proxy)
-    {
-      setenv ("https_proxy", https_proxy, 1);
-      DBG ("https_proxy: %s", https_proxy);
-    }
+  const char *removable_mmc_mountpoint = getenv ("REMOVABLE_MMC_MOUNTPOINT");
+  if (!removable_mmc_mountpoint)
+    removable_mmc_mountpoint = REMOVABLE_MMC_MOUNTPOINT;
 
   if (ensure_cache (true))
     {
       if (mark_named_package_for_install (package))
         {
-          if (flag_download_packages_to_mmc &&
-              volume_path_is_mounted_writable (INTERNAL_MMC_MOUNTPOINT))
+          if (flag_download_packages_to_mmc
+	      && internal_mmc_mountpoint
+              && volume_path_is_mounted_writable (internal_mmc_mountpoint))
             {
-              alt_download_root = INTERNAL_MMC_MOUNTPOINT;
+              alt_download_root = internal_mmc_mountpoint;
               result_code = operation (false, alt_download_root, true);
             }
 
-          if (flag_download_packages_to_mmc &&
-              result_code == rescode_out_of_space &&
-              volume_path_is_mounted_writable (REMOVABLE_MMC_MOUNTPOINT))
+          if (flag_download_packages_to_mmc
+	      && result_code == rescode_out_of_space
+	      && removable_mmc_mountpoint
+              && volume_path_is_mounted_writable (removable_mmc_mountpoint))
             {
-              alt_download_root = REMOVABLE_MMC_MOUNTPOINT;
+              alt_download_root = removable_mmc_mountpoint;
               result_code = operation (false, alt_download_root, true);
             }
 
