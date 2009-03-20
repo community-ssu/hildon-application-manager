@@ -1061,7 +1061,8 @@ static const char *cmd_names[] = {
   "CLEAN",
   "SAVE_BACKUP_DATA",
   "GET_SYSTEM_UPDATE_PACKAGES",
-  "FLASH_AND_REBOOT"
+  "FLASH_AND_REBOOT",
+  "SET_OPTIONS"
 };
 #endif
 
