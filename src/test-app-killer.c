@@ -82,8 +82,6 @@ main (int argc, char **argv)
 {
     GOptionContext *context;
 
-    gtk_init (&argc,&argv);
-
     context = g_option_context_new ("- test app killing hildon-desktop API");
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_parse (context, &argc, &argv, NULL);
