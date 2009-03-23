@@ -111,7 +111,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
         gtk_text_buffer_set_text (buffer, text, end-text);
 
       gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (entry), FALSE);
-      g_object_set (entry, "can-focus", FALSE, NULL);    
+      g_object_set (entry, "can-focus", FALSE, NULL);
     }
   else
     {
@@ -126,7 +126,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
 	mode &= ~int (HILDON_GTK_INPUT_MODE_AUTOCAP);
       g_object_set (entry, "hildon-input-mode", mode, NULL);
 #endif
-      
+
       if (text)
 	{
 	  if (end == NULL)
@@ -141,7 +141,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
 				       ? HILDON_CAPTION_MANDATORY
 				       : HILDON_CAPTION_OPTIONAL));
   gtk_box_pack_start_defaults (GTK_BOX (box), caption);
-  
+
   return entry;
 }
 
@@ -333,11 +333,18 @@ scdf_end (bool keep_going, void *data)
   end_interaction_flow ();
 }
 
+enum cat_dialog_type {
+  cat_readonly,    // catalogues is defined in /etc/apt/sources.list
+  cat_package,     // is a package catalogue (enabled or disabled only)
+  cat_editable    // is a catalogue added/installed by the user
+};
+
 struct catcache {
   catcache *next;
   struct cat_dialog_closure *cat_dialog;
   xexp *catalogue_xexp;
-  bool enabled, readonly, foreign, refresh_failed;
+  bool enabled, foreign, refresh_failed;
+  cat_dialog_type type;
   const char *name;
   char *detail;
 };
@@ -367,7 +374,7 @@ struct cat_edit_closure {
   cat_dialog_closure *cat_dialog;
   xexp *catalogue;
   bool isnew;
-  bool readonly;
+  cat_dialog_type type ;
 
   GtkWidget *name_entry;
   GtkWidget *uri_entry;
@@ -397,17 +404,17 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
   cat_edit_closure *c = (cat_edit_closure *)clos;
 
-  if (c->readonly && !c->cat_dialog) // it cames from an .install file
+  if (c->type == cat_readonly) // it cames from an .install file
     ;
-  else if (response == GTK_RESPONSE_OK && c->readonly)
+  else if (response == GTK_RESPONSE_OK && c->type == cat_package)
     {
-      bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON 
-                  (c->disabled_button));
+      bool disabled =
+        gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (c->disabled_button));
       xexp_aset_bool (c->catalogue, "disabled", disabled);
       set_cat_list (c->cat_dialog, &c->cat_dialog->selected_iter);
       c->cat_dialog->dirty = true;
     }
-  else if (response == GTK_RESPONSE_OK && !c->readonly)
+  else if (response == GTK_RESPONSE_OK && c->type == cat_editable)
     {
       const char *name = gtk_entry_get_text (GTK_ENTRY (c->name_entry));
 
@@ -489,7 +496,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
     }
 
   delete c;
- 
+
   pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
 
@@ -499,7 +506,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
 static void
 show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
-		      bool isnew, bool readonly)
+		      bool isnew, cat_dialog_type type)
 {
   GtkWidget *dialog, *vbox, *caption, *scrolledw;
   GtkSizeGroup *group;
@@ -513,34 +520,36 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   cat_edit_closure *c = new cat_edit_closure;
 
   c->isnew = isnew;
-  c->readonly = readonly;
+  c->type = type;
   c->cat_dialog = cat_dialog;
   c->catalogue = catalogue;
-  
+
   const char *title;
-  if (c->readonly)
+  if (c->type == cat_readonly)
     title = _("ai_ti_catalogue_details");
   else if (isnew)
     title = _("ai_ti_new_repository");
   else
     title = _("ai_ti_edit_repository");
 
-  dialog = gtk_dialog_new_with_buttons (title, NULL,
-            GTK_DIALOG_MODAL,
-            _("ai_bd_new_repository_ok"),
-            GTK_RESPONSE_OK,
-            _("ai_bd_new_repository_cancel"),
-            GTK_RESPONSE_CANCEL,
-            NULL);
+  if (c->type != cat_readonly)
+    {
+      dialog = gtk_dialog_new_with_buttons (title, NULL,
+                                            GTK_DIALOG_MODAL,
+                                            _("ai_bd_new_repository_ok"),
+                                            GTK_RESPONSE_OK,
+                                            _("ai_bd_new_repository_cancel"),
+                                            GTK_RESPONSE_CANCEL,
+                                            NULL);
 
-  push_dialog (dialog);
-
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-
-  if (!c->readonly)
-    vbox = GTK_DIALOG (dialog)->vbox;
+      vbox = GTK_DIALOG (dialog)->vbox;
+    }
   else
     {
+      dialog = gtk_dialog_new_with_buttons (title, NULL,
+					    GTK_DIALOG_MODAL,
+					    NULL);
+
       /* Use an scrollbar for the read-only version, and use a vbox
 	 with a 3px padding to make it look like to the other one */
       vbox = gtk_vbox_new (FALSE, 3);
@@ -549,31 +558,39 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
       gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledw),
 				      GTK_POLICY_AUTOMATIC,
 				      GTK_POLICY_NEVER);
-      gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolledw), vbox);
-      gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox), scrolledw);
+      gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolledw),
+                                             vbox);
+      gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox),
+                                   scrolledw);
     }
+
+  push_dialog (dialog);
+
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
 
   const char *current_name = catalogue_name (catalogue);
+  bool readonly = !(c->type == cat_editable);
+
   c->name_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_name"),
-			     current_name, NULL, true, c->readonly, true);
+			     current_name, NULL, true, readonly, true);
 
   c->uri_entry = add_entry (vbox, group,
 			    _("ai_fi_new_repository_web_address"),
 			    xexp_aref_text (catalogue, "uri"),
-			    NULL, false, c->readonly, true);
+			    NULL, false, readonly, true);
 
   c->dist_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_distribution"),
 			     xexp_aref_text (catalogue, "dist"),
-			     NULL, false, c->readonly, true);
+			     NULL, false, readonly, true);
 
   c->components_entry = add_entry (vbox, group,
 				   _("ai_fi_new_repository_component"),
 				   xexp_aref_text (catalogue, "components"),
-				   NULL, false, c->readonly, false);
+				   NULL, false, readonly, false);
 
   c->disabled_button = gtk_check_button_new ();
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
@@ -583,14 +600,8 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
                                 c->disabled_button,
                                 NULL, HILDON_CAPTION_OPTIONAL);
   gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
+  gtk_widget_set_sensitive (c->disabled_button, c->type != cat_readonly);
 
-  /* XXX- when the dialog is shown from an .install file. This is a
-     quickfix.  For this case we'll need a three state dialog:
-     i) editable; ii) enable/disable; iii) read only
-  */
-  gtk_widget_set_sensitive (c->disabled_button, c->cat_dialog != NULL);
-
-  
   gtk_widget_set_usize (dialog, 650, -1);
 
   g_signal_connect (dialog, "response",
@@ -732,7 +743,7 @@ cat_row_activated (GtkTreeView *treeview,
         return;
 
       show_cat_edit_dialog (c->cat_dialog, c->catalogue_xexp,
-			    false, c->readonly);
+			    false, c->type);
     }
 }
 
@@ -773,7 +784,7 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
                                  !new_selected->foreign);
       if (!c->show_only_errors)
         gtk_widget_set_sensitive (c->delete_button,
-                                  !new_selected->readonly);
+                                  new_selected->type != cat_readonly);
     }
   else
     {
@@ -819,9 +830,9 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
 
       cat->enabled = !xexp_aref_bool (x, "disabled");
       if (is_package_catalogue (x))
-        cat->readonly = true;
+        cat->type = cat_package;
       else
-        cat->readonly = false;
+        cat->type = cat_editable;
       cat->foreign = false;
       cat->name = catalogue_name (x);
       cat->detail = render_catalogue_errors (x);
@@ -834,7 +845,7 @@ make_catcache_from_xexp (cat_dialog_closure *c, xexp *x)
   else if (xexp_is (x, "source") && xexp_is_text (x))
     {
       cat->enabled = true;
-      cat->readonly = true;
+      cat->type = cat_readonly;
       cat->foreign = true;
       cat->name = xexp_text (x);
       cat->detail = NULL;
@@ -1046,7 +1057,7 @@ remove_cat_cont (bool res, void *data)
 {
   remove_cat_clos *c = (remove_cat_clos *)data;
   cat_dialog_closure *d = c->cat_dialog;
-  
+
   if (res)
     {
       reset_cat_list (d);
@@ -1066,14 +1077,14 @@ static void
 cat_response (GtkDialog *dialog, gint response, gpointer clos)
 {
   cat_dialog_closure *c = (cat_dialog_closure *)clos;
-  
+
   if (response == REPO_RESPONSE_NEW)
     {
       xexp *x = xexp_list_new ("catalogue");
       xexp_aset_text (x, "name", "");
       xexp_aset_text (x, "uri", "http://");
       xexp_aset_text (x, "components", "user");
-      show_cat_edit_dialog (c, x, true, false);
+      show_cat_edit_dialog (c, x, true, cat_editable);
       return;
     }
 
@@ -1083,7 +1094,7 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       if (cat == NULL)
         return;
 
-      show_cat_edit_dialog (c, cat->catalogue_xexp, false, cat->readonly);
+      show_cat_edit_dialog (c, cat->catalogue_xexp, false, cat->type);
       return;
     }
 
@@ -1356,7 +1367,7 @@ static void
 add_catalogues_details (void *data)
 {
   add_catalogues_closure *c = (add_catalogues_closure *)data;
-  show_cat_edit_dialog (NULL, c->rest, true, true);
+  show_cat_edit_dialog (NULL, c->rest, true, cat_readonly);
 }
 
 static void
@@ -1426,7 +1437,7 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 	      else
 		str = g_strdup_printf (_("ai_ia_add_catalogue_text2"),
 				       name);
-	    
+
 	      ask_yes_no_with_arbitrary_details (_("ai_ti_add_catalogue"),
 						 str,
 						 cont,
