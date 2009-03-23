@@ -649,7 +649,7 @@ cat_icon_func (GtkTreeViewColumn *column,
 
       ok_browser_pixbuf =
 	gtk_icon_theme_load_icon (icon_theme,
-				  "qgn_list_browser",
+				  "general_web",
 				  26,
 				  GtkIconLookupFlags (0),
 				  NULL);
