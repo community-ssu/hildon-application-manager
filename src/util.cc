@@ -56,6 +56,7 @@
 #include "package-info-cell-renderer.h"
 
 #define _(x) gettext (x)
+#define _FM(x) dgettext ("hildon-fm", x)
 
 static Window parent_xid = None;
 static GSList *dialog_stack = NULL;
@@ -2245,41 +2246,46 @@ select_package_list (GList *package_list,
 		     closure);
 }
 
-#define KILO 1000
+#define KILO 1024.0
+#define MEGA KILO * KILO
+#define GIGA KILO * MEGA
 
 void
 size_string_general (char *buf, size_t n, int64_t bytes)
 {
-  uint64_t num = bytes;
+  double num = (double) bytes;
 
   if (num == 0)
-    snprintf (buf, n, _("ai_li_size_max_99kb"), 0);
-  else if (num < 1*KILO)
-    snprintf (buf, n, _("ai_li_size_max_99kb"), 1);
+    snprintf (buf, n, _FM ("sfil_li_size_kb"), 0);
+  else if (num < 1 * KILO)
+    snprintf (buf, n, _FM ("sfil_li_size_kb"), 1);
   else
     {
       // round to nearest KILO
       // bytes ~ num * KILO
-      num = (bytes + KILO/2) / KILO;
+      num = (bytes + KILO / 2.0) / KILO;
       if (num < 100)
-	snprintf (buf, n, _("ai_li_size_max_99kb"), (int)num);
+	snprintf (buf, n, _FM ("sfil_li_size_1kb_99kb"), (int) num);
       else
 	{
 	  // round to nearest 100 KILO
 	  // bytes ~ num * 100 * KILO
-	  num = (bytes + 50*KILO) / (100*KILO);
-	  if (num < 100)
-	    snprintf (buf, n, _("ai_li_size_100kb_10mb"), num/10.0);
+	  num = (bytes + 50.0 * KILO) / (100.0 * KILO);
+	  if (num < 10)
+	    snprintf (buf, n, _FM ("sfil_li_size_100kb_1mb"),
+                      (float) num / 10.0);
 	  else
 	    {
-	      // round to nearest KILO KILO
-	      // bytes ~ num * KILO * KILO
-	      num = (bytes + KILO*KILO/2) / (KILO*KILO);
-	      if (num < KILO)
-		snprintf (buf, n, _("ai_li_size_10mb_1gb"), (int)num);
-	      else
-		snprintf (buf, n, _("ai_li_size_larger_than_1gb"),
-			  ((float)num)/KILO);
+              // round to nearest MEGA
+              // bytes ~ num * MEGA
+              num = (bytes + MEGA / 2) / (MEGA);
+              if (num < 10)
+                snprintf (buf, n, _FM ("sfil_li_size_1mb_10mb"), (float) num);
+              else if (num < 1000)
+                snprintf (buf, n, _FM ("sfil_li_size_10mb_1gb"), (int) num);
+              else
+                snprintf (buf, n, _FM ("sfil_li_size_1gb_or_greater"),
+                          (float) 1.0 * bytes / GIGA);
 	    }
 	}
     }
