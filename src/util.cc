@@ -57,6 +57,7 @@
 
 #define _(x) gettext (x)
 #define _FM(x) dgettext ("hildon-fm", x)
+#define _HCS(x) dgettext ("hildon-common-strings", x)
 
 static Window parent_xid = None;
 static GSList *dialog_stack = NULL;
@@ -648,16 +649,13 @@ annoy_user_with_errno (int err, const gchar *detail,
 
   const char *msg;
   if (err == ENAMETOOLONG)
-    msg = dgettext ("hildon-common-strings",
-		    "file_ib_name_too_long");
+    msg = _HCS ("file_ib_name_too_long");
   else if (err == EPERM || err == EACCES)
     msg = _FM ("sfil_ib_saving_not_allowed");
   else if (err == ENOENT)
-    msg = dgettext ("hildon-common-strings",
-		    "sfil_ni_cannot_continue_target_folder_deleted");
+    msg = _HCS ("sfil_ni_cannot_continue_target_folder_deleted");
   else if (err == ENOSPC)
-    msg = dgettext ("hildon-common-strings",
-		    "sfil_ni_not_enough_memory");
+    msg = _HCS ("sfil_ni_not_enough_memory");
   else
     msg = _("ai_ni_operation_failed");
 
@@ -672,8 +670,7 @@ annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail,
 
   if (result == GNOME_VFS_ERROR_NAME_TOO_LONG)
     {
-      irritate_user (dgettext ("hildon-common-strings",
-			       "file_ib_name_too_long"));
+      irritate_user (_HCS ("file_ib_name_too_long"));
       cont (data);
     }
   else if (result == GNOME_VFS_ERROR_ACCESS_DENIED
@@ -683,12 +680,10 @@ annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail,
       cont (data);
     }
   else if (result == GNOME_VFS_ERROR_NOT_FOUND)
-    annoy_user (dgettext ("hildon-common-strings",
-			  "sfil_ni_cannot_continue_target_folder_deleted"),
+    annoy_user (_HCS ("sfil_ni_cannot_continue_target_folder_deleted"),
 		cont, data);
   else if (result == GNOME_VFS_ERROR_NO_SPACE)
-    annoy_user (dgettext ("hildon-common-strings",
-			  "sfil_ni_not_enough_memory"),
+    annoy_user (_HCS ("sfil_ni_not_enough_memory"),
 		cont, data);
   else
     annoy_user (_("ai_ni_operation_failed"), cont, data);
@@ -1234,8 +1229,7 @@ void
 show_updating (const char *label)
 {
   if (label == NULL)
-    label = dgettext ("hildon-common-strings",
-		      "ckdg_pb_updating");
+    label = _HCS ("ckdg_pb_updating");
 
   updating_label = label;
 
@@ -2582,8 +2576,7 @@ call_copy_cont (GnomeVFSResult result)
 
       if (result == GNOME_VFS_ERROR_IO)
 	{
-	  annoy_user (dgettext ("hildon-common-strings",
-				"sfil_ni_cannot_open_no_connection"),
+	  annoy_user (_HCS ("sfil_ni_cannot_open_no_connection"),
 		      fail_copy_cont, NULL);
 	}
       else if (result == GNOME_VFS_ERROR_CANCELLED)
