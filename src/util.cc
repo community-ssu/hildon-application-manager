@@ -651,8 +651,7 @@ annoy_user_with_errno (int err, const gchar *detail,
     msg = dgettext ("hildon-common-strings",
 		    "file_ib_name_too_long");
   else if (err == EPERM || err == EACCES)
-    msg = dgettext ("hildon-fm",
-		    "sfil_ib_saving_not_allowed");
+    msg = _FM ("sfil_ib_saving_not_allowed");
   else if (err == ENOENT)
     msg = dgettext ("hildon-common-strings",
 		    "sfil_ni_cannot_continue_target_folder_deleted");
@@ -680,8 +679,7 @@ annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail,
   else if (result == GNOME_VFS_ERROR_ACCESS_DENIED
 	   || result == GNOME_VFS_ERROR_NOT_PERMITTED)
     {
-      irritate_user (dgettext ("hildon-fm",
-			       "sfil_ib_saving_not_allowed"));
+      irritate_user (_FM ("sfil_ib_saving_not_allowed"));
       cont (data);
     }
   else if (result == GNOME_VFS_ERROR_NOT_FOUND)
@@ -2687,8 +2685,7 @@ do_copy (const char *source, GnomeVFSURI *source_uri,
 
   set_entertainment_fun (NULL, -1, -1, 0);
   set_entertainment_cancel (cancel_copy, NULL);
-  set_entertainment_main_title (dgettext ("hildon-fm",
-					  "docm_nw_opening_file"));
+  set_entertainment_main_title (_FM ("docm_nw_opening_file"));
 
   start_entertaining_user (TRUE);
 
