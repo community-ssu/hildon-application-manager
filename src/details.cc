@@ -238,7 +238,7 @@ nicify_description_in_place (char *desc)
     return;
 
   /* The nicifications are this:
-     
+
      - the first space of a line is removed.
 
      - if after that a line consists solely of a '.', that dot is
@@ -530,6 +530,31 @@ spd_update_common_page (void *data)
   gtk_widget_set_sensitive (GTK_WIDGET (table), TRUE);
 }
 
+static GtkWidget *
+make_small_text_label (const char *text)
+{
+  GtkWidget *summary_table = gtk_table_new (1, 1, FALSE);
+  gtk_table_set_col_spacings (GTK_TABLE (summary_table), 10);
+  gtk_table_set_row_spacings (GTK_TABLE (summary_table), 0);
+
+  GtkWidget *desc = make_small_label (text);
+  gtk_misc_set_alignment (GTK_MISC (desc), 0.0, 0.0);
+  gtk_label_set_line_wrap (GTK_LABEL (desc), FALSE);
+  gtk_label_set_ellipsize (GTK_LABEL (desc), PANGO_ELLIPSIZE_NONE);
+  gtk_table_attach (GTK_TABLE (summary_table), desc, 0, 1, 0, 1,
+		    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL,
+		    0, 0);
+
+  GtkWidget *summary_tab = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (summary_tab),
+					 summary_table);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (summary_tab),
+				  GTK_POLICY_AUTOMATIC,
+				  GTK_POLICY_AUTOMATIC);
+
+  return summary_tab;
+}
+
 /* Creates the second page */
 static GtkWidget *
 spd_create_description_page (void *data)
@@ -537,7 +562,7 @@ spd_create_description_page (void *data)
   spd_clos *c = (spd_clos *)data;
   package_info *pi = c->pi;
 
-  return make_small_text_view (pi->description);
+  return make_small_text_label (pi->description);
 }
 
 /* Creates the third page */
@@ -577,7 +602,7 @@ spd_create_summary_page (void *data)
 	 it is the common case.  However, we always show everything
 	 when the package is broken.
       */
-      
+
       int n_entries =
 	(g_list_length (pi->summary_packages[sumtype_installing]) +
 	 g_list_length (pi->summary_packages[sumtype_upgrading]) +
@@ -648,7 +673,7 @@ spd_create_deps_page (void *data)
   spd_clos *c = (spd_clos *)data;
   package_info *pi = c->pi;
 
-  return make_small_text_view (pi->dependencies);
+  return make_small_text_label (pi->dependencies);
 }
 
 static void
