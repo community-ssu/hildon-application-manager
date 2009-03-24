@@ -1,6 +1,17 @@
 New features for the Hildon Application Manager
 ===============================================
 
+* Use HildonStackableWindow instead of oneHildonWindow. [dkedves]
+
+* New hard buttons logic as in the spec. [vjaquez]
+
+* scare_user_with_legalese () notice should appear on
+ip_install_with_info (). [vjaquez]
+
+Instead of two sequential dialogs, join them in only one.
+
+* Enable the user edit the package catalogues name.
+
 * Make a h-a-m/domains config directory. [vjaquez]
 
 For dropping domain.xexp fragments, just like h-a-m/catalogues.  Also
