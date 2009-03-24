@@ -315,7 +315,6 @@ make_main_view (view *v)
   GtkWidget *vbox, *hbox;
   GtkWidget *btn, *label, *image;
   GtkSizeGroup *btn_group;
-  gchar *devname;
 
   btn_group = gtk_size_group_new (GTK_SIZE_GROUP_BOTH);
 
@@ -334,9 +333,7 @@ make_main_view (view *v)
 					HILDON_ICON_SIZE_SMALL);
   gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
 
-  devname = g_strdup_printf (_("ai_li_device"), device_name ());
-  device_label = gtk_label_new (devname);
-  g_free (devname);
+  device_label = gtk_label_new (device_name ());
   gtk_label_set_ellipsize (GTK_LABEL (device_label), PANGO_ELLIPSIZE_END);
   gtk_misc_set_alignment (GTK_MISC (device_label), 0.0, 0.5);
   gtk_box_pack_start (GTK_BOX (hbox), device_label, TRUE, TRUE, 0);
