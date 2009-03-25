@@ -78,7 +78,6 @@ static void get_package_infos_in_background (GList *packages);
 struct view {
   view *parent;
   view_id id;
-  const gchar *label;
   GtkWidget *(*maker) (view *);
 };
 
@@ -124,42 +123,36 @@ GtkWidget *make_search_results_view (view *v);
 view main_view = {
   NULL,
   MAIN_VIEW,
-  "ai_ti_main",
   make_main_view
 };
 
 view install_applications_view = {
   &main_view,
   INSTALL_APPLICATIONS_VIEW,
-  "ai_li_install",
   make_install_applications_view
 };
 
 view upgrade_applications_view = {
   &main_view,
   UPGRADE_APPLICATIONS_VIEW,
-  "ai_li_update",
   make_upgrade_applications_view
 };
 
 view uninstall_applications_view = {
   &main_view,
   UNINSTALL_APPLICATIONS_VIEW,
-  "ai_li_uninstall",
   make_uninstall_applications_view
 };
 
 view install_section_view = {
   &install_applications_view,
   INSTALL_SECTION_VIEW,
-  NULL,
   make_install_section_view
 };
 
 view search_results_view = {
   &main_view,
   SEARCH_RESULTS_VIEW,
-  "ai_ti_search_results",
   make_search_results_view
 };
 
@@ -1537,8 +1530,6 @@ view_section (section_info *si)
   g_free (cur_section_name);
   cur_section_name = g_strdup (si->name);
   cur_section_rank = si->rank;
-
-  install_section_view.label = cur_section_name;
 
   show_view (&install_section_view);
 }
