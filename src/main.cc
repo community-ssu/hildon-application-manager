@@ -392,8 +392,8 @@ make_main_view (view *v)
 
   get_package_infos_in_background (NULL);
 
-  //enable_search (false);
-  //enable_refresh (false);
+  enable_search (false);
+  // enable_refresh (false);
 
   prevent_updating ();
 
