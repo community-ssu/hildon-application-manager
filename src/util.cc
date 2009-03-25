@@ -255,7 +255,6 @@ present_main_window ()
 {
   reset_idle_timer ();
   main_window_shown = true;
-  gtk_widget_show_all (get_main_trail ());
   gtk_window_present (get_main_window ());
 }
 
@@ -1524,36 +1523,36 @@ global_package_list_key_pressed (GtkWidget * widget,
       break;
     case HILDON_HARDKEY_UP:
       // we set the focus to the last button of the main_trail
-      gtk_tree_view_get_cursor (GTK_TREE_VIEW (widget), &cursor_path, NULL);
+//       gtk_tree_view_get_cursor (GTK_TREE_VIEW (widget), &cursor_path, NULL);
 
-      if (cursor_path)
-        {
-          if (!gtk_tree_path_prev (cursor_path))
-            {
-              GList *children = NULL;
+//       if (cursor_path)
+//         {
+//           if (!gtk_tree_path_prev (cursor_path))
+//             {
+//               GList *children = NULL;
 
-              children =
-                gtk_container_get_children (GTK_CONTAINER (get_main_trail()));
+//               children =
+//                 gtk_container_get_children (GTK_CONTAINER (get_main_trail()));
 
-              if (children)
-                {
-                  GList *last_child = g_list_last (children);
+//               if (children)
+//                 {
+//                   GList *last_child = g_list_last (children);
 
-                  while (last_child &&
-                         ((!GTK_WIDGET_CAN_FOCUS (last_child->data)) ||
-                         (!GTK_WIDGET_IS_SENSITIVE (last_child->data))))
-                    last_child = g_list_previous (last_child);
+//                   while (last_child &&
+//                          ((!GTK_WIDGET_CAN_FOCUS (last_child->data)) ||
+//                          (!GTK_WIDGET_IS_SENSITIVE (last_child->data))))
+//                     last_child = g_list_previous (last_child);
 
-                  if (last_child)
-                    gtk_widget_grab_focus (GTK_WIDGET (last_child->data));
+//                   if (last_child)
+//                     gtk_widget_grab_focus (GTK_WIDGET (last_child->data));
 
-                  g_list_free (children);
-		  result = TRUE;
-                }
-            }
+//                   g_list_free (children);
+// 		  result = TRUE;
+//                 }
+//             }
 
-          gtk_tree_path_free(cursor_path);
-        }
+//           gtk_tree_path_free(cursor_path);
+//         }
 
       break;
     case HILDON_HARDKEY_DOWN:

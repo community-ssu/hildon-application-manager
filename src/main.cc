@@ -63,7 +63,6 @@
 extern "C" {
   #include <hildon/hildon-window.h>
   #include <hildon/hildon-note.h>
-  #include <hildon/hildon-bread-crumb-trail.h>
 }
 
 using namespace std;
@@ -84,11 +83,9 @@ struct view {
 };
 
 GtkWidget *main_vbox = NULL;
-GtkWidget *main_trail = NULL;
 GtkWidget *device_label = NULL;
 GtkWidget *cur_view = NULL;
 view *cur_view_struct = NULL;
-GList *cur_path = NULL;
 
 view_id
 get_current_view_id ()
@@ -97,21 +94,6 @@ get_current_view_id ()
     return cur_view_struct->id;
 
   return NO_VIEW;
-}
-
-static GList *
-make_view_path (view *v)
-{
-  if (v == NULL)
-    return NULL;
-  else
-    return g_list_append (make_view_path (v->parent), v);
-}
-
-static const gchar *
-get_view_label (GList *node)
-{
-  return gettext (((view *)node->data)->label);
 }
 
 struct toolbar_struct
@@ -184,8 +166,6 @@ view search_results_view = {
 void
 show_view (view *v)
 {
-  GList *p;
-
   if (cur_view)
     {
       gtk_container_remove(GTK_CONTAINER(main_vbox), cur_view);
@@ -216,16 +196,6 @@ show_view (view *v)
   cur_view = v->maker (v);
   cur_view_struct = v;
 
-  g_list_free (cur_path);
-  cur_path = make_view_path (v);
-
-  hildon_bread_crumb_trail_clear (HILDON_BREAD_CRUMB_TRAIL (main_trail));
-
-  for (p = cur_path; p != NULL; p = p->next)
-    hildon_bread_crumb_trail_push_text (HILDON_BREAD_CRUMB_TRAIL (main_trail),
-                                        get_view_label (p),
-                                        p, NULL);
-
   gtk_box_pack_start (GTK_BOX (main_vbox), cur_view, TRUE, TRUE, 10);
   gtk_widget_show(main_vbox);
 
@@ -238,15 +208,6 @@ show_view_callback (GtkWidget *btn, gpointer data)
   view *v = (view *)data;
   
   show_view (v);
-}
-
-static gboolean
-view_clicked (HildonBreadCrumbTrail *bct, gpointer node, gpointer user_data)
-{
-  reset_global_target_path ();
-  show_view ((view *)((GList*)node)->data);
-
-  return TRUE;
 }
 
 void
@@ -2419,12 +2380,6 @@ get_main_window ()
 }
 
 GtkWidget *
-get_main_trail ()
-{
-  return main_trail;
-}
-
-GtkWidget *
 get_device_label ()
 {
   return device_label;
@@ -2803,12 +2758,6 @@ main (int argc, char **argv)
 
   main_vbox = gtk_vbox_new (FALSE, 0);
   gtk_container_add (GTK_CONTAINER (window), main_vbox);
-
-  main_trail = hildon_bread_crumb_trail_new ();
-  g_signal_connect (G_OBJECT (main_trail), "crumb-clicked",
-                    G_CALLBACK (view_clicked), NULL);
-
-  gtk_box_pack_start (GTK_BOX (main_vbox), main_trail, FALSE, FALSE, 0);
 
   g_signal_connect (G_OBJECT (window), "delete-event",
 		    G_CALLBACK (window_delete_event), NULL);
