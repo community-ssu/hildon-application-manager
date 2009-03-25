@@ -1004,7 +1004,7 @@ make_cat_list (cat_dialog_closure *c)
   GtkCellRenderer *renderer;
   GtkWidget *scroller;
 
-  c->store = gtk_list_store_new (1, GTK_TYPE_POINTER);
+  c->store = gtk_list_store_new (1, G_TYPE_POINTER);
   c->tree =
     GTK_TREE_VIEW (gtk_tree_view_new_with_model (GTK_TREE_MODEL (c->store)));
 

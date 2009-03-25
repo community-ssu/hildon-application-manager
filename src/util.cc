@@ -1618,7 +1618,7 @@ make_global_package_list (GList *packages,
 
   if (global_list_store == NULL)
     {
-      global_list_store = gtk_list_store_new (1, GTK_TYPE_POINTER);
+      global_list_store = gtk_list_store_new (1, G_TYPE_POINTER);
       g_object_ref (global_list_store);
     }
 
