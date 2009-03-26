@@ -1774,21 +1774,38 @@ make_search_results_view (view *v)
 
 static void
 search_package_list (GList **result,
-		     GList *packages, const char *pattern, bool installed)
+                     GList *packages, const char *pattern, bool installed)
 {
+  gchar **words;
+  gboolean found;
+  int i;
+
+  if (!(words = g_strsplit (pattern, " ", 0)))
+    return; /* pattern is empty */
+
   while (packages)
     {
       package_info *pi = (package_info *)packages->data;
-      
-      // XXX
-      if (strcasestr (pi->get_display_name (installed), pattern))
-	{
-	  pi->ref ();
-	  *result = g_list_append (*result, pi);
-	}
+      found = FALSE;
+
+      for (i = 0; words[i] != NULL; i++)
+        if (strcasestr (pi->get_display_name (installed), words[i]))
+          found = TRUE;
+        else
+          {
+            found = FALSE;
+            break;
+          }
+
+      if (found)
+        {
+          pi->ref ();
+          *result = g_list_append (*result, pi);
+        }
 
       packages = packages->next;
     }
+  g_strfreev (words);
 }
 
 static void

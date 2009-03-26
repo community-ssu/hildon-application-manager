@@ -2614,18 +2614,50 @@ bool
 name_matches_pattern (pkgCache::PkgIterator &pkg,
 		      const char *pattern)
 {
-  return strcasestr (pkg.Name(), pattern);
+  bool match = false;
+  char **words = g_strsplit (pattern, " ", 0);
+  int i;
+
+  if (words == NULL)
+    return false;
+
+  for (i = 0; words[i] != NULL; i++)
+    if (strcasestr (pkg.Name(), words[i]))
+      match = true;
+    else
+      {
+        match = false;
+        break;
+      }
+
+  g_strfreev (words);
+  return match;
 }
 
 bool
 description_matches_pattern (pkgCache::VerIterator &ver,
 			     const char *pattern)
 {
+  bool match = false;
+  char **words = g_strsplit (pattern, " ", 0);
   package_record rec (ver);
   const char *desc = rec.P.LongDesc().c_str();
+  int i;
 
-  // XXX - UTF8?
-  return strcasestr (desc, pattern);
+  if (words == NULL)
+    return false;
+
+  for (i = 0; words[i] != NULL; i++)
+    if (strcasestr (desc, words[i]))  // XXX - UTF8?
+      match = true;
+    else
+      {
+        match = false;
+        break;
+      }
+
+  g_strfreev (words);
+  return match;
 }
 
 static string
