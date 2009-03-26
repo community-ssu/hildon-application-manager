@@ -75,10 +75,25 @@ static void enable_refresh (bool f);
 
 static void get_package_infos_in_background (GList *packages);
 
+struct toolbar_struct
+{
+  GtkWidget *toolbar;
+  GtkWidget *operation_button;
+  GtkWidget *operation_label;
+  GtkWidget *update_all_button;
+  GtkWidget *details_button;
+  GtkWidget *search_button;
+  GtkWidget *refresh_button;
+};
+
 struct view {
   view *parent;
   view_id id;
   GtkWidget *(*maker) (view *);
+  GtkWidget *window;         // the associated HildonStackableWindow
+  GtkWidget *cur_view;       // the view main widget
+  toolbar_struct *tb_struct; // the window toolbar
+  bool dirty;                // we need to redraw the cur_view
 };
 
 GtkWidget *main_vbox = NULL;
@@ -94,17 +109,6 @@ get_current_view_id ()
 
   return NO_VIEW;
 }
-
-struct toolbar_struct
-{
-  GtkWidget *toolbar;
-  GtkWidget *operation_button;
-  GtkWidget *operation_label;
-  GtkWidget *update_all_button;
-  GtkWidget *details_button;
-  GtkWidget *search_button;
-  GtkWidget *refresh_button;
-};
 
 static toolbar_struct *main_tb_struct = NULL;
 static toolbar_struct *updates_tb_struct = NULL;
@@ -123,37 +127,43 @@ GtkWidget *make_search_results_view (view *v);
 view main_view = {
   NULL,
   MAIN_VIEW,
-  make_main_view
+  make_main_view,
+  NULL, NULL, NULL, false
 };
 
 view install_applications_view = {
   &main_view,
   INSTALL_APPLICATIONS_VIEW,
-  make_install_applications_view
+  make_install_applications_view,
+  NULL, NULL, NULL, false
 };
 
 view upgrade_applications_view = {
   &main_view,
   UPGRADE_APPLICATIONS_VIEW,
-  make_upgrade_applications_view
+  make_upgrade_applications_view,
+  NULL, NULL, NULL, false
 };
 
 view uninstall_applications_view = {
   &main_view,
   UNINSTALL_APPLICATIONS_VIEW,
-  make_uninstall_applications_view
+  make_uninstall_applications_view,
+  NULL, NULL, NULL, false
 };
 
 view install_section_view = {
   &install_applications_view,
   INSTALL_SECTION_VIEW,
-  make_install_section_view
+  make_install_section_view,
+  NULL, NULL, NULL, false
 };
 
 view search_results_view = {
   &main_view,
   SEARCH_RESULTS_VIEW,
-  make_search_results_view
+  make_search_results_view,
+  NULL, NULL, NULL, false
 };
 
 void
