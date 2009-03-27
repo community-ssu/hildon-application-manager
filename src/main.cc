@@ -61,6 +61,7 @@
 #define _(x) gettext (x)
 
 extern "C" {
+  #include <hildon/hildon-window-stack.h>
   #include <hildon/hildon-window.h>
   #include <hildon/hildon-note.h>
 }
@@ -96,15 +97,13 @@ struct view {
   bool dirty;                // we need to redraw the cur_view
 };
 
-GtkWidget *main_vbox = NULL;
 GtkWidget *device_label = NULL;
-GtkWidget *cur_view = NULL;
 view *cur_view_struct = NULL;
 
 view_id
 get_current_view_id ()
 {
-  if (cur_view)
+  if (cur_view_struct && cur_view_struct->cur_view)
     return cur_view_struct->id;
 
   return NO_VIEW;
@@ -117,6 +116,7 @@ static toolbar_struct *current_tb_struct = NULL;
 static void set_current_toolbar (toolbar_struct *tb_struct);
 static void set_current_toolbar_visibility (bool f);
 
+static GtkWidget *make_new_window (view *v);
 GtkWidget *make_main_view (view *v);
 GtkWidget *make_install_applications_view (view *v);
 GtkWidget *make_install_section_view (view *v);
@@ -169,26 +169,30 @@ view search_results_view = {
 void
 show_view (view *v)
 {
-  if (cur_view)
+  g_warning ("showing view %d", v->id);
+
+  GtkWidget *main_vbox = make_new_window (v);
+
+  if (GTK_IS_WIDGET (v->cur_view))
     {
-      gtk_container_remove(GTK_CONTAINER(main_vbox), cur_view);
-      cur_view = NULL;
+      gtk_container_remove (GTK_CONTAINER (main_vbox), v->cur_view);
+      v->cur_view = NULL;
     }
 
-  if (v == &main_view)
-    {
-      // main view doesn't have toolbar
-      set_current_toolbar_visibility (false);
-    }
-  else
-    {
-      set_current_toolbar_visibility (true);
+//   if (v == &main_view)
+//     {
+//       // main view doesn't have toolbar
+//       set_current_toolbar_visibility (false);
+//     }
+//   else
+//     {
+//       set_current_toolbar_visibility (true);
 
-      if (v == &upgrade_applications_view)
-        set_current_toolbar (updates_tb_struct);
-      else
-        set_current_toolbar (main_tb_struct);
-    }
+//       if (v == &upgrade_applications_view)
+//         set_current_toolbar (updates_tb_struct);
+//       else
+//         set_current_toolbar (main_tb_struct);
+//     }
 
   set_details_callback (NULL, NULL);
   set_operation_label (NULL);
@@ -196,11 +200,12 @@ show_view (view *v)
 
   allow_updating ();
 
-  cur_view = v->maker (v);
+  v->cur_view = v->maker (v);
   cur_view_struct = v;
+  v->dirty = false;
 
-  gtk_box_pack_start (GTK_BOX (main_vbox), cur_view, TRUE, TRUE, 10);
-  gtk_widget_show(main_vbox);
+  gtk_box_pack_start (GTK_BOX (main_vbox), v->cur_view, TRUE, TRUE, 10);
+  gtk_widget_show (main_vbox);
 
   reset_idle_timer ();
 }
@@ -209,7 +214,7 @@ static void
 show_view_callback (GtkWidget *btn, gpointer data)
 {
   view *v = (view *)data;
-  
+
   show_view (v);
 }
 
@@ -222,8 +227,16 @@ show_main_view ()
 void
 show_parent_view ()
 {
-  if (cur_view_struct && cur_view_struct->parent)
-    show_view (cur_view_struct->parent);
+  if (cur_view_struct->parent != NULL)
+    {
+      g_warning ("Showing parent view :S");
+
+      GtkWidget *win = cur_view_struct->window;
+      HildonWindowStack *stack =
+        hildon_stackable_window_get_stack (HILDON_STACKABLE_WINDOW (win));
+      win = hildon_window_stack_pop_1 (stack);
+      gtk_widget_destroy (win);
+    }
 }
 
 static GtkWidget *
@@ -955,7 +968,7 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   /* We switch to the parent view if the current one is the search
      results view.
-     
+
      We also switch to the parent when the current view shows a
      section and that section is no longer available, or when no
      sections should be shown because there are too few.
@@ -966,7 +979,7 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 	  && (find_section_info (&install_sections,
 				 cur_section_rank, cur_section_name) == NULL
 	      || (install_sections && !install_sections->next))))
-    show_view (cur_view_struct->parent);
+    show_parent_view ();
 
   if (c->cont)
     c->cont (c->data);
@@ -1586,14 +1599,14 @@ make_install_applications_view (view *v)
   if (install_sections && install_sections->next == NULL)
     {
       section_info *si = (section_info *)install_sections->data;
-      view = 
+      view =
 	make_global_package_list (si->packages,
 				  false,
 				  (package_list_ready
 				   ? _("ai_li_no_applications_available")
 				   : NULL),
 				  _("ai_me_cs_install"),
-				  available_package_selected, 
+				  available_package_selected,
 				  available_package_activated);
       get_package_infos_in_background (si->packages);
     }
@@ -1608,7 +1621,7 @@ make_install_applications_view (view *v)
   enable_refresh (true);
 
   maybe_refresh_package_cache_without_user ();
-  
+
   return view;
 }
 
@@ -1874,6 +1887,29 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
     irritate_user (_("ai_ib_no_matches"));
 }
 
+static void
+change_search_view_parent (view *new_parent)
+{
+  g_warning ("setting search results parent to %d", new_parent->id);
+
+  GtkWidget *win = cur_view_struct->window;
+  HildonWindowStack *stack =
+    hildon_stackable_window_get_stack (HILDON_STACKABLE_WINDOW (win));
+
+  while (win != main_view.window && win != new_parent->window)
+    {
+      cur_view_struct = cur_view_struct->parent;
+      GtkWidget *hide_win = hildon_window_stack_pop_1 (stack);
+      g_assert (hide_win == win);  // stack and curr_view may be different
+      win = cur_view_struct->window;
+      gtk_widget_destroy (hide_win);
+    }
+
+  search_results_view.parent = new_parent;
+  g_warning ("the new search results parent and current view is %d",
+             search_results_view.parent->id);
+}
+
 void
 search_packages (const char *pattern, bool in_descriptions)
 {
@@ -1888,7 +1924,7 @@ search_packages (const char *pattern, bool in_descriptions)
   else
     parent = cur_view_struct;
 
-  search_results_view.parent = parent;
+  change_search_view_parent (parent);
 
   if (!in_descriptions)
     {
@@ -2309,6 +2345,31 @@ window_destroy (GtkWidget* widget, gpointer data)
   gtk_main_quit ();
 }
 
+static void
+view_set_dirty (view *v)
+{
+  if (v && v != &main_view)
+    v->dirty = true;
+}
+
+static void
+reset_view (view *v)
+{
+  v->window = NULL;
+  v->cur_view = NULL;
+  //  cur_view_struct = v->parent;
+  view_set_dirty (v->parent);
+}
+
+static void
+stack_window_hide (GtkWidget* widget, gpointer data)
+{
+  view *v = (view *) data;
+
+  g_warning ("hide event on view %d", v->id);
+  reset_view (v);
+}
+
 static gboolean
 window_delete_event (GtkWidget* widget, GdkEvent *ev, gpointer data)
 {
@@ -2413,19 +2474,24 @@ set_current_toolbar_visibility (bool f)
 }
 
 static void
-is_topmost_cb(GtkWidget *widget, GParamSpec *arg, gpointer unused)
+is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
 {
   g_return_if_fail(widget != NULL && HILDON_IS_WINDOW(widget));
 
-  HildonWindow *window = HILDON_WINDOW(widget);
+  HildonWindow *window = HILDON_WINDOW (widget);
 
   /* Update the seen-updates file if the window is top most again and
      the "Check for updates" view is currently selected */
-  if (package_list_ready && hildon_window_get_is_topmost(window) &&
+  if (package_list_ready && hildon_window_get_is_topmost (window) &&
       (cur_view_struct == &upgrade_applications_view))
     {
       update_seen_updates_file ();
     }
+
+  cur_view_struct = (view *) data;
+  g_warning ("the top view is %d", cur_view_struct->id);
+  if (cur_view_struct->dirty)
+    show_view (cur_view_struct);
 }
 
 static gboolean
@@ -2453,8 +2519,7 @@ key_event (GtkWidget *widget,
   if (event->type == GDK_KEY_PRESS &&
       event->keyval == HILDON_HARDKEY_ESC)
     {
-      if (cur_view_struct->parent)
-	show_view (cur_view_struct->parent);
+      show_parent_view ();
 
       /* We must return FALSE here since the long-press handling code
 	 in HildonWindow needs to see the key press as well to start
@@ -2464,6 +2529,49 @@ key_event (GtkWidget *widget,
     }
 
   return FALSE;
+}
+
+static GtkWidget *
+make_new_window (view *v)
+{
+  if (v->window)
+    {
+      GtkWidget *child = gtk_bin_get_child (GTK_BIN (v->window));
+      return child;
+    }
+
+  v->window = hildon_stackable_window_new ();
+  gtk_window_set_title (GTK_WINDOW (v->window),
+                        _("ai_ap_application_installer"));
+
+  g_signal_connect(G_OBJECT (v->window), "notify::is-topmost",
+                   G_CALLBACK (is_topmost_cb), v);
+  g_signal_connect (G_OBJECT (v->window), "key_press_event",
+		    G_CALLBACK (key_event), NULL);
+  g_signal_connect (G_OBJECT (v->window), "key_release_event",
+		    G_CALLBACK (key_event), NULL);
+
+  GtkWidget *vbox = gtk_vbox_new (FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (v->window), vbox);
+
+  g_signal_connect (G_OBJECT (v->window), "realize",
+ 		    G_CALLBACK (main_window_realized), NULL);
+
+  create_menu (HILDON_WINDOW (v->window));
+
+  // Add the window to the stack
+  HildonWindowStack *stack = NULL;
+  if (v->parent && v->parent->window)
+    {
+      stack = hildon_stackable_window_get_stack
+        (HILDON_STACKABLE_WINDOW (v->parent->window));
+      hildon_window_stack_push_1 (stack, HILDON_STACKABLE_WINDOW (v->window));
+
+      g_signal_connect (G_OBJECT (v->window), "hide",
+                        G_CALLBACK (stack_window_hide), v);
+    }
+
+  return vbox;
 }
 
 static void
@@ -2689,7 +2797,6 @@ create_updates_toolbar ()
 int
 main (int argc, char **argv)
 {
-  GtkWidget *window = NULL;
   toolbar_struct *m_tb_struct = NULL;
   toolbar_struct *u_tb_struct = NULL;
   const char *apt_worker_prog = "/usr/libexec/apt-worker";
@@ -2730,18 +2837,6 @@ main (int argc, char **argv)
 
   clear_log ();
 
-  window = hildon_window_new ();
-  gtk_window_set_title (GTK_WINDOW (window), _("ai_ap_application_installer"));
-
-  main_window = GTK_WINDOW (window);
-
-  g_signal_connect(G_OBJECT(window), "notify::is-topmost",
-                   G_CALLBACK(is_topmost_cb), NULL);
-  g_signal_connect (window, "key_press_event",
-		    G_CALLBACK (key_event), NULL);
-  g_signal_connect (window, "key_release_event",
-		    G_CALLBACK (key_event), NULL);
-
   /* Create the two toolbars */
   m_tb_struct = create_main_toolbar ();
   u_tb_struct = create_updates_toolbar ();
@@ -2752,26 +2847,20 @@ main (int argc, char **argv)
   current_tb_struct = main_tb_struct;
 
   /* Add toolbars */
-  hildon_window_add_toolbar (HILDON_WINDOW (window),
-			     GTK_TOOLBAR (m_tb_struct->toolbar));
-  hildon_window_add_toolbar (HILDON_WINDOW (window),
-			     GTK_TOOLBAR (u_tb_struct->toolbar));
-
-  main_vbox = gtk_vbox_new (FALSE, 0);
-  gtk_container_add (GTK_CONTAINER (window), main_vbox);
-
-  g_signal_connect (G_OBJECT (window), "delete-event",
-		    G_CALLBACK (window_delete_event), NULL);
-
-  g_signal_connect (G_OBJECT (window), "destroy",
-		    G_CALLBACK (window_destroy), NULL);
-
-  g_signal_connect (G_OBJECT (window), "realize",
-		    G_CALLBACK (main_window_realized), NULL);
-
-  create_menu (HILDON_WINDOW (window));
+//   hildon_window_add_toolbar (HILDON_WINDOW (window),
+// 			     GTK_TOOLBAR (m_tb_struct->toolbar));
+//   hildon_window_add_toolbar (HILDON_WINDOW (window),
+// 			     GTK_TOOLBAR (u_tb_struct->toolbar));
 
   show_view (&main_view);
+  main_window = GTK_WINDOW (main_view.window);
+
+  g_signal_connect (G_OBJECT (main_window), "destroy",
+                    G_CALLBACK (window_destroy), NULL);
+
+  g_signal_connect (G_OBJECT (main_window), "delete-event",
+                    G_CALLBACK (window_delete_event), NULL);
+
 
   if (!start_apt_worker (apt_worker_prog))
     what_the_fock_p ();
