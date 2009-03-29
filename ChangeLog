@@ -1,3 +1,159 @@
+2009-03-29  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Create and show the toolbar.
+    
+	* src/main.cc (set_current_view): New function.
+	(show_view): Set the current toolbar but doesn't set the current
+	view.
+	(set_current_toolbar): Assign the current toolbar.
+	(is_topmost_cb): Use the new function to set the current view.
+	(make_new_window): Creates the toolbar ui.
+	(change_search_view_parent): Use the new function to set the current
+	view.
+	(reset_view): Free the view toolbar structure.
+	(installed_package_selected): Checks if the current toolbar isn't
+	NULL.
+	(set_details_callback): Same here.
+	(set_operation_callback): And here.
+	(set_operation_toolbar_label): Also here.
+	(enable_search): Here too.
+	(enable_refresh): And here.
+	(set_current_toolbar_visibility): Removed function.
+
+2009-03-27  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Use a HildonStackableWindow for each view.
+    
+	* src/main.cc: (get_current_view_id): Use the new view structure
+	field.
+	(show_view): refactor to create a new HildonStackableWindow if
+	needed. 
+	(show_parent_view): Pop the current stackable window.
+	(get_package_list_reply): Use the show_parent_view function.
+	(change_search_view_parent): New function.
+	(search_packages): new the function change_search_view_parent.
+	(view_set_dirty): New function.
+	(reset_view): New function.
+	(stack_window_hide): New function.
+	(is_topmost_cb): Force to show the current view if the view is dirty.
+	(make_new_window): New function.
+	(main): Removed the HildonWindow stuff in order to use
+	HildonStackableWindow.
+	(key_event): Use the show_parent_view function.
+
+2009-03-26  David Kedves <dkedves@blumsoft.eu>
+
+	Search patterns splitted into words. (NB#99006)
+    
+	* src/apt-worker.cc (name_matches_pattern): Split the pattern into
+	words and search for each one of them.
+	(description_matches_pattern): Same here.
+	* src/main.cc (search_package_list): Filter the packages to display
+	given each word in the search pattern.
+
+	* src/main.cc: In the view structure add a reference to the
+	HildonStackableWindow associated with the view, a reference to the
+	main view widget, another reference to the toolbar structure and a
+	flag if the view needs a refresh.
+
+2009-03-25  David Kedves <dkedves@blumsoft.eu>
+
+	* src/main.cc: Removed the label string in the view structure and its 
+	declaration in each view definition.
+	(view_section): Don't assign the dynamic label to the install view.
+	
+2009-03-25  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Removed HildonBreadCrumbTrail widget.
+    
+	* src/main.cc (make_view_path): Removed function.
+	(show_view): Removed the trail handling logic.
+	(view_clicked): Removed function.
+	(main): Removed the trail creation.
+	* src/util.cc (present_main_window): Don't show the trail.
+	(global_package_list_key_pressed): Commented out the code for
+	HILDON_HARDKEY_UP handling.
+	
+2009-03-25  David Kedves <dkedves@blumsoft.eu>
+
+	* repo.cc (make_cat_list): Use G_TYPE_POINTER instead of
+	GTK_TYPE_POINTER
+	* src/util.cc (make_global_package_list): Same here.
+	* src/main.cc (make_main_view): Disable the search. (NB#103206)
+
+2009-03-24  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/main.cc (make_main_view): Removed the ai_li_device logic string.
+	* src/util.cc (size_string_general): manage the new logical string for
+	displaying package sizes.
+	(size_string_general): Change the logical strings for the package size
+	in the dialogs.
+	(annoy_user_with_errno): Use convenience macro for dgettext in
+	hildon-fm and hildon-common-strings domain.
+	(annoy_user_with_gnome_vfs_result): Here too.
+	(do_copy): Here.
+	(show_updating): Here.
+	(call_copy_cont): And here.
+	* src/details.cc (make_small_text_label): New function.
+	(spd_create_description_page): Use GtkLabel rather than GtkTextView
+	for showing the package details. (NB#106282)
+	(spd_create_summary_page): This function too.
+
+2009-03-23  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	Defining three types of dialogue catalogue: readonly, editable and
+	package. 
+	
+	* src/repo.cc: New dialogue type enum.
+	(cat_edit_response): Simplified the logic for handling the responses
+	of th dialogue.
+	(show_cat_edit_dialog): Modified the dialog structure given its type.
+	(cat_selection_changed): Enabled the sensitive row if is not readonly.
+	(make_catcache_from_xexp): Used the enum making the catcache.
+	(cat_response): Used the new show_cat_edit_dialog function signature.
+	(add_catalogues_details): Used the new show_cat_edit_dialog function
+	signature and forbbid the edition of catalogues in installation.
+
+	* src/repo.cc (cat_icon_func): use general_web icon.
+
+2009-03-20  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	New apt-worker command for setting environment variables.
+	
+	* src/apt-worker-proto.h: Added APTCMD_SET_ENV enum.
+	* apt-worker.cc (cmd_names): added SET_OPTIONS string for commands
+	debugging.
+	(handle_request): Handle the APTCMD_SET_ENV command.
+	(misc_init): Set, as environment variables, the default mount points.
+	(cmd_set_env): New function.
+	(cmd_download_package): Removed the proxy code as it is
+	already set (optimistically). Extract the MMC mount points from the
+	environment and use them for downloading.
+	(cmd_install_package): Removed the proxy code as it is already set. 
+	* src/apt-worker-client.h: Function signature.
+	* src/apt-worker-client.cc New cmd_clos structure.
+	(apt_worker_set_env): New function.
+	(apt_worker_download_package_cont): New function (do the download).
+	(apt_worker_download_package): Set the environment, fixing the
+	continuation for downloading. Initialize the alt_download_root field.
+	(apt_worker_install_package_cont): New function (do the installation).
+	(apt_worker_install_package): Set the environment and using
+	installation a continuation.
+	(is_there_enough_free_space): use the fixed environment variables to
+	get the MMC mount paths.
+	* src/test-app-killer.c (main): removed the unused gtk_init.
+
+2009-03-18  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/Makefile.am: add test-app-killer to the no installable
+	programs. 
+	* src/apt-worker.cc (set_options): move in the setting of
+	flag_use_apt_algorithms.
+	(main): move out the setting of flag_use_apt_algorithms.
+	(cache_init): Removed commented out code.
+	(update_sources_list): Here too.
+	(cmd_set_catalogues): And here.
+
 2009-03-17  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	Fixed possible memory leaks and array overrun. (NB#102378)
