@@ -1488,7 +1488,7 @@ installed_package_selected (package_info *pi)
       set_operation_label (_("ai_me_package_uninstall"));
       set_operation_menu_item_sensitiveness (!(pi->flags & pkgflag_system_update));
 
-      if (current_tb_struct->operation_button)
+      if (current_tb_struct && current_tb_struct->operation_button)
         gtk_widget_set_sensitive (current_tb_struct->operation_button,
                                   !(pi->flags & pkgflag_system_update));
     }
@@ -2132,8 +2132,9 @@ set_details_callback (void (*func) (gpointer), gpointer data)
 {
   details_data = data;
   details_func = func;
-  gtk_widget_set_sensitive (current_tb_struct->details_button,
-			    func != NULL);
+  if (current_tb_struct)
+    gtk_widget_set_sensitive (current_tb_struct->details_button,
+                              func != NULL);
   set_details_menu_sensitive (func != NULL);
 }
 
@@ -2169,7 +2170,7 @@ set_operation_callback (void (*func) (gpointer), gpointer data)
   set_operation_label (operation_label);
 
   /* Set sensitiveness for 'Update all' button if needed */
-  if (current_tb_struct->update_all_button)
+  if (current_tb_struct && current_tb_struct->update_all_button)
     {
       gtk_widget_set_sensitive (current_tb_struct->update_all_button,
 				operation_func != NULL);
@@ -2425,9 +2426,9 @@ static GtkWindow *main_window = NULL;
 static void
 set_operation_toolbar_label (const char *label, bool sensitive)
 {
-  if (current_tb_struct->operation_label)
+  if (current_tb_struct && current_tb_struct->operation_label)
     gtk_label_set_text (GTK_LABEL (current_tb_struct->operation_label), label);
-  if (current_tb_struct->operation_button)
+  if (current_tb_struct && current_tb_struct->operation_button)
     gtk_widget_set_sensitive (current_tb_struct->operation_button, sensitive);
 }
 
@@ -2581,7 +2582,7 @@ make_new_window (view *v)
 static void
 enable_search (bool f)
 {
-  if (current_tb_struct->search_button)
+  if (current_tb_struct && current_tb_struct->search_button)
     gtk_widget_set_sensitive (current_tb_struct->search_button, f);
   set_search_menu_sensitive (f);
 }
@@ -2589,7 +2590,7 @@ enable_search (bool f)
 static void
 enable_refresh (bool f)
 {
-  if (current_tb_struct->refresh_button)
+  if (current_tb_struct && current_tb_struct->refresh_button)
     gtk_widget_set_sensitive (current_tb_struct->refresh_button, f);
 }
 
