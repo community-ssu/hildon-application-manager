@@ -166,6 +166,15 @@ view search_results_view = {
   NULL, NULL, NULL, false
 };
 
+static void
+set_current_view (view *v)
+{
+  g_return_if_fail (v != NULL);
+
+  cur_view_struct = v;
+  set_current_toolbar (v->tb_struct);
+}
+
 void
 show_view (view *v)
 {
@@ -179,20 +188,7 @@ show_view (view *v)
       v->cur_view = NULL;
     }
 
-//   if (v == &main_view)
-//     {
-//       // main view doesn't have toolbar
-//       set_current_toolbar_visibility (false);
-//     }
-//   else
-//     {
-//       set_current_toolbar_visibility (true);
-
-//       if (v == &upgrade_applications_view)
-//         set_current_toolbar (updates_tb_struct);
-//       else
-//         set_current_toolbar (main_tb_struct);
-//     }
+  set_current_toolbar (v->tb_struct);
 
   set_details_callback (NULL, NULL);
   set_operation_label (NULL);
@@ -201,7 +197,6 @@ show_view (view *v)
   allow_updating ();
 
   v->cur_view = v->maker (v);
-  cur_view_struct = v;
   v->dirty = false;
 
   gtk_box_pack_start (GTK_BOX (main_vbox), v->cur_view, TRUE, TRUE, 10);
@@ -1898,7 +1893,7 @@ change_search_view_parent (view *new_parent)
 
   while (win != main_view.window && win != new_parent->window)
     {
-      cur_view_struct = cur_view_struct->parent;
+      set_current_view (cur_view_struct->parent);
       GtkWidget *hide_win = hildon_window_stack_pop_1 (stack);
       g_assert (hide_win == win);  // stack and curr_view may be different
       win = cur_view_struct->window;
@@ -2359,6 +2354,7 @@ reset_view (view *v)
   v->cur_view = NULL;
   //  cur_view_struct = v->parent;
   view_set_dirty (v->parent);
+  delete (v->tb_struct);
 }
 
 static void
@@ -2450,14 +2446,10 @@ get_device_label ()
 static void
 set_current_toolbar (toolbar_struct *tb_struct)
 {
-  if (tb_struct == NULL)
-    return;
-
   if (current_tb_struct != tb_struct)
     {
-      gtk_widget_hide_all (current_tb_struct->toolbar);
-      gtk_widget_show_all (tb_struct->toolbar);
       current_tb_struct = tb_struct;
+      g_warning ("current toolbar %p", current_tb_struct);
     }
 }
 
@@ -2488,7 +2480,7 @@ is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
       update_seen_updates_file ();
     }
 
-  cur_view_struct = (view *) data;
+  set_current_view ((view *)data);
   g_warning ("the top view is %d", cur_view_struct->id);
   if (cur_view_struct->dirty)
     show_view (cur_view_struct);
@@ -2531,6 +2523,9 @@ key_event (GtkWidget *widget,
   return FALSE;
 }
 
+static toolbar_struct *create_main_toolbar ();
+static toolbar_struct *create_updates_toolbar ();
+
 static GtkWidget *
 make_new_window (view *v)
 {
@@ -2560,15 +2555,24 @@ make_new_window (view *v)
   create_menu (HILDON_WINDOW (v->window));
 
   // Add the window to the stack
-  HildonWindowStack *stack = NULL;
   if (v->parent && v->parent->window)
     {
-      stack = hildon_stackable_window_get_stack
+      HildonWindowStack *stack = hildon_stackable_window_get_stack
         (HILDON_STACKABLE_WINDOW (v->parent->window));
       hildon_window_stack_push_1 (stack, HILDON_STACKABLE_WINDOW (v->window));
 
       g_signal_connect (G_OBJECT (v->window), "hide",
                         G_CALLBACK (stack_window_hide), v);
+
+      if (v == &upgrade_applications_view)
+        v->tb_struct = create_updates_toolbar ();
+      else
+        v->tb_struct = create_main_toolbar ();
+
+      hildon_window_add_toolbar (HILDON_WINDOW (v->window),
+                                 GTK_TOOLBAR (v->tb_struct->toolbar));
+
+      gtk_widget_show_all (v->tb_struct->toolbar);
     }
 
   return vbox;
