@@ -109,12 +109,9 @@ get_current_view_id ()
   return NO_VIEW;
 }
 
-static toolbar_struct *main_tb_struct = NULL;
-static toolbar_struct *updates_tb_struct = NULL;
 static toolbar_struct *current_tb_struct = NULL;
 
 static void set_current_toolbar (toolbar_struct *tb_struct);
-static void set_current_toolbar_visibility (bool f);
 
 static GtkWidget *make_new_window (view *v);
 GtkWidget *make_main_view (view *v);
@@ -365,7 +362,6 @@ make_main_view (view *v)
   get_package_infos_in_background (NULL);
 
   enable_search (false);
-  // enable_refresh (false);
 
   prevent_updating ();
 
@@ -2455,18 +2451,6 @@ set_current_toolbar (toolbar_struct *tb_struct)
 }
 
 static void
-set_current_toolbar_visibility (bool f)
-{
-  if (current_tb_struct->toolbar)
-    {
-      if (f && get_current_view_id () != MAIN_VIEW)
-	gtk_widget_show_all (current_tb_struct->toolbar);
-      else
-	gtk_widget_hide_all (current_tb_struct->toolbar);
-    }
-}
-
-static void
 is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
 {
   g_return_if_fail(widget != NULL && HILDON_IS_WINDOW(widget));
@@ -2802,8 +2786,6 @@ create_updates_toolbar ()
 int
 main (int argc, char **argv)
 {
-  toolbar_struct *m_tb_struct = NULL;
-  toolbar_struct *u_tb_struct = NULL;
   const char *apt_worker_prog = "/usr/libexec/apt-worker";
   bool show = true;
 
@@ -2841,21 +2823,6 @@ main (int argc, char **argv)
   g_set_application_name ("");
 
   clear_log ();
-
-  /* Create the two toolbars */
-  m_tb_struct = create_main_toolbar ();
-  u_tb_struct = create_updates_toolbar ();
-
-  /* Set global variables and current toolbar */
-  main_tb_struct = m_tb_struct;
-  updates_tb_struct = u_tb_struct;
-  current_tb_struct = main_tb_struct;
-
-  /* Add toolbars */
-//   hildon_window_add_toolbar (HILDON_WINDOW (window),
-// 			     GTK_TOOLBAR (m_tb_struct->toolbar));
-//   hildon_window_add_toolbar (HILDON_WINDOW (window),
-// 			     GTK_TOOLBAR (u_tb_struct->toolbar));
 
   show_view (&main_view);
   main_window = GTK_WINDOW (main_view.window);
