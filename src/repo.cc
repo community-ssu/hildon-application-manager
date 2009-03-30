@@ -45,48 +45,46 @@
 
 #define _(x)       gettext (x)
 
-static gboolean
-repository_uri_is_valid (const gchar* uri)
+static bool
+apt_method_is_available (const char* method)
 {
-  const gchar *delimiter = ":";
-  gchar **tokens;
-  gchar *tmp, *repo_uri;
-  gboolean result = FALSE;
+  bool ret = false;
 
-  if (uri == NULL
-      || strlen (uri) == 0
-      || all_whitespace (uri)
-      || !g_utf8_validate (uri, -1, NULL))
-    return FALSE;
-
-  repo_uri = g_strstrip (g_strdup (uri));
-  tokens = g_strsplit (repo_uri, delimiter, 2);
-
-  /* Check APT method */
-  if ((tokens != NULL)
-      && (tokens[1] != NULL)
-      && (strlen (tokens[0]) > 0)
-      && (strlen (tokens[1]) > 0))
+  if (method)
     {
-      /* Check also that the uri is not just "<aptm-method>://" */
-      gchar *uri_prefix = g_strdup_printf ("%s://", tokens[0]);
-      if (!tokens_equal (uri, uri_prefix))
-        {
-          tmp = g_strdup_printf ("%s%s", APT_METHOD_PATH, tokens[0]);
-          result = g_file_test (tmp, G_FILE_TEST_EXISTS);
-          g_free (tmp);
-        }
-      g_free (uri_prefix);
+      gchar *method_file = g_strdup_printf ("%s%s", APT_METHOD_PATH, method);
+      ret = g_file_test (method_file, G_FILE_TEST_EXISTS);
+      g_free (method_file);
     }
 
-  g_free (repo_uri);
-  g_strfreev (tokens);
+  return ret;
+}
 
-  /* At last, look for blanks in the middle of the uri */
-  if (g_strrstr (uri, " ") != NULL)
-    return FALSE;
+static bool
+repository_uri_is_valid (const gchar* uri)
+{
+  if (!uri)
+    return false;
 
-  return result;
+  char *start_str = strchr (uri, ':');
+  if (!start_str)
+    return false;
+  if (strncmp (start_str, "://", 3) != 0)
+    return false;
+
+  gchar *method = g_strndup (uri, start_str - uri);
+  if (!apt_method_is_available (method))
+    {
+      g_free (method);
+      return false;
+    }
+  g_free (method);
+
+  start_str = &start_str[3];
+  if (!start_str || all_whitespace (start_str))
+    return false;
+
+  return true;
 }
 
 static GtkWidget *
