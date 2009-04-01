@@ -584,11 +584,10 @@ annoy_user_with_details_1 (const gchar *text,
     g_list_free (kids);
 
     gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_ni_bd_details"), 1);
-    gtk_dialog_add_button (GTK_DIALOG (dialog),
-			   (variant == 1
-			    ? _("ai_ni_bd_close")
-			    : _("ai_bd_ok")),
-			   GTK_RESPONSE_CANCEL);
+
+    if (variant != 1)
+      gtk_dialog_add_button (GTK_DIALOG (dialog),
+                             _("ai_bd_ok"), GTK_RESPONSE_CANCEL);
   }
 
   if (pi)
