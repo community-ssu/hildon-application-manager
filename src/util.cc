@@ -36,6 +36,7 @@
 #include <gconf/gconf-client.h>
 #include <hildon/hildon-note.h>
 #include <hildon/hildon-file-chooser-dialog.h>
+#include <hildon/hildon-check-button.h>
 #include <hildon/hildon-banner.h>
 #include <gdk/gdkkeysyms.h>
 #include <hildon/hildon-defines.h>
@@ -727,6 +728,80 @@ scare_user_with_legalese (bool sure,
   gtk_widget_show_all (dialog);
 }
 
+static void
+user_agreed (GtkToggleButton *button, GtkWidget *dialog)
+{
+  gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
+                                     GTK_RESPONSE_OK,
+                                     hildon_check_button_get_active
+                                     (HILDON_CHECK_BUTTON (button)));
+}
+
+void
+install_confirm (bool scare_user, package_info *pi, bool multiple,
+                 void (*cont) (bool res, void *data),
+                 void (*details) (void *data),
+                 void *data)
+{
+  ayn_closure *c = new ayn_closure;
+  c->pi = NULL;
+  c->cont = cont;
+  c->details = details;
+  c->data = data;
+
+  GtkWidget *dialog, *label;
+  GString *text = g_string_new (NULL);
+  char download_buf[20];
+
+  size_string_general (download_buf, 20, pi->info.download_size);
+  g_string_printf (text,
+                   (pi->installed_version
+                    ? _("ai_nc_update")
+                    : _("ai_nc_install")),
+                   pi->get_display_name (false),
+                   pi->get_display_version (false), download_buf);
+
+  if (scare_user)
+    g_string_append_printf (text, "\n\n%s",
+                            (multiple) ?
+                            _("ai_nc_non_verified_package_multiple") :
+                            _("ai_nc_non_verified_package"));
+
+  label = gtk_label_new (text->str);
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  g_string_free (text, TRUE);
+
+  dialog = gtk_dialog_new_with_buttons ((pi->installed_version
+                                         ? _("ai_ti_confirm_update")
+                                         : _("ai_ti_confirm_install")),
+                                        NULL,
+                                        GTK_DIALOG_MODAL,
+                                        _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
+                                        _("ai_bd_confirm_details"), 1,
+                                        NULL);
+  push_dialog (dialog);
+
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), label,
+                      FALSE, FALSE, 3);
+
+  if (scare_user)
+    {
+      gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
+                                         GTK_RESPONSE_OK, FALSE);
+
+      GtkWidget *check = hildon_check_button_new (HILDON_SIZE_FINGER_HEIGHT);
+      gtk_button_set_label (GTK_BUTTON (check),
+                            _("ai_ti_confirmation_checkbox"));
+      gtk_box_pack_end (GTK_BOX (GTK_DIALOG (dialog)->vbox), check,
+                        FALSE, FALSE, 3);
+      g_signal_connect (check, "toggled", G_CALLBACK (user_agreed), dialog);
+    }
+
+  g_signal_connect (dialog, "response", G_CALLBACK (yes_no_response), c);
+
+  gtk_widget_show_all (dialog);
+}
 
 /* Entertaining the user.
  */

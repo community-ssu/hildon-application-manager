@@ -173,6 +173,12 @@ void maybe_exit ();
   set true when the user agrees to take the risk of installing
   uncertified software.
 
+  INSTALL_CONFIRM is like ask_yes_no_with_arbitrary_details but it
+  shows the package to install and a legal disclaimer depending of
+  the SCARE_USER parameter. When SCARE_USER is true, the disclaimer
+  is show and the user must confirm that he accepts it through a
+  check box. It SURPASE scare_user_with_legalese.
+
 */
 
 void ask_yes_no (const gchar *question,
@@ -223,6 +229,11 @@ void what_the_fock_p ();
 void scare_user_with_legalese (bool sure,
 			       void (*cont) (bool res, void *data),
 			       void *data);
+
+void install_confirm (bool scare_user, package_info *pi, bool multiple,
+                      void (*cont) (bool res, void *data),
+                      void (*details) (void *data),
+                      void *data);
 
 /* Progress dialog.
    
