@@ -1445,7 +1445,7 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
   if (!is_last)
     {
       final_msg =
-	g_strdup_printf ("%s\n%s", 
+	g_strdup_printf ("%s\n%s",
 			 msg,
 			 _("ai_ni_continue_install"));
     }
@@ -1458,20 +1458,19 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
     {
       if (is_last)
 	{
-	  dialog = hildon_note_new_confirmation_add_buttons 
-	    (NULL,
-	     final_msg,
-	     _("ai_ni_bd_details"), 1,
-	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
-	     NULL);
+          annoy_user_with_arbitrary_details (final_msg,
+                                             ip_show_cur_problem_details,
+                                             ip_end, c);
+          goto annoy;
 	}
       else
 	{
-	  dialog = hildon_note_new_confirmation_add_buttons 
+	  dialog = hildon_note_new_confirmation_add_buttons
 	    (NULL,
 	     final_msg,
-	     _("ai_bd_ok"), GTK_RESPONSE_OK,
-	     _("ai_ni_bd_details"), 1,
+             dgettext ("hildon-libs", "wdgt_bd_yes"), GTK_RESPONSE_OK,
+             _("ai_ni_bd_details"), 1,
+             dgettext ("hildon-libs", "wdgt_bd_no"), GTK_RESPONSE_CANCEL,
 	     NULL);
 	}
     }
@@ -1479,29 +1478,23 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
     {
       if (is_last)
 	{
-	  dialog = hildon_note_new_confirmation_add_buttons 
-	    (NULL,
-	     final_msg,
-	     _("ai_ni_bd_close"), GTK_RESPONSE_CANCEL,
-	     NULL);
+          annoy_user (final_msg, ip_end, c);
+          goto annoy;
 	}
       else
 	{
-	  dialog = hildon_note_new_confirmation_add_buttons 
-	    (NULL,
-	     final_msg,
-	     _("ai_bd_ok"), GTK_RESPONSE_OK,
-	     NULL);
+          dialog = hildon_note_new_confirmation (NULL, final_msg);
 	}
     }
-
-  g_free (final_msg);
 
   push_dialog (dialog);
 
   g_signal_connect (dialog, "response",
-		    G_CALLBACK (ip_abort_response), c);
+                    G_CALLBACK (ip_abort_response), c);
   gtk_widget_show_all (dialog);
+
+ annoy:
+    g_free (final_msg);
 }
 
 static void
@@ -1515,7 +1508,7 @@ ip_abort_response (GtkDialog *dialog, gint response, gpointer data)
     {
       pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
-      
+
       if (response == GTK_RESPONSE_OK)
 	{
 	  /* We only get an OK response when there is another package
