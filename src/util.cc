@@ -405,11 +405,14 @@ ask_yes_no_with_details (const gchar *title,
   c->details = NULL;
   c->data = data;
 
+  char *ok = (kind == remove_details) ?
+    _("ai_bd_confirm_uninstall") : _("ai_bd_confirm_ok");
+
   dialog = gtk_dialog_new_with_buttons
     (title,
      NULL,
      GTK_DIALOG_MODAL,
-     _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
+     ok, GTK_RESPONSE_OK,
      _("ai_bd_confirm_details"), 1,
      NULL);
   push_dialog (dialog);
