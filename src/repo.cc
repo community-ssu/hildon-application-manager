@@ -782,7 +782,7 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
                                  !new_selected->foreign);
       if (!c->show_only_errors)
         gtk_widget_set_sensitive (c->delete_button,
-                                  new_selected->type != cat_readonly);
+                                  new_selected->type == cat_editable);
     }
   else
     {
