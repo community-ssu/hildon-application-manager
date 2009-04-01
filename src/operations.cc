@@ -738,7 +738,9 @@ ip_check_domain_reply (int cmd, apt_proto_decoder *dec, void *data)
 	{
 	  msg = g_strdup_printf ("%s\nInstall anyway?", msg);
 
-	  ask_custom (msg, "Yes", "No",
+	  ask_custom (msg,
+                      dgettext ("hildon-libs", "wdgt_bd_yes"),
+                      dgettext ("hildon-libs", "wdgt_bd_no"),
 		      ip_install_anyway, c);
 	}
       else
