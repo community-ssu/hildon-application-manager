@@ -1,8 +1,7 @@
 CXXFLAGS = $(CFLAGS)
 
 bin_PROGRAMS = maemo-application-running		\
-               maemo-confirm-text.launch		\
-               maemo-select-menu-location
+               maemo-confirm-text.launch
 
 dist_bin_SCRIPTS = maemo-confirm-text		\
                    maemo-list-user-packages
