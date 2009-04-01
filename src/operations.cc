@@ -427,30 +427,8 @@ ip_install_with_info (void *data)
     }
   else if (c->install_type != INSTALL_TYPE_UPDATE_SYSTEM)
     {
-      package_info *pi;
-
       c->cur = c->packages;
-      pi = (package_info *)(c->cur->data);
-
-      GString *text = g_string_new ("");
-      char download_buf[20];
-  
-      size_string_general (download_buf, 20, pi->info.download_size);
-      
-      g_string_printf (text,
-		       (pi->installed_version
-			? _("ai_nc_update")
-			: _("ai_nc_install")),
-		       pi->get_display_name (false),
-		       pi->get_display_version (false), download_buf);
-      
-      ask_yes_no_with_arbitrary_details ((pi->installed_version
-					  ? _("ai_ti_confirm_update")
-					  : _("ai_ti_confirm_install")),
-					 text->str,
-					 ip_confirm_install_response,
-					 ip_show_cur_details, c);
-      g_string_free (text, 1);
+      ip_confirm_install_response (true, c);
     }
   else
     ip_confirm_install_response (true, c);
@@ -575,7 +553,14 @@ ip_check_cert_loop (ip_clos *c)
     {
       /* All packages passed the check.  How unusual.
        */
-      ip_install_start (c);
+      guint l = g_list_length (c->all_packages);
+
+      if (l == 1) // we already annoyed the user
+        {
+          package_info *pi = (package_info *) c->cur->data;
+          install_confirm (false, pi, false,
+                           ip_legalese_response, ip_show_cur_details, c);
+        }
     }
 }
 
@@ -606,7 +591,11 @@ ip_check_cert_reply (int cmd, apt_proto_decoder *dec, void *data)
     }
 
   if (some_not_certified)
-    scare_user_with_legalese (true, ip_legalese_response, c);
+    {
+      package_info *pi = (package_info *) c->cur->data;
+      install_confirm (true, pi, g_list_length (c->all_packages) > 1,
+                       ip_legalese_response, ip_show_cur_details, c);
+    }
   else
     {
       c->cur = c->cur->next;
