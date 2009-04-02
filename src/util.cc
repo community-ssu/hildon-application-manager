@@ -2961,10 +2961,17 @@ close_apps (void)
   DBusConnection *conn;
   DBusMessage    *msg;
 
+  /* Ignoring SIGTERM */
+  if (signal (SIGTERM, SIG_IGN) != SIG_IGN)
+    {
+      add_log ("Can't ignore the TERM signal\n");
+      return;
+    }
+
   conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
   if (!conn)
     {
-      g_warning ("Could not get session bus.");
+      add_log ("Could not get session bus.\n");
       return;
     }
 
