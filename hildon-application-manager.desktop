@@ -2,7 +2,7 @@
 Encoding=UTF-8
 Version=0.9.4
 Type=Application
-Name=ai_ap_application_installer
+Name=ai_ap_name
 Comment=ai_ap_application_installer_thumb
 Exec=/usr/bin/hildon-application-manager
 MimeType=application/x-debian-package;application/x-deb;application/x-install-instructions
