@@ -751,15 +751,19 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
 
   GtkWidget *dialog, *label;
   GString *text = g_string_new (NULL);
-  char download_buf[20];
+  char size_buf[20];
 
-  size_string_general (download_buf, 20, pi->info.download_size);
+  if (pi->info.download_size > 0)
+    size_string_general (size_buf, 20, pi->info.download_size);
+  else
+    size_string_general (size_buf, 20, pi->info.install_user_size_delta);
+
   g_string_printf (text,
                    (pi->installed_version
                     ? _("ai_nc_update")
                     : _("ai_nc_install")),
                    pi->get_display_name (false),
-                   pi->get_display_version (false), download_buf);
+                   pi->get_display_version (false), size_buf);
 
   if (scare_user)
     g_string_append_printf (text, "\n\n%s",
