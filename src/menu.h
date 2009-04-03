@@ -29,6 +29,7 @@
 
 void create_menu (HildonWindow *window);
 void set_settings_menu_visible (bool);
+void set_install_from_file_menu_visible (bool flag);
 void set_details_menu_sensitive (bool);
 void set_search_menu_sensitive (bool);
 void set_operation_menu_label (const gchar *label, bool sensitive);

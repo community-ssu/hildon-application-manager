@@ -69,6 +69,7 @@ static GtkWidget *settings_menu_item = NULL;
 static GtkWidget *details_menu_item = NULL;
 static GtkWidget *search_menu_item = NULL;
 static GtkWidget *operation_menu_item = NULL;
+static GtkWidget *install_from_file_menu_item = NULL;
 
 void
 set_settings_menu_visible (bool flag)
@@ -79,6 +80,18 @@ set_settings_menu_visible (bool flag)
 	gtk_widget_show (settings_menu_item);
       else
 	gtk_widget_hide (settings_menu_item);
+    }
+}
+
+void
+set_install_from_file_menu_visible (bool flag)
+{
+  if (install_from_file_menu_item)
+    {
+      if (flag)
+        gtk_widget_show (install_from_file_menu_item);
+      else
+        gtk_widget_hide (install_from_file_menu_item);
     }
 }
 
@@ -142,9 +155,11 @@ create_menu (HildonWindow *window)
 
   operation_menu_item = add_item (packages, "", do_current_operation);
 
-  add_item (packages,
-	    _("ai_me_package_install_file"),
-	    call_install_from_file);
+  install_from_file_menu_item =
+    add_item (packages,
+              _("ai_me_package_install_file"),
+              call_install_from_file);
+
   details_menu_item = add_item (packages,
 				_("ai_me_package_details"),
 				show_current_details);
@@ -177,6 +192,7 @@ create_menu (HildonWindow *window)
 
   gtk_widget_show_all (GTK_WIDGET (main));
   set_settings_menu_visible (red_pill_mode);
+  set_install_from_file_menu_visible (red_pill_mode);
 }
 
 GtkWidget *
