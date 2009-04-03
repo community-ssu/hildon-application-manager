@@ -553,10 +553,11 @@ ip_check_cert_loop (ip_clos *c)
     {
       /* All packages passed the check.  How unusual.
        */
-      guint l = g_list_length (c->all_packages);
+      guint l = g_list_length (c->packages);
 
       if (l == 1) // we already annoyed the user
         {
+          c->cur = c->packages;
           package_info *pi = (package_info *) c->cur->data;
           install_confirm (false, pi, false,
                            ip_legalese_response, ip_show_cur_details, c);
