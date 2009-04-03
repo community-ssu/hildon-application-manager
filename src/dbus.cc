@@ -65,21 +65,24 @@ dbus_mime_open (DBusConnection *conn, DBusMessage *message)
       present_main_window ();
       if (strcmp (filename, "magic:restore-packages") == 0)
 	restore_packages_flow ();
+      else if (g_str_has_suffix (filename, ".install"))
+        install_from_file_flow (filename);
       else
-	install_from_file_flow (filename);
+        goto fail;
 
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
       dbus_message_unref (reply);
+
+      return;
     }
-  else
-    {
-      reply = dbus_message_new_error (message,
-				      DBUS_ERROR_INVALID_ARGS,
-				      error.message);
-      dbus_connection_send (conn, reply, NULL);
-      dbus_message_unref (reply);
-    }
+
+ fail:
+  reply = dbus_message_new_error (message,
+                                  DBUS_ERROR_INVALID_ARGS,
+                                  error.message);
+  dbus_connection_send (conn, reply, NULL);
+  dbus_message_unref (reply);
 }
 
 struct dip_clos {
