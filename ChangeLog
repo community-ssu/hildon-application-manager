@@ -1,3 +1,65 @@
+2009-04-03  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/operations.cc (ip_check_cert_loop): Reset the cur pointer fixing
+	a nasty segmentation fault. In case of multiple packages installation
+	we start the install process with out the legallese. 
+	* utils/Makefile.am: Commented out the sources of
+	maemo-select-menu-location-main.c in order to silence the automake.
+	* hildon-application-manager.desktop: removed
+	application/x-debian-package and application/x-deb mime
+	types. (NB#107280) 
+	* src/dbus.cc (dbus_mime_open): only .install files are accepted by
+	the dbus mime opener. (NB#107280)
+	* src/menu.cc (set_install_from_file_menu_visible): New function.
+	(create_menu): Assign the install_from_file_menu and show it if the
+	red-pill mode is enabled. (NB#107280)
+	* src/menu.h: Exported set_install_from_file_menu_visible.
+	* src/repo.cc (pill_response): Show the the install_from_file_menu
+	given the chose mode. (NB#107280)
+	* src/util.cc (install_confirm): If the the download_size is zero then
+	use the install_user_size_delta. This is used in case of deb file
+	installations.
+	* src/operations.cc (if_show_details_done): New function.
+	(if_show_details): New function.
+	(if_details_reply): Use the install_confirm dialogue. (NB#107280)
+
+2009-04-02  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (close_apps): Ignoring the SIGTERM when the app_killer
+	is requested. (NB#108960)
+	* hildon-application-manager.desktop: Update logical
+	string. (NB#107654) 
+
+2009-04-01  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+	
+	* src/repo.cc (cat_selection_changed): Only editable catalogues can be
+	deleted. (NB#108921)
+	* src/util.cc (ask_yes_no_with_details): The label for the ok button
+	is set according to the operation kind. If it's remove_details the
+	label is ai_bd_confirm_uninstall. (NB#93240)
+	* src/operations.cc (ip_check_domain_reply): Use the hildon-libs
+	logical strings for Yes/No options rather than hardcoded ones.
+	* src/util.cc (annoy_user_with_details_1): If the variant other than
+	one the ai_bd_ok label button is shown as cancel alias, but not a
+	close button. (NB#108943)
+	* src/operations.cc (ip_abort_cur): Use annoy_user functions when the
+	last installation abort message is shown. When there still packages to
+	process a confirmation dialogue is used. (NB#108943)
+	* utils/Makefile.am: Don't compile maemo-select-menu-location. It's
+	not used anymore. 
+	* src/operations.cc (ip_install_with_info): Removed the install
+	confirmation dialogue continue with the response instead.
+	(ip_check_cert_loop): Instead of start the installation the install
+	confirmation is raised if only one package is going to be installed.
+	(ip_check_cert_reply): Instead of the legalese notice, the merged
+	install confirmation is shown. (NB#107619)
+
+2009-03-30  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/repo.cc (apt_method_is_available): New function.
+	(repository_uri_is_valid): Validate the form method://content in the
+	repositories uri. (NB#92982)
+
 2009-03-29  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	Create and show the toolbar.
