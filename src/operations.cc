@@ -555,13 +555,15 @@ ip_check_cert_loop (ip_clos *c)
        */
       guint l = g_list_length (c->packages);
 
-      if (l == 1) // we already annoyed the user
+      if (l == 1)
         {
           c->cur = c->packages;
           package_info *pi = (package_info *) c->cur->data;
           install_confirm (false, pi, false,
                            ip_legalese_response, ip_show_cur_details, c);
         }
+      else // we already annoyed the user
+        ip_install_start (c);
     }
 }
 
