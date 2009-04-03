@@ -1900,6 +1900,19 @@ first_line_of (const char *text)
 }
 
 static void
+if_show_details_done (void *data)
+{
+}
+
+static void
+if_show_details (void *data)
+{
+  if_clos *c = (if_clos *) data;
+
+  show_package_details (c->pi, install_details, false, if_show_details_done, c);
+}
+
+static void
 if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   if_clos *c = (if_clos *)data;
@@ -1947,44 +1960,14 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
   else
     decode_summary (dec, pi, install_details);
 
-  GString *text = g_string_new ("");
-
-  char size_buf[20];
-  size_string_general (size_buf, 20, pi->info.install_user_size_delta);
-  if (pi->installed_version)
-    g_string_printf (text, _("ai_nc_update"),
-		     pi->get_display_name (false),
-		     pi->get_display_version (false), size_buf);
-  else
-    g_string_printf (text, _("ai_nc_install"),
-		     pi->get_display_name (false),
-		     pi->get_display_version (false), size_buf);
-
   void (*cont) (bool res, void *);
 
   if (pi->info.installable_status == status_able)
-    cont = if_show_legalese;
+    cont = if_install;
   else
     cont = if_fail;
 
-  ask_yes_no_with_details ((pi->installed_version
-			    ? _("ai_ti_confirm_update")
-			    : _("ai_ti_confirm_install")),
-			   text->str, pi, install_details,
-                           cont, c);
-
-  g_string_free (text, 1);
-}
-
-static void
-if_show_legalese (bool res, void *data)
-{
-  if_clos *c = (if_clos *)data;
-  
-  if (res)
-    scare_user_with_legalese (false, if_install, c);
-  else
-    if_end (false, c);
+  install_confirm (true, pi, false, cont, if_show_details, c);
 }
 
 static void
