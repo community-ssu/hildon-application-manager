@@ -17,6 +17,6 @@ maemo_confirm_text_run_CFLAGS =   $(HAM_DEPS_CFLAGS)
 maemo_confirm_text_run_CXXFLAGS = $(HAM_DEPS_CFLAGS)
 maemo_confirm_text_run_LDADD =    $(HAM_DEPS_LIBS)
 
-maemo_select_menu_location_SOURCES = maemo-select-menu-location-main.c
+# maemo_select_menu_location_SOURCES = maemo-select-menu-location-main.c
 
 EXTRA_DIST = export.map
