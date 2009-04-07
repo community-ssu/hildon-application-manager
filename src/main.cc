@@ -175,6 +175,8 @@ set_current_view (view *v)
 void
 show_view (view *v)
 {
+  g_return_if_fail (v != NULL);
+
   g_warning ("showing view %d", v->id);
 
   GtkWidget *main_vbox = make_new_window (v);
