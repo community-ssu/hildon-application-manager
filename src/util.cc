@@ -73,6 +73,8 @@ static void *idle_data = NULL;
 
 #define ENTERTAINMENT_DIALOG_WIDTH 550
 
+#define ENTERTAINMENT_STOP 1
+
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
 {
@@ -983,8 +985,14 @@ entertainment_update_title ()
 static void
 entertainment_response (GtkWidget *widget, int response, void *data)
 {
-  if (response == GTK_RESPONSE_CANCEL || response == GTK_RESPONSE_DELETE_EVENT)
+  if (response == ENTERTAINMENT_STOP)
     cancel_entertainment ();
+}
+
+static gboolean
+entertainment_delete (GtkDialog *dialog, GdkEventAny *event, gpointer data)
+{
+  return TRUE;
 }
 
 void
@@ -1070,7 +1078,7 @@ start_entertaining_user (gboolean with_button)
 	}
 
       gtk_dialog_set_default_response (GTK_DIALOG (entertainment.dialog),
-				       GTK_RESPONSE_CANCEL);
+				       1);
 
       entertainment.cancel_button = NULL;
       if (with_button)
@@ -1078,14 +1086,16 @@ start_entertaining_user (gboolean with_button)
 	  /* Cancel button: add to action area and set default response */
 	  entertainment.cancel_button =
 	    gtk_dialog_add_button (GTK_DIALOG (entertainment.dialog),
-				   dgettext("hildon-libs",
-					    "ecdg_bd_confirmation_note_cancel"),
-				   GTK_RESPONSE_CANCEL);
+				   dgettext ("hildon-libs", "wdgt_bd_stop"),
+				   ENTERTAINMENT_STOP);
 
 	  g_signal_connect (entertainment.cancel_button,
 			    "insensitive-press",
 			    G_CALLBACK (entertainment_insensitive_press),
 			    &entertainment);
+
+          g_signal_connect (entertainment.dialog, "delete-event",
+                            G_CALLBACK (entertainment_delete), NULL);
 	}
 
       /* Connect signals */
@@ -1096,7 +1106,8 @@ start_entertaining_user (gboolean with_button)
 			G_CALLBACK (entertainment_response), &entertainment);
 
       respond_on_escape (GTK_DIALOG (entertainment.dialog),
-			 GTK_RESPONSE_CANCEL);
+			 with_button ?
+                         ENTERTAINMENT_STOP : GTK_RESPONSE_DELETE_EVENT);
 
       /* Update info */
       entertainment_update_progress ();
