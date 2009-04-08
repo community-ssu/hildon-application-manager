@@ -71,10 +71,6 @@ static void *idle_data = NULL;
 
 #define IDLE_TIMEOUT_SECS 60
 
-#define ENTERTAINMENT_DIALOG_WIDTH 550
-
-#define ENTERTAINMENT_STOP 1
-
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
 {
@@ -850,7 +846,7 @@ progressbar_dialog_realized (GtkWidget *widget, gpointer data)
 struct entertainment_data {
   gint depth;
 
-  GtkWidget *dialog, *bar, *main_label, *sub_label, *cancel_button;
+  GtkWidget *dialog, *bar, *cancel_button;
   gint pulse_id;
 
   char *main_title, *sub_title;
@@ -929,63 +925,24 @@ entertainment_update_cancel ()
 			      entertainment.cancel_callback != NULL);
 }
 
-/* XXX - We always show the old style until there is time to
-         polish the new style for real.  Otherwise, the old
-         style doesn't get enough testing exposure.
-*/
-static bool entertainment_subtitles = false;
-
 static void
 entertainment_update_title ()
 {
   if (entertainment.dialog)
     {
-      if (!entertainment_subtitles)
-	{
-	  /* Show the progress bar dialog in the old style */
-	  if (entertainment.sub_title && !entertainment.strong_main_title)
-	    gtk_label_set_text (GTK_LABEL (entertainment.main_label),
-				entertainment.sub_title);
-	  else
-	    gtk_label_set_text (GTK_LABEL (entertainment.main_label),
-				entertainment.main_title);
-	}
+      if (entertainment.sub_title && !entertainment.strong_main_title)
+        gtk_progress_bar_set_text (GTK_PROGRESS_BAR (entertainment.bar),
+                                   entertainment.sub_title);
       else
-	{
-	  /* Show the main title and the subtitle at the same time,
-             over and below the progress bar */
-
-	  /* Set the main title */
-	  if (entertainment.main_title)
-	    {
-	      gtk_label_set_text (GTK_LABEL (entertainment.main_label),
-				  entertainment.main_title);
-	    }
-	  else
-	    {
-	      /* Reset the main title to an empty string */
-	      gtk_label_set_text (GTK_LABEL (entertainment.main_label), "");
-	    }
-
-	  /* Set the subtitle */
-	  if (entertainment.sub_title)
-	    {
-	      gtk_label_set_text (GTK_LABEL (entertainment.sub_label),
-				  entertainment.sub_title);
-	    }
-	  else
-	    {
-	      /* Reset the subtitle to an empty string */
-	      gtk_label_set_text (GTK_LABEL (entertainment.sub_label), "");
-	    }
-	}
+        gtk_progress_bar_set_text (GTK_PROGRESS_BAR (entertainment.bar),
+                                   entertainment.main_title);
     }
 }
 
 static void
 entertainment_response (GtkWidget *widget, int response, void *data)
 {
-  if (response == ENTERTAINMENT_STOP)
+  if (response == GTK_RESPONSE_CANCEL)
     cancel_entertainment ();
 }
 
@@ -1022,7 +979,6 @@ start_entertaining_user (gboolean with_button)
   if (entertainment.dialog == NULL)
     {
       GtkWidget *box;
-      GdkGeometry geom;
 
       /* Build a custom dialog with two labels for main title and
 	 subtitle (only in red-pill mode), a progress bar and a
@@ -1035,50 +991,26 @@ start_entertaining_user (gboolean with_button)
       gtk_window_set_modal (GTK_WINDOW (entertainment.dialog), TRUE);
       gtk_window_set_decorated (GTK_WINDOW (entertainment.dialog), FALSE);
       gtk_dialog_set_has_separator (GTK_DIALOG (entertainment.dialog), FALSE);
-      gtk_window_set_position (GTK_WINDOW (entertainment.dialog), GTK_WIN_POS_CENTER_ON_PARENT);
-
-      /* Set size */
-      geom.min_height = -1;
-      geom.max_height = -1;
-      geom.min_width = ENTERTAINMENT_DIALOG_WIDTH;
-      geom.max_width = ENTERTAINMENT_DIALOG_WIDTH;
-      gtk_window_set_geometry_hints (GTK_WINDOW (entertainment.dialog), 
-                                     NULL,
-                                     &geom,
-                                     (GdkWindowHints) (GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE));
+      gtk_window_set_position (GTK_WINDOW (entertainment.dialog),
+                               GTK_WIN_POS_CENTER_ON_PARENT);
+//       gtk_window_set_type_hint (GTK_WINDOW (entertainment.dialog),
+//                                 GDK_WINDOW_TYPE_HINT_NOTIFICATION);
 
       /* Add the internal box */
-      box = gtk_vbox_new (FALSE, HILDON_MARGIN_DOUBLE);
-      gtk_container_add (GTK_CONTAINER (GTK_DIALOG(entertainment.dialog)->vbox), box);
-
-      /* Add the main title label */
-      entertainment.main_label = gtk_label_new (entertainment.main_title);
-      gtk_label_set_text (GTK_LABEL (entertainment.main_label), entertainment.main_title);
-      gtk_label_set_line_wrap (GTK_LABEL (entertainment.main_label), TRUE);
-      gtk_label_set_justify (GTK_LABEL (entertainment.main_label), GTK_JUSTIFY_CENTER);
-      gtk_widget_set_size_request (entertainment.main_label,
-                                   ENTERTAINMENT_DIALOG_WIDTH - HILDON_MARGIN_DEFAULT,
-                                   -1);
-
-      gtk_box_pack_start (GTK_BOX (box), entertainment.main_label, TRUE, TRUE, 0);
+      box = gtk_hbox_new (FALSE, HILDON_MARGIN_DOUBLE);
+      gtk_box_pack_start (GTK_BOX (GTK_DIALOG (entertainment.dialog)->vbox),
+                          box, TRUE, TRUE, HILDON_MARGIN_DEFAULT);
 
       /* Add the progress bar */
       entertainment.bar = gtk_progress_bar_new ();
-      gtk_box_pack_start (GTK_BOX (box), entertainment.bar, FALSE, FALSE, 0);
-
-      /* Add the subtitle label if requested. */
-      if (entertainment_subtitles)
-	{
-	  entertainment.sub_label = gtk_label_new (entertainment.sub_title);
-	  gtk_label_set_text (GTK_LABEL (entertainment.sub_label), entertainment.sub_title);
-	  gtk_widget_modify_font (entertainment.sub_label,
-				  get_small_font (entertainment.sub_label));
-
-	  gtk_box_pack_start (GTK_BOX (box), entertainment.sub_label, TRUE, TRUE, 0);
-	}
+      gtk_progress_bar_set_text (GTK_PROGRESS_BAR (entertainment.bar),
+                                 entertainment.main_title);
+      g_object_set (G_OBJECT (entertainment.bar), "text-xalign", 0.5, NULL);
+      gtk_box_pack_start (GTK_BOX (box), entertainment.bar, TRUE, TRUE,
+                          HILDON_MARGIN_DOUBLE);
 
       gtk_dialog_set_default_response (GTK_DIALOG (entertainment.dialog),
-				       1);
+                                       GTK_RESPONSE_CANCEL);
 
       entertainment.cancel_button = NULL;
       if (with_button)
@@ -1086,13 +1018,16 @@ start_entertaining_user (gboolean with_button)
 	  /* Cancel button: add to action area and set default response */
 	  entertainment.cancel_button =
 	    gtk_dialog_add_button (GTK_DIALOG (entertainment.dialog),
-				   dgettext ("hildon-libs", "wdgt_bd_stop"),
-				   ENTERTAINMENT_STOP);
+                                   dgettext ("hildon-libs", "wdgt_bd_stop"),
+                                   GTK_RESPONSE_CANCEL);
 
 	  g_signal_connect (entertainment.cancel_button,
 			    "insensitive-press",
 			    G_CALLBACK (entertainment_insensitive_press),
 			    &entertainment);
+
+          gtk_widget_show (entertainment.cancel_button);
+          gtk_widget_set_no_show_all (entertainment.cancel_button, FALSE);
 
           g_signal_connect (entertainment.dialog, "delete-event",
                             G_CALLBACK (entertainment_delete), NULL);
@@ -1106,8 +1041,7 @@ start_entertaining_user (gboolean with_button)
 			G_CALLBACK (entertainment_response), &entertainment);
 
       respond_on_escape (GTK_DIALOG (entertainment.dialog),
-			 with_button ?
-                         ENTERTAINMENT_STOP : GTK_RESPONSE_DELETE_EVENT);
+                         GTK_RESPONSE_CANCEL);
 
       /* Update info */
       entertainment_update_progress ();
