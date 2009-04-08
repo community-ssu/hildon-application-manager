@@ -3518,6 +3518,7 @@ cmd_get_package_details ()
         ("This is an artificial package that represents all\n"
          "system packages that are installed on your device.");
       response.encode_int (deptype_end);  // dependencies
+      response.encode_string (NULL);      // repository
       if (summary_kind == 1)
         encode_install_summary (package);
       else
