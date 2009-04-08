@@ -756,23 +756,23 @@ compare_package_download_sizes (gconstpointer a, gconstpointer b)
 
   // Download size might not be known when we sort so we sort by name
   // instead in that case.
-  
-  if (pi_a->have_info && pi_b->have_info)
-    {
-      gint result =
-	compare_system_updates (pi_a, pi_b);
 
-      if (!result)
-	{
-	  result =
-	    (package_sort_sign *
-	     (pi_a->info.download_size - pi_b->info.download_size));
-	}
+  gint result = compare_system_updates (pi_a, pi_b);
 
-      return result;
-    }
+  if (!result)
+  {
+    if (pi_a->have_info && pi_b->have_info)
+      result = (package_sort_sign *
+                (pi_a->info.download_size - pi_b->info.download_size));
+    else if (pi_a->have_info)
+      result = package_sort_sign;
+    else if (pi_b->have_info)
+      result = -1 * package_sort_sign;
+    else // We don't know the download sizes
+      result = compare_package_available_names (a, b);
+  }
 
-    return compare_package_available_names (a, b);
+  return result;
 }
 
 void
