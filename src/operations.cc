@@ -662,8 +662,10 @@ ip_install_loop (ip_clos *c)
 		}
 	      else
 		{
-		  str = g_strdup_printf (_("ai_ni_install_successful"),
-					 pi->get_display_name (false));
+// 		  str = g_strdup_printf (_("ai_ni_install_successful_launch"),
+// 					 pi->get_display_name (false));
+                  str = g_strdup_printf (_("ai_ni_multiple_install"),
+                                         c->n_successful);
 		}
 	      annoy_user (str, ip_end, c);
 	      g_free (str);
@@ -2033,9 +2035,10 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
 				 c->pi->get_display_version (false));
 	}
       else
-	{
-	  str = g_strdup_printf (_("ai_ni_install_successful"),
-				 c->pi->get_display_name (false));
+        {
+//           str = g_strdup_printf (_("ai_ni_install_successful_launch"),
+//                                  pi->get_display_name (false));
+          str = g_strdup_printf (_("ai_ni_multiple_install"), 1);
 	}
       annoy_user (str, if_end_with_success, c);
       g_free (str);
