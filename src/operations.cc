@@ -1835,7 +1835,6 @@ static void if_local (char *local_filename, void *data);
 static void if_install_local_deb_file (void *data);
 
 static void if_details_reply (int cmd, apt_proto_decoder *dec, void *data);
-static void if_show_legalese (bool res, void *data);
 static void if_install (bool res, void *data);
 static void if_install_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void if_fail (bool res, void *data);
