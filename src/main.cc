@@ -776,7 +776,7 @@ compare_package_download_sizes (gconstpointer a, gconstpointer b)
 }
 
 void
-sort_all_packages ()
+sort_all_packages (bool refresh_view)
 {
   // If the first section is the "All" section, exclude it from the
   // sort.
@@ -824,7 +824,8 @@ sort_all_packages ()
     search_result_packages = g_list_sort (search_result_packages,
 					  compare_packages_inst);
 
-  show_view (cur_view_struct);
+  if (refresh_view)
+    show_view (cur_view_struct);
 }
 
 struct gpl_closure {
@@ -957,7 +958,7 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   package_list_ready = true;
 
-  sort_all_packages ();
+  sort_all_packages (true);
 
   /* We switch to the parent view if the current one is the search
      results view.
@@ -1149,6 +1150,12 @@ static void
 gpiib_done (package_info *pi, void *data, bool changed)
 {
   gpiib_trigger ();
+
+  /* Resort & refresh view
+   * only needed when we are sorting by size */
+  if (!gpiib_next && changed &&
+      (package_sort_key == SORT_BY_SIZE))
+    sort_all_packages (true);
 }
 
 /* REFRESH_PACKAGE_CACHE_WITHOUT_USER
@@ -1872,7 +1879,7 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
       clear_global_package_list ();
       free_packages (search_result_packages);
       search_result_packages = result;
-      sort_all_packages ();
+      sort_all_packages (false);
       show_view (&search_results_view);
       irritate_user (_("ai_ib_search_complete"));
     }

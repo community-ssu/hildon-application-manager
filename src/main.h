@@ -168,7 +168,7 @@ void restore_packages_flow ();
 
 void save_backup_data ();
 
-void sort_all_packages ();
+void sort_all_packages (bool refresh_view);
 void show_main_view ();
 void show_parent_view ();
 

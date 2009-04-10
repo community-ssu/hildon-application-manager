@@ -341,7 +341,7 @@ sort_settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
       else
 	package_sort_sign = -1;
       save_settings ();
-      sort_all_packages ();
+      sort_all_packages (true);
     }
 
   pop_dialog (GTK_WIDGET (dialog));
