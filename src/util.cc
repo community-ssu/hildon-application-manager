@@ -443,8 +443,8 @@ ask_yes_no_with_arbitrary_details (const gchar *title,
     (title,
      NULL,
      GTK_DIALOG_MODAL,
-     _("ai_bd_confirm_ok"),      GTK_RESPONSE_OK,
-     _("ai_bd_confirm_details"), 1,
+     _("ai_bd_add_catalogue_ok"),      GTK_RESPONSE_OK,
+     _("ai_bd_add_catalogue_details"), 1,
      NULL);
   push_dialog (dialog);
 
