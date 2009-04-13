@@ -591,15 +591,18 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 				   xexp_aref_text (catalogue, "components"),
 				   NULL, false, readonly, false);
 
-  c->disabled_button = gtk_check_button_new ();
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
-                                xexp_aref_bool (catalogue, "disabled"));
-  caption = hildon_caption_new (group,
-                                _("ai_fi_new_repository_disabled"),
-                                c->disabled_button,
-                                NULL, HILDON_CAPTION_OPTIONAL);
-  gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
-  gtk_widget_set_sensitive (c->disabled_button, c->type != cat_readonly);
+  if (c->type != cat_readonly)
+    {
+      c->disabled_button = gtk_check_button_new ();
+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
+                                    xexp_aref_bool (catalogue, "disabled"));
+      caption = hildon_caption_new (group,
+                                    _("ai_fi_new_repository_disabled"),
+                                    c->disabled_button,
+                                    NULL, HILDON_CAPTION_OPTIONAL);
+      gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
+      gtk_widget_set_sensitive (c->disabled_button, c->type != cat_readonly);
+    }
 
   gtk_widget_set_usize (dialog, 650, -1);
 
