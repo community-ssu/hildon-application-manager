@@ -1432,13 +1432,26 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 	      if (cont == add_catalogues_cont_3_enable)
 		str = g_strdup_printf ("%s\n%s",
 				       _("ai_ia_add_catalogue_enable"),
-				       name);
+				       _("ai_ia_add_catalogue_legal"));
 	      else if (c->update)
-		str = g_strdup_printf (_("ai_ia_add_catalogue_text"),
-				       name);
+                {
+                  char *tmp = g_strdup_printf (_("ai_ia_add_catalogue_add"),
+                                               name);
+                  str = g_strdup_printf ("%s\n%s\n%s",
+                                         _("ai_ia_add_catalogue_install"),
+                                         _("ai_ia_add_catalogue_legal"),
+                                         tmp);
+                  g_free (tmp);
+                }
 	      else
-		str = g_strdup_printf (_("ai_ia_add_catalogue_text2"),
-				       name);
+                {
+                  char *tmp = g_strdup_printf (_("ai_ia_add_catalogue_add"),
+                                               name);
+                  str = g_strdup_printf ("%s\n%s",
+                                         _("ai_ia_add_catalogue_legal"),
+                                         tmp);
+                  g_free (tmp);
+                }
 
 	      ask_yes_no_with_arbitrary_details (_("ai_ti_add_catalogue"),
 						 str,
