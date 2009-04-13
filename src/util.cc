@@ -764,7 +764,7 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
                    pi->get_display_version (false), size_buf);
 
   if (scare_user)
-    g_string_append_printf (text, "\n\n%s",
+    g_string_append_printf (text, "\n%s",
                             (multiple) ?
                             _("ai_nc_non_verified_package_multiple") :
                             _("ai_nc_non_verified_package"));
@@ -781,11 +781,10 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
                                         _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
                                         _("ai_bd_confirm_details"), 1,
                                         NULL);
-  push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), label,
-                      FALSE, FALSE, 3);
+                      TRUE, TRUE, 1);
 
   if (scare_user)
     {
@@ -796,9 +795,11 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
       gtk_button_set_label (GTK_BUTTON (check),
                             _("ai_ti_confirmation_checkbox"));
       gtk_box_pack_end (GTK_BOX (GTK_DIALOG (dialog)->vbox), check,
-                        FALSE, FALSE, 3);
+                        TRUE, TRUE, 1);
       g_signal_connect (check, "toggled", G_CALLBACK (user_agreed), dialog);
     }
+
+  push_dialog (dialog);
 
   g_signal_connect (dialog, "response", G_CALLBACK (yes_no_response), c);
 
