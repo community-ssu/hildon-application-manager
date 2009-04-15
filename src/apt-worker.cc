@@ -5331,16 +5331,16 @@ get_deb_record (const char *filename)
 	  // increase buffer and try to fill it, leaving room for the
 	  // trailing newlines and nul.
 	  // XXX - do it properly.
-	  
-	  char *new_record = new char[size+incr+3];
+
+	  char *new_record = new char[size + incr + 3];
 	  if (record)
 	    {
 	      memcpy (new_record, record, size);
-	      delete record;
+	      delete [] record;
 	    }
 	  record = new_record;
-	  
-	  size += fread (record+size, 1, incr, f);
+
+	  size += fread (record + size, 1, incr, f);
 	}
       while (!feof (f));
 
@@ -5352,8 +5352,8 @@ get_deb_record (const char *filename)
 	}
 
       record[size] = '\n';
-      record[size+1] = '\n';
-      record[size+2] = '\0';
+      record[size + 1] = '\n';
+      record[size + 2] = '\0';
       return record;
     }
   return NULL;
