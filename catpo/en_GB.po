@@ -1,26 +1,53 @@
-msgid "accessories"
-msgstr "Accessories"
+# UK English translations of the maemo.org application categories
+#
+# Copyright 2008 Simon Pickering
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version; either version 2, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
-msgid "communication"
-msgstr "Communication"
+msgid "desktop"
+msgstr "Desktop"
+
+msgid "development"
+msgstr "Programming"
+
+msgid "education"
+msgstr "Education"
 
 msgid "games"
 msgstr "Games"
 
+msgid "graphics"
+msgstr "Graphics"
+
 msgid "multimedia"
 msgstr "Multimedia"
+
+msgid "navigation"
+msgstr "Location & Navigation"
+
+msgid "network"
+msgstr "Internet & Networking"
 
 msgid "office"
 msgstr "Office"
 
-msgid "programming"
-msgstr "Programming"
+msgid "science"
+msgstr "Science"
 
-msgid "support"
-msgstr "Support"
+msgid "system"
+msgstr "System"
 
-msgid "themes"
-msgstr "Themes"
-
-msgid "tools"
-msgstr "Tools"
+msgid "utilities"
+msgstr "Utilities"

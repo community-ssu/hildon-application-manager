@@ -1,26 +1,53 @@
-msgid "accessories"
-msgstr "Tilbehør"
+# Danish translations of the maemo.org application categories
+#
+# Copyright 2008 Carsten V. Munk
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version; either version 2, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
-msgid "communication"
-msgstr "Kommunikation"
+msgid "desktop"
+msgstr "Skrivebord"
+
+msgid "development"
+msgstr "Programmering"
+
+msgid "education"
+msgstr "Undervisning"
 
 msgid "games"
 msgstr "Spil"
 
+msgid "graphics"
+msgstr "Grafik"
+
 msgid "multimedia"
-msgstr "Multimedia"
+msgstr "Multimedier"
+
+msgid "navigation"
+msgstr "Position og Navigation"
+
+msgid "network"
+msgstr "Internet og Netværk"
 
 msgid "office"
 msgstr "Kontor"
 
-msgid "programming"
-msgstr "Programmering"
+msgid "science"
+msgstr "Videnskab"
 
-msgid "support"
-msgstr "Support"
+msgid "system"
+msgstr "System"
 
-msgid "themes"
-msgstr "Temaer"
-
-msgid "tools"
+msgid "utilities"
 msgstr "Værktøjer"

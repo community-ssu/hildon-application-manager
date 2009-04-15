@@ -1,26 +1,53 @@
-msgid "accessories"
-msgstr "Lisävarusteet"
+# Finnish translations of the maemo.org application categories
+#
+# Copyright 2008 Kate Alhola
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version; either version 2, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
-msgid "communication"
-msgstr "Viestintä"
+msgid "desktop"
+msgstr "Työpöytä"
+
+msgid "development"
+msgstr "Ohjelmointi"
+
+msgid "education"
+msgstr "Opiskelu"
 
 msgid "games"
 msgstr "Pelit"
 
+msgid "graphics"
+msgstr "Grafiikka"
+
 msgid "multimedia"
 msgstr "Multimedia"
+
+msgid "navigation"
+msgstr "Paikannus ja navigointi"
+
+msgid "network"
+msgstr "Internet ja viestintä"
 
 msgid "office"
 msgstr "Toimisto"
 
-msgid "programming"
-msgstr "Ohjelmointi"
+msgid "science"
+msgstr "Tiede"
 
-msgid "support"
-msgstr "Tuki"
+msgid "system"
+msgstr "Jäjestelmä"
 
-msgid "themes"
-msgstr "Teemat"
-
-msgid "tools"
-msgstr "Työkalut"
+msgid "utilities"
+msgstr "Apuohjelmat"

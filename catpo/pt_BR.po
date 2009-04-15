@@ -1,26 +1,53 @@
-msgid "accessories"
-msgstr "Acessórios"
+# BR Portuguese translations of the maemo.org application categories
+#
+# Copyright 2008 Renato Chencarek
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version; either version 2, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
-msgid "communication"
-msgstr "Comunicação"
+msgid "desktop"
+msgstr "Área de Trabalho"
+
+msgid "development"
+msgstr "Desenvolvimento"
+
+msgid "education"
+msgstr "Educação"
 
 msgid "games"
 msgstr "Jogos"
 
+msgid "graphics"
+msgstr "Gráficos"
+
 msgid "multimedia"
 msgstr "Multimídia"
+
+msgid "navigation"
+msgstr "Posicionamento e Navegação"
+
+msgid "network"
+msgstr "Internet e Redes"
 
 msgid "office"
 msgstr "Escritório"
 
-msgid "programming"
-msgstr "Programação"
+msgid "science"
+msgstr "Ciência"
 
-msgid "support"
-msgstr "Suporte"
+msgid "system"
+msgstr "Sistema"
 
-msgid "themes"
-msgstr "Temas"
-
-msgid "tools"
-msgstr "Ferramentas"
+msgid "utilities"
+msgstr "Utilitários"

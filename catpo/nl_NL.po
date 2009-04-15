@@ -1,26 +1,53 @@
-msgid "accessories"
-msgstr "Accessoires"
+# Dutch translations of the maemo.org application categories
+#
+# Copyright 2008 allnameswereout
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version; either version 2, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
-msgid "communication"
-msgstr "Communicatie"
+msgid "desktop"
+msgstr "Bureaublad"
+
+msgid "development"
+msgstr "Ontwikkeling"
+
+msgid "education"
+msgstr "Educatief"
 
 msgid "games"
 msgstr "Spelletjes"
 
+msgid "graphics"
+msgstr "Grafisch"
+
 msgid "multimedia"
 msgstr "Multimedia"
+
+msgid "navigation"
+msgstr "Locatie en Navigatie"
+
+msgid "network"
+msgstr "Internet en Netwerk"
 
 msgid "office"
 msgstr "Kantoor"
 
-msgid "programming"
-msgstr "Programmering"
+msgid "science"
+msgstr "Wetenschap"
 
-msgid "support"
-msgstr "Ondersteuning"
+msgid "system"
+msgstr "Systeem"
 
-msgid "themes"
-msgstr "Thema's"
-
-msgid "tools"
-msgstr "Extra"
+msgid "utilities"
+msgstr "Gereedschappen"

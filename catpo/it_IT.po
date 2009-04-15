@@ -1,26 +1,53 @@
-msgid "accessories"
-msgstr "Accessori"
+# Italian translations of the maemo.org application categories
+#
+# Copyright 2008 Aloisio Antonio
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version; either version 2, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
-msgid "communication"
-msgstr "Comunicazione"
+msgid "desktop"
+msgstr "Desktop"
+
+msgid "development"
+msgstr "Programmazione"
+
+msgid "education"
+msgstr "Educazione"
 
 msgid "games"
 msgstr "Giochi"
 
+msgid "graphics"
+msgstr "Grafica"
+
 msgid "multimedia"
 msgstr "Multimedia"
+
+msgid "navigation"
+msgstr "Posizione e Navigazione"
+
+msgid "network"
+msgstr "Internet e Reti"
 
 msgid "office"
 msgstr "Ufficio"
 
-msgid "programming"
-msgstr "Programmazione"
+msgid "science"
+msgstr "Scienza"
 
-msgid "support"
-msgstr "Supporto"
+msgid "system"
+msgstr "Sistema"
 
-msgid "themes"
-msgstr "Temi"
-
-msgid "tools"
-msgstr "Strumenti"
+msgid "utilities"
+msgstr "Utilitá"

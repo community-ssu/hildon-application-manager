@@ -1,26 +1,53 @@
-msgid "accessories"
-msgstr "Zubehör"
+# German translations of the maemo.org application categories
+#
+# Copyright 2008 Andre Klapper
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version; either version 2, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
-msgid "communication"
-msgstr "Kommunikation"
+msgid "desktop"
+msgstr "Desktop"
+
+msgid "development"
+msgstr "Entwicklung"
+
+msgid "education"
+msgstr "Bildung"
 
 msgid "games"
 msgstr "Spiele"
 
+msgid "graphics"
+msgstr "Grafik"
+
 msgid "multimedia"
 msgstr "Multimedia"
+
+msgid "navigation"
+msgstr "Position & Navigation"
+
+msgid "network"
+msgstr "Internet & Netzwerk"
 
 msgid "office"
 msgstr "Büro"
 
-msgid "programming"
-msgstr "Programmierung"
+msgid "science"
+msgstr "Wissenschaft"
 
-msgid "support"
-msgstr "Support"
+msgid "system"
+msgstr "System"
 
-msgid "themes"
-msgstr "Themen"
-
-msgid "tools"
-msgstr "Optionen"
+msgid "utilities"
+msgstr "Werkzeuge"

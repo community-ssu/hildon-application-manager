@@ -1,26 +1,53 @@
-msgid "accessories"
-msgstr "Accesorios"
+# ES Spanish translations of the maemo.org application categories
+#
+# Copyright 2008 Daniel Martín Yerga
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version; either version 2, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+# 02110-1301 USA
 
-msgid "communication"
-msgstr "Comunicación"
+msgid "desktop"
+msgstr "Escritorio"
+
+msgid "development"
+msgstr "Programación"
+
+msgid "education"
+msgstr "Educación"
 
 msgid "games"
 msgstr "Juegos"
 
+msgid "graphics"
+msgstr "Gráficos"
+
 msgid "multimedia"
 msgstr "Multimedia"
+
+msgid "navigation"
+msgstr "Localización y Navegación"
+
+msgid "network"
+msgstr "Internet y Redes"
 
 msgid "office"
 msgstr "Oficina"
 
-msgid "programming"
-msgstr "Programación"
+msgid "science"
+msgstr "Ciencia"
 
-msgid "support"
-msgstr "Asistencia"
+msgid "system"
+msgstr "Sistema"
 
-msgid "themes"
-msgstr "Temas"
-
-msgid "tools"
-msgstr "Herramientas"
+msgid "utilities"
+msgstr "Utilidades"
