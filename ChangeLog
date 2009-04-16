@@ -1,3 +1,68 @@
+2009-04-15  Marius Vollmer  <marius.vollmer@nokia.com>
+
+	* Updated category definitions from the 2.1.x branch.
+
+2009-04-14  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (get_deb_record): Delete as an array the record
+	string. (NB#102378)
+
+2009-04-13  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (install_confirm): Enhances the install confirm
+	dialogue.
+	* src/repo.cc (show_cat_edit_dialog): Only if the dialogue type is no 
+	readonly, is shown the disable check button.
+	* src/repo.cc (add_catalogues_cont_2): Updated the used logical strings
+	according to the new ui spec. (NB#110684)
+	* src/util.cc (ask_yes_no_with_arbitrary_details): As this function is
+	used only for the add catalogues dialogue, the defined logical string
+	for its buttons are used instead the common ones. (NB#110684).
+
+2009-04-10  David Kedves <dkedves@blumsoft.eu>	
+
+	* src/main.cc (sort_all_packages): Changed the function signature.
+	(get_package_list_reply): Show the results after sorting.
+	(search_packages_reply): Sort packages without refreshing the
+	result. (NB#103605)
+	* settings.cc (sort_settings_dialog_response): Show the results after
+	sorting. (NB#103605)
+	
+2009-04-09  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/operations.cc (ip_install_loop) (if_install_reply): Show
+	§ai_ni_multiple_install§ and comment out
+	§ai_ni_install_successful_launch§ for future
+	implementation. (NB#108666) 	
+	* src/operations.cc: Removed if_show_legalese symbol for compiler
+	silence. 
+
+2009-04-08  David Kedves <dkedves@blumsoft.eu>
+
+	* src/main.cc (compare_package_download_sizes): Simplified the logic
+	in the download size comparing.
+
+
+2009-04-08  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (entertainment_response): cancel de operation only if
+	the response is stop.
+	(entertainment_delete): New function.
+	(start_entertaining_user): The default response is stop; the button is
+	localized for "stop" label; handle the delete event if button; handle
+	the escape key.
+	* src/util.cc (entertainment_update_title): No more subtitles
+	handling. 
+	(entertainment_response): Use GTK_RESPONSE_CANCEL instead of custom.
+	(start_entertaining_user): Restructured the progress bar dialogue.
+	* src/apt-worker.cc (cmd_get_package_details): magic:sys package
+	encodes a null repository.
+
+2009-04-07  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/main.cc (set_current_view): Check if the requested view is not
+	NULL. 
+
 2009-04-03  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	* src/operations.cc (ip_check_cert_loop): Reset the cur pointer fixing

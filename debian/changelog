@@ -1,8 +1,15 @@
-hildon-application-manager (1:2.2.17~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.17) unstable; urgency=low
 
-  * 
+  * Fixes: NB#108666 Application manager, Logical ID
+    §ai_ni_install_successful§ 
+  * Fixes: NB#103605 Sort functionality not working properly
+  * Fixes: NB#110684 Application manager Add catalogue request
+    §ai_ia_add_catalogue_text§
+  * Fixes: NB#102378 Coverity findings in hildon-application-manager
+  * Fixex: NB#111002 Random hildon application manager crash with PID1331 died
+    to signal11 
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 08 Apr 2009 11:10:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 16 Apr 2009 11:51:00 +0100	
 
 hildon-application-manager (1:2.2.16) unstable; urgency=low
 
