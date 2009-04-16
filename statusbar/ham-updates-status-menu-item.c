@@ -327,14 +327,17 @@ static void
 ham_updates_status_menu_display_event_cb (osso_display_state_t state,
                                           gpointer data)
 {
+  HamUpdatesStatusMenuItem *self;
+
   g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
 
-  if (get_state (HAM_UPDATES_STATUS_MENU_ITEM (data)) == ICON_STATE_BLINKING)
+  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
+  if (get_icon_state (self) == ICON_STATE_BLINKING)
     {
       if (state == OSSO_DISPLAY_OFF)
-        blink_icon_off (HAM_UPDATES_STATUS_MENU_ITEM (data));
+        blink_icon_off (self);
       else
-        blink_icon_on (HAM_UPDATES_STATUS_MENU_ITEM (data));
+        blink_icon_on (self);
     }
 }
 
