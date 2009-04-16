@@ -98,7 +98,7 @@ struct _HamUpdatesStatusMenuItemPrivate
   GConfClient *gconf;
 
   /* state */
-  State state;
+  State icon_state;
 
   /* alarm id */
   cookie_t alarm_cookie;
@@ -132,11 +132,11 @@ static void setup_ui (HamUpdatesStatusMenuItem *self);
 static void delete_all_alarms (void);
 
 /* state handling prototypes */
-static void load_state (HamUpdatesStatusMenuItem *self);
-static void save_state (HamUpdatesStatusMenuItem *self);
+static void load_icon_state (HamUpdatesStatusMenuItem *self);
+static void save_icon_state (HamUpdatesStatusMenuItem *self);
 static void update_state (HamUpdatesStatusMenuItem *self);
-static void set_state (HamUpdatesStatusMenuItem *self, State state);
-static State get_state (HamUpdatesStatusMenuItem *self);
+static void set_icon_state (HamUpdatesStatusMenuItem *self, State state);
+static State get_icon_state (HamUpdatesStatusMenuItem *self);
 
 /* connection state prototypes */
 static void setup_connection_state (HamUpdatesStatusMenuItem *self);
@@ -213,7 +213,7 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
 
   priv->osso = NULL;
 
-  priv->state = ICON_STATE_INVISIBLE;
+  priv->icon_state = ICON_STATE_INVISIBLE;
 
   priv->alarm_cookie = 0;
 
@@ -799,7 +799,7 @@ static void
 ham_updates_status_menu_item_response_cb (HamUpdatesStatusMenuItem *self,
                                           gint response, gpointer data)
 {
-  set_state (self, ICON_STATE_INVISIBLE);
+  set_icon_state (self, ICON_STATE_INVISIBLE);
 
   if (response == GTK_RESPONSE_YES)
     ham_execute (self);
@@ -839,12 +839,12 @@ setup_ui (HamUpdatesStatusMenuItem *self)
 {
   build_status_menu_button (self);
   build_status_area_icon (self);
-  load_state (self);
-  update_state (self);
+  load_icon_state (self);
+  /* update_icon_state (self); */
 }
 
 static void
-load_state (HamUpdatesStatusMenuItem *self)
+load_icon_state (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
   xexp *state = NULL;
@@ -855,8 +855,15 @@ load_state (HamUpdatesStatusMenuItem *self)
 
   if (state != NULL)
     {
-      set_state (self,
-                 xexp_aref_int (state, "icon-state", ICON_STATE_INVISIBLE));
+      State saved_state;
+
+      saved_state = xexp_aref_int (state, "icon-state", ICON_STATE_INVISIBLE);
+      set_icon_state (self, saved_state);
+
+      /* let's be cautious about the blinking state */
+      if (saved_state == ICON_STATE_BLINKING)
+        update_state (self);
+
       xexp_free (state);
     }
 
@@ -864,12 +871,12 @@ load_state (HamUpdatesStatusMenuItem *self)
 }
 
 static void
-save_state (HamUpdatesStatusMenuItem *self)
+save_icon_state (HamUpdatesStatusMenuItem *self)
 {
   xexp *x_state = NULL;
 
   x_state = xexp_list_new ("state");
-  xexp_aset_int (x_state, "icon-state", (gint) get_state (self));
+  xexp_aset_int (x_state, "icon-state", (gint) get_icon_state (self));
   user_file_write_xexp (UFILE_UPDATE_NOTIFIER, x_state);
   xexp_free (x_state);
 
@@ -956,7 +963,7 @@ update_icon_state (HamUpdatesStatusMenuItem *self)
 {
   State state;
 
-  state = get_state (self);
+  state = get_icon_state (self);
 
   if (state == ICON_STATE_INVISIBLE)
     {
@@ -989,14 +996,14 @@ update_icon_state (HamUpdatesStatusMenuItem *self)
 }
 
 static void
-set_state (HamUpdatesStatusMenuItem* self, State state)
+set_icon_state (HamUpdatesStatusMenuItem* self, State state)
 {
   State oldstate;
 
   g_return_if_fail (state >= ICON_STATE_INVISIBLE &&
                     state <= ICON_STATE_BLINKING);
 
-  oldstate = get_state (self);
+  oldstate = get_icon_state (self);
 
   /* let's avoid the obvious */
   if (state == oldstate)
@@ -1012,21 +1019,21 @@ set_state (HamUpdatesStatusMenuItem* self, State state)
     HamUpdatesStatusMenuItemPrivate *priv;
 
     priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-    LOG ("Changing icon state from %d to %d", priv->state, state);
-    priv->state = state;
-    save_state (self);
+    LOG ("Changing icon state from %d to %d", priv->icon_state, state);
+    priv->icon_state = state;
+    save_icon_state (self);
     update_icon_state (self);
   }
 }
 
 static State
-get_state (HamUpdatesStatusMenuItem *self)
+get_icon_state (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
-  return priv->state;
+  return priv->icon_state;
 }
 
 static void
@@ -1059,11 +1066,11 @@ update_state (HamUpdatesStatusMenuItem *self)
   /* shall we blink the status area icon? */
   if (updates_avail == TRUE || ham_notifier_are_available (NULL) == TRUE)
     {
-      set_state (self, ICON_STATE_BLINKING);
+      set_icon_state (self, ICON_STATE_BLINKING);
     }
   else
     {
-      set_state (self, ICON_STATE_INVISIBLE);
+      set_icon_state (self, ICON_STATE_INVISIBLE);
     }
 }
 
