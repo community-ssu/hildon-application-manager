@@ -1874,17 +1874,21 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
       info->unref();
     }
 
+  clear_global_package_list ();
+  free_packages (search_result_packages);
+  search_result_packages = result;
+
   if (result)
     {
-      clear_global_package_list ();
-      free_packages (search_result_packages);
-      search_result_packages = result;
       sort_all_packages (false);
       show_view (&search_results_view);
       irritate_user (_("ai_ib_search_complete"));
     }
   else
-    irritate_user (_("ai_ib_no_matches"));
+    {
+      show_view (&search_results_view);
+      irritate_user (_("ai_ib_no_matches"));
+    }
 }
 
 static void
@@ -1951,14 +1955,13 @@ search_packages (const char *pattern, bool in_descriptions)
 	search_package_list (&result,
 			     installed_packages, pattern, true);
 
+      clear_global_package_list ();
+      free_packages (search_result_packages);
+      search_result_packages = result;
+      show_view (&search_results_view);
+
       if (result)
-	{
-	  clear_global_package_list ();
-	  free_packages (search_result_packages);
-	  search_result_packages = result;
-	  show_view (&search_results_view);
-	  irritate_user (_("ai_ib_search_complete"));
-	}
+        irritate_user (_("ai_ib_search_complete"));
       else
 	irritate_user (_("ai_ib_no_matches"));
     }
