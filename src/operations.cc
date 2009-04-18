@@ -656,9 +656,7 @@ ip_install_loop (ip_clos *c)
 	      char *str = NULL;
 	      if (pi->installed_version != NULL)
 		{
-		  str = g_strdup_printf (_("ai_ni_update_successful"),
-					 pi->get_display_name (false),
-					 pi->get_display_version (false));
+		  str = g_strdup_printf (_("ai_ni_software_update_installed"));
 		}
 	      else
 		{
@@ -2029,9 +2027,7 @@ if_install_reply (int cmd, apt_proto_decoder *dec, void *data)
       char *str = NULL;
       if (c->pi->installed_version != NULL)
 	{
-	  str = g_strdup_printf (_("ai_ni_update_successful"),
-				 c->pi->get_display_name (false),
-				 c->pi->get_display_version (false));
+	  str = g_strdup_printf (_("ai_ni_software_update_installed"));
 	}
       else
         {
