@@ -38,6 +38,8 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 
+#include <hildon/hildon-check-button.h>
+
 #define _(x) dgettext ("hildon-application-manager", x)
 
 static PangoFontDescription *
@@ -53,7 +55,7 @@ get_small_font (GtkWidget *widget)
 	gtk_rc_get_style_by_paths (gtk_widget_get_settings (GTK_WIDGET(widget)),
 				   "osso-SmallFont", NULL,
 				   G_TYPE_NONE);
-  
+
       if (fontstyle)
         small_font = pango_font_description_copy (fontstyle->font_desc);
       else
@@ -63,7 +65,7 @@ get_small_font (GtkWidget *widget)
   return small_font;
 }
 
-void
+static void
 fill_text_buffer_from_file (GtkTextBuffer *text, const char *file)
 {
   char buf[1024];
@@ -99,7 +101,7 @@ no_button_events (GtkWidget *widget, GdkEventButton *event, gpointer data)
   return FALSE;
 }
 
-GtkWidget *
+static GtkWidget *
 make_small_text_view (const char *file)
 {
   GtkWidget *scroll;
@@ -122,6 +124,27 @@ make_small_text_view (const char *file)
 		    G_CALLBACK (no_button_events), NULL);
 
   return scroll;
+}
+
+static void
+user_agreed (GtkToggleButton *button, GtkWidget *dialog)
+{
+  gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
+                                     GTK_RESPONSE_OK,
+                                     hildon_check_button_get_active
+                                     (HILDON_CHECK_BUTTON (button)));
+}
+
+static GtkWidget *
+make_check_button (GtkWidget *dialog)
+{
+  GtkWidget *check;
+
+  check = hildon_check_button_new (HILDON_SIZE_FINGER_HEIGHT);
+  gtk_button_set_label (GTK_BUTTON (check), _("ai_ti_eula_confirmation"));
+  g_signal_connect (check, "toggled", G_CALLBACK (user_agreed), dialog);
+
+  return check;
 }
 
 int
@@ -155,8 +178,15 @@ main (int argc, char **argv)
      _("ai_bd_license_ok"), GTK_RESPONSE_OK,
      NULL);
 
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
-		     make_small_text_view (file));
+  gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
+                                     GTK_RESPONSE_OK, FALSE);
+
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox),
+                      make_small_text_view (file), TRUE, TRUE, 1);
+
+  gtk_box_pack_end (GTK_BOX (GTK_DIALOG (dialog)->vbox),
+                    make_check_button (dialog), FALSE, FALSE, 1);
+
   gtk_widget_set_usize (dialog, 600, 300);
   gtk_widget_show_all (dialog);
 
