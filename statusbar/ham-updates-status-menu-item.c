@@ -1043,19 +1043,16 @@ static void
 update_state (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
-  gboolean updates_avail;
   gboolean visible;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
   LOG ("updating the state");
 
-  updates_avail = ham_updates_are_available (priv->updates, priv->osso);
-
   g_object_get (G_OBJECT (self), "visible", &visible, NULL);
 
   /* shall we show the updates button? */
-  if (updates_avail == TRUE)
+  if (ham_updates_are_available (priv->updates, priv->osso) == TRUE)
     {
       if (visible == FALSE)
         gtk_widget_show (GTK_WIDGET (self));
@@ -1067,7 +1064,8 @@ update_state (HamUpdatesStatusMenuItem *self)
     }
 
   /* shall we blink the status area icon? */
-  if (updates_avail == TRUE || ham_notifier_are_available (NULL) == TRUE)
+  if (ham_updates_are_available_icon (priv->osso) == TRUE
+      || ham_notifier_are_available (NULL) == TRUE)
     {
       set_icon_state (self, ICON_STATE_BLINKING);
     }
