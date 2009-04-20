@@ -117,6 +117,9 @@ struct _HamUpdatesStatusMenuItemPrivate
 
   /* updates object */
   HamUpdates *updates;
+
+  /* parent map signal connected? */
+  gboolean map_connected;
 };
 
 /* setup prototypes */
@@ -143,6 +146,8 @@ static void setup_connection_state (HamUpdatesStatusMenuItem *self);
 
 static void ham_updates_status_menu_display_event_cb
 (osso_display_state_t state, gpointer data);
+static void ham_updates_status_menu_item_parent_set
+(GtkWidget *widget, GtkObject *old_parent, gpointer data);
 
 /* icon blinking */
 static void blink_icon_off (HamUpdatesStatusMenuItem *self);
@@ -230,6 +235,8 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
 
   priv->blinker_id = 0;
 
+  priv->map_connected = FALSE;
+
   if (setup_dbus (self))
     {
       setup_gconf (self);
@@ -253,6 +260,11 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
         {
           close_inotify (self);
         }
+
+      /* Check for setting parent, so that we can attach signals for that */
+      g_signal_connect (self, "parent-set",
+                        G_CALLBACK (ham_updates_status_menu_item_parent_set),
+                        self);
     }
 }
 
@@ -320,6 +332,54 @@ ham_updates_status_menu_item_check_done_cb (HamUpdatesStatusMenuItem *self,
                               NULL,
                               DBUS_TYPE_INVALID);
         }
+    }
+}
+
+static void
+ham_updates_status_menu_item_map_event (GtkWidget *widget, gpointer data)
+{
+  HamUpdatesStatusMenuItem *self;
+
+  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
+
+  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
+  LOG ("map signal");
+  set_icon_state (self, ICON_STATE_INVISIBLE);
+}
+
+static void
+ham_updates_status_menu_item_parent_set (GtkWidget *widget,
+                                         GtkObject *old_parent,
+                                         gpointer data)
+{
+  HamUpdatesStatusMenuItem *self;
+  HamUpdatesStatusMenuItemPrivate *priv;
+  GtkWidget *ancestor;
+
+  g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
+
+  ancestor = NULL;
+  self = HAM_UPDATES_STATUS_MENU_ITEM (data);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  if (priv->map_connected == TRUE)
+    {
+      g_signal_handlers_disconnect_by_func
+        (old_parent, ham_updates_status_menu_item_map_event, self);
+
+      priv->map_connected = FALSE;
+    }
+
+  ancestor = gtk_widget_get_ancestor (GTK_WIDGET (self), GTK_TYPE_WINDOW);
+
+  if (ancestor != NULL)
+    {
+      /* Attach map signal, so we know when status menu is open */
+      g_signal_connect (G_OBJECT (ancestor), "map",
+                        G_CALLBACK (ham_updates_status_menu_item_map_event),
+                        self);
+
+      priv->map_connected = TRUE;
     }
 }
 
@@ -974,6 +1034,10 @@ update_icon_state (HamUpdatesStatusMenuItem *self)
       blink_icon_off (self);
       hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
                                                   NULL);
+
+      LOG ("updating the seen file");
+      ham_updates_update_seen_file_icon ();
+
       return;
     }
   else if (state == ICON_STATE_STATIC)
