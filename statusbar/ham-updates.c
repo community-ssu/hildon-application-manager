@@ -80,7 +80,7 @@ static guint ham_updates_signals[LAST_SIGNAL];
 
 static void ham_updates_build_button (HamUpdates *self);
 
-static Updates *updates_fetch ();
+static Updates *updates_fetch (const gchar *seen_ufile);
 static void updates_free (Updates* updates);
 
 G_DEFINE_TYPE (HamUpdates, ham_updates, G_TYPE_OBJECT)
@@ -140,15 +140,17 @@ ham_updates_init (HamUpdates *self)
 }
 
 static void
-update_seen_updates_file (void)
+update_seen_file (const gchar *seen_ufile)
 {
   xexp *available_updates;
+
+  g_return_if_fail (seen_ufile != NULL);
 
   available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
 
   if (available_updates  != NULL)
     {
-      user_file_write_xexp (UFILE_SEEN_UPDATES, available_updates);
+      user_file_write_xexp (seen_ufile, available_updates);
       xexp_free (available_updates);
     }
 }
@@ -161,7 +163,7 @@ ham_updates_dialog_response_cb (GtkDialog *dialog,
       || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
     {
       if (response == GTK_RESPONSE_NO)
-        update_seen_updates_file ();
+        update_seen_file (UFILE_SEEN_UPDATES);
 
       gtk_widget_destroy (GTK_WIDGET (dialog));
       g_signal_emit (data, ham_updates_signals[RESPONSE], 0, response);
@@ -216,7 +218,7 @@ build_dialog_content ()
   Updates *updates;
   gchar* retval;
 
-  updates = updates_fetch ();
+  updates = updates_fetch (UFILE_SEEN_UPDATES);
   retval = NULL;
 
   if (updates == NULL)
@@ -564,7 +566,7 @@ ham_updates_are_available (HamUpdates *self, osso_context_t *context)
 
   priv = HAM_UPDATES_GET_PRIVATE (self);
 
-  updates = updates_fetch ();
+  updates = updates_fetch (UFILE_SEEN_UPDATES);
 
   if (updates == NULL)
     return FALSE;
@@ -590,11 +592,13 @@ ham_updates_are_available (HamUpdates *self, osso_context_t *context)
 }
 
 static Updates *
-updates_fetch ()
+updates_fetch (const gchar *seen_ufile)
 {
   xexp *available_updates;
   xexp *seen_updates;
   Updates *retval;
+
+  g_return_val_if_fail (seen_ufile != NULL, NULL);
 
   retval = g_new0 (Updates, 1);
 
@@ -603,7 +607,7 @@ updates_fetch ()
   if (available_updates == NULL)
     goto exit;
 
-  seen_updates = user_file_read_xexp (UFILE_SEEN_UPDATES);
+  seen_updates = user_file_read_xexp (seen_ufile);
 
   if (seen_updates == NULL)
     seen_updates = xexp_list_new ("updates");
