@@ -67,6 +67,9 @@ GtkWidget *ham_updates_get_button (HamUpdates *self);
 time_t ham_updates_get_interval (HamUpdates *self);
 gboolean ham_updates_are_available (HamUpdates *self, osso_context_t *context);
 
+void ham_updates_update_seen_file_icon ();
+gboolean ham_updates_are_available_icon ();
+
 G_END_DECLS
 
 #endif 	    /* !HAM_UPDATES_H */
