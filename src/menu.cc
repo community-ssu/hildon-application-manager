@@ -157,7 +157,7 @@ create_menu (HildonWindow *window)
 
   install_from_file_menu_item =
     add_item (packages,
-              _("ai_me_package_install_file"),
+              "Install from file",
               call_install_from_file);
 
   details_menu_item = add_item (packages,
