@@ -756,7 +756,7 @@ bool
 enough_battery_p (void)
 {
   LibHalContext *hal;
-  
+
   int i;
   char **devs;
   int n_devs;
@@ -764,26 +764,27 @@ enough_battery_p (void)
   hal = libhal_ctx_new ();
   libhal_ctx_set_dbus_connection (hal, dbus_bus_get (DBUS_BUS_SYSTEM, NULL));
   devs = libhal_find_device_by_capability (hal, "battery", &n_devs, NULL);
+
   if (devs)
     {
       for (i = 0; i < n_devs; i++)
 	{
 	  DBusError error;
-	  
+
 	  dbus_error_init (&error);
-	  int charging = libhal_device_get_property_bool
+	  dbus_bool_t charging = libhal_device_get_property_bool
 	    (hal, devs[i], "battery.rechargeable.is_charging", &error);
-	  
+
 	  if (dbus_error_is_set (&error))
 	    dbus_error_free (&error);
-	  else 
+	  else
 	    {
-	      if (!charging)
+	      if (charging)
 		break;
 	    }
 
 	  dbus_error_init (&error);
-	  int percentage = libhal_device_get_property_int
+	  dbus_int32_t percentage = libhal_device_get_property_int
 	    (hal, devs[i], "battery.charge_level.percentage", &error);
 
 	  if (dbus_error_is_set (&error))
@@ -800,6 +801,6 @@ enough_battery_p (void)
     }
 
   libhal_ctx_shutdown (hal, NULL);
-  
+
   return devs == NULL || i < n_devs;
 }
