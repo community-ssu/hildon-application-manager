@@ -38,14 +38,16 @@
 
 /* For getting and tracking the Bluetooth name
  */
-#define BTNAME_SERVICE                  "org.bluez"
+#define BT_SERVICE                      "org.bluez"
+#define BTMAN_REQUEST_IF                "org.bluez.Manager"
 #define BTNAME_REQUEST_IF               "org.bluez.Adapter"
 #define BTNAME_SIGNAL_IF                "org.bluez.Adapter"
-#define BTNAME_REQUEST_PATH             "/org/bluez/hci0"
-#define BTNAME_SIGNAL_PATH              "/org/bluez/hci0"
+#define BTMAN_REQUEST_PATH              "/"
+#define BTNAME_ADAPTER_PATH             "/org/bluez/hci0"
 
-#define BTNAME_REQ_GET                  "GetName"
-#define BTNAME_SIG_CHANGED              "NameChanged"
+#define BTMAN_REQ_ADAPTER               "DefaultAdapter"
+#define BTNAME_REQ_GET                  "GetProperties"
+#define BTNAME_SIG_CHANGED              "PropertyChanged"
 
 #define BTNAME_MATCH_RULE "type='signal',interface='" BTNAME_SIGNAL_IF \
                           "',member='" BTNAME_SIG_CHANGED "'"
@@ -434,32 +436,104 @@ device_name ()
     {
       const char *name = getenv ("OSSO_PRODUCT_NAME");
       if (name)
-	return name;
+        return name;
 
       return "";
     }
 }
 
-static void
-set_bt_name_from_message (DBusMessage *message)
+/* Utility function to extract property values from BlueZ4 reply */
+static gchar *
+string_property_from_message (DBusMessage *message, const char *property_name)
 {
-  DBusMessageIter iter;
-  const char *name = NULL;
+  DBusMessageIter itr, ar_itr, dic_itr, var_itr;
+  char *ret = NULL, *dic_entry_name = NULL;
+  int the_type = 0;
+
+  if (!dbus_message_iter_init (message, &itr))
+    {
+      add_log ("message did not have argument\n");
+      return ret;
+    }
+
+  for (; ((the_type = dbus_message_iter_get_arg_type (&itr))
+          != DBUS_TYPE_INVALID); dbus_message_iter_next (&itr))
+    if (DBUS_TYPE_ARRAY == the_type)
+      {
+        dbus_message_iter_recurse(&itr, &ar_itr);
+        for (; ((the_type = dbus_message_iter_get_arg_type (&ar_itr))
+                != DBUS_TYPE_INVALID); dbus_message_iter_next (&ar_itr))
+          if (DBUS_TYPE_DICT_ENTRY == the_type)
+            {
+              dbus_message_iter_recurse(&ar_itr, &dic_itr);
+              if ((dbus_message_iter_get_arg_type (&dic_itr))
+                  == DBUS_TYPE_STRING)
+                {
+                  /* checking for property name ... */
+                  dbus_message_iter_get_basic(&dic_itr, &dic_entry_name);
+                  if (dic_entry_name && !strcmp(dic_entry_name, property_name))
+                    {
+                      dbus_message_iter_next (&dic_itr);
+                      if ((dbus_message_iter_get_arg_type (&dic_itr))
+                          == DBUS_TYPE_VARIANT)
+                        {
+                          dbus_message_iter_recurse (&dic_itr, &var_itr);
+                          if ((dbus_message_iter_get_arg_type (&var_itr))
+                              == DBUS_TYPE_STRING) {
+                            /* getting property value */
+                            dbus_message_iter_get_basic (&var_itr, &ret);
+                            if (ret)
+                              ret = g_strdup (ret);
+                            break;
+                          }
+                        }
+                    }
+                }
+            }
+      }
+  return ret;
+}
+
+static gchar *
+string_value_from_signal (DBusMessage *message)
+{
+  DBusMessageIter iter, value_iter;
+  gchar *name, *value;
+
+  dbus_message_iter_init (message, &iter);
+  dbus_message_iter_get_basic (&iter, &name);
+
+  if (strncmp (name, "Name", 4))
+    return NULL; /* the name didn't change... */
+
+  dbus_message_iter_next (&iter);
+  dbus_message_iter_recurse (&iter, &value_iter);
+  dbus_message_iter_get_basic (&value_iter, &value);
+
+  if (value)
+    value = g_strdup (value);
+
+  return value;
+}
+
+static void
+set_bt_name_from_message (DBusMessage *message,
+                          bool from_property)
+{
   GtkWidget *label = NULL;
 
   g_return_if_fail (message != NULL);
 
-  if (!dbus_message_iter_init (message, &iter))
-    {
-      add_log ("message did not have argument\n");
-      return;
-    }
-  dbus_message_iter_get_basic (&iter, &name);
-
-  if (btname) 
+  if (btname)
     g_free (btname);
 
-  btname = g_strdup (name);
+  if (from_property)
+    btname = string_property_from_message (message, "Name");
+  else
+    btname = string_value_from_signal (message);
+
+  if (!btname) /* btname can be NULL when the Name property didn't change */
+    return;
 
   label = get_device_label ();
 
@@ -467,7 +541,7 @@ set_bt_name_from_message (DBusMessage *message)
     gtk_label_set_text (GTK_LABEL (label), btname);
 }
 
-static void 
+static void
 btname_received (DBusPendingCall *call, void *user_data)
 {
   DBusMessage *message;
@@ -477,7 +551,7 @@ btname_received (DBusPendingCall *call, void *user_data)
   message = dbus_pending_call_steal_reply (call);
   if (message == NULL)
     {
-      add_log ("no reply\n");
+      add_log ("get btname: no reply\n");
       return;
     }
 
@@ -488,8 +562,8 @@ btname_received (DBusPendingCall *call, void *user_data)
       add_log ("get btname: %s\n", error.message);
       dbus_error_free (&error);
     }
-  else   
-    set_bt_name_from_message (message);
+  else
+    set_bt_name_from_message (message, true);
 
   dbus_message_unref (message);
 }
@@ -500,9 +574,66 @@ handle_dbus_signal (DBusConnection *conn,
 		    gpointer data)
 {
   if (dbus_message_is_signal(msg, BTNAME_SIGNAL_IF, BTNAME_SIG_CHANGED))
-    set_bt_name_from_message(msg);
+    set_bt_name_from_message (msg, false);
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+static void
+btadapter_received (DBusPendingCall *call, void *user_data)
+{
+  DBusMessage *message, *request;
+  DBusMessageIter itr;
+  DBusConnection *connection;
+  gchar *str, *adapter;
+  DBusError error;
+
+  g_assert (dbus_pending_call_get_completed (call));
+  message = dbus_pending_call_steal_reply (call);
+  if (message == NULL)
+    {
+      add_log ("get btadapter: no reply\n");
+      return;
+    }
+
+  dbus_error_init (&error);
+
+  if (dbus_set_error_from_message (&error, message))
+    {
+      add_log ("get btadapter: %s\n", error.message);
+      dbus_error_free (&error);
+    }
+  else
+    {
+      dbus_message_iter_init (message, &itr);
+      dbus_message_iter_get_basic (&itr, &str);
+
+      if (str)
+        adapter = g_strdup (str);
+      else /* fallback ... */
+        adapter = g_strdup (BTNAME_ADAPTER_PATH);
+
+      request = dbus_message_new_method_call (BT_SERVICE,
+                                              adapter,
+                                              BTNAME_REQUEST_IF,
+                                              BTNAME_REQ_GET);
+      if (request == NULL)
+        {
+          fprintf (stderr, "dbus_message_new_method_call failed\n");
+          return;
+        }
+
+      connection = (DBusConnection *) user_data;
+
+      if (dbus_connection_send_with_reply (connection, request, &call, -1))
+        {
+          dbus_pending_call_set_notify (call, btname_received, NULL, NULL);
+          dbus_pending_call_unref (call);
+        }
+
+      dbus_message_unref (request);
+    }
+  dbus_message_unref (message);
 }
 
 void
@@ -551,12 +682,12 @@ init_dbus_or_die (bool top_existing)
       */
       if (top_existing)
 	{
-	  request = dbus_message_new_method_call 
+	  request = dbus_message_new_method_call
 	    ("com.nokia.hildon_application_manager",
 	     "/com/nokia/hildon_application_manager",
 	     "com.nokia.hildon_application_manager",
 	     "top_application");
-	  
+
 	  if (request)
 	    dbus_connection_send_with_reply_and_block (connection, request,
 						       INT_MAX, NULL);
@@ -576,6 +707,7 @@ init_dbus_or_die (bool top_existing)
    */
 
   dbus_error_init (&error);
+  /* Warning: connection variable reused for system bus */
   connection = dbus_bus_get (DBUS_BUS_SYSTEM, &error);
   if (connection == NULL)
     {
@@ -586,10 +718,10 @@ init_dbus_or_die (bool top_existing)
   /* Let's query initial state.  These calls are async, so they do not
      consume too much startup time.
    */
-  request = dbus_message_new_method_call (BTNAME_SERVICE,
-					  BTNAME_REQUEST_PATH,
-					  BTNAME_REQUEST_IF,
-					  BTNAME_REQ_GET);
+  request = dbus_message_new_method_call (BT_SERVICE,
+                                          BTMAN_REQUEST_PATH,
+                                          BTMAN_REQUEST_IF,
+                                          BTMAN_REQ_ADAPTER);
   if (request == NULL)
     {
       fprintf (stderr, "dbus_message_new_method_call failed\n");
@@ -600,7 +732,8 @@ init_dbus_or_die (bool top_existing)
 
   if (dbus_connection_send_with_reply (connection, request, &call, -1))
     {
-      dbus_pending_call_set_notify (call, btname_received, NULL, NULL);
+      dbus_pending_call_set_notify (call, btadapter_received,
+                                    connection, NULL);
       dbus_pending_call_unref (call);
     }
 
@@ -608,6 +741,7 @@ init_dbus_or_die (bool top_existing)
 
   dbus_connection_setup_with_g_main (connection, NULL);
   dbus_bus_add_match (connection, BTNAME_MATCH_RULE, &error);
+
   if (dbus_error_is_set(&error))
     {
       fprintf (stderr, "dbus_bus_add_match failed: %s\n", error.message);
