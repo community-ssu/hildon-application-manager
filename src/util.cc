@@ -764,12 +764,13 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
                    pi->get_display_version (false), size_buf);
 
   if (scare_user)
-    g_string_append_printf (text, "\n%s",
+    g_string_append_printf (text, "\n<small>%s</small>",
                             (multiple) ?
                             _("ai_nc_non_verified_package_multiple") :
                             _("ai_nc_non_verified_package"));
 
-  label = gtk_label_new (text->str);
+  label = gtk_label_new (NULL);
+  gtk_label_set_markup (GTK_LABEL (label), text->str);
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
   g_string_free (text, TRUE);
 
