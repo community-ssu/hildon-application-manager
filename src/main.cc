@@ -2468,6 +2468,7 @@ is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
   g_return_if_fail(widget != NULL && HILDON_IS_WINDOW(widget));
 
   HildonWindow *window = HILDON_WINDOW (widget);
+  main_window = GTK_WINDOW (widget);
 
   /* Update the seen-updates file if the window is top most again and
      the "Check for updates" view is currently selected */
@@ -2838,6 +2839,7 @@ main (int argc, char **argv)
 
   show_view (&main_view);
   main_window = GTK_WINDOW (main_view.window);
+  cur_view_struct = &main_view;
 
   g_signal_connect (G_OBJECT (main_window), "destroy",
                     G_CALLBACK (window_destroy), NULL);
