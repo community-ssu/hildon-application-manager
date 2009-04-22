@@ -38,6 +38,7 @@
 #include <hildon/hildon-file-chooser-dialog.h>
 #include <hildon/hildon-check-button.h>
 #include <hildon/hildon-banner.h>
+#include <hildon/hildon-pannable-area.h>
 #include <gdk/gdkkeysyms.h>
 #include <hildon/hildon-defines.h>
 #include <conic.h>
@@ -726,6 +727,28 @@ scare_user_with_legalese (bool sure,
   gtk_widget_show_all (dialog);
 }
 
+static GtkWidget *
+make_scare_user_with_legalese (bool multiple)
+{
+  GtkWidget *scroll;
+  GtkWidget *label;
+
+  label = make_small_label ((multiple) ?
+                            _("ai_nc_non_verified_package_multiple") :
+                            _("ai_nc_non_verified_package"));
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+
+  scroll = hildon_pannable_area_new ();
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scroll), label);
+  hildon_pannable_area_set_size_request_policy (HILDON_PANNABLE_AREA (scroll),
+                                                HILDON_SIZE_REQUEST_CHILDREN);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroll),
+                                  GTK_POLICY_AUTOMATIC,
+                                  GTK_POLICY_AUTOMATIC);
+
+  return scroll;
+}
+
 static void
 user_agreed (GtkToggleButton *button, GtkWidget *dialog)
 {
@@ -748,7 +771,7 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
   c->data = data;
 
   GtkWidget *dialog, *label;
-  GString *text = g_string_new (NULL);
+  char *text = NULL;
   char size_buf[20];
 
   if (pi->info.download_size > 0)
@@ -756,23 +779,14 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
   else
     size_string_general (size_buf, 20, pi->info.install_user_size_delta);
 
-  g_string_printf (text,
-                   (pi->installed_version
-                    ? _("ai_nc_update")
-                    : _("ai_nc_install")),
-                   pi->get_display_name (false),
-                   pi->get_display_version (false), size_buf);
+  text = g_strdup_printf ((pi->installed_version
+                           ? _("ai_nc_update") : _("ai_nc_install")),
+                          pi->get_display_name (false),
+                          pi->get_display_version (false), size_buf);
 
-  if (scare_user)
-    g_string_append_printf (text, "\n<small>%s</small>",
-                            (multiple) ?
-                            _("ai_nc_non_verified_package_multiple") :
-                            _("ai_nc_non_verified_package"));
-
-  label = gtk_label_new (NULL);
-  gtk_label_set_markup (GTK_LABEL (label), text->str);
+  label = gtk_label_new (text);
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-  g_string_free (text, TRUE);
+  g_free (text);
 
   dialog = gtk_dialog_new_with_buttons ((pi->installed_version
                                          ? _("ai_ti_confirm_update")
@@ -784,11 +798,17 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
                                         NULL);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), label,
                       TRUE, TRUE, 1);
 
   if (scare_user)
     {
+      GtkWidget *legalese = make_scare_user_with_legalese (multiple);
+
+      gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), legalese,
+                          TRUE, TRUE, 1);
+
       gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
                                          GTK_RESPONSE_OK, FALSE);
 
@@ -796,7 +816,7 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
       gtk_button_set_label (GTK_BUTTON (check),
                             _("ai_ti_confirmation_checkbox"));
       gtk_box_pack_end (GTK_BOX (GTK_DIALOG (dialog)->vbox), check,
-                        TRUE, TRUE, 1);
+                          TRUE, TRUE, 1);
       g_signal_connect (check, "toggled", G_CALLBACK (user_agreed), dialog);
     }
 
