@@ -172,6 +172,8 @@ set_current_view (view *v)
   set_current_toolbar (v->tb_struct);
 }
 
+static GtkWindow *main_window = NULL;
+
 void
 show_view (view *v)
 {
@@ -180,6 +182,7 @@ show_view (view *v)
   g_warning ("showing view %d", v->id);
 
   GtkWidget *main_vbox = make_new_window (v);
+  main_window = GTK_WINDOW (v->window);
 
   if (GTK_IS_WIDGET (v->cur_view))
     {
@@ -2429,8 +2432,6 @@ apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
     }
 }
 
-static GtkWindow *main_window = NULL;
-
 static void
 set_operation_toolbar_label (const char *label, bool sensitive)
 {
@@ -2468,7 +2469,6 @@ is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
   g_return_if_fail(widget != NULL && HILDON_IS_WINDOW(widget));
 
   HildonWindow *window = HILDON_WINDOW (widget);
-  main_window = GTK_WINDOW (widget);
 
   /* Update the seen-updates file if the window is top most again and
      the "Check for updates" view is currently selected */
