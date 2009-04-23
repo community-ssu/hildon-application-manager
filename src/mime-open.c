@@ -27,9 +27,8 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
-#include <hildon/hildon-window.h>
+#include <hildon/hildon.h>
 #include <hildon/hildon-file-chooser-dialog.h>
-#include <hildon/hildon-banner.h>
 
 #include <glib.h>
 #include <dbus/dbus.h>
@@ -229,7 +228,7 @@ main (int argc, char **argv)
   GtkWidget *vbox, *entry, *button, *file_button, *show_button;
   DBusError error;
 
-  gtk_init (&argc, &argv);
+  hildon_gtk_init (&argc, &argv);
 
   dbus_error_init (&error);
   connection = dbus_bus_get (DBUS_BUS_SESSION, &error);

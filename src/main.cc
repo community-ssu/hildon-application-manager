@@ -34,8 +34,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <gconf/gconf-client.h>
 
-#include <hildon/hildon-defines.h>
-#include <hildon/hildon-window.h>
+#include <hildon/hildon.h>
 
 #include "apt-worker-client.h"
 #include "apt-worker-proto.h"
@@ -2822,7 +2821,7 @@ main (int argc, char **argv)
   load_system_settings ();
   load_settings ();
 
-  gtk_init (&argc, &argv);
+  hildon_gtk_init (&argc, &argv);
 
   init_dbus_or_die (show);
 

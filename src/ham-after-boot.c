@@ -38,7 +38,7 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
-#include <hildon/hildon-note.h>
+#include <hildon/hildon.h>
 
 #include "user_files.h"
 
@@ -62,7 +62,7 @@ main (int argc, char **argv)
 
   user_file_remove (UFILE_BOOT);
 
-  gtk_init (&argc, &argv);
+  hildon_gtk_init (&argc, &argv);
 
   dialog = hildon_note_new_information
     (NULL, _("ai_ni_system_update_installed"));
