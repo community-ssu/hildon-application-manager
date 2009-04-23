@@ -566,29 +566,19 @@ annoy_user_with_details_1 (const gchar *text,
 			   void (*cont) (void *data),
 			   void *data)
 {
-  GtkWidget *dialog;
+  GtkWidget *dialog, *label;
   auwd_closure *c = new auwd_closure;
 
-  dialog = hildon_note_new_information (NULL, text);
+  dialog = gtk_dialog_new_with_buttons (NULL, NULL, GTK_DIALOG_MODAL,
+                                        _("ai_ni_bd_details"), 1,
+                                        NULL);
   push_dialog (dialog);
 
-  {
-    // XXX - the buttons should be "Details" "Close", so we remove the
-    //       "Ok" button from the information note and add our own ones.
-
-    GtkWidget *button_box = GTK_DIALOG(dialog)->action_area;
-    GList *kids = gtk_container_get_children (GTK_CONTAINER (button_box));
-    if (kids)
-      gtk_container_remove (GTK_CONTAINER (button_box),
-			    GTK_WIDGET (kids->data));
-    g_list_free (kids);
-
-    gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_ni_bd_details"), 1);
-
-    if (variant != 1)
-      gtk_dialog_add_button (GTK_DIALOG (dialog),
-                             _("ai_bd_ok"), GTK_RESPONSE_CANCEL);
-  }
+  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
+  label = gtk_label_new (text);
+  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), label,
+                      TRUE, TRUE, HILDON_MARGIN_DEFAULT);
 
   if (pi)
     pi->ref ();
