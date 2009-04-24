@@ -1040,12 +1040,12 @@ start_entertaining_user (gboolean with_button)
 
           gtk_widget_show (entertainment.cancel_button);
           gtk_widget_set_no_show_all (entertainment.cancel_button, FALSE);
-
-          g_signal_connect (entertainment.dialog, "delete-event",
-                            G_CALLBACK (entertainment_delete), NULL);
 	}
 
       /* Connect signals */
+      g_signal_connect (entertainment.dialog, "delete-event",
+                        G_CALLBACK (entertainment_delete), NULL);
+
       g_signal_connect (entertainment.dialog, "realize",
 		    G_CALLBACK (progressbar_dialog_realized), NULL);
 
