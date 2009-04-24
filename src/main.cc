@@ -1562,21 +1562,27 @@ view_section (section_info *si)
 static void
 check_catalogues_reply (xexp *catalogues, void *data)
 {
-  if (catalogues == NULL)
-    return;
+  bool is_there_catalogues = false;
+  bool is_there_errors = false;
 
   for (xexp *c = xexp_first (catalogues); c; c = xexp_rest (c))
+  {
     if (xexp_is (c, "source")
 	|| (xexp_is (c, "catalogue") && !xexp_aref_bool (c, "disabled")))
-      {
-	xexp_free (catalogues);
-	return;
-      }
+      is_there_catalogues = true;
+    if (xexp_aref_bool (c, "errors"))
+      is_there_errors = true;
+  }
+
+  xexp_free (catalogues);
+
+  if (is_there_errors)
+    irritate_user (_("ai_ni_update_partly_successful"));
 
   /* No catalogues active.
    */
-  irritate_user (_("ai_ib_no_repositories"));
-  xexp_free (catalogues);
+  if (!is_there_catalogues)
+    irritate_user (_("ai_ib_no_repositories"));
 }
 
 static void
