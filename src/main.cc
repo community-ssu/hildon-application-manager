@@ -2469,6 +2469,9 @@ is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
 
   HildonWindow *window = HILDON_WINDOW (widget);
 
+  set_current_view ((view *) data);
+  g_warning ("the top view is %d", cur_view_struct->id);
+
   /* Update the seen-updates file if the window is top most again and
      the "Check for updates" view is currently selected */
   if (package_list_ready && hildon_window_get_is_topmost (window) &&
@@ -2477,8 +2480,6 @@ is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
       update_seen_updates_file ();
     }
 
-  set_current_view ((view *)data);
-  g_warning ("the top view is %d", cur_view_struct->id);
   if (cur_view_struct->dirty)
     show_view (cur_view_struct);
 }
