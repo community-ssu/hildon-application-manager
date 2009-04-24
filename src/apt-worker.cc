@@ -3582,6 +3582,10 @@ find_catalogues_for_item_desc (xexp *catalogues, string desc_uri)
 
         URI/DIST<rest-with-slashes>
 
+     or
+
+        URIDIST (when dist is only a '/')
+
      where URI and DIST are the respective elements of the catalogue,
      and COMP is one of the components of the catalogue.
 
@@ -3617,8 +3621,12 @@ find_catalogues_for_item_desc (xexp *catalogues, string desc_uri)
 	{
 	  /* A simple repository without components
 	   */
-	  
-	  pfx = g_strconcat (uri, "/", dist, NULL);
+
+	  if (dist[0] != '/')
+	    pfx = g_strconcat (uri, "/", dist, NULL);
+	  else /* dist can be only '/' */
+	    pfx = g_strconcat (uri, dist, NULL);
+
 	  if (g_str_has_prefix (match_uri, pfx))
 	    goto found_it;
 	}
@@ -3626,11 +3634,11 @@ find_catalogues_for_item_desc (xexp *catalogues, string desc_uri)
 	{
 	  /* A repository with components
 	   */
-	  
+
 	  pfx = g_strconcat (uri, "/dists/", dist, "/", NULL);
 	  if (!g_str_has_prefix (match_uri, pfx))
 	    goto try_next;
-	  
+
 	  const char *rest = match_uri + strlen (pfx);
 
 	  if (!strchr (rest, '/'))
@@ -3641,10 +3649,10 @@ find_catalogues_for_item_desc (xexp *catalogues, string desc_uri)
 	      for (int i = 0; comps[i]; i++)
 		{
 		  gchar *comp = comps[i];
-		  
+
 		  if (comp[0] == '\0')
 		    continue;
-		  
+
 		  if (g_str_has_prefix (rest, comp)
 		      && rest[strlen(comp)] == '/')
 		    goto found_it;
