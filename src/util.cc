@@ -572,6 +572,8 @@ annoy_user_with_details_1 (const gchar *text,
   dialog = gtk_dialog_new_with_buttons (NULL, NULL, GTK_DIALOG_MODAL,
                                         _("ai_ni_bd_details"), 1,
                                         NULL);
+  gtk_window_set_type_hint (GTK_WINDOW (dialog),
+                            GDK_WINDOW_TYPE_HINT_NOTIFICATION);
   push_dialog (dialog);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
