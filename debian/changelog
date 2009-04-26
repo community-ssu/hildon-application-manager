@@ -1,8 +1,17 @@
-hildon-application-manager (1:2.2.18~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.18) unstable; urgency=low
 
-  * 
+  * Fixes: NB#99468  Application Manager should not dependent on "user" account
+  * Fixes: NB#111758 Application manager; After 'Search complete' and 'No matches found' info banner focus is going to section view. 
+  * Fixes: NB#111725 ai_ni_update_successful" info note is seen while updating certified package
+  * Fixes: NB#110745 License agreement dialog is not as per the UI spec.
+  * Fixes: NB#109501 Opening the Status menu does'nt stop the icon blinking
+  * Fixes: NB#96564  BT related error log is shown in AM when launched  
+  * Fixes: NB#103701 Cannot do system update Not enough battery power info not blocks the installation even after connecting the charger
+  * Fixes: NB#111749 General truncation of ai_nc_non_verified_package when installing a non-nokia package
+  * Fixes: NB#112638 Details button in ai_ni_error_update_missing banner breaks layout
+  * Fixes: NB#112259 AM crashing on trying to close at the time of uninstallation 
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 16 Apr 2009 11:53:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 26 Apr 2009 17:49:00 +0100	
 
 hildon-application-manager (1:2.2.17) unstable; urgency=low
 

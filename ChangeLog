@@ -1,3 +1,112 @@
+2009-04-24  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/main.cc (is_topmost_cb): The setting of the current view is the
+	first activity callback.
+	* src/util.cc (annoy_user_with_details_1): Set the window hint as a
+	notification window type.
+	* src/util.cc (start_entertaining_user): The progress bar always will
+	ignore the delete-event (no tapping outside to dismiss). (NB#112259)
+
+2009-04-23  Soini Mox <ext-mox.soini@nokia.com>
+
+	* src/ham-after-boot.c (main):
+	* src/main.cc (main):
+	* src/mime-open.c (main): Proper Hildon initialization
+	( hildon_gtk_init() ), which is required for proper use of Hildon
+	libraries. (NB#112804)
+
+2009-04-23  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/menu.cc (create_menu): This reverts commit
+	fe8dbab2f824f04b36cff6ebc74170895129ec84. 
+	* src/util.cc (annoy_user_with_details_1): Use a GtkDialog for error
+	message with details instead of a hacked Hildon information
+	note. (NB#112638) 
+
+2009-04-22  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (make_scare_user_with_legalese): New function.
+	(install_confirm): Take out the non-nokia warning into another label
+	wrapper in pannable area. (NB#111749)
+	* src/main.cc (show_view): Set here the current window pointer.
+	(is_topmost_cb): Not here. A crash was observed.
+
+2009-04-21  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (install_confirm): Mark the non-nokia package warning
+	with small size font. (NB#111749)
+
+2009-04-21  David Kedves <dkedves@blumsoft.eu>
+
+	* src/dbus.cc (enough_battery_p): Used the correct return value of
+	libhal_device_get_property_bool and break the loop if the battery is
+	charging. (NB#103701)
+	* src/dbus.cc (string_property_from_message)
+	(string_value_from_signal): New functions.	
+	(set_bt_name_from_message): Handle if the message came from a
+	property.
+	(btname_received) (handle_dbus_signal): Use the new function signature
+	for set_bt_name_from_message.
+	(btadapter_received): New function.
+	(init_dbus_or_die): Use the new bluetooth interface. (NB#96564)
+
+2009-04-21  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/menu.cc (create_menu): Instead of a logical string we'll show an
+	english string.
+	* src/main.cc (is_topmost_cb): Set main_window as the current top most
+	window.
+	(main): Set the cur_view_struct as the main_view at the begining.
+
+2009-04-20  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_init): Connect the parent-set event.
+	(ham_updates_status_menu_item_map_event)
+	(ham_updates_status_menu_item_parent_set): New functions.
+	(update_icon_state): Update the icon seen file. (NB#109501)
+	* statusbar/ham-updates-status-menu-item.c (update_state): Handle the
+	icon seen updates different from the button seen updates.
+	* src/user_files.h: Added the "seen-updates-icon" user file.
+	* statusbar/ham-updates.c statusbar/ham-updates.h
+	(ham_updates_update_seen_file) (ham_updates_are_available_icon): New
+	functions.
+	* statusbar/ham-updates.c (update_seen_file) (updates_fetch):
+	functions are parametrized to receive the file to compare or write.
+	(ham_updates_dialog_response_cb) (build_dialog_content)
+	(ham_updates_are_available): Use the normal seen file as parameter for
+	changed functions.
+
+2009-04-18  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* utils/maemo-confirm-text-user.c (user_agreed) (make_check_button):
+	New functions.
+	(main): Added the check button. (NB#110745)
+	* src/operations.cc (ip_install_loop) (if_install_reply): Updated the
+	string "ai_ni_software_update_installed" (NB#111725)
+
+2009-04-17  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+	
+	* src/main.cc (search_packages_reply) (search_packages): Always show
+	a new view for each result, even if it's empty. (NB#111758)
+
+2009-04-16  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_display_event_cb): Reduce the number of cast
+	operations.	 
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_init),
+	(ham_updates_status_menu_item_response_cb), (setup_ui),
+	(load_icon_state), (save_icon_state), (update_icon_state),
+	(set_icon_state), (get_icon_state), (update_state): be more specific
+	in the icon semantics. 
+
+2009-04-15  David Kedves <dkedves@blumsoft.eu>
+
+	* hildon-application-manager.sudoers: use group users rather than user
+	user. (NB#99468)
+
 2009-04-15  Marius Vollmer  <marius.vollmer@nokia.com>
 
 	* Updated category definitions from the 2.1.x branch.
