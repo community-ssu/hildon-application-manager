@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.19~unreleased) unstable; urgency=low
+  
+  * 
+	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 26 Apr 2009 17:49:00 +0100
+
 hildon-application-manager (1:2.2.18) unstable; urgency=low
 
   * Fixes: NB#99468  Application Manager should not dependent on "user" account
