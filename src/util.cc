@@ -2171,8 +2171,12 @@ select_package_list_with_info (void *data)
   dialog = gtk_dialog_new ();
   gtk_window_set_title (GTK_WINDOW (dialog), c->title);
   gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
-  ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_bd_ok"), GTK_RESPONSE_OK);
-  gtk_dialog_add_button (GTK_DIALOG (dialog), _("ai_bd_cancel"), GTK_RESPONSE_CANCEL);
+  ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog),
+                                     dgettext ("hildon-libs", "wdgt_bd_yes"),
+                                     GTK_RESPONSE_OK);
+  gtk_dialog_add_button (GTK_DIALOG (dialog),
+                         dgettext ("hildon-libs", "wdgt_bd_no"),
+                         GTK_RESPONSE_CANCEL);
 
   push_dialog (dialog);
 
@@ -2228,8 +2232,9 @@ select_package_list_with_info (void *data)
 		      TRUE, TRUE, padding);
 
   /* Add separator */
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), gtk_hseparator_new (),
-		      FALSE, FALSE, padding);
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox),
+                      gtk_hseparator_new (),
+                      FALSE, FALSE, padding);
 
   c->list_store = list_store;
 
@@ -2240,7 +2245,7 @@ select_package_list_with_info (void *data)
 
   update_packages_list_selection(GTK_TREE_MODEL (c->list_store),
                                  NULL, NULL, upls_data);
-  
+
   /* Connect signals */
   g_signal_connect (list_store, "row-changed",
 		    G_CALLBACK (update_packages_list_selection),
