@@ -666,6 +666,14 @@ spd_get_summary_label (void *data)
   return summary_label;
 }
 
+/* Creates the third page in case of SSU package */
+static GtkWidget *
+spd_create_ssu_page (void *data)
+{
+  return make_small_text_label ("?Can't perform Seamless Software Update.\n"
+                                "Please download and flash the device");
+}
+
 /* Creates the fourth page */
 static GtkWidget *
 spd_create_deps_page (void *data)
@@ -774,19 +782,29 @@ spd_with_details (void *data, bool filling_details)
 
   if (c->showing_details)
     {
+      bool is_ssu_pkg = false;
+
       /* Update the main common tab */
       spd_update_common_page (c);
 
       /* Set the content of the rest of the notebook pages */
-      spd_set_page_widget (c, SPD_DESCRIPTION_PAGE, spd_create_description_page (c));
-      spd_set_page_widget (c, SPD_SUMMARY_PAGE, spd_create_summary_page (c));
+      spd_set_page_widget (c, SPD_DESCRIPTION_PAGE,
+                           spd_create_description_page (c));
+
+      is_ssu_pkg = ((pi->have_detail_kind != remove_details)
+                    && (pi->info.installable_status != status_able)
+                    && (pi->flags & pkgflag_system_update));
+      spd_set_page_widget (c, SPD_SUMMARY_PAGE,
+                           is_ssu_pkg
+                           ? spd_create_ssu_page (c)
+                           : spd_create_summary_page (c));
 
       /* Update 'summary' tab label */
       gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
 				  spd_nb_widgets[SPD_SUMMARY_PAGE],
 				  gtk_label_new(spd_get_summary_label (c)));
 
-      if (pi->dependencies)
+      if (pi->dependencies && !is_ssu_pkg)
 	{
 	  spd_nb_widgets[SPD_DEPS_PAGE] = spd_create_deps_page (c);
 	  gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
