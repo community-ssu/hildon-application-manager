@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.20~unreleased) unstable; urgency=low
+
+  *
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 29 Apr 2009 19:39:00 +0100
+
 hildon-application-manager (1:2.2.19) unstable; urgency=low
   
   * Fixes: NB#103998 Catalogue list behaving strangely and not giving
