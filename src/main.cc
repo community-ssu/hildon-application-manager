@@ -2449,6 +2449,8 @@ set_operation_toolbar_label (const char *label, bool sensitive)
 GtkWindow *
 get_main_window ()
 {
+  g_assert (main_window != NULL);
+  g_warning ("main window pointer %p", main_window);
   return main_window;
 }
 

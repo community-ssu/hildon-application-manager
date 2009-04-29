@@ -88,12 +88,16 @@ push_dialog (GtkWidget *dialog)
      application that the dialog is transient for.  So we only make it
      application modal when the dialog stack is shown on top of us.
   */
+  g_assert (dialog != NULL);
 
   gtk_window_set_modal (GTK_WINDOW (dialog), parent_xid == None);
 
   if (dialog_stack)
-    gtk_window_set_transient_for (GTK_WINDOW (dialog),
-				  GTK_WINDOW (dialog_stack->data));
+    {
+      g_warning ("parent %p", dialog_stack->data);
+      gtk_window_set_transient_for (GTK_WINDOW (dialog),
+                                    GTK_WINDOW (dialog_stack->data));
+    }
   else if (parent_xid != None)
     g_signal_connect (dialog, "realize",
 		      G_CALLBACK (dialog_realized), NULL);
@@ -105,13 +109,16 @@ push_dialog (GtkWidget *dialog)
 				    get_main_window ());
     }
 
+  g_warning ("pushing dialog %p", dialog);
   dialog_stack = g_slist_prepend (dialog_stack, dialog);
 }
 
 void
 pop_dialog (GtkWidget *dialog)
 {
-  g_assert (dialog_stack && dialog_stack->data == dialog);
+  g_assert (dialog_stack);
+  g_warning ("child = %p ~ parent = %p", dialog, dialog_stack->data);
+  g_assert (dialog_stack->data == dialog);
 
   {
     GSList *old = dialog_stack;
