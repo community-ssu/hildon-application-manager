@@ -1,21 +1,21 @@
 New features for the Hildon Application Manager
 ===============================================
 
-* Use HildonStackableWindow instead of oneHildonWindow. [dkedves]
+* Fix the workaround pushed in commit 82b8b2 [dkedves & vjaquez]
+ 
+Before the HildonStackableWindow only one HildonWindow existed, and all 
+the interaction flows started and ended in this window. But with the stackable
+ones, the end of the interaction may end in another stackable window. The 
+workaround avoids the assertion raised when the current window is different
+of the window what started in the interaction, using (hackishly) the last
+pointer in the dialogue stack, instead of the current window.
+
+IMO, the correct way to fix this is to AVOID the creation of new stackable
+windows when an interaction flow is ongoing. [vjaquez]
 
 * New hard buttons logic as in the spec. [vjaquez]
 
-* scare_user_with_legalese () notice should appear on
-ip_install_with_info (). [vjaquez]
-
-Instead of two sequential dialogs, join them in only one.
-
 * Enable the user edit the package catalogues name.
-
-* Make a h-a-m/domains config directory. [vjaquez]
-
-For dropping domain.xexp fragments, just like h-a-m/catalogues.  Also
-see the lower priority task "config-cleanup".
 
 * Complete port to new Fremantle APIs [vjaquez]
 

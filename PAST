@@ -3,6 +3,18 @@ Completed features of the Hildon Application Manager
 
 See FUTURE for planned features.
 
+* Use HildonStackableWindow instead of a single HildonWindow. [dkedves]
+
+* scare_user_with_legalese () notice should appear on
+  ip_install_with_info (). [vjaquez]
+
+Instead of two sequential dialogs, join them in only one.
+
+* Make a h-a-m/domains config directory. [vjaquez]
+
+For dropping domain.xexp fragments, just like h-a-m/catalogues.  Also
+see the lower priority task "config-cleanup".
+
 * Drop support for memory cards completely [vjaquez]
 
 Everything related to installation from memory cards should be
