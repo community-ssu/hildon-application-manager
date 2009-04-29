@@ -243,7 +243,16 @@ end_interaction_flow ()
   g_assert (interaction_flow_active);
 
   if (parent_xid == None)
-    pop_dialog (GTK_WIDGET (get_main_window ()));
+    {
+      g_assert (g_slist_length (dialog_stack) == 1);
+
+      GtkWidget* initmainwin = GTK_WIDGET (dialog_stack->data);
+      GtkWidget* curmainwin = GTK_WIDGET (get_main_window ());
+      if (initmainwin != curmainwin)
+        g_warning ("We lose the initial interaction flow window!");
+
+      pop_dialog (initmainwin);
+    }
 
   interaction_flow_active = false;
   parent_xid = None;
