@@ -1,3 +1,32 @@
+2009-04-29  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/details.cc (spd_create_ssu_page): New function.
+	(spd_with_details): Show the ssu page if it's an update details of a
+	system_update package not able to update/install. If so don't show the
+	details page either.
+	* src/main.cc (get_main_window): print the current main window
+	pointer. 
+	* src/util.cc (push_dialog): trace parent/child dialogues pushing.
+	(pop_dialog): trace parent/child dialogues popping.
+	* src/util.cc (end_interaction_flow): Workaround for popping the last 
+	widget in the dialog stack, that should be the current window and
+	also the window where the interaction flow started. See the FUTURE
+	file for details.
+
+2009-04-27  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (select_package_list_with_info): Use the hildn-libs text
+	domain for yes/no dialogue buttons.
+	* This reverts commit 03e82df372aec571c18f5897b594dccdc07b4255.
+
+2009-04-24  David Kedves <dkedves@blumsoft.eu>
+
+	* src/apt-worker.cc (find_catalogues_for_item_desc): Handle
+	repositories without distribution name. (NB#1039908)
+	* src/main.cc (check_catalogues_reply): Show an error message if any 
+	catalogue didn't refresh or if there's not catalogues defined.
+	(NB#111866, NB#109807)
+
 2009-04-24  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	* src/main.cc (is_topmost_cb): The setting of the current view is the

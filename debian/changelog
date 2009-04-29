@@ -1,8 +1,12 @@
-hildon-application-manager (1:2.2.19~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.19) unstable; urgency=low
   
-  * 
+  * Fixes: NB#103998 Catalogue list behaving strangely and not giving
+  catalogue list partilly refreshed info note
+  * Fixes: NB#111866 Failed catalogue dialog is not opening
+  * Fixes: NB#109807 No Catalogue in use info banner not shown in main view
+  * Implemented SSU must reflash page in details dialogue.
 	
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 26 Apr 2009 17:49:00 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 29 Apr 2009 19:28:00 +0100
 
 hildon-application-manager (1:2.2.18) unstable; urgency=low
 
