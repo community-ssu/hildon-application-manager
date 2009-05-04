@@ -692,6 +692,12 @@ annoy_user_with_gnome_vfs_result (GnomeVFSResult result, const gchar *detail,
   else if (result == GNOME_VFS_ERROR_NO_SPACE)
     annoy_user (_HCS ("sfil_ni_not_enough_memory"),
 		cont, data);
+  else if (result == GNOME_VFS_ERROR_READ_ONLY)
+    annoy_user (_FM ("ckdg_fi_properties_read_only"),
+                cont, data);
+  else if (result == GNOME_VFS_ERROR_READ_ONLY_FILE_SYSTEM)
+    annoy_user (_FM ("sfil_ib_readonly_location"),
+                cont, data);
   else
     annoy_user (_("ai_ni_operation_failed"), cont, data);
 }
