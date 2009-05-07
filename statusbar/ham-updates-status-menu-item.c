@@ -344,7 +344,8 @@ ham_updates_status_menu_item_map_event (GtkWidget *widget, gpointer data)
 
   self = HAM_UPDATES_STATUS_MENU_ITEM (data);
   LOG ("map signal");
-  set_icon_state (self, ICON_STATE_INVISIBLE);
+  if (get_icon_state (self) == ICON_STATE_BLINKING)
+    set_icon_state (self, ICON_STATE_STATIC);
 }
 
 static void
