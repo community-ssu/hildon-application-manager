@@ -494,33 +494,38 @@ ham_notifier_empty_seen_notifications ()
   xexp *seen_notifications;
 
   seen_notifications = NULL;
- avail_notifications = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
- if (avail_notifications == NULL)
-   goto exit;
+  avail_notifications = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
+  if (avail_notifications == NULL)
+    goto exit;
 
- seen_notifications = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
- if (seen_notifications == NULL)
-   goto exit;
+  seen_notifications = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
 
- if (xexp_is_tag_and_not_empty (avail_notifications, "info")
-     && (!xexp_is_tag_and_not_empty (seen_notifications, "info")
-         || (xexp_is_tag_and_not_empty (seen_notifications, "info")
-             && !compare_xexp_text (avail_notifications, seen_notifications,
-                                    "title")
-             && !compare_xexp_text (avail_notifications, seen_notifications,
-                                    "text")
-             && !compare_xexp_text (avail_notifications, seen_notifications,
-                                    "uri"))))
-   {
-     empty_seen_notifications ();
-   }
+  /* let's create an empty seen-notifications file either
+     there's not seen-notification file right now,
+     or if the seen-notifications and available-notifications are different */
+  if (seen_notifications == NULL
+      || (xexp_is_tag_and_not_empty (avail_notifications, "info")
+          && (!xexp_is_tag_and_not_empty (seen_notifications, "info")
+              || (xexp_is_tag_and_not_empty (seen_notifications, "info")
+                  && !compare_xexp_text (avail_notifications,
+                                         seen_notifications,
+                                         "title")
+                  && !compare_xexp_text (avail_notifications,
+                                         seen_notifications,
+                                         "text")
+                  && !compare_xexp_text (avail_notifications,
+                                         seen_notifications,
+                                         "uri")))))
+    {
+      empty_seen_notifications ();
+    }
 
 exit:
- if (avail_notifications != NULL)
-   xexp_free (avail_notifications);
+  if (avail_notifications != NULL)
+    xexp_free (avail_notifications);
 
- if (seen_notifications != NULL)
-   xexp_free (seen_notifications);
+  if (seen_notifications != NULL)
+    xexp_free (seen_notifications);
 }
 
 static gpointer
@@ -620,7 +625,7 @@ new_notifications (HamNotifier *self)
 
       priv = HAM_NOTIFIER_GET_PRIVATE (self);
       g_free (priv->url);
-      priv->url = g_strdup(xexp_aref_text(avail_nots, "uri"));
+      priv->url = g_strdup (xexp_aref_text (avail_nots, "uri"));
     }
 
   if (avail_nots != NULL)
@@ -677,7 +682,7 @@ ham_notifier_are_available (HamNotifier *self)
     {
       if (self != NULL)
         {
-         gchar *value;
+          gchar *value;
 
           if ((value = build_button_content (self)) != NULL)
             {
