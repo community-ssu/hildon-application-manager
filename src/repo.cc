@@ -1171,7 +1171,8 @@ scd_get_catalogues_reply (xexp *catalogues, void *data)
   c->showing_catalogues = true;
   refresh_cat_list (c);
 
-  gtk_widget_set_sensitive (c->new_button, TRUE);
+  if (!c->show_only_errors)
+    gtk_widget_set_sensitive (c->new_button, TRUE);
 
   /* Prevent the 'Updating' banner from being shown */
   prevent_updating ();
@@ -1227,6 +1228,10 @@ show_catalogue_dialog (xexp *catalogues,
   c->cont = cont;
   c->data = data;
 
+  c->new_button = NULL;
+  c->edit_button = NULL;
+  c->delete_button = NULL;
+
   current_cat_dialog_clos = c;
 
   dialog = gtk_dialog_new ();
@@ -1235,31 +1240,34 @@ show_catalogue_dialog (xexp *catalogues,
     gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_failed_repositories"));
   else
     gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_repository"));
-  
+
   push_dialog (dialog);
-  
+
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
   if (!show_only_errors)
-    c->new_button = 
-      gtk_dialog_add_button (GTK_DIALOG (dialog), 
+    c->new_button =
+      gtk_dialog_add_button (GTK_DIALOG (dialog),
                              _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
 
-  c->edit_button = 
-    gtk_dialog_add_button (GTK_DIALOG (dialog), 
+  c->edit_button =
+    gtk_dialog_add_button (GTK_DIALOG (dialog),
 			   _("ai_bd_repository_edit"), REPO_RESPONSE_EDIT);
 
   if (!show_only_errors)
     c->delete_button =
-      gtk_dialog_add_button (GTK_DIALOG (dialog), 
-			     _("ai_bd_repository_delete"), REPO_RESPONSE_REMOVE);
+      gtk_dialog_add_button (GTK_DIALOG (dialog),
+                             _("ai_bd_repository_delete"),
+                             REPO_RESPONSE_REMOVE);
+
 
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
-  
-  gtk_widget_set_sensitive (c->new_button, FALSE);
-  gtk_widget_set_sensitive (c->edit_button, FALSE); 
+
+  gtk_widget_set_sensitive (c->edit_button, FALSE);
+
   if (!show_only_errors)
     {
+      gtk_widget_set_sensitive (c->new_button, FALSE);
       gtk_widget_set_sensitive (c->delete_button, FALSE);
       g_signal_connect (c->delete_button, "insensitive_press",
 			G_CALLBACK (insensitive_cat_delete_press), c);
@@ -1275,7 +1283,7 @@ show_catalogue_dialog (xexp *catalogues,
 		    G_CALLBACK (cat_response), c);
 
   gtk_widget_set_usize (dialog, 600, 300);
-  
+
   gtk_widget_show_all (dialog);
 
   /* Make sure the cache is up-to-date first */
