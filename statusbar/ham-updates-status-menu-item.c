@@ -344,8 +344,7 @@ ham_updates_status_menu_item_map_event (GtkWidget *widget, gpointer data)
 
   self = HAM_UPDATES_STATUS_MENU_ITEM (data);
   LOG ("map signal");
-  if (get_icon_state (self) == ICON_STATE_BLINKING)
-    set_icon_state (self, ICON_STATE_STATIC);
+  set_icon_state (self, ICON_STATE_STATIC);
 }
 
 static void
@@ -1077,11 +1076,11 @@ set_icon_state (HamUpdatesStatusMenuItem* self, State state)
   if (state == oldstate)
     return;
 
-  /* this rule seems to be applied ever: */
-  /* we can only go to blinking if we're invisible */
-/*   if (oldstate != ICON_STATE_INVISIBLE */
-/*       && state == ICON_STATE_BLINKING) */
-/*     return; */
+  /* we can only go to blinking if we're invisible
+     or we can only go to static if we're blinking */
+  if ((oldstate != ICON_STATE_INVISIBLE && state == ICON_STATE_BLINKING)
+      || (oldstate != ICON_STATE_BLINKING && state == ICON_STATE_STATIC))
+    return;
 
   {
     HamUpdatesStatusMenuItemPrivate *priv;
