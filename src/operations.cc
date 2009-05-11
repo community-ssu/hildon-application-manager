@@ -1526,7 +1526,10 @@ ip_end (void *data)
     stop_entertaining_user ();
 
   if (c->refresh_needed)
-    get_package_list ();
+    {
+      force_show_catalogue_errors ();
+      get_package_list ();
+    }
 
   if (c->packages != NULL)
     g_list_free (c->packages);
@@ -1789,6 +1792,7 @@ up_end (void *data)
 {
   up_clos *c = (up_clos *)data;
 
+  force_show_catalogue_errors ();
   c->cont (c->data);
   delete c;
 }

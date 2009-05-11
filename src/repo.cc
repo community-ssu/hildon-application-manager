@@ -326,6 +326,7 @@ scdf_end (bool keep_going, void *data)
 {
   scdf_clos *c = (scdf_clos *)data;
 
+  force_show_catalogue_errors ();
   xexp_free (c->catalogues);
   delete c;
 

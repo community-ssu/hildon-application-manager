@@ -1260,6 +1260,7 @@ static void
 rpcwuf_end (bool ignore, void *unused)
 {
   end_interaction_flow ();
+  force_show_catalogue_errors ();
 }
 
 /* Call refresh_package_cache_without_user_flow when the last update
