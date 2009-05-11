@@ -663,11 +663,9 @@ cat_icon_func (GtkTreeViewColumn *column,
     {
       GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
 
-      /* FIXME: use the real icon for failing catalogues
-	 when available in the UI specs */
       fail_browser_pixbuf =
 	gtk_icon_theme_load_icon (icon_theme,
-				  "qgn_list_gene_invalid",
+				  "app_install_error",
 				  26,
 				  GtkIconLookupFlags (0),
 				  NULL);
@@ -680,7 +678,7 @@ cat_icon_func (GtkTreeViewColumn *column,
     browser_pixbuf = ok_browser_pixbuf;
 
   g_object_set (cell,
-		"pixbuf", (c && c->foreign)? NULL : browser_pixbuf,
+		"pixbuf", (c && c->foreign) ? NULL : browser_pixbuf,
 		"sensitive", c && c->enabled,
 		NULL);
 }
