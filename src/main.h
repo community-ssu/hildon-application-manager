@@ -166,6 +166,12 @@ void set_catalogues_and_refresh (xexp *catalogues,
 void install_from_file_flow (const char *filename);
 void restore_packages_flow ();
 
+/* FORCE_SHOW_CATALOGUE_ERRORS if the user ignored the catalogue errors, this
+   function will reset the ignoring request and the dialogue will be shown
+   again if the errors remain
+*/
+void force_show_catalogue_errors ();
+
 void save_backup_data ();
 
 void sort_all_packages (bool refresh_view);

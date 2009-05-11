@@ -1559,6 +1559,87 @@ view_section (section_info *si)
   show_view (&install_section_view);
 }
 
+static bool catalogue_errors_ignored = false;
+static void check_catalogues ();
+
+struct scedf_clos {
+  xexp *catalogues;
+};
+
+static void scedf_dialog_done (bool changed, void *data);
+static void scedf_end (bool keep_going, void *data);
+
+void
+force_show_catalogue_errors ()
+{
+  catalogue_errors_ignored = false;
+}
+
+static void
+show_catalogue_errors_dialog (void *data)
+{
+  scedf_clos *c = new scedf_clos;
+
+  c->catalogues = NULL;
+  show_catalogue_dialog (NULL, true, scedf_dialog_done, c);
+}
+
+static void
+scedf_check_catalogues (bool keep_going, void *data)
+{
+  // let's finish the interaction flow first
+  scedf_end (keep_going, data);
+
+  if (keep_going)
+    check_catalogues ();
+}
+
+static void
+scedf_dialog_done (bool changed, void *data)
+{
+  scedf_clos *c = (scedf_clos *)data;
+
+  if (changed)
+    set_catalogues_and_refresh (c->catalogues,
+				NULL, scedf_check_catalogues, c);
+  else
+    {
+      catalogue_errors_ignored = true;
+      scedf_end (true, c);
+    }
+}
+
+static void
+scedf_end (bool keep_going, void *data)
+{
+  scedf_clos *c = (scedf_clos *)data;
+
+  xexp_free (c->catalogues);
+  delete c;
+
+  end_interaction_flow ();
+}
+
+static void
+scedf_cont (void *data)
+{
+  catalogue_errors_ignored = true;
+
+  end_interaction_flow ();
+}
+
+static void
+show_update_partially_successfull_dialog_flow ()
+{
+  if (!catalogue_errors_ignored
+      && start_interaction_flow ())
+    {
+      annoy_user_with_arbitrary_details_2 (_("ai_ni_update_partly_successful"),
+                                           show_catalogue_errors_dialog,
+                                           scedf_cont, NULL);
+    }
+}
+
 static void
 check_catalogues_reply (xexp *catalogues, void *data)
 {
@@ -1577,11 +1658,8 @@ check_catalogues_reply (xexp *catalogues, void *data)
   xexp_free (catalogues);
 
   if (is_there_errors)
-    irritate_user (_("ai_ni_update_partly_successful"));
-
-  /* No catalogues active.
-   */
-  if (!is_there_catalogues)
+    show_update_partially_successfull_dialog_flow ();
+  else if (!is_there_catalogues) // No catalogues active.
     irritate_user (_("ai_ib_no_repositories"));
 }
 
