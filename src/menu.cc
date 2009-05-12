@@ -195,6 +195,7 @@ create_menu (HildonWindow *window)
   set_install_from_file_menu_visible (red_pill_mode);
 }
 
+#if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
 GtkWidget *
 create_package_menu (const char *op_label)
 {
@@ -209,3 +210,4 @@ create_package_menu (const char *op_label)
 
   return menu;
 }
+#endif /* TAP_AND_HOLD && MAEMO_CHANGES */

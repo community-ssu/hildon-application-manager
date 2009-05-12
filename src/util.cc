@@ -1628,7 +1628,7 @@ global_package_list_key_pressed (GtkWidget * widget,
   return result;
 }
 
-#ifdef MAEMO_CHANGES
+#if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
 static void
 tap_and_hold_cb (GtkWidget *treeview, gpointer data)
 {
@@ -1654,7 +1654,7 @@ tap_and_hold_cb (GtkWidget *treeview, gpointer data)
         }
     }
 }
-#endif
+#endif /* TAP_AND_HOLD && MAEMO_CHANGES */
 
 GtkWidget *
 make_global_package_list (GList *packages,
@@ -1664,10 +1664,12 @@ make_global_package_list (GList *packages,
 			  package_info_callback *selected,
 			  package_info_callback *activated)
 {
-  GtkCellRenderer *renderer; 
+  GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
   GtkWidget *tree, *scroller;
+#if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
   GtkWidget *menu = NULL;
+#endif /* TAP_AND_HOLD && MAEMO_CHANGES */
 
   if (global_list_store == NULL)
     {
@@ -1692,13 +1694,14 @@ make_global_package_list (GList *packages,
 
   renderer = package_info_cell_renderer_new ();
   g_object_set (renderer,
-                "xpad", 0, 
+                "xpad", 0,
                 "xalign", 0.0,
                 "ypad", 0,
                 "yalign", 0.0,
                 "visible", TRUE, NULL);
   gtk_tree_view_column_pack_end (column, renderer, TRUE);
-  gtk_tree_view_column_set_cell_data_func (column, renderer, package_info_func, tree, NULL);
+  gtk_tree_view_column_set_cell_data_func (column, renderer,
+                                           package_info_func, tree, NULL);
 
   /* Set odd/even rows in different colors */
   gtk_tree_view_set_rules_hint(GTK_TREE_VIEW (tree), TRUE);
@@ -1751,7 +1754,7 @@ make_global_package_list (GList *packages,
   g_signal_connect (tree, "key-press-event",
                     G_CALLBACK (global_package_list_key_pressed), NULL);
 
-#ifdef MAEMO_CHANGES
+#if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
   /* Create the contextual menu */
   if (installed)
     {
@@ -1772,7 +1775,7 @@ make_global_package_list (GList *packages,
 
   gtk_widget_tap_and_hold_setup (tree, menu, NULL,
 				 GtkWidgetTapAndHoldFlags (0));
-#endif
+#endif /* TAP_AND_HOLD && MAEMO_CHANGES */
 
   set_global_package_list (packages, installed, selected, activated);
 

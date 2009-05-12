@@ -35,7 +35,9 @@ void set_search_menu_sensitive (bool);
 void set_operation_menu_label (const gchar *label, bool sensitive);
 void set_operation_menu_item_sensitiveness (bool sensitive);
 
+#if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
 GtkWidget *create_package_menu (const char *op_label);
+#endif /* TAP_AND_HOLD && MAEMO_CHANGES */
 
 void menu_close ();
 
