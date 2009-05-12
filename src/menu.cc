@@ -25,6 +25,7 @@
 #include <libintl.h>
 
 #include <gtk/gtk.h>
+#include <hildon/hildon.h>
 
 #include "menu.h"
 #include "util.h"
@@ -39,36 +40,20 @@
 #define _(x) gettext (x)
 
 static GtkWidget *
-add_item (GtkMenu *menu, const gchar *label, void (*func)())
+add_item (HildonAppMenu *menu, const gchar *label, void (*func)())
 {
-  GtkWidget *item = gtk_menu_item_new_with_label (label);
-  gtk_menu_append (menu, item);
+  GtkWidget *item = hildon_gtk_button_new (HILDON_SIZE_AUTO);
+  gtk_button_set_label (GTK_BUTTON (item), label);
+
   if (func)
-    g_signal_connect (item, "activate", G_CALLBACK (func), NULL);
+    g_signal_connect (item, "clicked", G_CALLBACK (func), NULL);
+
+  hildon_app_menu_append (menu, GTK_BUTTON (item));
 
   return item;
 }
 
-static GtkMenu *
-add_menu (GtkMenu *menu, const gchar *label)
-{
-  GtkWidget *sub = gtk_menu_new ();
-  GtkWidget *item = add_item (menu, label, NULL);
-  gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), sub);
-  return GTK_MENU (sub);
-}
-
-void
-menu_close ()
-{
-  hide_main_window ();
-  maybe_exit ();
-}
-
 static GtkWidget *settings_menu_item = NULL;
-static GtkWidget *details_menu_item = NULL;
-static GtkWidget *search_menu_item = NULL;
-static GtkWidget *operation_menu_item = NULL;
 static GtkWidget *install_from_file_menu_item = NULL;
 
 void
@@ -95,38 +80,6 @@ set_install_from_file_menu_visible (bool flag)
     }
 }
 
-void
-set_details_menu_sensitive (bool flag)
-{
-  if (details_menu_item)
-    gtk_widget_set_sensitive (details_menu_item, flag);
-}
-
-void
-set_search_menu_sensitive (bool flag)
-{
-  if (search_menu_item)
-    gtk_widget_set_sensitive (search_menu_item, flag);
-}
-
-void
-set_operation_menu_label (const char *label, bool sensitive)
-{
-  if (operation_menu_item)
-    {
-      gtk_label_set
-	(GTK_LABEL (gtk_bin_get_child (GTK_BIN (operation_menu_item))),
-	 label);
-      gtk_widget_set_sensitive (operation_menu_item, sensitive);
-    }
-}
-
-void
-set_operation_menu_item_sensitiveness (bool sensitive)
-{
-  gtk_widget_set_sensitive (operation_menu_item, sensitive);
-}
-
 static void
 call_install_from_file ()
 {
@@ -134,63 +87,57 @@ call_install_from_file ()
 }
 
 void
-create_menu (HildonWindow *window)
+create_menu ()
 {
   GtkWidget *restore_item;
-  GtkAccelGroup *accel_group;
   xexp *restore_backup = NULL;
 
-  accel_group = gtk_accel_group_new ();
-  gtk_window_add_accel_group (GTK_WINDOW (window), accel_group);
+  HildonAppMenu *main = HILDON_APP_MENU (hildon_app_menu_new ());
 
-  GtkMenu *main = GTK_MENU (gtk_menu_new ());
-  hildon_window_set_menu (window, GTK_MENU (main));
+  /* set menu */
+  hildon_program_set_common_app_menu (hildon_program_get_instance (), main);
 
-  GtkMenu *packages = add_menu (main, _("ai_me_package"));
-  GtkMenu *tools = add_menu (main, _("ai_me_tools"));
-
+  /* Sort */
   add_item (main,
             _("ai_me_view_sort"),
             show_sort_settings_dialog_flow);
+  /* Application catalogues */
+  add_item (main,
+            _("ai_me_tools_repository"),
+	    show_catalogue_dialog_flow);
 
-  operation_menu_item = add_item (packages, "", do_current_operation);
+  /* Log */
+  add_item (main,
+	    _("ai_me_tools_log"),
+            show_log_dialog_flow);
 
+  /* Restore applications */
+  restore_item = add_item (main,
+			   _("ai_me_tools_restore"),
+                           restore_packages_flow);
+
+  /* Install from file */
   install_from_file_menu_item =
-    add_item (packages,
+    add_item (main,
               _("ai_me_package_install_file"),
               call_install_from_file);
 
-  details_menu_item = add_item (packages,
-				_("ai_me_package_details"),
-				show_current_details);
-
+  /* Settings */
   settings_menu_item =
-    add_item (tools,
+    add_item (main,
 	      _("Settings"),
 	      show_settings_dialog_flow);
 
-  add_item (tools,
-	    _("ai_me_tools_repository"),
-	    show_catalogue_dialog_flow);
-  search_menu_item =
-    add_item (tools,
-	      _("ai_me_tools_search"),
-	      show_search_dialog_flow);
-  restore_item = add_item (tools,
-			   _("ai_me_tools_restore"),
-			   restore_packages_flow);
-  add_item (tools,
-	    _("ai_me_tools_log"),
-	    show_log_dialog_flow);
+  gtk_widget_show_all (GTK_WIDGET (main));
 
-  /* Set sensitiveness for restore_packages menu item */
+  /* Hide restore_packages menu item when there is no backup */
   restore_backup = user_file_read_xexp (UFILE_RESTORE_BACKUP);
-  gtk_widget_set_sensitive (restore_item, (restore_backup != NULL));
 
-  if (restore_backup != NULL)
+  if (restore_backup == NULL)
+    gtk_widget_hide (restore_item);
+  else
     xexp_free (restore_backup);
 
-  gtk_widget_show_all (GTK_WIDGET (main));
   set_settings_menu_visible (red_pill_mode);
   set_install_from_file_menu_visible (red_pill_mode);
 }

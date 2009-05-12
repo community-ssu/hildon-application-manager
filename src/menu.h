@@ -27,18 +27,12 @@
 #include <gtk/gtk.h>
 #include <hildon/hildon-window.h>
 
-void create_menu (HildonWindow *window);
+void create_menu ();
 void set_settings_menu_visible (bool);
 void set_install_from_file_menu_visible (bool flag);
-void set_details_menu_sensitive (bool);
-void set_search_menu_sensitive (bool);
-void set_operation_menu_label (const gchar *label, bool sensitive);
-void set_operation_menu_item_sensitiveness (bool sensitive);
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
 GtkWidget *create_package_menu (const char *op_label);
 #endif /* TAP_AND_HOLD && MAEMO_CHANGES */
-
-void menu_close ();
 
 #endif /* !MENU_H */

@@ -1494,7 +1494,6 @@ installed_package_selected (package_info *pi)
       set_details_callback (installed_package_details, pi);
       set_operation_callback (uninstall_operation_callback, pi);
       set_operation_label (_("ai_me_package_uninstall"));
-      set_operation_menu_item_sensitiveness (!(pi->flags & pkgflag_system_update));
 
       if (current_tb_struct && current_tb_struct->operation_button)
         gtk_widget_set_sensitive (current_tb_struct->operation_button,
@@ -2230,7 +2229,6 @@ set_details_callback (void (*func) (gpointer), gpointer data)
   if (current_tb_struct)
     gtk_widget_set_sensitive (current_tb_struct->details_button,
                               func != NULL);
-  set_details_menu_sensitive (func != NULL);
 }
 
 static void (*operation_func) (gpointer);
@@ -2253,7 +2251,6 @@ set_operation_label (const char *label)
     label = _("ai_me_package_install");
 
   operation_label = label;
-  set_operation_menu_label (label, operation_func != NULL);
   set_operation_toolbar_label (label, operation_func != NULL);
 }
 
@@ -2469,7 +2466,8 @@ window_delete_event (GtkWidget* widget, GdkEvent *ev, gpointer data)
   if (is_interaction_flow_active ())
     end_interaction_flow ();
 
-  menu_close ();
+  hide_main_window ();
+  maybe_exit ();
   return TRUE;
 }
 
@@ -2637,7 +2635,9 @@ make_new_window (view *v)
   g_signal_connect (G_OBJECT (v->window), "realize",
  		    G_CALLBACK (main_window_realized), NULL);
 
-  create_menu (HILDON_WINDOW (v->window));
+  // Add window to HildonProgram to use common menu
+  hildon_program_add_window (hildon_program_get_instance (),
+                             HILDON_WINDOW (v->window));
 
   // Add the window to the stack
   if (v->parent && v->parent->window)
@@ -2668,7 +2668,6 @@ enable_search (bool f)
 {
   if (current_tb_struct && current_tb_struct->search_button)
     gtk_widget_set_sensitive (current_tb_struct->search_button, f);
-  set_search_menu_sensitive (f);
 }
 
 static void
@@ -2934,6 +2933,7 @@ main (int argc, char **argv)
   g_signal_connect (G_OBJECT (main_window), "delete-event",
                     G_CALLBACK (window_delete_event), NULL);
 
+  create_menu ();
 
   if (!start_apt_worker (apt_worker_prog))
     what_the_fock_p ();
