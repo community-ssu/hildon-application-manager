@@ -277,6 +277,13 @@ void install_confirm (bool scare_user, package_info *pi, bool multiple,
    Clicking on the "Cancel" button will also call
    cancel_entertainment.
 
+   BREAK_ENTERTAINMENT do the same as the cancel_entertainment, but
+   also mark the operation as broke.
+
+   ENTERTAINMENT_WAS_BROKE returns true whe the break_entertainment has
+   been called since the last call to start_entertainment_user. This may
+   happend when the network connection is tear down.
+
    The entertainment can be divided into a sequence of 'games'.  Each
    game is allocated its own segment of the progress bar.  For
    example, you can specify that the first half of the progress bar
@@ -284,7 +291,7 @@ void install_confirm (bool scare_user, package_info *pi, bool multiple,
    second game.  Then, when setting the amount of fun with
    set_entertainment_fun, the 100% percent mark for the first game is
    in the middle of the progress bar.
-   
+
    Games are played in sequence.  The next game starts when its ID is
    first passed to set_entertainment_fun.  Games might be skipped.
  */
@@ -313,6 +320,9 @@ void set_entertainment_system_modal (void);
 
 void cancel_entertainment ();
 bool entertainment_was_cancelled ();
+
+void break_entertainment ();
+bool entertainment_was_broke ();
 
 /* SHOW_UPDATING and HIDE_UPDATING determine whether the "Updating"
    animation banner should be shown.  They maintain a counter;

@@ -1247,7 +1247,15 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   else if (entertainment_was_cancelled ())
     {
       apt_worker_clean (ip_clean_reply, NULL);
-      ip_end (c);
+
+      if (entertainment_was_broke ())
+        {
+          package_info *pi = (package_info *) c->cur->data;
+          gchar *msg = result_code_to_message (pi, rescode_download_failed);
+          annoy_user (msg, ip_end, c);
+        }
+      else
+        ip_end (c);
     }
   else
     ip_download_cur_retry_confirm(result_code, c);

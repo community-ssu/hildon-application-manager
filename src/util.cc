@@ -890,6 +890,7 @@ struct entertainment_data {
   void (*cancel_callback) (void *);
   void *cancel_data;
   bool was_cancelled;
+  bool was_broke;
 };
 
 static entertainment_data entertainment;
@@ -1015,6 +1016,7 @@ start_entertaining_user (gboolean with_button)
 
       /* Create the dialog */
       entertainment.was_cancelled = false;
+      entertainment.was_broke = false;
       entertainment.dialog = gtk_dialog_new ();
       gtk_window_set_modal (GTK_WINDOW (entertainment.dialog), TRUE);
       gtk_window_set_decorated (GTK_WINDOW (entertainment.dialog), FALSE);
@@ -1113,6 +1115,13 @@ cancel_entertainment ()
   entertainment.was_cancelled = true;
   if (entertainment.cancel_callback)
     entertainment.cancel_callback (entertainment.cancel_data);
+}
+
+void
+break_entertainment ()
+{
+  entertainment.was_broke = true;
+  cancel_entertainment ();
 }
 
 void
@@ -1237,6 +1246,12 @@ bool
 entertainment_was_cancelled ()
 {
   return entertainment.was_cancelled;
+}
+
+bool
+entertainment_was_broke ()
+{
+  return entertainment.was_broke;
 }
 
 
@@ -3034,7 +3049,7 @@ iap_callback (ConIcConnection *connection,
 
     case CON_IC_STATUS_DISCONNECTED:
       // add_log ("CON_IC_STATUS_DISCONNECTED\n");
-      cancel_entertainment ();
+      break_entertainment ();
       break;
 
     default:
