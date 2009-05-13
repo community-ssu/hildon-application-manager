@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.21~unreleased) unstable; urgency=low
+
+  *
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 13 May 2009 12:31:00 +0100	
+
 hildon-application-manager (1:2.2.20) unstable; urgency=low
 
   * Fixes: NB#114920 Blinking icon disappears on opening the Status Menu and
