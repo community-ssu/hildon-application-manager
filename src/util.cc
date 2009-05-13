@@ -1933,7 +1933,7 @@ make_global_section_list (GList *sections, section_activated *act)
 
   bool first_button = true;
 
-  scroller = gtk_scrolled_window_new (NULL, NULL);
+  scroller = hildon_pannable_area_new ();
 
   int row = 0;
   int col = 0;
@@ -1971,8 +1971,8 @@ make_global_section_list (GList *sections, section_activated *act)
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
 				  GTK_POLICY_NEVER,
 				  GTK_POLICY_AUTOMATIC);
-  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scroller),
-					 table);
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scroller),
+                                          table);
 
   global_section_list = scroller;
   g_object_ref (scroller);
