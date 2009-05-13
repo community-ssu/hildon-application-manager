@@ -1,3 +1,82 @@
+2009-05-12  David Kedves <dkedves@blumsoft.eu>
+
+	* src/menu.cc (create_package_menu): Hide the function with
+	TAP_AND_HOLD define. (NB#113654)
+	* src/menu.h (create_package_menu): Hide the function with
+	TAP_AND_HOLD define. (NB#113654)
+	* src/repo.cc (add_entry): Marked the end of the define
+	block. (NB#113654) 
+	* src/util.cc (tap_and_hold_cb): Hide the function with TAP_AND_HOLD
+	define. (NB#113654)
+	(make_global_package_list): Hide the menu widget with TAP_AND_HOLD
+	define. (NB#113654)
+	* src/main.cc (installed_package_selected): Removed the
+	set_operation_menu_item_sensitiveness function. (NB#112804)
+	(set_details_callback): Removed the set_details_menu_sensitive
+	function. (NB#112804)
+	(set_operation_label): Removed the function
+	set_operation_menu_label. (NB#112804) 
+	(window_delete_event): Don't call menu_close, instead do the
+	operations by itself. (NB#112804)
+	(make_new_window): Don't create a menu per window, instead add the
+	window to the application. (NB#112804)
+	(enable_search): Removed the function set_search_menu_sensitive.
+	(main): Create the main menu here. (NB#112804)
+	* src/menu.cc (add_item): Use the HildonAppMenu, creates buttons and
+	append them to the menu. (NB#112804)
+	(create_menu): Removed accel group, create the HildonAppMenu reorder
+	the menu items to a single menu view. (NB#112804)
+	* src/menu.h: Removed unused functions. (NB#112804)
+	* src/operations.cc (ip_download_cur_reply): Check if the
+	entertainment process was "broke" and show the information note if
+	so. (NB#103611)
+	* src/util.cc (start_entertaining_user): Initialize the broke status
+	to false. (NB#103611)
+	(break_entertainment) (entertainment_was_broke): New
+	functions. (NB#103611) 
+	(iap_callback): Break the entertainment if the iap status is
+	disconnected. (NB#103611)
+	* src/util.h (break_entertainment) (entertainment_was_broke): Export
+	and document functions. (NB#103611)
+
+2009-05-11  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/main.cc (force_show_catalogue_errors)
+	(show_catalogue_errors_dialog) (scedf_check_catalogues)
+	(scedf_dialog_done) (scedf_end) (scedf_cont)
+	(show_update_partially_successfull_dialog_flow): New functions.
+	(check_catalogues_reply): Run the update partially successfull
+	dialogue flow.
+	* src/main.h (force_show_catalogue_errors) Function exported.
+	* src/operations.cc (ip_end) (up_end): force to show the catalogue
+	errors. 
+	* src/repo.cc (scdf_end): force to show the catalogue errors.
+	* src/main.cc (rpcwuf_end): force to show the catalogue errors.
+	* src/repo.cc (cat_icon_func): Use "app_install_error" icon to show
+	failed repositories.
+
+2009-05-08  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_map_event): take out the rule from here
+	(set_icon_state): set all the rules at this point.
+	* statusbar/ham-notifier.c (ham_notifier_empty_seen_notifications):
+	Create an empty seen-notifications file either there's no file right
+	now or if the available-notifications is different from it. (NB#114920)
+	(new_notifications) (ham_notifier_are_available): minor indentation
+	fixes.
+	* src/repo.cc (show_catalogue_dialog): initialize to null the
+	button widget and change the sensitive attribute the "new" button only
+	if it was instanciated.
+	(scd_get_catalogues_reply): change the sensitive attribute to the
+	"new" button only if it was instanciated.
+
+2009-05-07  David Kedves <dkedves@blumsoft.eu>
+
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_map_event): When the status area is
+	tapped the icon stops the blinking. (NB#114920)
+
 2009-04-29  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	* src/details.cc (spd_create_ssu_page): New function.
