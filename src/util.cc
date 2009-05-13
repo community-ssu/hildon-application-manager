@@ -1914,7 +1914,7 @@ unref_section_info (gpointer data, GClosure *closure)
   si->unref();
 }
 
-#define GRID_COLUMNS 3
+#define GRID_COLUMNS 2
 
 GtkWidget *
 make_global_section_list (GList *sections, section_activated *act)
@@ -1943,23 +1943,23 @@ make_global_section_list (GList *sections, section_activated *act)
       GtkWidget *label = gtk_label_new (si->name);
       gtk_misc_set_padding (GTK_MISC (label), 0, 14);
       gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
-      GtkWidget *btn = gtk_button_new ();
+      GtkWidget *btn = hildon_gtk_button_new (HILDON_SIZE_FINGER_HEIGHT);
       gtk_container_add (GTK_CONTAINER (btn), label);
       gtk_table_attach_defaults (GTK_TABLE (table), btn,
-				 col, col+1,
-				 row, row+1);
+				 col, col + 1,
+				 row, row + 1);
       col += 1;
       if (col >= GRID_COLUMNS)
 	{
 	  col = 0;
 	  row++;
 	}
-      
-      si->ref(); 
+
+      si->ref();
       g_signal_connect_data (btn, "clicked",
                              G_CALLBACK (section_clicked), si,
                              unref_section_info, G_CONNECT_AFTER);
-      
+
       if (first_button)
 	grab_focus_on_map (btn);
       first_button = false;
