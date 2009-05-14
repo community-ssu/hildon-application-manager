@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.21~unreleased) unstable; urgency=low
+
+  *
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 14 May 2009 12:50:00 +0100	
+	
 hildon-application-manager (1:2.2.20-1) unstable; urgency=low
 
   * Fixes: NB#113743 wrong banner is shown when trying to save log file into
