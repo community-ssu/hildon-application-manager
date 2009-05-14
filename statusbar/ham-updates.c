@@ -163,7 +163,10 @@ ham_updates_dialog_response_cb (GtkDialog *dialog,
       || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
     {
       if (response == GTK_RESPONSE_NO)
-        update_seen_file (UFILE_SEEN_UPDATES);
+        {
+          update_seen_file (UFILE_SEEN_UPDATES);
+          update_seen_file (UFILE_SEEN_UPDATES_ICON);
+        }
 
       gtk_widget_destroy (GTK_WIDGET (dialog));
       g_signal_emit (data, ham_updates_signals[RESPONSE], 0, response);
