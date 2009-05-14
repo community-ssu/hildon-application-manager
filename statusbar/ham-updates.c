@@ -328,7 +328,8 @@ ham_updates_build_button (HamUpdates *self)
 
   priv->button = hildon_button_new_with_text
     (HILDON_SIZE_FULLSCREEN_WIDTH | HILDON_SIZE_FINGER_HEIGHT,
-     HILDON_BUTTON_ARRANGEMENT_VERTICAL, _("ai_sb_update_description"), "");
+     HILDON_BUTTON_ARRANGEMENT_VERTICAL,
+     _("apma_menu_plugin_title_software_updates"), "");
 
   ham_updates_button_set_icon (HILDON_BUTTON (priv->button));
 
