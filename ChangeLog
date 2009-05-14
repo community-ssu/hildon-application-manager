@@ -1,3 +1,21 @@
+2009-05-14  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* statusbar/ham-updates-status-menu-item.c (load_icon_state): Bypassed
+	the icon state transition rules.
+
+2009-05-13  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (make_global_section_list): Use HildonButton with height
+	of finger-size, and the number of columns to show is two (NB#116290).
+	Use a HildonPannableArea instead of a GtkScrolledWindow to show the
+	sections table. 
+
+2009-05-04  David Kedves <dkedves@blumsoft.eu>
+
+	* src/util.cc (annoy_user_with_gnome_vfs_result): handle
+	GNOME_VFS_ERROR_READ_ONLY and GNOME_VFS_ERROR_READ_ONLY_FILE_SYSTEM
+	value returns. (NB#113743)
+
 2009-05-12  David Kedves <dkedves@blumsoft.eu>
 
 	* src/menu.cc (create_package_menu): Hide the function with

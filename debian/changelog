@@ -1,8 +1,11 @@
-hildon-application-manager (1:2.2.21~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.20-1) unstable; urgency=low
 
-  *
+  * Fixes: NB#113743 wrong banner is shown when trying to save log file into
+  read-only memory card. 
+  * Fixes: NB#116290 The sections needs to be in two columns and finger-sized
+  not thumb-sized.
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 13 May 2009 12:31:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 14 May 2009 12:43:00 +0100	
 
 hildon-application-manager (1:2.2.20) unstable; urgency=low
 
