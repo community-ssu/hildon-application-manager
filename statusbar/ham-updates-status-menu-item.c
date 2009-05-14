@@ -140,6 +140,7 @@ static void save_icon_state (HamUpdatesStatusMenuItem *self);
 static void update_state (HamUpdatesStatusMenuItem *self);
 static void set_icon_state (HamUpdatesStatusMenuItem *self, State state);
 static State get_icon_state (HamUpdatesStatusMenuItem *self);
+static void update_icon_state (HamUpdatesStatusMenuItem *self);
 
 /* connection state prototypes */
 static void setup_connection_state (HamUpdatesStatusMenuItem *self);
@@ -921,10 +922,13 @@ load_icon_state (HamUpdatesStatusMenuItem *self)
       State saved_state;
 
       saved_state = xexp_aref_int (state, "icon-state", ICON_STATE_INVISIBLE);
-      set_icon_state (self, saved_state);
 
-      /* let's be cautious about the blinking state */
-      if (saved_state == ICON_STATE_BLINKING)
+      /* we need to bypass the icon transition rules here */
+      priv->icon_state = saved_state;
+      update_icon_state (self);
+
+      /* let's be cautious about the blinking/static state */
+      if (saved_state != ICON_STATE_INVISIBLE)
         update_state (self);
 
       xexp_free (state);
