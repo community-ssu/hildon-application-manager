@@ -132,10 +132,9 @@ create_menu ()
 
   /* Hide restore_packages menu item when there is no backup */
   restore_backup = user_file_read_xexp (UFILE_RESTORE_BACKUP);
+  gtk_widget_set_sensitive (restore_item, restore_backup != NULL);
 
-  if (restore_backup == NULL)
-    gtk_widget_hide (restore_item);
-  else
+  if (restore_backup != NULL)
     xexp_free (restore_backup);
 
   set_settings_menu_visible (red_pill_mode);
