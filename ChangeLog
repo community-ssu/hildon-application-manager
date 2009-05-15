@@ -1,3 +1,7 @@
+2009-05-15  Richard Sun <richard.sun@nokia.com>
+
+	* src/details.cc: update logical id based on NB#106181.
+
 2009-05-14  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
 
 	* statusbar/ham-updates-status-menu-item.c (load_icon_state): Bypassed

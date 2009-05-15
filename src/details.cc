@@ -524,7 +524,8 @@ spd_update_common_page (void *data)
 
   if (pi->repository)
     {
-      add_table_field (table, ++last_row, "?Catalogue:", pi->repository);
+	/** id is not released yet XXX **/
+      add_table_field (table, ++last_row, _("ai_va_details_catalogue"), pi->repository);
     }
 
   gtk_widget_set_sensitive (GTK_WIDGET (table), TRUE);
