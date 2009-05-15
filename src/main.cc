@@ -238,7 +238,6 @@ show_parent_view ()
 static GtkWidget *
 make_padded_button (const char *label)
 {
-  g_print("Making button \"%s\"\n");
   GtkWidget *l = gtk_label_new (label);
   gtk_misc_set_padding (GTK_MISC (l), 15, 15);
   GtkWidget *btn = gtk_button_new ();
