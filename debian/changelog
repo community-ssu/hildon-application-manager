@@ -1,6 +1,7 @@
 hildon-application-manager (1:2.2.21~unreleased) unstable; urgency=low
 
-  *
+  [ Gabriel Schulhof ]
+  * Make maemo-launcher binaries only if "nolauncher" flag is absent from DEB_BUILD_OPTIONS
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 14 May 2009 12:50:00 +0100	
 	
