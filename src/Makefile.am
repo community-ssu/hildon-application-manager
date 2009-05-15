@@ -1,12 +1,12 @@
 AM_CPPFLAGS = -I $(top_srcdir)/statusbar
 
-bin_PROGRAMS = hildon-application-manager.launch \
+bin_PROGRAMS = hildon-application-manager \
                hildon-application-manager-config
 dist_bin_SCRIPTS = hildon-application-manager-util
 noinst_PROGRAMS = hildon-application-manager.run mime-open mime-server test-app-killer
-libexec_PROGRAMS = apt-worker ham-after-boot.launch
+libexec_PROGRAMS = apt-worker ham-after-boot
 
-hildon_application_manager_launch_SOURCES = main.h			\
+hildon_application_manager_SOURCES = main.h			\
                                             main.cc			\
 					    operations.h		\
 					    operations.cc		\
@@ -44,14 +44,12 @@ hildon_application_manager_launch_SOURCES = main.h			\
                                             user_files.c                \
                                             apt-utils.h                 \
                                             apt-utils.cc
-hildon_application_manager_launch_CFLAGS =   $(HAM_DEPS_CFLAGS) -shared
-hildon_application_manager_launch_CXXFLAGS = $(HAM_DEPS_CFLAGS) -shared \
+hildon_application_manager_CFLAGS =   $(HAM_DEPS_CFLAGS)
+hildon_application_manager_CXXFLAGS = $(HAM_DEPS_CFLAGS) \
                                              -fno-rtti -fno-exceptions
-hildon_application_manager_launch_LDFLAGS =  -shared \
-                                             -Wl,--version-script=$(srcdir)/export.map
-hildon_application_manager_launch_LDADD =    $(HAM_DEPS_LIBS) -lapt-pkg
+hildon_application_manager_LDADD =    $(HAM_DEPS_LIBS) -lapt-pkg
 
-hildon_application_manager_run_SOURCES =  $(hildon_application_manager_launch_SOURCES)
+hildon_application_manager_run_SOURCES =  $(hildon_application_manager_SOURCES)
 hildon_application_manager_run_CFLAGS =   $(HAM_DEPS_CFLAGS)
 hildon_application_manager_run_CXXFLAGS = $(HAM_DEPS_CFLAGS)
 hildon_application_manager_run_LDADD =    $(HAM_DEPS_LIBS) -lapt-pkg
@@ -79,12 +77,11 @@ apt_worker_CFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
 
-ham_after_boot_launch_SOURCES = ham-after-boot.c \
+ham_after_boot_SOURCES = ham-after-boot.c \
 				user_files.c \
 	 			xexp.c
-ham_after_boot_launch_CFLAGS = $(HAM_DEPS_CFLAGS) -shared
-ham_after_boot_launch_LDFLAGS = -shared -Wl,--version-script=$(srcdir)/export.map
-ham_after_boot_launch_LDADD = $(HAM_DEPS_LIBS)
+ham_after_boot_CFLAGS = $(HAM_DEPS_CFLAGS)
+ham_after_boot_LDADD = $(HAM_DEPS_LIBS)
 
 mime_open_SOURCES = mime-open.c
 mime_open_CFLAGS =   $(HAM_DEPS_CFLAGS)
@@ -102,9 +99,3 @@ test_app_killer_CXXFLAGS = $(HAM_DEPS_CFLAGS)
 test_app_killer_LDADD = $(HAM_DEPS_LIBS)
 
 EXTRA_DIST = export.map
-
-install-exec-local: installdirs
-	rm -f $(DESTDIR)$(bindir)/hildon-application-manager
-	ln -s /usr/bin/maemo-invoker $(DESTDIR)$(bindir)/hildon-application-manager
-	rm -f $(DESTDIR)$(libexecdir)/ham-after-boot
-	ln -s /usr/bin/maemo-invoker $(DESTDIR)$(libexecdir)/ham-after-boot

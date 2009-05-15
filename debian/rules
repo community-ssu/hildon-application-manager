@@ -19,6 +19,10 @@ endif
 ifneq (,$(findstring thumb,$(DEB_BUILD_OPTIONS)))
         CFLAGS += -mthumb
 endif
+ifeq (,$(findstring nolauncher,$(DEB_BUILD_OPTIONS)))
+	CONFIGURE_OPTIONS += --enable-maemo-launcher
+	USE_MAEMO_LAUNCHER = true
+endif
 
 CXXFLAGS = $(CFLAGS)
 
@@ -26,7 +30,7 @@ config.status:
 	if [ ! -x configure ]; then ./autogen.sh; fi
 	dh_testdir
 	# Add here commands to configure the package.
-	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure --prefix=/usr --sysconfdir=/etc --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --disable-static
+	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" ./configure --prefix=/usr --sysconfdir=/etc --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --disable-static $(CONFIGURE_OPTIONS)
 
 
 build: build-stamp
@@ -84,6 +88,9 @@ binary-arch: build install
 #	dh_installman
 	dh_installxsession -u 'post 40'
 	dh_link
+	if test "x$(USE_MAEMO_LAUNCHER)" = "xtrue"; then \
+	  dh_maemolauncher -v; \
+	fi
 	dh_strip --dbg-package=hildon-application-manager
 	dh_compress
 	dh_fixperms

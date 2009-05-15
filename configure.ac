@@ -13,6 +13,15 @@ AC_LANG_CPLUSPLUS
 
 AC_CHECK_HEADER(apt-pkg/configuration.h)
 
+AC_ARG_ENABLE([maemo-launcher],
+              [AS_HELP_STRING([--enable-maemo-launcher],
+                              [build with maemo-launcher support])],
+                              [case "${enableval}" in
+                               yes) maemo_launcher=true ;;
+                               no)  maemo_launcher=false ;;
+                               *) AC_MSG_ERROR([bad value ${enableval} for --enable-maemo-launcher]) ;;
+                               esac], [maemo_launcher=false])
+
 if test x$ac_cv_header_apt_pkg_configuration_h != xyes; then
   AC_ERROR([libapt-pkg not found.])
 fi
@@ -24,9 +33,14 @@ AC_EGREP_HEADER(apt_set_index_trust_level_for_package_hook,
                 AC_DEFINE(HAVE_APT_TRUST_HOOK),
                 AC_MSG_RESULT(no))
 
+MAEMO_LAUNCHER_PACKAGE=""
+if test "x$maemo_launcher" = "xtrue"; then
+  MAEMO_LAUNCHER_PACKAGE="maemo-launcher-app"
+fi
+
 PKG_CHECK_MODULES(HAM_DEPS, glib-2.0 gtk+-2.0 hildon-1 hildon-fm-2 libosso
                             conic gconf-2.0 gnome-vfs-2.0 mce hal
-                            libhildondesktop-1)
+                            libhildondesktop-1 $MAEMO_LAUNCHER_PACKAGE)
 AC_SUBST(HAM_DEPS_CFLAGS)
 AC_SUBST(HAM_DEPS_LIBS)
 
