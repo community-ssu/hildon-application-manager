@@ -277,7 +277,8 @@ present_main_window ()
 void
 hide_main_window ()
 {
-  gtk_widget_hide (GTK_WIDGET (get_main_window ()));
+  if (GTK_IS_WIDGET (get_main_window ()))
+    gtk_widget_hide (GTK_WIDGET (get_main_window ()));
   main_window_shown = false;
   if (!interaction_flow_active)
     exit (0);
