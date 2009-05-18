@@ -8,8 +8,8 @@ dist_bin_SCRIPTS = maemo-confirm-text		\
 noinst_PROGRAMS = maemo-confirm-text.run
 
 maemo_confirm_text_SOURCES = maemo-confirm-text-user.c
-maemo_confirm_text_CFLAGS = $(HAM_DEPS_CFLAGS)
-maemo_confirm_text_LDADD = $(HAM_DEPS_LIBS)
+maemo_confirm_text_CFLAGS = $(HAM_DEPS_CFLAGS) $(LAUNCHER_DEPS_CFLAGS)
+maemo_confirm_text_LDADD = $(HAM_DEPS_LIBS) $(LAUNCHER_DEPS_LIBS)
 
 maemo_confirm_text_run_SOURCES =  $(maemo_confirm_text_SOURCES)
 maemo_confirm_text_run_CFLAGS =   $(HAM_DEPS_CFLAGS)

@@ -46,8 +46,11 @@ hildon_application_manager_SOURCES = main.h			\
                                             apt-utils.cc
 hildon_application_manager_CFLAGS =   $(HAM_DEPS_CFLAGS)
 hildon_application_manager_CXXFLAGS = $(HAM_DEPS_CFLAGS) \
-                                             -fno-rtti -fno-exceptions
-hildon_application_manager_LDADD =    $(HAM_DEPS_LIBS) -lapt-pkg
+					$(LAUNCHER_DEPS_CFLAGS) \
+                                        -fno-rtti -fno-exceptions
+hildon_application_manager_LDADD =    $(HAM_DEPS_LIBS) \
+					$(LAUNCHER_DEPS_LIBS) \
+					-lapt-pkg
 
 hildon_application_manager_run_SOURCES =  $(hildon_application_manager_SOURCES)
 hildon_application_manager_run_CFLAGS =   $(HAM_DEPS_CFLAGS)
