@@ -1293,16 +1293,8 @@ struct scar_clos {
   char *title;
 };
 
-struct set_catalogues_refresh_data {
-  void (*cont) (xexp *tempcat, apt_worker_callback *callback, void *data);
-  xexp *catalogues;
-  apt_worker_callback *callback;
-  void *cont_data;
-};
-
 static void scar_set_catalogues_reply (int cmd, apt_proto_decoder *dec,
                                        void *data);
-static void set_catalogues_and_refresh_cont  (bool success, void *data);
 
 void
 add_temp_catalogues_and_refresh (xexp *tempcat,
@@ -1315,14 +1307,7 @@ add_temp_catalogues_and_refresh (xexp *tempcat,
   c->data = data;
   c->title = g_strdup (title);
 
-  set_catalogues_refresh_data *scr_data = new set_catalogues_refresh_data;
-
-  scr_data->cont = apt_worker_add_temp_catalogues;
-  scr_data->catalogues = tempcat;
-  scr_data->callback = scar_set_catalogues_reply;
-  scr_data->cont_data = c;
-
-  ensure_network (set_catalogues_and_refresh_cont, scr_data);
+  apt_worker_add_temp_catalogues (tempcat, scar_set_catalogues_reply, c);
 }
 
 void
@@ -1336,26 +1321,7 @@ set_catalogues_and_refresh (xexp *catalogues,
   c->data = data;
   c->title = g_strdup (title);
 
-  set_catalogues_refresh_data *scr_data = new set_catalogues_refresh_data;
-
-  scr_data->cont = apt_worker_set_catalogues;
-  scr_data->catalogues = catalogues;
-  scr_data->callback = scar_set_catalogues_reply;
-  scr_data->cont_data = c; 
-
-  ensure_network (set_catalogues_and_refresh_cont, scr_data);
-}
-
-static void
-set_catalogues_and_refresh_cont  (bool success, void *data)
-{
-  set_catalogues_refresh_data *scr_data = (set_catalogues_refresh_data *) data;
-
-  scr_data->cont (scr_data->catalogues,
-                  scr_data->callback,
-                  scr_data->cont_data);
-  
-  delete scr_data;
+  apt_worker_set_catalogues (catalogues, scar_set_catalogues_reply, c);
 }
 
 static void
