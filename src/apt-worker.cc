@@ -4144,6 +4144,9 @@ cmd_set_catalogues ()
   /* Update sources.list file */
   update_sources_list (catalogues);
 
+  /* We should update catalogue cache after modify catalogues */
+  need_cache_init ();
+
   xexp_free (catalogues);
   response.encode_int (success);
 }

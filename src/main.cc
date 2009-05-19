@@ -926,7 +926,7 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 		{
 		  section_info *sec =
 		    create_section_info (&install_sections,
-					 SECTION_RANK_NORMAL, 
+					 SECTION_RANK_NORMAL,
 					 info->available_section);
 		  info->ref ();
 		  sec->packages = g_list_prepend (sec->packages, info);
@@ -935,7 +935,7 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 		  all_si->packages = g_list_prepend (all_si->packages, info);
 		}
 	    }
-	  
+
 	  if (info->installed_version
 	      && package_visible (info, true))
 	    {
@@ -976,6 +976,8 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 				 cur_section_rank, cur_section_name) == NULL
 	      || (install_sections && !install_sections->next))))
     show_parent_view ();
+  else /* We should refresh current view after catalogue list updating... */
+    show_view (cur_view_struct);
 
   if (c->cont)
     c->cont (c->data);
@@ -1230,7 +1232,9 @@ rpcwu_reply (int cmd, apt_proto_decoder *dec, void *data)
   c->keep_going = !entertainment_was_cancelled ();
   stop_entertaining_user ();
 
-  save_last_update_time (time (NULL));
+  /* We only set update time when list download isn't interrupted */
+  if (c->keep_going)
+    save_last_update_time (time (NULL));
 
   get_package_list_with_cont (rpcwu_end, c);
 }
