@@ -1943,9 +1943,12 @@ make_global_section_list (GList *sections, section_activated *act)
       gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
       GtkWidget *btn = hildon_gtk_button_new (HILDON_SIZE_FINGER_HEIGHT);
       gtk_container_add (GTK_CONTAINER (btn), label);
-      gtk_table_attach_defaults (GTK_TABLE (table), btn,
-				 col, col + 1,
-				 row, row + 1);
+      gtk_table_attach (GTK_TABLE (table), btn,
+                        col, col + 1,
+                        row, row + 1,
+                        GtkAttachOptions (GTK_EXPAND | GTK_FILL),
+                        GtkAttachOptions (GTK_SHRINK | GTK_FILL),
+                        0, 0);
       col += 1;
       if (col >= GRID_COLUMNS)
 	{
