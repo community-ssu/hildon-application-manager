@@ -31,8 +31,7 @@
 
 #include <gtk/gtk.h>
 #include <gconf/gconf-client.h>
-#include <hildon/hildon-note.h>
-#include <hildon/hildon-caption.h>
+#include <hildon/hildon.h>
 
 #include "menu.h"
 #include "repo.h"
@@ -96,25 +95,15 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
   GtkWidget *caption, *entry;
   gint pos = 0;
 
+  entry = hildon_entry_new (HILDON_SIZE_FINGER_HEIGHT);
+  gtk_editable_set_editable(GTK_EDITABLE(entry), !readonly);
+
   if (readonly)
     {
-      GtkTextBuffer *buffer;
-
-      entry = gtk_text_view_new ();
-
-      buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (entry));
-      gtk_text_view_set_editable (GTK_TEXT_VIEW (entry), false);
-
-      if (text)
-        gtk_text_buffer_set_text (buffer, text, end-text);
-
-      gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (entry), FALSE);
       g_object_set (entry, "can-focus", FALSE, NULL);
     }
   else
     {
-      entry = gtk_entry_new ();
-
 #ifdef MAEMO_CHANGES
       int mode;
       g_object_get (entry, "hildon-input-mode", &mode, NULL);
@@ -124,14 +113,13 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
 	mode &= ~int (HILDON_GTK_INPUT_MODE_AUTOCAP);
       g_object_set (entry, "hildon-input-mode", mode, NULL);
 #endif /* MAEMO_CHANGES */
+    }
 
-      if (text)
-	{
-	  if (end == NULL)
-	    end = text + strlen (text);
-	  gtk_editable_insert_text (GTK_EDITABLE (entry),
-				    text, end-text, &pos);
-	}
+  if (text)
+    {
+      if (end == NULL)
+        end = text + strlen (text);
+      gtk_editable_insert_text (GTK_EDITABLE (entry), text, end - text, &pos);
     }
 
   caption = hildon_caption_new (group, label, entry,
@@ -409,7 +397,8 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
   else if (response == GTK_RESPONSE_OK && c->type == cat_package)
     {
       bool disabled =
-        gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (c->disabled_button));
+        hildon_check_button_get_active (HILDON_CHECK_BUTTON
+                                        (c->disabled_button));
       xexp_aset_bool (c->catalogue, "disabled", disabled);
       set_cat_list (c->cat_dialog, &c->cat_dialog->selected_iter);
       c->cat_dialog->dirty = true;
@@ -444,8 +433,8 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
                                          (GTK_ENTRY (c->dist_entry))));
       char *comps = g_strstrip (g_strdup (gtk_entry_get_text
                                           (GTK_ENTRY (c->components_entry))));
-      bool disabled = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON
-						    (c->disabled_button));
+      bool disabled = hildon_check_button_get_active (HILDON_CHECK_BUTTON
+                                                      (c->disabled_button));
 
       if (all_whitespace (comps))
         {
@@ -594,18 +583,18 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 
   if (c->type != cat_readonly)
     {
-      c->disabled_button = gtk_check_button_new ();
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c->disabled_button),
-                                    xexp_aref_bool (catalogue, "disabled"));
-      caption = hildon_caption_new (group,
-                                    _("ai_fi_new_repository_disabled"),
-                                    c->disabled_button,
+      c->disabled_button = hildon_check_button_new (HILDON_SIZE_FINGER_HEIGHT);
+      gtk_button_set_label (GTK_BUTTON (c->disabled_button),
+                            _("ai_fi_new_repository_disabled"));
+      hildon_check_button_set_active (HILDON_CHECK_BUTTON (c->disabled_button),
+                                      xexp_aref_bool (catalogue, "disabled"));
+      caption = hildon_caption_new (group, NULL, c->disabled_button,
                                     NULL, HILDON_CAPTION_OPTIONAL);
       gtk_box_pack_start_defaults (GTK_BOX (vbox), caption);
       gtk_widget_set_sensitive (c->disabled_button, c->type != cat_readonly);
     }
 
-  gtk_widget_set_usize (dialog, 650, -1);
+  gtk_widget_set_size_request (GTK_WIDGET (dialog), 650, -1);
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (cat_edit_response), c);
