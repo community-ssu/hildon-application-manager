@@ -285,7 +285,9 @@ GtkWidget *
 make_main_view (view *v)
 {
   GtkWidget *view;
-  GtkWidget *vbox, *hbox;
+  GtkWidget *alignment;
+  GtkWidget *vbox;
+  GtkWidget *table;
   GtkWidget *btn, *label, *image;
   GtkSizeGroup *btn_group;
 
@@ -297,68 +299,88 @@ make_main_view (view *v)
   g_signal_connect (view, "expose-event",
                     G_CALLBACK (expose_main_view), NULL);
 
-  vbox = gtk_vbox_new (FALSE, 10);
-  gtk_container_add (GTK_CONTAINER (view), vbox);
+  alignment = gtk_alignment_new (0.0, 0.0, 0.0, 0.0);
+  gtk_container_add (GTK_CONTAINER (view), alignment);
+
+  vbox = gtk_vbox_new (FALSE, HILDON_MARGIN_TRIPLE);
+  gtk_container_set_border_width (GTK_CONTAINER(vbox), HILDON_MARGIN_TRIPLE);
+  gtk_container_add (GTK_CONTAINER (alignment), vbox);
+
+  // Applications we have
+  table = gtk_table_new (2, 2, FALSE);
+  gtk_table_set_col_spacings (GTK_TABLE (table), HILDON_MARGIN_DEFAULT);
+  gtk_table_set_row_spacings (GTK_TABLE (table), HILDON_MARGIN_DEFAULT);
 
   // first label
-  hbox = gtk_hbox_new (FALSE, 10);
   image = gtk_image_new_from_icon_name ("general_device_root_folder",
 					HILDON_ICON_SIZE_SMALL);
-  gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
+  gtk_misc_set_alignment (GTK_MISC (image), 0.5, 0.5);
+  gtk_table_attach (GTK_TABLE (table), image, 0, 1, 0, 1,
+                    GTK_FILL, GTK_FILL, 0, 0);
 
   device_label = gtk_label_new (device_name ());
+  hildon_helper_set_logical_color (device_label, GTK_RC_FG, GTK_STATE_NORMAL,
+                                   "SecondaryTextColor");
+  hildon_helper_set_logical_font(device_label, "SmallSystemFont");
   gtk_label_set_ellipsize (GTK_LABEL (device_label), PANGO_ELLIPSIZE_END);
   gtk_misc_set_alignment (GTK_MISC (device_label), 0.0, 0.5);
-  gtk_box_pack_start (GTK_BOX (hbox), device_label, TRUE, TRUE, 0);
-  gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table), device_label, 1, 2, 0, 1,
+                    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
 
   g_signal_connect (device_label, "destroy",
 		    G_CALLBACK (device_label_destroyed), NULL);
 
   // first button
-  hbox = gtk_hbox_new (FALSE, 0);
   btn = make_padded_button (_("ai_li_uninstall"));
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &uninstall_applications_view);
   gtk_size_group_add_widget (btn_group, btn);
-  // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
-  gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
   grab_focus_on_map (btn);
+  gtk_table_attach (GTK_TABLE (table), btn, 1, 2, 1, 2,
+                    GtkAttachOptions(GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
+
+  gtk_box_pack_start (GTK_BOX (vbox), table, FALSE, TRUE, 0);
+
+  // Applications we may want
+  table = gtk_table_new (3, 2, FALSE);
+  gtk_table_set_col_spacings (GTK_TABLE (table), HILDON_MARGIN_DEFAULT);
+  gtk_table_set_row_spacings (GTK_TABLE (table), HILDON_MARGIN_DEFAULT);
 
   // second label
-  hbox = gtk_hbox_new (FALSE, 10);
   image = gtk_image_new_from_icon_name ("general_web",
 					HILDON_ICON_SIZE_SMALL);
-  gtk_box_pack_start (GTK_BOX (hbox), image, FALSE, FALSE, 0);
+  gtk_misc_set_alignment (GTK_MISC (image), 0.5, 0.5);
+  gtk_table_attach (GTK_TABLE (table), image, 0, 1, 0, 1,
+                    GTK_FILL, GTK_FILL, 0, 0);
 
   label = gtk_label_new (_("ai_li_repository"));
+  hildon_helper_set_logical_color (label, GTK_RC_FG, GTK_STATE_NORMAL,
+                                   "SecondaryTextColor");
+  hildon_helper_set_logical_font(label, "SmallSystemFont");
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-  gtk_box_pack_start (GTK_BOX (hbox),  label, FALSE, FALSE, 0);
-  gtk_box_pack_start (GTK_BOX (vbox), hbox,  FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table), label, 1, 2, 0, 1,
+                    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
 
   // second button
-  hbox = gtk_hbox_new (FALSE, 0);
   btn = make_padded_button (_("ai_li_install"));
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &install_applications_view);
   gtk_size_group_add_widget (btn_group, btn);
-  // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
-  gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table), btn, 1, 2, 1, 2,
+                    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
 
   // third button
-  hbox = gtk_hbox_new (FALSE, 0);
   btn = make_padded_button (_("ai_li_update"));
   g_signal_connect (G_OBJECT (btn), "clicked",
 		    G_CALLBACK (show_check_for_updates_view),
 		    NULL);
   gtk_size_group_add_widget (btn_group, btn);
-  // 36 padding = 26 icon size + 10 padding
-  gtk_box_pack_start (GTK_BOX (hbox),  btn, FALSE, FALSE, 36);
-  gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table), btn, 1, 2, 2, 3,
+                    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
+
+  gtk_box_pack_start (GTK_BOX (vbox), table, FALSE, TRUE, 0);
 
   gtk_widget_show_all (view);
   g_object_unref (btn_group);
