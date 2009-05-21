@@ -476,11 +476,13 @@ spd_update_common_page (void *data)
       {
         char *extended_name = g_strdup_printf ("%s (%s)", display_name,
                                                pi->name);
-        add_table_field (table, ++last_row, _("ai_fi_details_package"), extended_name);
+        add_table_field (table, ++last_row, _("ai_fi_details_package"),
+                         extended_name);
         g_free (extended_name);
       }
     else
-      add_table_field (table, ++last_row, _("ai_fi_details_package"), display_name);
+      add_table_field (table, ++last_row, _("ai_fi_details_package"),
+                       display_name);
   }
 
   gchar *short_description = (pi->have_detail_kind == remove_details
@@ -489,7 +491,8 @@ spd_update_common_page (void *data)
   if (short_description != NULL && strlen (short_description) > 0)
     add_table_field (table, ++last_row, "", short_description);
 
-  add_table_field (table, ++last_row, _("ai_fi_details_maintainer"), pi->maintainer);
+  add_table_field (table, ++last_row, _("ai_fi_details_maintainer"),
+                   pi->maintainer);
 
   add_table_field (table, ++last_row, _("ai_fi_details_status"), status);
 
@@ -501,7 +504,6 @@ spd_update_common_page (void *data)
 		   section_name? section_name : _("ai_category_other"));
 
   /* now, the optional fields */
-  
   if (pi->installed_version)
     add_table_field (table, ++last_row, _("ai_va_details_installed_version"),
                      pi->installed_version);
@@ -519,13 +521,15 @@ spd_update_common_page (void *data)
       add_table_field (table, ++last_row, _("ai_va_details_available_version"),
                        pi->available_version);
       size_string_detailed (size_buf, 20, pi->info.download_size);
-      add_table_field (table, ++last_row, _("ai_va_details_download_size"), size_buf);
+      add_table_field (table, ++last_row, _("ai_va_details_download_size"),
+                       size_buf);
     }
 
   if (pi->repository)
     {
-	/** id is not released yet XXX **/
-      add_table_field (table, ++last_row, _("ai_va_details_catalogue"), pi->repository);
+      /** id is not released yet XXX **/
+      add_table_field (table, ++last_row, _("ai_va_details_catalogue"),
+                       pi->repository);
     }
 
   gtk_widget_set_sensitive (GTK_WIDGET (table), TRUE);
