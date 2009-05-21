@@ -668,8 +668,7 @@ spd_get_summary_label (void *data)
 static GtkWidget *
 spd_create_ssu_page (void *data)
 {
-  return make_small_text_label ("?Can't perform Seamless Software Update.\n"
-                                "Please download and flash the device");
+  return make_small_text_label (_("ai_ia_details_use_pc"));
 }
 
 /* Creates the fourth page */
@@ -719,6 +718,9 @@ spd_with_details (void *data, bool filling_details)
   GtkWidget *dialog, *notebook;
   GtkWidget **spd_nb_widgets = NULL;
   package_info *pi = c->pi;
+  bool is_ssu_pkg = ((pi->have_detail_kind != remove_details)
+                     && (pi->info.installable_status != status_able)
+                     && (pi->flags & pkgflag_system_update));
 
   /* Set this value to check whether the dialog is showing the full
      details for a package or not */
@@ -747,9 +749,15 @@ spd_with_details (void *data, bool filling_details)
       spd_nb_widgets = g_new (GtkWidget *, SPD_NUM_PAGES);
 
       /* Initialize the notebook pages before appending them */
-      spd_nb_widgets[SPD_COMMON_PAGE] = spd_create_common_page (c);
+      if (!is_ssu_pkg)
+        spd_nb_widgets[SPD_COMMON_PAGE] = spd_create_common_page (c);
+      else
+        spd_nb_widgets[SPD_COMMON_PAGE] = gtk_vbox_new (TRUE, 0);
+
       spd_nb_widgets[SPD_DESCRIPTION_PAGE] = gtk_vbox_new (TRUE, 0);
-      spd_nb_widgets[SPD_SUMMARY_PAGE] = gtk_vbox_new (TRUE, 0);
+
+      if (!is_ssu_pkg)
+        spd_nb_widgets[SPD_SUMMARY_PAGE] = gtk_vbox_new (TRUE, 0);
 
       /* Append the needed notebook pages */
       gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
@@ -760,9 +768,10 @@ spd_with_details (void *data, bool filling_details)
 				spd_nb_widgets[SPD_DESCRIPTION_PAGE],
 				gtk_label_new (_("ai_ti_details_noteb_description")));
 
-      gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-				spd_nb_widgets[SPD_SUMMARY_PAGE],
-				gtk_label_new (spd_get_summary_label (c)));
+      if (!is_ssu_pkg)
+        gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
+                                  spd_nb_widgets[SPD_SUMMARY_PAGE],
+                                  gtk_label_new (spd_get_summary_label (c)));
 
       /* Save needed references */
       c->dialog = dialog;
@@ -780,27 +789,30 @@ spd_with_details (void *data, bool filling_details)
 
   if (c->showing_details)
     {
-      bool is_ssu_pkg = false;
-
-      /* Update the main common tab */
-      spd_update_common_page (c);
+      if (is_ssu_pkg)
+        {
+          spd_set_page_widget (c, SPD_COMMON_PAGE, spd_create_ssu_page (c));
+        }
+      else
+        {
+          /* Update the main common tab */
+          spd_update_common_page (c);
+        }
 
       /* Set the content of the rest of the notebook pages */
       spd_set_page_widget (c, SPD_DESCRIPTION_PAGE,
                            spd_create_description_page (c));
 
-      is_ssu_pkg = ((pi->have_detail_kind != remove_details)
-                    && (pi->info.installable_status != status_able)
-                    && (pi->flags & pkgflag_system_update));
-      spd_set_page_widget (c, SPD_SUMMARY_PAGE,
-                           is_ssu_pkg
-                           ? spd_create_ssu_page (c)
-                           : spd_create_summary_page (c));
+      if (!is_ssu_pkg)
+        {
+          spd_set_page_widget (c, SPD_SUMMARY_PAGE,
+                               spd_create_summary_page (c));
 
-      /* Update 'summary' tab label */
-      gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
-				  spd_nb_widgets[SPD_SUMMARY_PAGE],
-				  gtk_label_new(spd_get_summary_label (c)));
+          /* Update 'summary' tab label */
+          gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
+                                      spd_nb_widgets[SPD_SUMMARY_PAGE],
+                                      gtk_label_new(spd_get_summary_label (c)));
+        }
 
       if (pi->dependencies && !is_ssu_pkg)
 	{
@@ -817,7 +829,7 @@ spd_with_details (void *data, bool filling_details)
   gtk_widget_set_size_request (dialog, 600, 320);
   gtk_widget_show_all (dialog);
 
-  if (c->show_problems)
+  if (c->show_problems && !is_ssu_pkg)
     gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook),
 				   SPD_SUMMARY_PAGE);
 }
