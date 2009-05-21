@@ -44,6 +44,8 @@
 
 #define _(x)       gettext (x)
 
+#define TREE_VIEW_ICON_SIZE 26
+
 static bool
 apt_method_is_available (const char* method)
 {
@@ -642,7 +644,7 @@ cat_icon_func (GtkTreeViewColumn *column,
       ok_browser_pixbuf =
 	gtk_icon_theme_load_icon (icon_theme,
 				  "general_web",
-				  26,
+				  TREE_VIEW_ICON_SIZE,
 				  GtkIconLookupFlags (0),
 				  NULL);
     }
@@ -655,7 +657,7 @@ cat_icon_func (GtkTreeViewColumn *column,
       fail_browser_pixbuf =
 	gtk_icon_theme_load_icon (icon_theme,
 				  "app_install_error",
-				  26,
+				  TREE_VIEW_ICON_SIZE,
 				  GtkIconLookupFlags (0),
 				  NULL);
     }
