@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <libintl.h>
 #include <string.h>
+#include <hildon/hildon.h>
 
 #include "details.h"
 #include "log.h"
@@ -413,12 +414,10 @@ spd_create_common_page (void *data)
   gtk_table_set_row_spacings (GTK_TABLE (table), 0);
   c->table = table;
 
-  common = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (common),
-					 table);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (common),
-				  GTK_POLICY_AUTOMATIC,
-				  GTK_POLICY_AUTOMATIC);
+  common = hildon_pannable_area_new ();
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (common),
+                                          table);
+
   return common;
 }
 
@@ -550,12 +549,9 @@ make_small_text_label (const char *text)
 		    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL,
 		    0, 0);
 
-  GtkWidget *summary_tab = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (summary_tab),
-					 summary_table);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (summary_tab),
-				  GTK_POLICY_AUTOMATIC,
-				  GTK_POLICY_AUTOMATIC);
+  GtkWidget *summary_tab = hildon_pannable_area_new ();
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (summary_tab),
+                                          summary_table);
 
   return summary_tab;
 }
@@ -639,12 +635,9 @@ spd_create_summary_page (void *data)
 			  pi->summary_packages[sumtype_needed_by]);
     }
 
-  summary_tab = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (summary_tab),
-					 summary_table);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (summary_tab),
-				  GTK_POLICY_AUTOMATIC,
-				  GTK_POLICY_AUTOMATIC);
+  summary_tab = hildon_pannable_area_new ();
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (summary_tab),
+                                          summary_table);
 
   return summary_tab;
 }
@@ -821,7 +814,7 @@ spd_with_details (void *data, bool filling_details)
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (spd_response), c);
 
-  gtk_widget_set_usize (dialog, 600, 320);
+  gtk_widget_set_size_request (dialog, 600, 320);
   gtk_widget_show_all (dialog);
 
   if (c->show_problems)
