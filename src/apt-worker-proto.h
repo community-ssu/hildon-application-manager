@@ -364,7 +364,7 @@ enum apt_proto_sumtype {
 enum apt_proto_pkgtrust {
   pkgtrust_end,
   pkgtrust_not_certified,
-  pkgtrust_domains_violated,
+  pkgtrust_domains_violated
 };
 
 // INSTALL_PACKAGE - Do the actual installation of a package
