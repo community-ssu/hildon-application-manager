@@ -308,12 +308,12 @@ find_domain_by_tag (const char *tag, const char *val)
     {
       if (domains[i].conf == NULL)
 	continue;
-      
+
       for (xexp *x = xexp_aref (domains[i].conf, tag);
 	   x;
 	   x = xexp_aref_rest (x, tag))
 	{
-	  if (xexp_is_text (x) && strcmp (xexp_text (x), val) == 0)
+	  if (xexp_is_text (x) && g_str_has_suffix (xexp_text (x), val))
 	    return i;
 	}
     }
@@ -4542,7 +4542,8 @@ get_meta_info_key (debReleaseIndex *meta)
 	  if (n > 0 && line[n-1] == '\n')
 	    line[n-1] = '\0';
 
-	  if (g_str_has_prefix (line, "VALIDSIG"))
+	  if ((g_str_has_prefix (line, "VALIDSIG"))
+	      || (g_str_has_prefix (line, "GOODSIG")))
 	    {
 	      key = g_strchug (g_strdup (line + 8)); // *Cough*
 	      break;
