@@ -135,6 +135,23 @@ installable_status_to_message (package_info *pi,
     }
 }
 
+static void
+launch_osso_backup ()
+{
+  /* Launch osso-backup as a single instance */
+  osso_context_t *osso_context = NULL;
+  if ((osso_context = get_osso_context ()))
+    {
+      if (osso_application_top (osso_context,
+                                "com.nokia.backup",
+                                NULL) != OSSO_OK)
+        {
+          what_the_fock_p ();
+          add_log ("Could not launch backup application.\n");
+        }
+    }
+}
+
 /* INSTALL_PACKAGES - Overview
 
    0. Filter out already installed packages.  When the list is empty
@@ -822,24 +839,13 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 
   if (response == HAM_BACKUP_RESPONSE)
     {
-      /* Launch osso-backup as a single instance */
-      osso_context_t *osso_context = NULL;
-      if ((osso_context = get_osso_context ()))
-	{
-	  if (osso_application_top (osso_context,
-				    "com.nokia.backup",
-				    NULL) != OSSO_OK)
-	    {
-	      what_the_fock_p ();
-	      add_log ("Could not launch backup application.\n");
-	    }
-	}
+      launch_osso_backup ();
     }
   else
     {
       pop_dialog (GTK_WIDGET (dialog));
       gtk_widget_destroy (GTK_WIDGET (dialog));
-      
+
       if (response == GTK_RESPONSE_OK)
 	{
 	  package_info *pi = (package_info *)(c->cur->data);
