@@ -718,9 +718,7 @@ spd_with_details (void *data, bool filling_details)
   GtkWidget *dialog, *notebook;
   GtkWidget **spd_nb_widgets = NULL;
   package_info *pi = c->pi;
-  bool is_ssu_pkg = ((pi->have_detail_kind != remove_details)
-                     && (pi->info.installable_status != status_able)
-                     && (pi->flags & pkgflag_system_update));
+  bool is_ssu_pkg = is_pkg_ssu (pi);
 
   /* Set this value to check whether the dialog is showing the full
      details for a package or not */
