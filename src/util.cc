@@ -716,30 +716,6 @@ what_the_fock_p ()
   irritate_user (_("ai_ni_operation_failed"));
 }
 
-void
-scare_user_with_legalese (bool sure,
-			  void (*cont) (bool res, void *data),
-			  void *data)
-{
-  ayn_closure *c = new ayn_closure;
-  c->pi = NULL;
-  c->cont = cont;
-  c->data = data;
-
-  GtkWidget *dialog;
-
-  const char *text = (sure
-		      ? _("ai_nc_non_verified_package")
-		      : _("ai_nc_unsure_package"));
-
-  dialog = hildon_note_new_confirmation (NULL, text);
-  push_dialog (dialog);
-
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (yes_no_response), c);
-  gtk_widget_show_all (dialog);
-}
-
 static GtkWidget *
 make_scare_user_with_legalese (bool multiple)
 {

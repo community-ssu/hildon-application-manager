@@ -177,7 +177,7 @@ void maybe_exit ();
   shows the package to install and a legal disclaimer depending of
   the SCARE_USER parameter. When SCARE_USER is true, the disclaimer
   is show and the user must confirm that he accepts it through a
-  check box. It SURPASE scare_user_with_legalese.
+  check box.
 
 */
 
@@ -225,10 +225,6 @@ void annoy_user_with_gnome_vfs_result (GnomeVFSResult result,
 
 void irritate_user (const gchar *text);
 void what_the_fock_p ();
-
-void scare_user_with_legalese (bool sure,
-			       void (*cont) (bool res, void *data),
-			       void *data);
 
 void install_confirm (bool scare_user, package_info *pi, bool multiple,
                       void (*cont) (bool res, void *data),
