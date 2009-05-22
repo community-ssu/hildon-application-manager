@@ -3321,3 +3321,14 @@ is_package_cache_updated ()
 
   return TRUE;
 }
+
+bool
+is_pkg_ssu (package_info *pi, bool broken)
+{
+  if (!pi)
+    return false;
+
+  return ((pi->have_detail_kind != remove_details)
+          && (broken ? (pi->info.installable_status != status_able) : true)
+          && (pi->flags & pkgflag_system_update));
+}
