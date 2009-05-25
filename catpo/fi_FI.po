@@ -47,7 +47,7 @@ msgid "science"
 msgstr "Tiede"
 
 msgid "system"
-msgstr "Jäjestelmä"
+msgstr "Järjestelmä"
 
 msgid "utilities"
 msgstr "Apuohjelmat"
