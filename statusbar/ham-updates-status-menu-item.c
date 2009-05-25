@@ -1164,12 +1164,12 @@ ham_updates_status_menu_item_connection_cb (ConIcConnection *connection,
       bearer = con_ic_event_get_bearer_type (CON_IC_EVENT (event));
       LOG ("bearer = %s", bearer);
 
-      /* XXX - only the WLAN_INFRA and the WLAN_ADHOC bearers are
-               considered cheap.  There should be a general platform
-               feature that tells us whether we need to be careful with
-               network access or not.  */
-      if (g_strcmp0 (bearer, "WLAN_ADHOC") == 0
-          || g_strcmp0 (bearer, "WLAN_INFRA") == 0)
+      /* XXX - only the WLAN, WIMAX and GPRS bearers are considered cheap.
+               There should be a general platform feature that tells us
+               whether we need to be careful with network access or not. */
+      if (g_strstr_len (bearer, -1, "WLAN") != NULL
+          || g_strstr_len (bearer, -1, "GPRS") != NULL
+          || g_strstr_len (bearer, -1, "WIMAX") != NULL)
         priv->constate = CONN_ONLINE;
       else
         priv->constate = CONN_OFFLINE;
