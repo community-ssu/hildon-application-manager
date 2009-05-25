@@ -434,7 +434,7 @@ ip_install_with_info (void *data)
 	      break;
 #endif
 	    default:
-	      desc = _("Install");
+	      desc = _("ai_tb_install");
 	      break;
 	    }
 	}
