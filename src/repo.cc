@@ -529,7 +529,7 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
                                             GTK_DIALOG_MODAL,
                                             _("ai_bd_new_repository_ok"),
                                             GTK_RESPONSE_OK,
-                                            _("ai_bd_new_repository_cancel"),
+                                            GTK_STOCK_CANCEL,
                                             GTK_RESPONSE_CANCEL,
                                             NULL);
 
