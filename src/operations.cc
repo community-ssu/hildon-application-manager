@@ -410,7 +410,9 @@ ip_install_with_info (void *data)
   // Bring up the appropriate confirmation dialog.
 
   if (c->install_type == INSTALL_TYPE_BACKUP
+#ifdef INSTALL_TYPE_MEMORY_CARD
       || c->install_type == INSTALL_TYPE_MEMORY_CARD
+#endif
       || c->install_type == INSTALL_TYPE_MULTI)
     {
       const char *title = c->title;
@@ -426,9 +428,11 @@ ip_install_with_info (void *data)
 	    case INSTALL_TYPE_BACKUP:
 	      desc = _("ai_ia_restore");
 	      break;
+#ifdef INSTALL_TYPE_MEMORY_CARD
 	    case INSTALL_TYPE_MEMORY_CARD:
-	      desc = _("ai_ia_memory");
+	      desc = _("ai_ia_memory"); /*NOLOC*/
 	      break;
+#endif
 	    default:
 	      desc = _("Install");
 	      break;
@@ -485,11 +489,13 @@ ip_select_package_response (gboolean res, GList *selected_packages,
 
   if (!res)
     {
+#ifdef INSTALL_TYPE_MEMORY_CARD
       if (c->install_type == INSTALL_TYPE_MEMORY_CARD
 	  && c->automatic)
-	annoy_user (_("ai_ni_memory_cancelled"),
+	annoy_user (_("ai_ni_memory_cancelled"), /*NOLOC*/
 		    ip_end, c);
       else
+#endif
 	ip_end (c);
     }
   else if (selected_packages == NULL)

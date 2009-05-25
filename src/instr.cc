@@ -542,11 +542,13 @@ eci_with_temp_catalogues (bool res, void *data)
 {
   struct eci_clos *c = (eci_clos *)data;
 
+#ifdef INSTALL_TYPE_MEMORY_CARD
   if (res)
     install_named_packages ((const char **)c->packages, 
                             INSTALL_TYPE_MEMORY_CARD, c->automatic,
                             NULL, NULL, eci_reply, c);
   else
+#endif
     eci_reply (0, c);
 }
 
