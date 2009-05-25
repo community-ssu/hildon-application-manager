@@ -1106,9 +1106,6 @@ update_icon_state (HamUpdatesStatusMenuItem *self)
       hd_status_plugin_item_set_status_area_icon (HD_STATUS_PLUGIN_ITEM (self),
                                                   NULL);
 
-      LOG ("updating the seen file");
-      ham_updates_update_seen_file_icon ();
-
       return;
     }
   else if (state == ICON_STATE_STATIC)
@@ -1179,6 +1176,7 @@ update_state (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
   gboolean visible;
+  gboolean updates;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
@@ -1187,7 +1185,8 @@ update_state (HamUpdatesStatusMenuItem *self)
   g_object_get (G_OBJECT (self), "visible", &visible, NULL);
 
   /* shall we show the updates button? */
-  if (ham_updates_are_available (priv->updates, priv->osso) == TRUE)
+  updates = ham_updates_are_available (priv->updates, priv->osso);
+  if (updates == TRUE)
     {
       if (visible == FALSE)
         gtk_widget_show (GTK_WIDGET (self));
@@ -1199,7 +1198,7 @@ update_state (HamUpdatesStatusMenuItem *self)
     }
 
   /* shall we blink the status area icon? */
-  if (ham_updates_are_available_icon (priv->osso) == TRUE
+  if (updates == TRUE
       || ham_notifier_are_available (NULL) == TRUE)
     {
       set_icon_state (self, ICON_STATE_BLINKING);

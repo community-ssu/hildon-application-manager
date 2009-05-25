@@ -33,7 +33,6 @@ extern "C" {
 #define HAM_STATE_DIR ".hildon-application-manager"
 #define UFILE_RESTORE_BACKUP "packages.backup"
 #define UFILE_SEEN_UPDATES "seen-updates"
-#define UFILE_SEEN_UPDATES_ICON "seen-updates-icon"
 #define UFILE_SEEN_NOTIFICATIONS "seen-notifications"
 #define UFILE_AVAILABLE_NOTIFICATIONS "available-notifications"
 #define UFILE_AVAILABLE_NOTIFICATIONS_TMP   UFILE_AVAILABLE_NOTIFICATIONS ".tmp"

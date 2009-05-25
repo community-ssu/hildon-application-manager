@@ -36,7 +36,7 @@
 #include <xexp.h>
 #include <user_files.h>
 
-/* #define DEBUG */
+#define DEBUG
 #include "util.h"
 #include "update-notifier-conf.h"
 
@@ -165,7 +165,6 @@ ham_updates_dialog_response_cb (GtkDialog *dialog,
       if (response == GTK_RESPONSE_NO)
         {
           update_seen_file (UFILE_SEEN_UPDATES);
-          update_seen_file (UFILE_SEEN_UPDATES_ICON);
         }
 
       gtk_widget_destroy (GTK_WIDGET (dialog));
@@ -593,34 +592,6 @@ ham_updates_are_available (HamUpdates *self, osso_context_t *context)
   updates_free (updates);
 
   return FALSE;
-}
-
-void
-ham_updates_update_seen_file_icon ()
-{
-  update_seen_file (UFILE_SEEN_UPDATES_ICON);
-}
-
-gboolean
-ham_updates_are_available_icon (osso_context_t *context)
-{
-  Updates *updates;
-  gboolean retval;
-
-  g_return_val_if_fail (context != NULL, FALSE);
-
-  retval = FALSE;
-  updates = updates_fetch (UFILE_SEEN_UPDATES_ICON);
-
-  if (updates != NULL
-      && updates->total > 0
-      && !ham_is_showing_check_for_updates_view (context))
-    retval = TRUE;
-
-  if (updates != NULL)
-    updates_free (updates);
-
-  return retval;
 }
 
 static Updates *

@@ -1725,7 +1725,6 @@ update_seen_updates_file (void)
 
   /* Write it to disk */
   user_file_write_xexp (UFILE_SEEN_UPDATES, seen_updates);
-  user_file_write_xexp (UFILE_SEEN_UPDATES_ICON, seen_updates);
   xexp_free (seen_updates);
 }
 
