@@ -4524,6 +4524,9 @@ find_deb_meta_index (pkgIndexFile *index)
   return NULL;
 }
 
+#define VALIDSIG "VALIDSIG"
+#define GOODSIG  "GOODSIG"
+
 static char *
 get_meta_info_key (debReleaseIndex *meta)
 {
@@ -4542,10 +4545,11 @@ get_meta_info_key (debReleaseIndex *meta)
 	  if (n > 0 && line[n-1] == '\n')
 	    line[n-1] = '\0';
 
-	  if ((g_str_has_prefix (line, "VALIDSIG"))
-	      || (g_str_has_prefix (line, "GOODSIG")))
+	  bool is_valid =  g_str_has_prefix (line, VALIDSIG);
+	  if (is_valid || g_str_has_prefix (line, GOODSIG))
 	    {
-	      key = g_strchug (g_strdup (line + 8)); // *Cough*
+	      int dis = is_valid ? strlen (VALIDSIG) : strlen (GOODSIG);
+	      key = g_strchug (g_strdup (line + dis)); // *Cough*
 	      break;
 	    }
 	}
