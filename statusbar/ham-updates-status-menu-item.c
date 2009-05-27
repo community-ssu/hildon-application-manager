@@ -114,6 +114,8 @@ struct _HamUpdatesStatusMenuItemPrivate
 
   /* blinker timeout */
   guint blinker_id;
+  /* alarm setup timeout */
+  guint setup_alarm_id;
 
   /* updates object */
   HamUpdates *updates;
@@ -124,6 +126,7 @@ struct _HamUpdatesStatusMenuItemPrivate
 
 /* setup prototypes */
 static gboolean setup_dbus (HamUpdatesStatusMenuItem *self);
+static void close_dbus (HamUpdatesStatusMenuItem* self);
 static void setup_gconf (HamUpdatesStatusMenuItem *self);
 static gboolean setup_alarm (HamUpdatesStatusMenuItem *upno);
 static gboolean setup_alarm_now (gpointer data);
@@ -183,6 +186,9 @@ ham_updates_status_menu_item_finalize (GObject *object)
 
   delete_all_alarms ();
 
+  if (priv->setup_alarm_id > 0)
+    g_source_remove (priv->setup_alarm_id);
+
   close_inotify (self);
 
   if (priv->updates != NULL)
@@ -194,8 +200,7 @@ ham_updates_status_menu_item_finalize (GObject *object)
   if (priv->gconf != NULL)
     g_object_unref (priv->gconf);
 
-  if (priv->osso != NULL)
-    osso_deinitialize (priv->osso);
+  close_dbus (self);
 
   G_OBJECT_CLASS (ham_updates_status_menu_item_parent_class)->finalize (object);
 }
@@ -234,7 +239,7 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
 
   priv->updates = NULL;
 
-  priv->blinker_id = 0;
+  priv->blinker_id = priv->setup_alarm_id = 0;
 
   priv->map_connected = FALSE;
 
@@ -255,7 +260,8 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
              It is arguably a bug in the alarm framework that the daemon needs
              to be running to access and modify the alarm queue.
           */
-          g_timeout_add_seconds (60, setup_alarm_now, self);
+          priv->setup_alarm_id =
+            g_timeout_add_seconds (60, setup_alarm_now, self);
         }
       else
         {
@@ -496,6 +502,25 @@ setup_dbus (HamUpdatesStatusMenuItem *self)
                               ham_updates_status_menu_item_rpc_cb, self);
 
   return (result == OSSO_OK);
+}
+
+static void
+close_dbus (HamUpdatesStatusMenuItem *self)
+{
+  HamUpdatesStatusMenuItemPrivate *priv;
+
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  if (priv->osso == NULL)
+    return;
+
+  osso_rpc_unset_cb_f (priv->osso,
+                       UPDATE_NOTIFIER_SERVICE,
+                       UPDATE_NOTIFIER_OBJECT_PATH,
+                       UPDATE_NOTIFIER_INTERFACE,
+                       ham_updates_status_menu_item_rpc_cb, self);
+
+  osso_deinitialize (priv->osso);
 }
 
 static void
@@ -807,6 +832,8 @@ run_service_now (HamUpdatesStatusMenuItem *self)
   time_t interval;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  priv->setup_alarm_id = 0;
 
   now = time_get_time ();
   last_update = load_last_update_time ();
