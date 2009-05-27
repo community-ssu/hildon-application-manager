@@ -148,7 +148,7 @@ static xexp *read_operation_record ();
 #define TEMP_APT_SOURCE_LIST "/etc/apt/sources.list.d/hildon-application-manager-temp.list"
 
 /* APT CACHE ARCHIVES DIRECTORIES */
-#define DEFAULT_DIR_CACHE_ARCHIVES "archives/"
+#define DEFAULT_DIR_CACHE_ARCHIVES "/home/user/.apt-archive-cache/"
 #define ALT_DIR_CACHE_ARCHIVES ".apt-archive-cache/"
 
 /* Files related to the 'check for updates' process */
@@ -4322,7 +4322,7 @@ cmd_download_package ()
 
   const char *alt_download_root = NULL;
   int result_code = rescode_out_of_space;
-
+#if (0)
   const char *internal_mmc_mountpoint = getenv ("INTERNAL_MMC_MOUNTPOINT");
   if (!internal_mmc_mountpoint)
     internal_mmc_mountpoint = INTERNAL_MMC_MOUNTPOINT;
@@ -4330,11 +4330,12 @@ cmd_download_package ()
   const char *removable_mmc_mountpoint = getenv ("REMOVABLE_MMC_MOUNTPOINT");
   if (!removable_mmc_mountpoint)
     removable_mmc_mountpoint = REMOVABLE_MMC_MOUNTPOINT;
-
+#endif /* (0) */
   if (ensure_cache (true))
     {
       if (mark_named_package_for_install (package))
         {
+#if (0)
           if (flag_download_packages_to_mmc
 	      && internal_mmc_mountpoint
               && volume_path_is_mounted_writable (internal_mmc_mountpoint))
@@ -4359,6 +4360,8 @@ cmd_download_package ()
               alt_download_root = NULL;
               result_code = operation (false, alt_download_root, true);
             }
+#endif /* (0) */
+          result_code = operation (false, NULL, true);
         }
       else
         result_code = rescode_packages_not_found;
@@ -6145,7 +6148,7 @@ static void
 show_fb_text (int line, const char *text)
 {
   run_system (false,
-	      "chroot /mnt/initfs/ text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%s'",
+	      "/usr/bin/text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%s'",
 	      400 + 20*line, text);
 }
 
@@ -6153,7 +6156,7 @@ static void
 show_fb_status (int percent)
 {
   run_system (false,
-	      "chroot /mnt/initfs/ text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%3d%%'",
+	      "/usr/bin/text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%3d%%'",
 	      440, percent);
 }
 

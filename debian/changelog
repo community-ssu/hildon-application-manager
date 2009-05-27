@@ -2,6 +2,7 @@ hildon-application-manager (1:2.2.21~unreleased) unstable; urgency=low
 
   [ Gabriel Schulhof ]
   * Make maemo-launcher binaries only if "nolauncher" flag is absent from DEB_BUILD_OPTIONS
+  * Make apt-worker user /home/user/.apt-archive-cache
 
   [ Marius Vollmer ]
   * Fixes: NB#117616 - Application manager, spelling error in category name "System".
