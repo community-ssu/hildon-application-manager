@@ -52,6 +52,13 @@
 #define BTNAME_MATCH_RULE "type='signal',interface='" BTNAME_SIGNAL_IF \
                           "',member='" BTNAME_SIG_CHANGED "'"
 
+/* For setting / getting device offline state */
+#define MCE_SERVICE                     "com.nokia.mce"
+#define MCE_REQUEST_IF                  "com.nokia.mce.request"
+#define MCE_REQUEST_PATH                "/com/nokia/mce/request"
+#define MCE_GET_DEVICE_MODE_REQ         "get_device_mode"
+#define MCE_DEVICE_MODE_CHANGE_REQ      "req_device_mode_change"
+
 static void
 dbus_mime_open (DBusConnection *conn, DBusMessage *message)
 {
@@ -803,4 +810,91 @@ enough_battery_p (void)
   libhal_ctx_shutdown (hal, NULL);
 
   return devs == NULL || i < n_devs;
+}
+
+/* Test flight mode stuff:
+ dbus-send --system --dest=com.nokia.mce  --print-reply /com/nokia/mce/request com.nokia.mce.request.get_device_mode
+ dbus-send --system --dest=com.nokia.mce  --print-reply /com/nokia/mce/request com.nokia.mce.request.req_device_mode_change string:normal
+*/
+
+device_mode
+get_device_mode ()
+{
+  DBusConnection *conn;
+  DBusMessage   *msg;
+  DBusMessage   *reply;
+  const char    *mode;
+  device_mode ret = DEVICE_MODE_ONLINE;
+
+  conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
+  if (!conn)
+    {
+      fprintf (stderr, "Could not get system bus.");
+      return ret;
+    }
+
+  msg = dbus_message_new_method_call (MCE_SERVICE,
+                                      MCE_REQUEST_PATH,
+                                      MCE_REQUEST_IF,
+                                      MCE_GET_DEVICE_MODE_REQ);
+
+  reply = dbus_connection_send_with_reply_and_block (conn, msg, -1, NULL);
+
+  dbus_message_unref (msg);
+
+  if (reply && dbus_message_get_args (reply, NULL, DBUS_TYPE_STRING,
+                                      &mode, DBUS_TYPE_INVALID))
+    {
+      if (mode == NULL || g_strrstr (mode, "normal") == NULL)
+        ret = DEVICE_MODE_OFFLINE;
+    }
+
+  if (reply)
+   dbus_message_unref (reply);
+
+  dbus_connection_unref (conn);
+
+  return ret;
+}
+
+void
+set_device_mode (device_mode dmode)
+{
+  DBusConnection *conn;
+  DBusMessage    *msg;
+  const char     *mode;
+
+  conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
+  if (!conn)
+    {
+      fprintf (stderr, "Could not get system bus.");
+      return;
+    }
+
+  msg = dbus_message_new_method_call (MCE_SERVICE,
+                                      MCE_REQUEST_PATH,
+                                      MCE_REQUEST_IF,
+                                      MCE_DEVICE_MODE_CHANGE_REQ);
+
+  switch (dmode)
+    {
+    case DEVICE_MODE_OFFLINE:
+      mode = "flight";
+      break;
+    case DEVICE_MODE_ONLINE:
+      mode = "normal";
+      break;
+    default:
+      fprintf (stderr, "Not valid device mode");
+      return;
+    }
+
+  dbus_message_append_args (msg, DBUS_TYPE_STRING,
+                            &mode, DBUS_TYPE_INVALID);
+
+  dbus_connection_send (conn, msg, NULL);
+  dbus_connection_flush (conn);
+
+  dbus_message_unref (msg);
+  dbus_connection_unref (conn);
 }

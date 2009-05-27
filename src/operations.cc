@@ -233,6 +233,8 @@ struct ip_clos {
   void *data;
 
   bool refresh_needed;      // a package list refresh would be needed
+
+  device_mode mode;         // original device mode before OS upgrade
 };
 
 static void ip_install_with_info (void *data);
@@ -283,6 +285,9 @@ static void ip_install_cur (void *data);
 static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
+
+static void ip_maybe_offline_device_mode (ip_clos *c);
+static void ip_maybe_restore_device_mode (ip_clos *c);
 
 static void ip_upgrade_all_confirm (GList *package_list,
 				   void (*cont) (bool res, void *data),
@@ -938,6 +943,34 @@ ip_not_enough_battery_confirm_response (bool res, void *data)
 }
 
 static void
+ip_maybe_offline_device_mode (ip_clos *c)
+{
+  /* XXX - We ought ask to the user if we could turn off the
+     device mode
+  */
+  package_info *pi = (package_info *)(c->cur->data);
+
+  if (!(pi->info.install_flags & pkgflag_system_update))
+    return;
+
+  c->mode = get_device_mode ();
+
+  if (c->mode != DEVICE_MODE_OFFLINE)
+    set_device_mode (DEVICE_MODE_OFFLINE);
+}
+
+static void
+ip_maybe_restore_device_mode (ip_clos *c)
+{
+  package_info *pi = (package_info *)(c->cur->data);
+
+  if (!(pi->info.install_flags & pkgflag_system_update))
+    return;
+
+  set_device_mode (c->mode);
+}
+
+static void
 ip_install_one (void *data)
 {
   ip_clos *c = (ip_clos *)data;
@@ -1298,9 +1331,11 @@ ip_install_cur (void *data)
   if (free_space < 0)
     annoy_user_with_errno (errno, "get_free_space",
 			   ip_end, c);
-  
+
   if (pi->info.required_free_space < free_space)
     {
+      ip_maybe_offline_device_mode (c);
+
       /* Proceed to install if there's enough free space */
       apt_worker_install_package (pi->name,
 				  c->alt_download_root,
@@ -1319,6 +1354,9 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
+  /* if the package was an OS upgrade restore the device mode */
+  ip_maybe_restore_device_mode (c);
+
   if (dec == NULL)
     {
       ip_end (c);
@@ -1334,7 +1372,7 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   c->refresh_needed = true;
 
   if (result_code == rescode_success)
-    { 
+    {
       c->n_successful += 1;
 
       /* Save the backup data right after installing the package */
