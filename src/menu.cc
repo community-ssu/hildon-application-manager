@@ -125,7 +125,7 @@ create_menu ()
   /* Settings */
   settings_menu_item =
     add_item (main,
-	      _("Settings"),
+	      _("ai_me_settings"),
 	      show_settings_dialog_flow);
 
   gtk_widget_show_all (GTK_WIDGET (main));

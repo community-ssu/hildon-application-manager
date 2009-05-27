@@ -304,18 +304,19 @@ show_settings_dialog_flow ()
     {
       GtkWidget *dialog;
       settings_closure *c = new settings_closure;
-      
-      dialog = gtk_dialog_new_with_buttons ("Settings",
+
+      dialog = gtk_dialog_new_with_buttons (_("ai_me_settings"),
 					    NULL,
 					    GTK_DIALOG_MODAL,
-					    "Ok",
+					    dgettext ("hildon-libs",
+						      "wdgt_bd_save"),
 					    GTK_RESPONSE_OK,
-					    "Cancel",
+					    GTK_STOCK_CANCEL,
 					    GTK_RESPONSE_CANCEL,
 					    NULL);
       push_dialog (dialog);
       gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-      
+
       gtk_box_pack_start (GTK_BOX (GTK_DIALOG(dialog)->vbox),
 			  make_settings_tab (c),
 			  TRUE, TRUE, 5);
