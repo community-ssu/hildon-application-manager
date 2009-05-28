@@ -1,3 +1,136 @@
+2009-05-27  David Kedves <dkedves@blumsoft.eu>
+
+	* src/dbus.cc (get_device_mode) (set_device_mode): New functions.
+	* src/dbuc.h (device_mode): New enum type.
+	* src/operations.cc (ip_maybe_offline_device_mode)
+	(ip_maybe_restore_device_mode): New functions.
+	(ip_install_cur): Offline the device if needed.
+	(ip_install_cur_reply): Restore the device mode. (NB#118137)
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_finalize): Deinitialize OSSO. Removes
+	the alarm source id.
+	(close_dbus): New function.
+	(ham_updates_status_menu_item_init): Holds the alarm setup source.
+	(run_service_now): Reset the alarm source id. (NB#115611)
+	* src/menu.cc (create_menu): Use the new "ai_me_settings" id.
+	* src/settings.cc (show_settings_dialog_flow): Use the "wdgt_bd_save"
+	id (NB#118348)
+
+2009-05-25  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (find_deb_meta_index): Calculate the response
+	string size in order to obtain the displacement to extract the domain
+	key. 
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_connection_cb): Admit as valid bearer
+	types GPRS and WIMAX.
+
+2009-05-25  Marius Vollmer <marius.vollmer@nokia.com>
+
+	* Fix typo in fi_FI category translations (NB#117616).
+
+2009-05-25  David Kedves <dkedves@blumsoft.eu>
+
+	* Removed unused source code files.
+	* src/repo.cc (show_cat_edit_dialog): Removed
+	"ai_bd_new_repository_cancel" (NB#118348)
+	* src/instr.cc (eci_with_temp_catalogues): ifdef memory card
+	installing. 
+	* src/operations.cc (ip_install_with_info)
+	(ip_select_package_response): ifdef memory card installing and adding
+	/*NOALLOC*/ to unused logical ids. (NB#118348)
+	* src/operations.cc (ip_install_with_info): Changed invalid logical id 
+	"Install" for "ai_tb_install". (NB#118348)
+
+2009-05-22  David Kedves <dkedves@blumsoft.eu>
+
+	* src/apt-worker-proto.h: Removed a spurious comma in enum definition.
+	* src/apt-worker.cc (find_domain_by_tag): Compare only the end of the
+	tag. 
+	(get_meta_info_key): Accept also GOODSIG as return value. (NB#103607)
+	* src/util.cc (scare_user_with_legalese): Removed
+	function. (NB#118348) 
+	* debian/control: Added l10n dependencies.
+
+2009-05-22  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (is_pkg_ssu): New function.
+	* src/details.cc (spd_with_details): Use the is_pkg_ssu function
+	instead of the local calculation.
+	* src/operations.cc (launch_osso_backup): New function.
+	(ip_warn_about_reboot_response): Replace th code for the new
+	function. 
+	* src/operations.cc (ip_abort_cur_os_update)
+	(ip_abort_cur_os_update_response): New functions.
+	(ip_abort_cur): If the failed package is a OS update launch the new
+	dialogue.
+
+2009-05-21  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/details.cc (spd_update_common_page): Code style fixes.
+	* src/details.cc (spd_create_common_page) (make_small_text_label)
+	(spd_create_summary_page): Use HildonPannableArea instead of
+	GtkScrolledWindow.
+	(spd_with_details): Update deprecated Gtk API.
+	* src/details.cc (spd_create_ssu_page): Use the proposed logical
+	string. 
+	(spd_with_details): Reorder the tabs and their content in case of a
+	broken SSU package.
+
+2009-05-20  Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/main.cc (make_main_view): Use GtkTable widget to make spacing
+	consistent. Besides, use hildon-helper to set the label color.
+	* src/repo.cc (add_entry): Use HildonEntry.
+	(cat_edit_response): Use HildonCheckButton.
+	(show_cat_edit_dialog): Use HildonCheckButton.
+	* src/repo.cc (cat_icon_func): Use a macro insted of a harcoded value
+	to define the icon size.
+
+2009-05-19  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/util.cc (make_global_section_list): Set the table's attach
+	options for the buttons in section list.
+
+2009-05-19  David Kedves <dkedves@blumsoft.eu>
+
+	* src/main.cc (set_catalogues_and_refresh_cont): Functi	on removed.
+	(set_catalogues_and_refresh) (add_temp_catalogues_and_refresh): Don't
+	ensure network before setting the catalogues. (NB#102050)
+	* src/apt-worker.cc (cmd_set_catalogues): Request to update the package
+	cache after the catalogue setting. (NB#102707)
+	* src/main.cc (get_package_list_reply): Refresh the current view after
+	fetching the package list.
+	(rpcwu_reply): Don't save the last update time if the update was
+	cancelled.
+
+2009-05-18  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/main.cc (make_padded_button): Use hildon_gtk_button_new instead
+	of gtk_button_new. (NB#117277)
+	* src/util.cc (make_scare_user_with_legalese): Removed
+	gtk_scrolled_window_set_policiy call.
+	(scroll_to_widget): Removed gtk_scrolled_window_get_vadjustment call.
+	(make_global_section_list): Removed gtk_scrolled_window_set_policiy
+	call.
+	* src/util.cc (hide_main_window): Check if the current pointer to the
+	main window is a valid widget pointer.
+
+2009-05-15  Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* Use maemo-launcher only if the "nolauncher" value is absent from the
+	"DEB_BUILD_OPTIONS" list 
+
+2009-05-14  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/main.cc (update_seen_updates_file): update the icon file too.
+	* statusbar/ham-updates.c (ham_updates_dialog_response_cb): update the
+	icon file too.
+	* src/menu.cc (create_menu): Set the restore button in menu as
+	inactive if there's not a backup.
+	* statusbar/ham-updates.c (ham_updates_build_button): Fixed the
+	logical string used in the status menu button (NB#113409)
+
 2009-05-15  Richard Sun <richard.sun@nokia.com>
 
 	* src/details.cc: update logical id based on NB#106181.

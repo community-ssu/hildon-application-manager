@@ -1,12 +1,29 @@
-hildon-application-manager (1:2.2.21~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.21) unstable; urgency=low
 
   [ Gabriel Schulhof ]
   * Make maemo-launcher binaries only if "nolauncher" flag is absent from DEB_BUILD_OPTIONS
+  * Use new Hildon widgets.
 
   [ Marius Vollmer ]
   * Fixes: NB#117616 - Application manager, spelling error in category name "System".
   
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 14 May 2009 12:50:00 +0100	
+  [ Richard Sun ]
+  * Fixes: NB#106181 - Application Manager, string "?Catalogue" is shown in summary details.
+  
+  [ David Kedves ]
+  * Fixes: NB#102050 - Check for updates view doesnt refresh.
+  * Fixes: NB#102707 - Operation Failed info not comming along the connecting dialog.
+  * Fixes: NB#118348 - L10N invalid logical IDs report.
+  * Fixes: NB#103607 - Installing Certified from test repository should not pop legal disclamer dialog.
+  * Fixes: NB#115611 - ham-updates plugin crashes on unloading
+  * Fixes: NB#118137 - Device can be used while performing SSU
+	
+  [ Víctor Jáquez ]
+  * Fixes: NB#113409 - Application manager's status menu plugin is using wrong logical ID.
+  * Fixes: NB#117277 - Flat-themed buttons on the app manager view
+  * New SSU dialogues
+	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 28 May 2009 18:54:00 +0100	
 	
 hildon-application-manager (1:2.2.20-1) unstable; urgency=low
 
