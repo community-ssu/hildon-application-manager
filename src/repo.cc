@@ -44,7 +44,7 @@
 
 #define _(x)       gettext (x)
 
-#define TREE_VIEW_ICON_SIZE 26
+#define TREE_VIEW_ICON_SIZE 48
 
 static bool
 apt_method_is_available (const char* method)
@@ -353,7 +353,6 @@ struct cat_dialog_closure {
   GtkTreeView *tree;
   GtkListStore *store;
   GtkWidget *new_button;
-  GtkWidget *edit_button;
   GtkWidget *delete_button;
 
   void (*cont) (bool changed, void *data);
@@ -697,23 +696,10 @@ cat_text_func (GtkTreeViewColumn *column,
   else
     full_name = g_strdup (c->name);
 
-  /* set full text for element */
-  if (c != NULL
-      && c->detail
-      && cd->selected_cat == c)
-    {
-      gchar *markup = NULL;
-
-      markup = g_markup_printf_escaped ("%s\n<small>%s</small>",
-					full_name, c->detail);
-      g_object_set (cell, "markup", markup, NULL);
-
-      g_free (markup);
-    }
-  else
-    {
-	g_object_set (cell, "text", c? full_name : NULL, NULL);
-    }
+  g_object_set (cell, 
+      	      	"text", c? full_name : NULL,
+		"sensitive", c->type == cat_editable,
+		NULL);
 
   g_free (full_name);
 }
@@ -772,15 +758,12 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
   if (new_selected)
     {
       emit_row_changed (model, &iter);
-      gtk_widget_set_sensitive (c->edit_button,
-                                 !new_selected->foreign);
       if (!c->show_only_errors)
         gtk_widget_set_sensitive (c->delete_button,
                                   new_selected->type == cat_editable);
     }
   else
     {
-      gtk_widget_set_sensitive (c->edit_button, FALSE);
       if (!c->show_only_errors)
         gtk_widget_set_sensitive (c->delete_button, FALSE);
     }
@@ -923,8 +906,16 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
     }
 
   /* If it exists, clear previous list store */
-  if (c->store)
+  if (c->store) {
+    /* Gotta set entries to NULL first, because some bug in maemo-gtk/hildon is causing
+      calls to cat_icon_func/cat_text_func with garbage data */
+    GtkTreeIter itr;
+    if (gtk_tree_model_get_iter_first(GTK_TREE_MODEL(c->store), &itr))
+      do {
+      	gtk_list_store_set(c->store, &itr, 0, NULL, -1);
+      } while (gtk_tree_model_iter_next(GTK_TREE_MODEL(c->store), &itr));
     gtk_list_store_clear (c->store);
+  }
 
   for (xexp *catx = xexp_first (c->catalogues_xexp); catx;
        catx = xexp_rest (catx))
@@ -993,6 +984,7 @@ refresh_cat_list (cat_dialog_closure *c)
 static GtkWidget *
 make_cat_list (cat_dialog_closure *c)
 {
+  GtkTreeViewColumn *column;
   GtkCellRenderer *renderer;
   GtkWidget *scroller;
 
@@ -1000,25 +992,29 @@ make_cat_list (cat_dialog_closure *c)
   c->tree =
     GTK_TREE_VIEW (gtk_tree_view_new_with_model (GTK_TREE_MODEL (c->store)));
 
+  column = gtk_tree_view_column_new ();
+  gtk_tree_view_append_column (c->tree, column);
+
   renderer = gtk_cell_renderer_pixbuf_new ();
-  g_object_set (renderer, "yalign", 0.0, NULL);
-  gtk_tree_view_insert_column_with_data_func (c->tree,
-					      -1,
-					      NULL,
-					      renderer,
-					      cat_icon_func,
-					      c,
-					      NULL);
+  gtk_tree_view_column_pack_start (column, renderer, FALSE);
+  gtk_tree_view_column_set_cell_data_func (column, 
+      	      	      	      	      	   renderer, 
+					   cat_icon_func, 
+					   c, 
+					   NULL);
 
   renderer = gtk_cell_renderer_text_new ();
-  g_object_set (renderer, "yalign", 0.0, NULL);
-  gtk_tree_view_insert_column_with_data_func (c->tree,
-					      -1,
-					      NULL,
-					      renderer,
-					      cat_text_func,
-					      c,
-					      NULL);
+  g_object_set (G_OBJECT (renderer), 
+      	      	"xpad", HILDON_MARGIN_DEFAULT,
+		"ellipsize", PANGO_ELLIPSIZE_END,
+		"ellipsize-set", TRUE, 
+		NULL);
+  gtk_tree_view_column_pack_start (column, renderer, TRUE);
+  gtk_tree_view_column_set_cell_data_func (column, 
+      	      	      	      	      	   renderer, 
+					   cat_text_func, 
+					   c, 
+					   NULL);
 
   g_signal_connect (c->tree, "row-activated", 
 		    G_CALLBACK (cat_row_activated), c);
@@ -1030,10 +1026,7 @@ make_cat_list (cat_dialog_closure *c)
 
   refresh_cat_list (c);
 
-  scroller = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
-				  GTK_POLICY_AUTOMATIC,
-				  GTK_POLICY_AUTOMATIC);
+  scroller = hildon_pannable_area_new();
   gtk_container_add (GTK_CONTAINER (scroller), GTK_WIDGET (c->tree));
 
   return scroller;
@@ -1133,19 +1126,6 @@ insensitive_cat_delete_press (GtkButton *button, gpointer data)
 }
 
 static void
-insensitive_cat_edit_press (GtkButton *button, gpointer data)
-{
-  cat_dialog_closure *c = (cat_dialog_closure *)data;
-
-  GtkTreeModel *model;
-  GtkTreeIter iter;
-
-  if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (c->tree),
-                                       &model, &iter))
-    irritate_user (_("ai_ib_unable_edit"));
-}
-
-static void
 scd_get_catalogues_reply (xexp *catalogues, void *data)
 {
   cat_dialog_closure *c = (cat_dialog_closure *)data;
@@ -1219,7 +1199,6 @@ show_catalogue_dialog (xexp *catalogues,
   c->data = data;
 
   c->new_button = NULL;
-  c->edit_button = NULL;
   c->delete_button = NULL;
 
   current_cat_dialog_clos = c;
@@ -1240,10 +1219,6 @@ show_catalogue_dialog (xexp *catalogues,
       gtk_dialog_add_button (GTK_DIALOG (dialog),
                              _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
 
-  c->edit_button =
-    gtk_dialog_add_button (GTK_DIALOG (dialog),
-			   _("ai_bd_repository_edit"), REPO_RESPONSE_EDIT);
-
   if (!show_only_errors)
     c->delete_button =
       gtk_dialog_add_button (GTK_DIALOG (dialog),
@@ -1253,17 +1228,12 @@ show_catalogue_dialog (xexp *catalogues,
 
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
 
-  gtk_widget_set_sensitive (c->edit_button, FALSE);
-
   if (!show_only_errors)
     {
       gtk_widget_set_sensitive (c->new_button, FALSE);
       gtk_widget_set_sensitive (c->delete_button, FALSE);
       g_signal_connect (c->delete_button, "insensitive_press",
 			G_CALLBACK (insensitive_cat_delete_press), c);
-
-      g_signal_connect (c->edit_button, "insensitive_press",
-                        G_CALLBACK (insensitive_cat_edit_press), c);
     }
 
   gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox),
