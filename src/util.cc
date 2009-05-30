@@ -1719,10 +1719,7 @@ make_global_package_list (GList *packages,
 
   gtk_tree_view_insert_column (GTK_TREE_VIEW (tree), column, -1);
 
-  scroller = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
-				  GTK_POLICY_NEVER,
-				  GTK_POLICY_AUTOMATIC);
+  scroller = hildon_pannable_area_new();
   gtk_container_add (GTK_CONTAINER (scroller), tree);
 
   global_have_last_selection = false;
