@@ -217,10 +217,7 @@ make_settings_tab (settings_closure *c)
 
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
 
-  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-				  GTK_POLICY_NEVER,
-				  GTK_POLICY_AUTOMATIC);
+  scrolled_window = hildon_pannable_area_new ();
 
   vbox = gtk_vbox_new (FALSE, 0);
 
@@ -262,7 +259,7 @@ make_settings_tab (settings_closure *c)
 #endif
   g_object_unref (group);
 
-  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scrolled_window),
 					 vbox);
   return scrolled_window;
 }
