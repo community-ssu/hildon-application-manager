@@ -44,8 +44,6 @@
 
 #define _(x)       gettext (x)
 
-#define TREE_VIEW_ICON_SIZE 48
-
 static bool
 apt_method_is_available (const char* method)
 {

@@ -1444,13 +1444,13 @@ package_info_func (GtkTreeViewColumn *column,
 
       default_icon = gtk_icon_theme_load_icon (icon_theme,
                                                "general_application_manager",
-                                               26,
+                                               TREE_VIEW_ICON_SIZE,
                                                GtkIconLookupFlags (0),
                                                NULL);
 
       broken_icon = gtk_icon_theme_load_icon (icon_theme,
                                               "app_install_broken_application",
-                                              26,
+                                              TREE_VIEW_ICON_SIZE,
                                               GtkIconLookupFlags (0),
                                               NULL);
 
@@ -2567,6 +2567,44 @@ b64decode (const unsigned char *str, GdkPixbufLoader *loader)
     }
 }
 
+// Causes a rectangle of width (*pdRectWidth) and height (*pdRectHeight) to fit inside a rectangle of
+// width dWidth and height dHeight.  Th resulting pair ((*px),(*py)) holds the coordinates of the
+// upper left corner of the scaled rectangle wrt. the upper left corner of the given rectangle.
+double fit_rect_inside_rect (double dWidth, 
+       	      	      	     double dHeight, 
+			     double *px, 
+			     double *py, 
+			     double *pdRectWidth, 
+			     double *pdRectHeight)
+{
+  double dAspectRatio, dRectAspectRatio, scale ;
+
+  if (0 == dWidth || 0 == dHeight || 
+      0 == *pdRectWidth || 0 == *pdRectHeight) return 1.0 ;
+
+  dAspectRatio = dWidth / dHeight ;
+  dRectAspectRatio = *pdRectWidth / *pdRectHeight ;
+
+  if (dRectAspectRatio > dAspectRatio)
+    {
+      *px = 0 ;
+      scale = dWidth / *pdRectWidth;
+      *pdRectWidth = dWidth ;
+      *pdRectHeight = *pdRectWidth / dRectAspectRatio ;
+      *py = (dHeight - *pdRectHeight) / 2 ;
+    }
+  else
+    {
+      *py = 0 ;
+      scale = dHeight / *pdRectHeight;
+      *pdRectHeight = dHeight ;
+      *pdRectWidth = *pdRectHeight * dRectAspectRatio ;
+      *px = (dWidth - *pdRectWidth) / 2 ;
+    }
+
+  return scale;
+}
+
 GdkPixbuf *
 pixbuf_from_base64 (const char *base64)
 {
@@ -2590,6 +2628,60 @@ pixbuf_from_base64 (const char *base64)
   if (pixbuf)
     g_object_ref (pixbuf);
   g_object_unref (loader);
+
+  if (pixbuf)
+    {
+      int width = gdk_pixbuf_get_width(pixbuf), 
+          height = gdk_pixbuf_get_height(pixbuf);
+
+      if (width != TREE_VIEW_ICON_SIZE || height != TREE_VIEW_ICON_SIZE) 
+	{
+	  GdkPixbuf *right_size_pixbuf = 
+	    gdk_pixbuf_new (gdk_pixbuf_get_colorspace(pixbuf),
+			    gdk_pixbuf_get_has_alpha(pixbuf),
+			    gdk_pixbuf_get_bits_per_sample(pixbuf),
+			    TREE_VIEW_ICON_SIZE,
+			    TREE_VIEW_ICON_SIZE);
+
+	if (right_size_pixbuf)
+	  {
+	    gdk_pixbuf_fill(right_size_pixbuf, 0x00000000);
+
+	    if (G_LIKELY(width <= TREE_VIEW_ICON_SIZE && 
+      	      		 height <= TREE_VIEW_ICON_SIZE))
+  	      gdk_pixbuf_composite(pixbuf, right_size_pixbuf, 
+      	      /* dest_x */         (TREE_VIEW_ICON_SIZE - width) / 2,
+      	      /* dest_y */	   (TREE_VIEW_ICON_SIZE - width) / 2,
+	      /* dest_width */	   width, 
+	      /* dest_height */	   height,
+	      /* offset_x */	   (TREE_VIEW_ICON_SIZE - width) / 2, 
+	      /* offset_y */	   (TREE_VIEW_ICON_SIZE - width) / 2, 
+				   1.0, 1.0, GDK_INTERP_HYPER, 255);
+	    else
+	      {
+		double d_width = width, d_height = height, x, y, scale;
+
+      		scale = fit_rect_inside_rect(TREE_VIEW_ICON_SIZE, 
+	      	        		     TREE_VIEW_ICON_SIZE, 
+	      	        		     &x, &y,
+	      	        		     &d_width, &d_height);
+
+  		gdk_pixbuf_composite(pixbuf, right_size_pixbuf, 
+      		/* dest_x */       x,
+      		/* dest_y */	   y,
+		/* dest_width */   d_width, 
+		/* dest_height */  d_height,
+		/* offset_x */	   x, 
+		/* offset_y */	   y, 
+				   scale, scale, GDK_INTERP_HYPER, 255);
+	      }
+
+      	    g_object_unref(pixbuf);
+	    pixbuf = right_size_pixbuf;
+	 }
+      }
+  }
+
   return pixbuf;
 }
 
