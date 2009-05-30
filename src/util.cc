@@ -1321,19 +1321,24 @@ make_small_text_view (const char *text)
   GtkWidget *view;
   GtkTextBuffer *buffer;
 
-  scroll = gtk_scrolled_window_new (NULL, NULL);
+  scroll = GTK_WIDGET (g_object_new
+                       (HILDON_TYPE_PANNABLE_AREA,
+                        "hscrollbar-policy", GTK_POLICY_AUTOMATIC,
+                        "vscrollbar-policy", GTK_POLICY_AUTOMATIC,
+                        "mov-mode", HILDON_MOVEMENT_MODE_BOTH,
+                        NULL));
+
   view = gtk_text_view_new ();
   buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+
   if (text)
     gtk_text_buffer_set_text (buffer, text, -1);
+
   gtk_text_view_set_editable (GTK_TEXT_VIEW (view), 0);
   gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (view), 0);
   g_signal_connect (view, "button-press-event",
 		    G_CALLBACK (no_button_events), NULL);
   gtk_container_add (GTK_CONTAINER (scroll), view);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroll),
-				  GTK_POLICY_AUTOMATIC,
-				  GTK_POLICY_AUTOMATIC);
   gtk_widget_modify_font (view, get_small_font (view));
 
   return scroll;
