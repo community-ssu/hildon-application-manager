@@ -37,6 +37,7 @@ enum {
   PROP_PIXBUF_SIZE,
   PROP_PKG_NAME,
   PROP_PKG_VERSION,
+  PROP_PKG_SIZE,
   PROP_PKG_DESCRIPTION
 };
 
@@ -49,6 +50,7 @@ struct _PackageInfoCellRendererPrivate
   guint pixbuf_size;
   gchar *pkg_name;
   gchar *pkg_version;
+  gchar *pkg_size;
   gchar *pkg_description;
 
   gint single_line_height;
@@ -118,6 +120,7 @@ package_info_cell_renderer_instance_init (GTypeInstance *instance, gpointer g_cl
   priv->pixbuf = NULL;
   priv->pkg_name = NULL;
   priv->pkg_version = NULL;
+  priv->pkg_size = NULL;
   priv->pkg_description = NULL;
   priv->pixbuf_size = DEFAULT_ICON_SIZE;
 
@@ -156,6 +159,9 @@ package_info_cell_renderer_finalize (GObject *object)
 
   if (priv->pkg_version)
     g_free (priv->pkg_version);
+
+  if (priv->pkg_size)
+    g_free (priv->pkg_size);
 
   if (priv->pkg_description)
     g_free (priv->pkg_description);
@@ -220,6 +226,14 @@ package_info_cell_renderer_class_init (PackageInfoCellRendererClass *klass)
                                                         (G_PARAM_READABLE | G_PARAM_WRITABLE)));
 
   g_object_class_install_property (object_class,
+                                   PROP_PKG_SIZE,
+                                   g_param_spec_string ("package-size",
+                                                        "Package size",
+                                                        "The size of the package",
+                                                        NULL,
+                                                        (G_PARAM_READABLE | G_PARAM_WRITABLE)));
+
+  g_object_class_install_property (object_class,
                                    PROP_PKG_DESCRIPTION,
                                    g_param_spec_string ("package-description",
                                                         "Package description",
@@ -253,6 +267,9 @@ package_info_cell_renderer_get_property (GObject              *object,
     break;
   case PROP_PKG_VERSION:
     g_value_set_string (value, priv->pkg_version);
+    break;
+  case PROP_PKG_SIZE:
+    g_value_set_string (value, priv->pkg_size);
     break;
   case PROP_PKG_DESCRIPTION:
     g_value_set_string (value, priv->pkg_description);
@@ -311,6 +328,11 @@ package_info_cell_renderer_set_property (GObject              *object,
       if (priv->pkg_version)
         g_free (priv->pkg_version);
       priv->pkg_version = g_value_dup_string (value);
+      break;
+    case PROP_PKG_SIZE:
+      if (priv->pkg_size)
+        g_free (priv->pkg_size);
+      priv->pkg_size = g_value_dup_string (value);
       break;
     case PROP_PKG_DESCRIPTION:
       if (priv->pkg_description)
