@@ -594,3 +594,55 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
              cell_area, expose_area,
              state, y_coord, FALSE);
 }
+
+static void
+style_set (PackageInfoCellRenderer *cr,
+      	   GtkStyle *old_style,
+	   GtkWidget *widget)
+{
+  GtkStyle *style = gtk_widget_get_style (widget);
+
+  if (style)
+    {
+      GdkColor clr;
+
+      if (gtk_style_lookup_color (style, "SecondaryTextColor", &clr))
+      	{
+	  PackageInfoCellRendererPrivate *priv =
+            PACKAGE_INFO_CELL_RENDERER_GET_PRIVATE (cr);
+
+      	  if (priv->scale_small_attr_list)
+	    {
+	      PangoAttribute *small_attr, *clr_attr = NULL;
+
+	      small_attr = pango_attr_scale_new (PANGO_SCALE_SMALL);
+	      small_attr->start_index = 0;
+	      small_attr->end_index = G_MAXINT;
+
+	      clr_attr = pango_attr_foreground_new (clr.red,
+	      	      	      	      	      	    clr.green,
+						    clr.blue);
+	      clr_attr->start_index = 0;
+	      clr_attr->end_index = G_MAXINT;
+
+	      pango_attr_list_unref (priv->scale_small_attr_list);
+	      priv->scale_small_attr_list = pango_attr_list_new ();
+	      pango_attr_list_insert (priv->scale_small_attr_list,
+	      	      	      	      small_attr);
+	      pango_attr_list_insert (priv->scale_small_attr_list,
+	      	      	      	      clr_attr);
+	    }
+	}
+    }
+}
+
+
+
+void
+package_info_cell_renderer_listen_style (PackageInfoCellRenderer *cr,
+      	      	      	      	      	 GtkWidget *widget)
+{
+  style_set (cr, NULL, widget);
+  g_signal_connect_swapped (G_OBJECT (widget), "style-set",
+                            (GCallback) style_set, cr);
+}
