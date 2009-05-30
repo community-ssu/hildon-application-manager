@@ -2225,10 +2225,7 @@ select_package_list_with_info (void *data)
 			       column);
 
   /* Set up an scrolled window for the treeview */
-  scroller = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
-				  GTK_POLICY_NEVER,
-				  GTK_POLICY_AUTOMATIC);
+  scroller = hildon_pannable_area_new ();
   gtk_container_add (GTK_CONTAINER (scroller), tree_view);
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), scroller,
 		      TRUE, TRUE, padding);
