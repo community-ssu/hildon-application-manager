@@ -429,8 +429,8 @@ ask_yes_no_with_details (const gchar *title,
     (title,
      NULL,
      GTK_DIALOG_MODAL,
-     ok, GTK_RESPONSE_OK,
      _("ai_bd_confirm_details"), 1,
+     ok, GTK_RESPONSE_OK,
      NULL);
   push_dialog (dialog);
 
@@ -461,8 +461,8 @@ ask_yes_no_with_arbitrary_details (const gchar *title,
     (title,
      NULL,
      GTK_DIALOG_MODAL,
-     _("ai_bd_add_catalogue_ok"),      GTK_RESPONSE_OK,
      _("ai_bd_add_catalogue_details"), 1,
+     _("ai_bd_add_catalogue_ok"),      GTK_RESPONSE_OK,
      NULL);
   push_dialog (dialog);
 
@@ -779,8 +779,8 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
                                          : _("ai_ti_confirm_install")),
                                         NULL,
                                         GTK_DIALOG_MODAL,
-                                        _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
                                         _("ai_bd_confirm_details"), 1,
+                                        _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
                                         NULL);
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
@@ -2183,12 +2183,12 @@ select_package_list_with_info (void *data)
   dialog = gtk_dialog_new ();
   gtk_window_set_title (GTK_WINDOW (dialog), c->title);
   gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
-  ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog),
-                                     dgettext ("hildon-libs", "wdgt_bd_yes"),
-                                     GTK_RESPONSE_OK);
   gtk_dialog_add_button (GTK_DIALOG (dialog),
                          dgettext ("hildon-libs", "wdgt_bd_no"),
                          GTK_RESPONSE_CANCEL);
+  ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog),
+                                     dgettext ("hildon-libs", "wdgt_bd_yes"),
+                                     GTK_RESPONSE_OK);
 
   push_dialog (dialog);
 

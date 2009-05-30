@@ -227,10 +227,10 @@ show_log_dialog_flow ()
       dialog = gtk_dialog_new_with_buttons (_("ai_ti_log"),
 					    NULL,
 					    GTK_DIALOG_MODAL,
-					    _("ai_bd_log_save_as"),
-					    RESPONSE_SAVE,
 					    _("ai_bd_log_clear"),
 					    RESPONSE_CLEAR,
+					    _("ai_bd_log_save_as"),
+					    RESPONSE_SAVE,
 					    NULL);
       push_dialog (dialog);
       respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
