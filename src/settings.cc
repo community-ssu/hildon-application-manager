@@ -26,8 +26,7 @@
 #include <libintl.h>
 
 #include <gtk/gtk.h>
-#include <hildon/hildon-sort-dialog.h>
-#include <hildon/hildon-caption.h>
+#include <hildon/hildon.h>
 
 #include "settings.h"
 #include "util.h"
@@ -196,13 +195,12 @@ make_boolean_option (settings_closure *c,
 		     GtkWidget *box, GtkSizeGroup *group,
 		     const int id, const char *text, bool *var)
 {
-  GtkWidget *caption, *btn;
+  GtkWidget *btn;
 
-  btn = gtk_check_button_new ();
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (btn), *var);
-  caption = hildon_caption_new (group, text, btn,
-				NULL, HILDON_CAPTION_OPTIONAL);
-  gtk_box_pack_start (GTK_BOX (box), caption, FALSE, FALSE, 0);
+  btn = hildon_check_button_new(HILDON_SIZE_FINGER_HEIGHT);
+  gtk_button_set_label(GTK_BUTTON(btn), text);
+  hildon_check_button_set_active(HILDON_CHECK_BUTTON(btn), *var);
+  gtk_box_pack_start (GTK_BOX (box), btn, FALSE, FALSE, 0);
 
   if (id >= NUM_BOOLEAN_OPTIONS)
     abort ();
@@ -219,10 +217,7 @@ make_settings_tab (settings_closure *c)
 
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
 
-  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-				  GTK_POLICY_NEVER,
-				  GTK_POLICY_AUTOMATIC);
+  scrolled_window = hildon_pannable_area_new ();
 
   vbox = gtk_vbox_new (FALSE, 0);
 
@@ -264,7 +259,7 @@ make_settings_tab (settings_closure *c)
 #endif
   g_object_unref (group);
 
-  gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window),
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scrolled_window),
 					 vbox);
   return scrolled_window;
 }
@@ -280,7 +275,7 @@ settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
       for (int i = 0; i < NUM_BOOLEAN_OPTIONS; i++)
 	{
 	  gboolean current_value =
-	    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (c->boolean_btn[i]));
+	    hildon_check_button_get_active (HILDON_CHECK_BUTTON (c->boolean_btn[i]));
 
 	  if ((i == OPT_SHOW_ALL || i == OPT_SHOW_MAGIC_SYS) &&
 	      *(c->boolean_var[i]) != current_value)
