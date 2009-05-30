@@ -33,10 +33,9 @@ static GObjectClass *parent_class = NULL;
 
 enum {
   PROP_ZERO,
-  PROP_PIXBUF,
-  PROP_PIXBUF_SIZE,
   PROP_PKG_NAME,
   PROP_PKG_VERSION,
+  PROP_PKG_SIZE,
   PROP_PKG_DESCRIPTION
 };
 
@@ -45,10 +44,9 @@ typedef struct _PackageInfoCellRendererPrivate PackageInfoCellRendererPrivate;
 
 struct _PackageInfoCellRendererPrivate
 {
-  GdkPixbuf *pixbuf;
-  guint pixbuf_size;
   gchar *pkg_name;
   gchar *pkg_version;
+  gchar *pkg_size;
   gchar *pkg_description;
 
   gint single_line_height;
@@ -115,11 +113,10 @@ package_info_cell_renderer_instance_init (GTypeInstance *instance, gpointer g_cl
   PackageInfoCellRendererPrivate *priv = PACKAGE_INFO_CELL_RENDERER_GET_PRIVATE (instance);
   PangoAttribute *normal_attr, *small_attr;
 
-  priv->pixbuf = NULL;
   priv->pkg_name = NULL;
   priv->pkg_version = NULL;
+  priv->pkg_size = NULL;
   priv->pkg_description = NULL;
-  priv->pixbuf_size = DEFAULT_ICON_SIZE;
 
   priv->single_line_height = -1;
   priv->double_line_height = -1;
@@ -148,14 +145,14 @@ package_info_cell_renderer_finalize (GObject *object)
 {
   PackageInfoCellRendererPrivate *priv = PACKAGE_INFO_CELL_RENDERER_GET_PRIVATE (object);
 
-  if (priv->pixbuf)
-    g_object_unref (priv->pixbuf);
-
   if (priv->pkg_name)
     g_free (priv->pkg_name);
 
   if (priv->pkg_version)
     g_free (priv->pkg_version);
+
+  if (priv->pkg_size)
+    g_free (priv->pkg_size);
 
   if (priv->pkg_description)
     g_free (priv->pkg_description);
@@ -186,24 +183,6 @@ package_info_cell_renderer_class_init (PackageInfoCellRendererClass *klass)
   renderer_class->render = package_info_cell_renderer_render;
 
   g_object_class_install_property (object_class,
-                                   PROP_PIXBUF,
-                                   g_param_spec_object ("pixbuf",
-                                                        "Pixbuf Object",
-                                                        "The package's icon",
-                                                        GDK_TYPE_PIXBUF,
-                                                        (G_PARAM_READABLE | G_PARAM_WRITABLE)));
-
-  g_object_class_install_property (object_class,
-                                   PROP_PIXBUF_SIZE,
-                                   g_param_spec_uint ("pixbuf-size",
-                                                      "Size",
-                                                      "The size of the rendered icon",
-                                                      0,
-                                                      G_MAXUINT,
-                                                      DEFAULT_ICON_SIZE,
-                                                      (G_PARAM_READABLE | G_PARAM_WRITABLE)));
-
-  g_object_class_install_property (object_class,
                                    PROP_PKG_NAME,
                                    g_param_spec_string ("package-name",
                                                         "Package Name",
@@ -216,6 +195,14 @@ package_info_cell_renderer_class_init (PackageInfoCellRendererClass *klass)
                                    g_param_spec_string ("package-version",
                                                         "Package version",
                                                         "The version of the package",
+                                                        NULL,
+                                                        (G_PARAM_READABLE | G_PARAM_WRITABLE)));
+
+  g_object_class_install_property (object_class,
+                                   PROP_PKG_SIZE,
+                                   g_param_spec_string ("package-size",
+                                                        "Package size",
+                                                        "The size of the package",
                                                         NULL,
                                                         (G_PARAM_READABLE | G_PARAM_WRITABLE)));
 
@@ -242,17 +229,14 @@ package_info_cell_renderer_get_property (GObject              *object,
 
   switch (param_id)
   {
-  case PROP_PIXBUF:
-    g_value_set_object (value, G_OBJECT (priv->pixbuf));
-    break;
-  case PROP_PIXBUF_SIZE:
-    g_value_set_uint (value, priv->pixbuf_size);
-    break;
   case PROP_PKG_NAME:
     g_value_set_string (value, priv->pkg_name);
     break;
   case PROP_PKG_VERSION:
     g_value_set_string (value, priv->pkg_version);
+    break;
+  case PROP_PKG_SIZE:
+    g_value_set_string (value, priv->pkg_size);
     break;
   case PROP_PKG_DESCRIPTION:
     g_value_set_string (value, priv->pkg_description);
@@ -270,38 +254,9 @@ package_info_cell_renderer_set_property (GObject              *object,
                                          GParamSpec           *pspec)
 {
   PackageInfoCellRendererPrivate *priv = PACKAGE_INFO_CELL_RENDERER_GET_PRIVATE (object);
-  const GdkPixbuf* px;
 
   switch (param_id)
     {
-    case PROP_PIXBUF:
-
-      if (priv->pixbuf)
-        g_object_unref (priv->pixbuf);
-
-      px = (GdkPixbuf*) g_value_get_object (value);
-      if (px)
-	{
-	  gint px_w = gdk_pixbuf_get_width (px);
-	  gint px_h = gdk_pixbuf_get_height (px);
-	  if (px_w > priv->pixbuf_size || px_h > priv->pixbuf_size)
-	    {
-	      priv->pixbuf = gdk_pixbuf_scale_simple (px, priv->pixbuf_size,
-						      priv->pixbuf_size,
-						      GDK_INTERP_BILINEAR);
-	    }
-	  else
-	    {
-	      priv->pixbuf = (GdkPixbuf*) g_value_dup_object (value);
-	    }
-	}
-      else
-	priv->pixbuf = NULL;
-
-      break;
-    case PROP_PIXBUF_SIZE:
-      priv->pixbuf_size = g_value_get_uint (value);
-      break;
     case PROP_PKG_NAME:
       if (priv->pkg_name)
         g_free (priv->pkg_name);
@@ -311,6 +266,11 @@ package_info_cell_renderer_set_property (GObject              *object,
       if (priv->pkg_version)
         g_free (priv->pkg_version);
       priv->pkg_version = g_value_dup_string (value);
+      break;
+    case PROP_PKG_SIZE:
+      if (priv->pkg_size)
+        g_free (priv->pkg_size);
+      priv->pkg_size = g_value_dup_string (value);
       break;
     case PROP_PKG_DESCRIPTION:
       if (priv->pkg_description)
@@ -395,7 +355,7 @@ package_info_cell_renderer_get_size     (GtkCellRenderer      *cell,
           pango_font_metrics_unref (metrics);
           pango_font_description_free (font_desc);
 
-          priv->single_line_height = 2 * cell->ypad + MAX (PANGO_PIXELS (row_height), priv->pixbuf_size);
+          priv->single_line_height = 2 * cell->ypad + PANGO_PIXELS (row_height);
         }
 
       if ((priv->pkg_description == NULL) || (priv->pkg_description[0] == '\0'))
@@ -471,6 +431,95 @@ cell_get_state (GtkCellRenderer *cell,
   return state;
 }
 
+static PangoLayout *
+maybe_make_layout (GtkWidget *widget, 
+      	      	   char *str, 
+		   PangoAttrList *attrs, 
+		   PangoAlignment align, 
+		   gint *p_width, 
+		   gint *p_height)
+{
+  PangoLayout *layout = NULL;
+
+  if (str && str[0] != '\0') {
+    layout = gtk_widget_create_pango_layout (widget, str);
+    pango_layout_set_attributes (layout, attrs);
+    pango_layout_get_pixel_size (layout, p_width, p_height);
+    pango_layout_set_alignment (layout, align);
+  }
+
+  return layout;
+}
+
+static void
+paint_row (PangoLayout *left_layout,
+      	   int left_width, int left_height,
+      	   PangoLayout *right_layout,
+      	   int right_width, int right_height,
+	   PangoAttrList *attrs,
+	   GtkCellRenderer *cell,
+	   GdkDrawable *window,
+	   GtkWidget *widget,
+	   GdkRectangle *cell_area,
+	   GdkRectangle *expose_area,
+	   GtkStateType state,
+	   int y_coord,
+	   gboolean is_above_offset)
+{
+  gint available_width;
+
+  available_width = cell_area->width - 2 * DEFAULT_MARGIN;
+
+  if (left_width + right_width > available_width)
+    {
+      if (left_width < 2 * available_width / 3)
+        right_width = available_width - left_width;
+      else if (right_width < available_width / 3)
+        left_width = available_width - right_width;
+      else
+        {
+          left_width = 2 * available_width / 3;
+          right_width = available_width / 3;
+        }
+    }
+
+  if (left_layout) {
+    pango_layout_set_ellipsize (left_layout, PANGO_ELLIPSIZE_END);
+    pango_layout_set_width (left_layout, left_width * PANGO_SCALE);
+
+    gtk_paint_layout (widget->style,
+                      window,
+                      state,
+                      TRUE,
+                      expose_area,
+                      widget,
+                      "cellrenderertext",
+                      cell_area->x + DEFAULT_MARGIN,
+                      y_coord - (is_above_offset ? left_height : 0),
+                      left_layout);
+
+    g_object_unref (left_layout);
+  }
+
+  if (right_layout) {
+    pango_layout_set_ellipsize (right_layout, PANGO_ELLIPSIZE_END);
+    pango_layout_set_width (right_layout, right_width * PANGO_SCALE);
+
+    gtk_paint_layout (widget->style,
+                      window,
+                      state,
+                      TRUE,
+                      expose_area,
+                      widget,
+                      "cellrenderertext",
+                      cell_area->x + cell_area->width - right_width,
+                      y_coord - (is_above_offset ? right_height : 0),
+                      right_layout);
+
+    g_object_unref (right_layout);
+  }
+}
+
 static void
 package_info_cell_renderer_render       (GtkCellRenderer      *cell,
                                          GdkDrawable          *window,
@@ -480,111 +529,107 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
                                          GdkRectangle         *expose_area,
                                          GtkCellRendererState flags)
 {
-  PackageInfoCellRendererPrivate *priv;
-
   /* example code from eog-pixbuf-cell-renderer.c : */
-  gint available_width;
-  gint name_w, name_h, version_w, version_h, h;
-  PangoLayout *name_layout, *version_layout, *description_layout;
+  PackageInfoCellRendererPrivate *priv;
   GtkStateType state;
+  PangoLayout *name = NULL, *version = NULL, *description = NULL, *size = NULL;
+  int name_w = 0,     	 name_h = 0,
+      version_w = 0,  	 version_h = 0,
+      description_w = 0, description_h = 0,
+      size_w = 0,     	 size_h = 0,
+      y_coord, max_top, max_bot;
 
   priv = PACKAGE_INFO_CELL_RENDERER_GET_PRIVATE (cell);
 
   state = cell_get_state (cell, widget, flags);
 
-  name_layout = gtk_widget_create_pango_layout (widget, priv->pkg_name);
-  pango_layout_set_attributes (name_layout, priv->scale_medium_attr_list);
-  pango_layout_get_pixel_size (name_layout, &name_w, &name_h);
+  name = maybe_make_layout(widget, 
+      	      	      	   priv->pkg_name, 
+			   priv->scale_medium_attr_list, 
+			   PANGO_ALIGN_LEFT, 
+			   &name_w, &name_h);
 
-  version_layout = gtk_widget_create_pango_layout (widget, priv->pkg_version);
-  pango_layout_set_alignment (version_layout, PANGO_ALIGN_RIGHT);
-  pango_layout_set_attributes (version_layout, priv->scale_medium_attr_list);
-  pango_layout_get_pixel_size (version_layout, &version_w, &version_h);
+  version = maybe_make_layout(widget, 
+      	       	      	      priv->pkg_version, 
+			      priv->scale_medium_attr_list, 
+			      PANGO_ALIGN_LEFT, 
+			      &version_w, &version_h);
 
-  h = MAX (name_h, version_h);
-  available_width = cell_area->width - 2 * DEFAULT_MARGIN - priv->pixbuf_size;
+  description = maybe_make_layout(widget, 
+      	       	      	      	  priv->pkg_description, 
+			      	  priv->scale_small_attr_list, 
+			      	  PANGO_ALIGN_LEFT, 
+			      	  &description_w, &description_h);
 
-  if (name_w + version_w > available_width)
+  size = maybe_make_layout(widget, 
+      	       	      	   priv->pkg_size, 
+			   priv->scale_small_attr_list, 
+			   PANGO_ALIGN_LEFT, 
+			   &size_w, &size_h);
+
+  max_top = MAX(name_h, version_h);
+  max_bot = MAX(description_h, size_h);
+  y_coord = cell_area->y + (cell_area->height - (max_top + max_bot)) / 2 + max_top;
+
+  paint_row (name, name_w, name_h,
+      	     version, version_w, version_h,
+	     priv->scale_medium_attr_list, 
+	     cell, window, widget, 
+	     cell_area, expose_area, 
+	     state, y_coord, TRUE);
+
+  paint_row (description, description_w, description_h,
+      	     size, size_w, size_h,
+	     priv->scale_small_attr_list, 
+	     cell, window, widget, 
+	     cell_area, expose_area, 
+	     state, y_coord, FALSE);
+}
+
+static void
+style_set (PackageInfoCellRenderer *cr,
+      	   GtkStyle *old_style,
+	   GtkWidget *widget)
+{
+  GtkStyle *style = gtk_widget_get_style(widget);
+
+  if (style)
     {
-      if (name_w < 2 * available_width / 3)
-        version_w = available_width - name_w;
-      else if (version_w < available_width / 3)
-        name_w = available_width - version_w;
-      else
-        {
-          name_w = 2 * available_width / 3;
-          version_w = available_width / 3;
-        }
+      GdkColor clr;
 
-      pango_layout_set_ellipsize (name_layout, PANGO_ELLIPSIZE_END);
-      pango_layout_set_width (name_layout, name_w * PANGO_SCALE);
-      pango_layout_set_ellipsize (version_layout, PANGO_ELLIPSIZE_END);
-      pango_layout_set_width (version_layout, version_w * PANGO_SCALE);
+      if (gtk_style_lookup_color (style, "SecondaryTextColor", &clr))
+      	{
+	  PackageInfoCellRendererPrivate *priv = PACKAGE_INFO_CELL_RENDERER_GET_PRIVATE (cr);
+
+      	  if (priv->scale_small_attr_list)
+	    {
+	      PangoAttribute *small_attr, *clr_attr = NULL;
+
+	      small_attr = pango_attr_scale_new (PANGO_SCALE_SMALL);
+	      small_attr->start_index = 0;
+	      small_attr->end_index = G_MAXINT;
+
+	      clr_attr = pango_attr_foreground_new (clr.red,
+	      	      	      	      	      	    clr.green,
+						    clr.blue);
+	      clr_attr->start_index = 0;
+	      clr_attr->end_index = G_MAXINT;
+
+	      pango_attr_list_unref (priv->scale_small_attr_list);
+	      priv->scale_small_attr_list = pango_attr_list_new ();
+	      pango_attr_list_insert (priv->scale_small_attr_list,
+	      	      	      	      small_attr);
+	      pango_attr_list_insert (priv->scale_small_attr_list,
+	      	      	      	      clr_attr);
+	    }
+	}
     }
+}
 
-  gtk_paint_layout (widget->style,
-                    window,
-                    state,
-                    TRUE,
-                    expose_area,
-                    widget,
-                    "cellrenderertext",
-                    cell_area->x + priv->pixbuf_size + DEFAULT_MARGIN,
-                    cell_area->y,
-                    name_layout);
-
-  g_object_unref (name_layout);
-
-  gtk_paint_layout (widget->style,
-                    window,
-                    state,
-                    TRUE,
-                    expose_area,
-                    widget,
-                    "cellrenderertext",
-                    cell_area->x + cell_area->width - version_w,
-                    cell_area->y,
-                    version_layout);
-
-  g_object_unref (version_layout);
-
-  if (priv->pkg_description != NULL &&
-      priv->pkg_description[0] != '\0' &&
-      (flags & GTK_CELL_RENDERER_SELECTED) != 0)
-    {
-      description_layout = gtk_widget_create_pango_layout
-        (widget, priv->pkg_description);
-      pango_layout_set_attributes (description_layout,
-                                   priv->scale_small_attr_list);
-      pango_layout_set_ellipsize (description_layout, PANGO_ELLIPSIZE_END);
-      pango_layout_set_width
-        (description_layout,
-         (cell_area->width - priv->pixbuf_size - cell->ypad) * PANGO_SCALE);
-
-      gtk_paint_layout (widget->style,
-                        window,
-                        state,
-                        TRUE,
-                        expose_area,
-                        widget,
-                        "cellrenderertext",
-                        cell_area->x + priv->pixbuf_size + DEFAULT_MARGIN,
-                        cell_area->y + h,
-                        description_layout);
-
-      g_object_unref (description_layout);
-    }
-
-  if (priv->pixbuf)
-    {
-      gdk_draw_pixbuf (window,
-                       widget->style->black_gc,
-                       priv->pixbuf,
-                       0, 0,
-                       expose_area->x, expose_area->y,
-                       gdk_pixbuf_get_width (priv->pixbuf),
-                       gdk_pixbuf_get_height (priv->pixbuf),
-                       GDK_RGB_DITHER_NORMAL,
-                       0, 0);
-    }
+void
+package_info_cell_renderer_listen_style (PackageInfoCellRenderer *cr,
+      	      	      	      	      	 GtkWidget *widget)
+{
+  style_set(cr, NULL, widget);
+  g_signal_connect_swapped(G_OBJECT(widget), "style-set", (GCallback)style_set, cr);
 }

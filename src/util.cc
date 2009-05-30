@@ -1384,60 +1384,17 @@ size_string_general_or_empty (char *buf, size_t n, int64_t bytes)
 }
 
 static void
-global_size_func (GtkTreeViewColumn *column,
-		  GtkCellRenderer *cell,
-		  GtkTreeModel *model,
-		  GtkTreeIter *iter,
-		  gpointer data)
-{
-  package_info *pi;
-  char buf[20];
-
-  gtk_tree_model_get (model, iter, 0, &pi, -1);
-  if (!pi)
-    return;
-
-  if (global_installed)
-    size_string_general_or_empty (buf, 20, pi->installed_size);
-  else if (pi->have_info)
-    size_string_general_or_empty (buf, 20, pi->info.download_size);
-  else
-    strcpy (buf, "-");
-  g_object_set (cell, "text", buf, NULL);
-}
-
-static void
-package_info_func (GtkTreeViewColumn *column,
+package_icon_func (GtkTreeViewColumn *column,
                    GtkCellRenderer *cell,
                    GtkTreeModel *model,
                    GtkTreeIter *iter,
                    gpointer data)
 {
-  GtkTreeView *tree = (GtkTreeView *)data;
-  GtkTreeSelection *selection = gtk_tree_view_get_selection (tree);
   package_info *pi;
-  const gchar *package_name = NULL;
-  const gchar *package_version = NULL;
-  const gchar *package_description = NULL;
 
   gtk_tree_model_get (model, iter, 0, &pi, -1);
   if (!pi)
     return;
-
-  package_name = pi->get_display_name (global_installed);
-  package_version = pi->get_display_version (global_installed);
-
-  if (gtk_tree_selection_iter_is_selected (selection, iter))
-    {
-      if (global_installed)
-        package_description = pi->installed_short_description;
-      else
-        {
-          package_description = pi->available_short_description;
-          if (package_description == NULL)
-            package_description = pi->installed_short_description;
-        }
-    }
 
   if (!global_icons_initialized)
     {
@@ -1470,10 +1427,51 @@ package_info_func (GtkTreeViewColumn *column,
     }
 
   g_object_set (cell,
+                "pixbuf", icon ? icon : default_icon,
+		NULL);
+}
+
+static void
+package_info_func (GtkTreeViewColumn *column,
+                   GtkCellRenderer *cell,
+                   GtkTreeModel *model,
+                   GtkTreeIter *iter,
+                   gpointer data)
+{
+  package_info *pi;
+  const gchar *package_name = NULL;
+  const gchar *package_version = NULL;
+  const gchar *package_description = NULL;
+  char buf[20];
+
+  gtk_tree_model_get (model, iter, 0, &pi, -1);
+  if (!pi)
+    return;
+
+  package_name = pi->get_display_name (global_installed);
+  package_version = pi->get_display_version (global_installed);
+
+  if (global_installed)
+    size_string_general_or_empty (buf, 20, pi->installed_size);
+  else if (pi->have_info)
+    size_string_general_or_empty (buf, 20, pi->info.download_size);
+  else
+    strcpy (buf, "-");
+
+  if (global_installed)
+    package_description = pi->installed_short_description;
+  else
+    {
+      package_description = pi->available_short_description;
+      if (package_description == NULL)
+        package_description = pi->installed_short_description;
+    }
+
+  g_object_set (cell,
 		"package-name", package_name,
                 "package-version", package_version,
                 "package-description", package_description,
-                "pixbuf", icon ? icon : default_icon,
+		"package-size", buf,
 		NULL);
 }
 
@@ -1699,60 +1697,23 @@ make_global_package_list (GList *packages,
 
   tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL (global_list_store));
 
-  gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (tree), TRUE);
-
   column = gtk_tree_view_column_new ();
-  gtk_tree_view_column_set_title (column, _("ai_li_version"));
-  gtk_tree_view_column_set_alignment (column, 1.0);
+
+  renderer = gtk_cell_renderer_pixbuf_new ();
+  gtk_tree_view_column_pack_start(column, renderer, FALSE);
+  gtk_tree_view_column_set_cell_data_func (column, renderer,
+                                           package_icon_func, NULL, NULL);
 
   renderer = package_info_cell_renderer_new ();
-  g_object_set (renderer,
-                "xpad", 0,
-                "xalign", 0.0,
-                "ypad", 0,
-                "yalign", 0.0,
-                "visible", TRUE, NULL);
-  gtk_tree_view_column_pack_end (column, renderer, TRUE);
+  package_info_cell_renderer_listen_style (PACKAGE_INFO_CELL_RENDERER(renderer),
+                                           tree);
+  gtk_tree_view_column_pack_start (column, renderer, TRUE);
   gtk_tree_view_column_set_cell_data_func (column, renderer,
-                                           package_info_func, tree, NULL);
-
-  /* Set odd/even rows in different colors */
-  gtk_tree_view_set_rules_hint(GTK_TREE_VIEW (tree), TRUE);
+                                           package_info_func, NULL, NULL);
 
   gtk_tree_view_insert_column (GTK_TREE_VIEW (tree), column, -1);
 
-  // Setting the sizing of this columne to FIXED but not specifying
-  // the width is a workaround for some bug in GtkTreeView.  If we
-  // don't do this, the name will not get ellipsized and the size
-  // and/or version columns might disappear completely.  With this
-  // workaround, the name gets properly elipsized.
-  //
-  gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
-  gtk_tree_view_column_set_expand (column, TRUE);
-
-  column = gtk_tree_view_column_new ();
-  gtk_tree_view_column_set_alignment (column, 1.0);
-  gtk_tree_view_column_set_expand (column, FALSE);
-  g_object_set (column, "spacing", 14, NULL);
-  gtk_tree_view_column_set_title (column, _("ai_li_size"));
-
-  renderer = gtk_cell_renderer_text_new ();
-  g_object_set (renderer, "yalign", 0.0, NULL);
-  g_object_set (renderer, "xalign", 1.0, NULL);
-  gtk_tree_view_column_pack_end (column, renderer, TRUE);
-  gtk_tree_view_column_set_cell_data_func (column, renderer,
-                                           global_size_func, tree,
-                                           NULL);
-
-  renderer = gtk_cell_renderer_text_new ();
-  gtk_tree_view_column_pack_end (column, renderer, FALSE);
-
-  gtk_tree_view_insert_column (GTK_TREE_VIEW (tree), column, -1);
-
-  scroller = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
-				  GTK_POLICY_NEVER,
-				  GTK_POLICY_AUTOMATIC);
+  scroller = hildon_pannable_area_new();
   gtk_container_add (GTK_CONTAINER (scroller), tree);
 
   global_have_last_selection = false;
@@ -1817,13 +1778,22 @@ set_global_package_list (GList *packages,
 {
   global_have_last_selection = false;
 
+  if (global_list_store) {
+    /* Gotta set entries to NULL first, because some bug in maemo-gtk/hildon is causing
+      calls to cat_icon_func/cat_text_func with garbage data */
+    GtkTreeIter itr;
+    if (gtk_tree_model_get_iter_first(GTK_TREE_MODEL(global_list_store), &itr))
+      do {
+       gtk_list_store_set(global_list_store, &itr, 0, NULL, -1);
+      } while (gtk_tree_model_iter_next(GTK_TREE_MODEL(global_list_store), &itr));
+     gtk_list_store_clear (global_list_store);
+  }
+
   for (GList *p = global_packages; p; p = p->next)
     {
       package_info *pi = (package_info *)p->data;
       pi->model = NULL;
     }
-  if (global_list_store)
-    gtk_list_store_clear (global_list_store);
 
   global_installed = installed;
   global_selection_callback = selected;
@@ -2243,10 +2213,7 @@ select_package_list_with_info (void *data)
 			       column);
 
   /* Set up an scrolled window for the treeview */
-  scroller = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
-				  GTK_POLICY_NEVER,
-				  GTK_POLICY_AUTOMATIC);
+  scroller = hildon_pannable_area_new ();
   gtk_container_add (GTK_CONTAINER (scroller), tree_view);
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), scroller,
 		      TRUE, TRUE, padding);

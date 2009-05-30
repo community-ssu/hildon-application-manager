@@ -55,6 +55,8 @@ GType package_info_cell_renderer_get_type (void);
 
 GtkCellRenderer* package_info_cell_renderer_new (void);
 
+void package_info_cell_renderer_listen_style(PackageInfoCellRenderer *cr, GtkWidget *widget);
+
 G_END_DECLS
 
 #endif
