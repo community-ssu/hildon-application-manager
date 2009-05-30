@@ -1444,13 +1444,13 @@ package_info_func (GtkTreeViewColumn *column,
 
       default_icon = gtk_icon_theme_load_icon (icon_theme,
                                                "general_application_manager",
-                                               26,
+                                               TREE_VIEW_ICON_SIZE,
                                                GtkIconLookupFlags (0),
                                                NULL);
 
       broken_icon = gtk_icon_theme_load_icon (icon_theme,
                                               "app_install_broken_application",
-                                              26,
+                                              TREE_VIEW_ICON_SIZE,
                                               GtkIconLookupFlags (0),
                                               NULL);
 

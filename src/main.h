@@ -32,6 +32,8 @@ extern "C" {
   #include <libosso.h>
 }
 
+#define TREE_VIEW_ICON_SIZE 48
+
 enum detail_kind {
   no_details = 0,
   install_details = 1,
