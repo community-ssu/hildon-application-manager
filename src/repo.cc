@@ -44,6 +44,8 @@
 
 #define _(x)       gettext (x)
 
+#define SCROLL_TO_ERROR_TIMEOUT 500
+
 static bool
 apt_method_is_available (const char* method)
 {
@@ -535,9 +537,63 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
     ask_the_pill_question ();
 }
 
+typedef struct
+{
+  GtkWidget *tv;
+  GtkWidget *pa;
+} ScrollToParams;
+
+static gboolean
+scroll_to_timeout(ScrollToParams *params)
+{
+  /* When this timeout fires, it is assumed that the dialog has finished sizing its children and
+     one can safely scroll to the error message */
+
+  hildon_pannable_area_scroll_to(HILDON_PANNABLE_AREA(params->pa), -1,
+    params->tv->allocation.y + MIN(params->tv->allocation.height, params->pa->allocation.height / 2));
+  g_object_set_data(G_OBJECT(params->tv), "scroll-to-timeout-has-passed", GINT_TO_POINTER(TRUE));
+
+  /* Remove timeout-related data from widget */
+  g_object_set_data_full(G_OBJECT(params->tv), "scroll-to-timeout", GINT_TO_POINTER(0), NULL);
+  g_object_set_data_full(G_OBJECT(params->tv), "scroll-to-timeout-params", NULL, (GDestroyNotify)g_free);
+  return FALSE;
+}
+
+static void
+add_scroll_timeout(GtkWidget *tv, GtkWidget *pa)
+{
+  /* If the timeout has not yet passed, then add it if not yet present, otherwise push it forward */
+  if (!GPOINTER_TO_INT(g_object_get_data(G_OBJECT(tv), "scroll-to-timeout-has-passed"))) {
+    if (!GPOINTER_TO_INT(g_object_get_data(G_OBJECT(tv), "scroll-to-timeout"))) {
+      ScrollToParams *params = g_new0(ScrollToParams, 1);
+
+      params->tv = tv;
+      params->pa = pa;
+
+      g_object_set_data_full(G_OBJECT(tv), "scroll-to-timeout-params", params, (GDestroyNotify)g_free);
+      g_object_set_data_full(G_OBJECT(tv), "scroll-to-timeout",
+        GINT_TO_POINTER(g_timeout_add(SCROLL_TO_ERROR_TIMEOUT, (GSourceFunc)scroll_to_timeout, params)),
+        (GDestroyNotify)g_source_remove);
+    }
+    else {
+      g_object_set_data_full(G_OBJECT(tv), "scroll-to-timeout",
+        GINT_TO_POINTER(g_timeout_add(SCROLL_TO_ERROR_TIMEOUT, (GSourceFunc)scroll_to_timeout,
+          g_object_get_data(G_OBJECT(tv), "scroll-to-timeout-params"))),
+          (GDestroyNotify)g_source_remove);
+    }
+  }
+}
+
+static void
+tv_size_allocate(GtkWidget *tv, GtkAllocation *alloc, GtkWidget *pa)
+{
+  /* Add/push forward the scroll timeout */
+  add_scroll_timeout(tv, pa);
+}
+
 static void
 show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
-		      bool isnew, cat_dialog_type type)
+		      bool isnew, cat_dialog_type type, const char *detail)
 {
   GtkWidget *dialog, *vbox, *caption, *scrolledw;
   GtkSizeGroup *group;
@@ -566,9 +622,9 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   dialog = gtk_dialog_new_with_buttons(title, NULL, GTK_DIALOG_MODAL, NULL);
   scrolledw = hildon_pannable_area_new();
   gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), scrolledw);
-//  if (detail)
-//    gtk_widget_set_size_request(scrolledw, -1, 350);
-//  else
+  if (detail)
+    gtk_widget_set_size_request(scrolledw, -1, 350);
+  else
     g_object_set(G_OBJECT(scrolledw), "size-request-policy", HILDON_SIZE_REQUEST_CHILDREN, NULL);
 
   vbox = gtk_vbox_new(FALSE, 0);
@@ -629,6 +685,26 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
     }
 
   gtk_widget_set_size_request (GTK_WIDGET (dialog), 650, -1);
+
+  if (detail) 
+    {
+      GtkTextBuffer *buf = gtk_text_buffer_new(NULL);
+      GtkWidget *text_view = GTK_WIDGET(g_object_new(HILDON_TYPE_TEXT_VIEW, "editable", FALSE, "wrap-mode", GTK_WRAP_CHAR, NULL));
+
+      GTK_WIDGET_UNSET_FLAGS(text_view, GTK_CAN_FOCUS | GTK_CAN_DEFAULT);
+      gtk_text_buffer_insert_at_cursor(buf, detail, -1);
+      hildon_text_view_set_buffer(HILDON_TEXT_VIEW(text_view), buf);
+      gtk_widget_set_name(text_view, "hildon-reversed-textview");
+      hildon_helper_set_logical_color(text_view, GTK_RC_TEXT, GTK_STATE_NORMAL, "AttentionColor");
+      hildon_helper_set_logical_color(text_view, GTK_RC_TEXT, GTK_STATE_ACTIVE, "AttentionColor");
+      hildon_helper_set_logical_color(text_view, GTK_RC_TEXT, GTK_STATE_SELECTED, "AttentionColor");
+      hildon_helper_set_logical_color(text_view, GTK_RC_TEXT, GTK_STATE_PRELIGHT, "AttentionColor");
+      gtk_container_add(GTK_CONTAINER(vbox), text_view);
+
+      /* When the dialog has finished sizing its widgets, scroll to the error message */
+      g_signal_connect(G_OBJECT(text_view), "realize", (GCallback)add_scroll_timeout, scrolledw);
+      g_signal_connect(G_OBJECT(text_view), "size-allocate", (GCallback)tv_size_allocate, scrolledw);
+  }
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (cat_edit_response), c);
@@ -755,7 +831,7 @@ cat_row_activated (GtkTreeView *treeview,
 
       c->cat_dialog->selected_cat = c;
       show_cat_edit_dialog (c->cat_dialog, c->catalogue_xexp,
-			    false, c->type);
+			    false, c->type, c->detail);
     }
 }
 
@@ -1069,7 +1145,7 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       xexp_aset_text (x, "name", "");
       xexp_aset_text (x, "uri", "http://");
       xexp_aset_text (x, "components", "user");
-      show_cat_edit_dialog (c, x, true, cat_editable);
+      show_cat_edit_dialog (c, x, true, cat_editable, NULL);
       return;
     }
 
@@ -1288,7 +1364,7 @@ static void
 add_catalogues_details (void *data)
 {
   add_catalogues_closure *c = (add_catalogues_closure *)data;
-  show_cat_edit_dialog (NULL, c->rest, true, cat_readonly);
+  show_cat_edit_dialog (NULL, c->rest, true, cat_readonly, NULL);
 }
 
 static void
