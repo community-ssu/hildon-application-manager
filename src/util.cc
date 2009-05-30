@@ -1787,13 +1787,28 @@ set_global_package_list (GList *packages,
 {
   global_have_last_selection = false;
 
+  if (global_list_store)
+    {
+      /* @FIXME:
+         Gotta set entries to NULL first, because some bug in maemo-gtk/hildon
+         is causing calls to cat_icon_func/cat_text_func with garbage data
+      */
+      GtkTreeIter itr;
+      if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (global_list_store),
+                                         &itr))
+        do
+          {
+            gtk_list_store_set(global_list_store, &itr, 0, NULL, -1);
+          } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (global_list_store),
+                                             &itr));
+      gtk_list_store_clear (global_list_store);
+    }
+
   for (GList *p = global_packages; p; p = p->next)
     {
       package_info *pi = (package_info *)p->data;
       pi->model = NULL;
     }
-  if (global_list_store)
-    gtk_list_store_clear (global_list_store);
 
   global_installed = installed;
   global_selection_callback = selected;
