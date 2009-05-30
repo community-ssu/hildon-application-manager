@@ -835,8 +835,8 @@ ip_warn_about_reboot (ip_clos *c)
     (_("ai_ti_operating_system_update"),
      NULL,
      GTK_DIALOG_MODAL,
-     _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
      _("ai_bd_create_backup"), HAM_BACKUP_RESPONSE,
+     _("ai_bd_confirm_ok"), GTK_RESPONSE_OK,
      NULL);
   push_dialog (dialog);
 
@@ -1576,9 +1576,9 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
 	  dialog = hildon_note_new_confirmation_add_buttons
 	    (NULL,
 	     final_msg,
-             dgettext ("hildon-libs", "wdgt_bd_yes"), GTK_RESPONSE_OK,
              _("ai_ni_bd_details"), 1,
              dgettext ("hildon-libs", "wdgt_bd_no"), GTK_RESPONSE_CANCEL,
+             dgettext ("hildon-libs", "wdgt_bd_yes"), GTK_RESPONSE_OK,
 	     NULL);
 	}
     }
