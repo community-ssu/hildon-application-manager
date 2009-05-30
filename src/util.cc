@@ -2567,6 +2567,46 @@ b64decode (const unsigned char *str, GdkPixbufLoader *loader)
     }
 }
 
+/*
+  Causes a rectangle of width (*rectwidth) and height (*rectheight) to
+  fit inside a rectangle of width and height.
+  The resulting pair ((*px),(*py)) holds the coordinates of the upper left
+  corner of the scaled rectangle wrt. the upper left corner of the given
+  rectangle.
+*/
+double fit_rect_inside_rect (double width, double height,
+			     double *x, double *y,
+			     double *rectwidth, double *rectheight)
+{
+  double aratio, rectaratio, scale ;
+
+  if (0 == width || 0 == height
+      || 0 == *rectwidth || 0 == *rectheight)
+    return 1.0 ;
+
+  aratio = width / height ;
+  rectaratio = *rectwidth / *rectheight ;
+
+  if (rectaratio > aratio)
+    {
+      *x = 0;
+      scale = width / *rectwidth;
+      *rectwidth = width;
+      *rectheight = *rectwidth / rectaratio;
+      *y = (height - *rectheight) / 2 ;
+    }
+  else
+    {
+      *y = 0;
+      scale = height / *rectheight;
+      *rectheight = height;
+      *rectwidth = *rectheight * rectaratio;
+      *x = (width - *rectwidth) / 2;
+    }
+
+  return scale;
+}
+
 GdkPixbuf *
 pixbuf_from_base64 (const char *base64)
 {
@@ -2590,6 +2630,63 @@ pixbuf_from_base64 (const char *base64)
   if (pixbuf)
     g_object_ref (pixbuf);
   g_object_unref (loader);
+
+  if (pixbuf)
+    {
+      int width = gdk_pixbuf_get_width (pixbuf);
+      int height = gdk_pixbuf_get_height (pixbuf);
+
+      if (width != TREE_VIEW_ICON_SIZE
+          || height != TREE_VIEW_ICON_SIZE)
+	{
+	  GdkPixbuf *right_size_pixbuf =
+	    gdk_pixbuf_new (gdk_pixbuf_get_colorspace (pixbuf),
+			    gdk_pixbuf_get_has_alpha (pixbuf),
+			    gdk_pixbuf_get_bits_per_sample (pixbuf),
+			    TREE_VIEW_ICON_SIZE,
+			    TREE_VIEW_ICON_SIZE);
+
+          if (right_size_pixbuf)
+            {
+              gdk_pixbuf_fill (right_size_pixbuf, 0x00000000);
+
+              if (G_LIKELY (width <= TREE_VIEW_ICON_SIZE
+                            && height <= TREE_VIEW_ICON_SIZE))
+                gdk_pixbuf_composite (pixbuf, right_size_pixbuf,
+                   /* dest_x */       (TREE_VIEW_ICON_SIZE - width) / 2,
+                   /* dest_y */       (TREE_VIEW_ICON_SIZE - width) / 2,
+                   /* dest_width */   width,
+                   /* dest_height */  height,
+                   /* offset_x */     (TREE_VIEW_ICON_SIZE - width) / 2,
+                   /* offset_y */     (TREE_VIEW_ICON_SIZE - width) / 2,
+                                      1.0, 1.0, GDK_INTERP_HYPER, 255);
+              else
+                {
+                  double d_width = width;
+                  double d_height = height;
+                  double x, y, scale;
+
+                  scale = fit_rect_inside_rect (TREE_VIEW_ICON_SIZE,
+                                                TREE_VIEW_ICON_SIZE,
+                                                &x, &y,
+                                                &d_width, &d_height);
+
+                  gdk_pixbuf_composite (pixbuf, right_size_pixbuf,
+                                        /* dest_x */      x,
+                                        /* dest_y */      y,
+                                        /* dest_width */  d_width,
+                                        /* dest_height */ d_height,
+                                        /* offset_x */    x,
+                                        /* offset_y */    y,
+                                        scale, scale, GDK_INTERP_HYPER, 255);
+                }
+
+              g_object_unref (pixbuf);
+              pixbuf = right_size_pixbuf;
+            }
+        }
+  }
+
   return pixbuf;
 }
 
