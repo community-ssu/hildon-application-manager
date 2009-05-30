@@ -24,4 +24,4 @@ Main view:
 
 Bugs:
 [X] Vertically center package info renderer text
-[ ] Secondary text colour for details/size row
+[X] Secondary text colour for details/size row
