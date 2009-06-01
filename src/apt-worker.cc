@@ -6145,7 +6145,7 @@ static void
 show_fb_text (int line, const char *text)
 {
   run_system (false,
-	      "chroot /mnt/initfs/ text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%s'",
+	      "/usr/bin/text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%s'",
 	      400 + 20*line, text);
 }
 
@@ -6153,7 +6153,7 @@ static void
 show_fb_status (int percent)
 {
   run_system (false,
-	      "chroot /mnt/initfs/ text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%3d%%'",
+	      "/usr/bin/text2screen -s 2 -x 5 -y %d -B -1 -T 0xF000 -t '%3d%%'",
 	      440, percent);
 }
 
