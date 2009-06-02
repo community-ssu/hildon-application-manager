@@ -189,14 +189,11 @@ enable_update_all (bool flag)
 GtkWidget *
 create_package_menu (const char *op_label)
 {
-  GtkWidget *menu = gtk_menu_new ();
-
-  add_item (GTK_MENU (menu),
-            op_label,
-            do_current_operation);
-  add_item (GTK_MENU (menu),
-	    _("ai_me_cs_details"),
-	    show_current_details);
+  GtkWidget *menu = hildon_gtk_menu_new ();
+  GtkWidget *item = gtk_menu_item_new_with_mnemonic (_("ai_me_details"));
+  gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+  g_signal_connect(G_OBJECT (item), "activate",
+                   (GCallback) show_current_details, NULL);
 
   return menu;
 }
