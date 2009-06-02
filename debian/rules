@@ -24,6 +24,8 @@ ifeq (,$(findstring nolauncher,$(DEB_BUILD_OPTIONS)))
 	USE_MAEMO_LAUNCHER = true
 endif
 
+CFLAGS += -DTAP_AND_HOLD
+
 CXXFLAGS = $(CFLAGS)
 
 config.status:
