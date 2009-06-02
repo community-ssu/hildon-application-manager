@@ -42,8 +42,9 @@
 static GtkWidget *
 add_item (HildonAppMenu *menu, const gchar *label, void (*func)())
 {
-  GtkWidget *item = hildon_gtk_button_new (HILDON_SIZE_AUTO);
-  gtk_button_set_label (GTK_BUTTON (item), label);
+  GtkWidget *item = hildon_button_new (HILDON_SIZE_AUTO, 
+                                       HILDON_BUTTON_ARRANGEMENT_VERTICAL);
+  hildon_button_set_title (HILDON_BUTTON (item), label);
 
   if (func)
     g_signal_connect (item, "clicked", G_CALLBACK (func), NULL);
@@ -104,6 +105,19 @@ create_menu ()
   add_item (main,
             _("ai_me_view_sort"),
             show_sort_settings_dialog_flow);
+
+  /* Search */
+  search_menu_item =
+    add_item(main,
+      	     _("ai_me_search"),
+	     show_search_dialog_flow);
+
+  /* Refresh */
+  refresh_menu_item =
+    add_item(main,
+      	     _("ai_me_refresh"),
+	     refresh_package_cache_without_user_flow);
+
   /* Application catalogues */
   add_item (main,
             _("ai_me_tools_repository"),
@@ -134,23 +148,8 @@ create_menu ()
   /* Update all */
   update_all_menu_item =
     add_item(main,
-      	     _("ai_tb_update_all"),
+      	     _("ai_me_update_all"),
 	     update_all_packages_flow);
-
-  /* Search */
-  search_menu_item =
-    add_item(main,
-      	     _("ai_ti_search"),
-	     show_search_dialog_flow);
-
-  /* Refresh */
-  refresh_menu_item =
-    gtk_button_new_from_stock(GTK_STOCK_REFRESH);
-  hildon_app_menu_append(main, GTK_BUTTON(refresh_menu_item));
-  g_signal_connect(G_OBJECT(refresh_menu_item),
-                   "clicked",
-                   (GCallback)refresh_package_cache_without_user_flow,
-                   NULL);
 
   gtk_widget_show_all (GTK_WIDGET (main));
 
@@ -190,14 +189,11 @@ enable_update_all (bool f)
 GtkWidget *
 create_package_menu (const char *op_label)
 {
-  GtkWidget *menu = gtk_menu_new ();
+  GtkWidget *menu = hildon_gtk_menu_new (), *item;
 
-  add_item (GTK_MENU (menu),
-            op_label,
-            do_current_operation);
-  add_item (GTK_MENU (menu),
-	    _("ai_me_cs_details"),
-	    show_current_details);
+  item = gtk_menu_item_new_with_mnemonic(_("ai_me_details"));
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+  g_signal_connect(G_OBJECT(item), "activate", (GCallback)show_current_details, NULL);
 
   return menu;
 }

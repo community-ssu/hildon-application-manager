@@ -8,6 +8,7 @@ hildon-application-manager (1:2.2.23~unreleased) unstable; urgency=low
   * Make Save/Continue/OK buttons the last ones to be added
   * Pannables, HildonCheckButton in settings dialog
   * Get rid of the toolbars
+  * Menu updates, including tap-and-hold for "Details"
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 04 Jun 2009 21:52:00 +0100	
 
