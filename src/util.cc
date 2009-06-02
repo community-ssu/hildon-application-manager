@@ -1629,30 +1629,49 @@ global_package_list_key_pressed (GtkWidget * widget,
 }
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
-static void
-tap_and_hold_cb (GtkWidget *treeview, gpointer data)
+static gboolean
+button_press_cb (GtkWidget *treeview, GdkEventButton *event, gpointer data)
 {
-  g_return_if_fail (treeview != NULL && GTK_IS_TREE_VIEW (treeview));
-  g_return_if_fail (data != NULL && GTK_IS_MENU (data));
+  g_return_val_if_fail (treeview != NULL && GTK_IS_TREE_VIEW (treeview), FALSE);
 
-  GtkWidget *menu = GTK_WIDGET (data);
-  package_info *pi = current_package_info;
-
-  if (pi != NULL)
+  if (event->window == gtk_tree_view_get_bin_window (GTK_TREE_VIEW (treeview)))
     {
-      /* Set sensitiveness for the first item of the CSM: the operation item */
-      GList *items = gtk_container_get_children (GTK_CONTAINER (menu));
-      if (items != NULL)
+      GtkTreeModel *model = NULL;
+
+      model = gtk_tree_view_get_model (GTK_TREE_VIEW (treeview));
+      if (model)
         {
-          if (items->data != NULL && GTK_IS_WIDGET (items->data))
+          GtkTreePath *tp = NULL;
+
+          gtk_tree_view_get_path_at_pos (GTK_TREE_VIEW (treeview),
+                                         event->x,
+                                         event->y,
+                                         &tp, NULL, NULL, NULL);
+
+          if (tp)
             {
-              /* Sensitiveness depending on the system_update flag */
-              gtk_widget_set_sensitive (GTK_WIDGET (items->data),
-                                        !(pi->flags & pkgflag_system_update));
+              GtkTreeIter itr;
+
+              if (gtk_tree_model_get_iter (model, &itr, tp))
+                {
+                  package_info *pi = NULL;
+
+                  gtk_tree_model_get (model, &itr, 0, &pi, -1);
+
+                  /* Update the global variable */
+                  current_package_info = pi;
+
+                  /* Use the callback, if present */
+                  if (global_selection_callback)
+                    global_selection_callback (pi);
+                }
+
+              gtk_tree_path_free (tp);
             }
-          g_list_free (items);
         }
     }
+
+  return FALSE;
 }
 #endif /* TAP_AND_HOLD && MAEMO_CHANGES */
 
@@ -1756,22 +1775,12 @@ make_global_package_list (GList *packages,
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
   /* Create the contextual menu */
-  if (installed)
-    {
-      menu = create_package_menu (op_label);
-
-      /* Connect the tap_and_hold signal to change the sensitiveness of
-         the first CSM item when it's not uninstallable */
-      g_signal_connect (tree, "tap_and_hold",
-                        G_CALLBACK (tap_and_hold_cb), menu);
-    }
-  else
-    {
-      /* If not in uninstall view, don't set an insensitive text */
-      menu = create_package_menu (op_label);
-    }
+  menu = create_package_menu (op_label);
 
   gtk_widget_show_all (menu);
+
+  g_signal_connect (tree, "button-press-event",
+                    G_CALLBACK (button_press_cb), NULL);
 
   gtk_widget_tap_and_hold_setup (tree, menu, NULL,
 				 GtkWidgetTapAndHoldFlags (0));
