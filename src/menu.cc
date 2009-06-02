@@ -105,6 +105,19 @@ create_menu ()
   add_item (main,
             _("ai_me_view_sort"),
             show_sort_settings_dialog_flow);
+
+  /* Search */
+  search_menu_item =
+    add_item (main,
+              _("ai_me_search"),
+              show_search_dialog_flow);
+
+  /* Refresh */
+  refresh_menu_item =
+    add_item (main,
+      	      _("ai_me_refresh"),
+              refresh_package_cache_without_user_flow);
+
   /* Application catalogues */
   add_item (main,
             _("ai_me_tools_repository"),
@@ -134,21 +147,9 @@ create_menu ()
 
   /* Update all */
   update_all_menu_item =
-    add_item (main,
-              _("ai_tb_update_all"),
-              update_all_packages_flow);
-
-  /* Search */
-  search_menu_item =
-    add_item (main,
-              _("ai_ti_search"),
-              show_search_dialog_flow);
-
-  /* Refresh */
-  refresh_menu_item = gtk_button_new_from_stock (GTK_STOCK_REFRESH);
-  hildon_app_menu_append (main, GTK_BUTTON (refresh_menu_item));
-  g_signal_connect (G_OBJECT (refresh_menu_item), "clicked",
-                    (GCallback) refresh_package_cache_without_user_flow, NULL);
+    add_item(main,
+      	     _("ai_me_update_all"),
+	     update_all_packages_flow);
 
   gtk_widget_show_all (GTK_WIDGET (main));
 
