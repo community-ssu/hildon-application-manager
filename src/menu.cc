@@ -42,8 +42,9 @@
 static GtkWidget *
 add_item (HildonAppMenu *menu, const gchar *label, void (*func)())
 {
-  GtkWidget *item = hildon_gtk_button_new (HILDON_SIZE_AUTO);
-  gtk_button_set_label (GTK_BUTTON (item), label);
+  GtkWidget *item = hildon_button_new (HILDON_SIZE_AUTO, 
+                                       HILDON_BUTTON_ARRANGEMENT_VERTICAL);
+  hildon_button_set_title (HILDON_BUTTON (item), label);
 
   if (func)
     g_signal_connect (item, "clicked", G_CALLBACK (func), NULL);
