@@ -2680,7 +2680,7 @@ get_description (int summary_kind,
 
   return res;
 }
-	 
+
 static string
 get_short_description (int summary_kind,
 		       pkgCache::PkgIterator &pkg,
@@ -3003,7 +3003,7 @@ installable_status ()
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   pkgDepCache &cache = *(awc->cache);
   int installable_status = status_unable;
-  
+
   for (pkgCache::PkgIterator pkg = cache.PkgBegin();
        pkg.end() != true;
        pkg++)
@@ -3033,6 +3033,67 @@ installable_status ()
 }
 
 static int
+package_policy_status (pkgCache::PkgIterator pkg, bool only_user)
+{
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
+  pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter (cache);
+
+  if (only_user
+      && (candidate.end () || !is_user_package (candidate)))
+    return status_able;
+
+  // skip system update meta-packages that are not installed
+  if (only_user && !candidate.end ())
+    {
+      package_record rec (candidate);
+      int flags = get_flags (rec);
+      if (flags & pkgflag_system_update)
+	return status_able;
+    }
+
+  for (pkgCache::DepIterator Dep = candidate.DependsList ();
+       Dep.end () != true;
+       Dep++)
+    {
+      pkgCache::PkgIterator dpkg = Dep.TargetPkg ();
+      pkgCache::VerIterator verdpkg = cache[dpkg].CandidateVerIter (cache);
+
+      // Check only non-user packages
+      if (verdpkg.end () || is_user_package (verdpkg))
+	continue;
+
+
+      int op = Dep->CompareOp & 0x0F;
+
+      if (Dep->Type == pkgCache::Dep::Depends)
+	{
+	  if (op == pkgCache::Dep::NoOp
+	      || op == pkgCache::Dep::GreaterEq
+	      || op == pkgCache::Dep::Greater)
+	    continue;
+
+	  log_stderr ("%s breaks 3rd party dependencies policy:",
+		      pkg.Name ());
+	  return status_incompatible_thirdparty;
+	}
+      else if (Dep->Type == pkgCache::Dep::Conflicts)
+	{
+	  if (op == pkgCache::Dep::NoOp
+	      || op == pkgCache::Dep::Less
+	      || op == pkgCache::Dep::LessEq
+	      || op == pkgCache::Dep::Equals)
+	    continue;
+
+	  log_stderr ("%s breaks 3rd party conflicts policy", pkg.Name ());
+	  return status_incompatible_thirdparty;
+	}
+    }
+
+  return status_able;
+}
+
+static int
 removable_status ()
 {
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
@@ -3044,7 +3105,7 @@ removable_status ()
       if (cache[pkg].InstBroken())
 	return status_needed;
     }
-  
+
   return status_unable;
 }
 
@@ -3071,12 +3132,12 @@ cmd_get_package_info ()
       pkgCache::PkgIterator pkg = cache.FindPkg (package);
 
       // simulate install
-      
+
       mark_named_package_for_install (package);
       if (any_newly_or_related_broken ())
 	info.installable_status = installable_status ();
       else
-	info.installable_status = status_able;
+	info.installable_status = package_policy_status (pkg, true);
       info.download_size = (int64_t) cache.DebSize ();
       info.install_user_size_delta = (int64_t) cache.UsrSize ();
 
@@ -3098,7 +3159,7 @@ cmd_get_package_info ()
       if (!only_installable_info)
 	{
 	  // simulate remove
-	  
+
 	  if (!strcmp (package, "magic:sys"))
 	    {
 	      info.removable_status = status_system_update_unremovable;
@@ -3137,7 +3198,7 @@ cmd_get_package_info ()
 	    }
 	}
     }
-  
+
   response.encode_mem (&info, sizeof (apt_proto_package_info));
 }
 
