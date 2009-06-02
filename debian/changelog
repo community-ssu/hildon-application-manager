@@ -1,8 +1,8 @@
-hildon-application-manager (1:2.2.22~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.21-2) unstable; urgency=low
 
-  * 
+  * Release 2.2.21-2
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 01 Jun 2009 17:46:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 02 Jun 2009 10:35:00 +0100	
 
 hildon-application-manager (1:2.2.21-1) unstable; urgency=low
 
@@ -27,16 +27,15 @@ hildon-application-manager (1:2.2.21) unstable; urgency=low
   * Fixes: NB#102707 - Operation Failed info not comming along the connecting dialog.
   * Fixes: NB#118348 - L10N invalid logical IDs report.
   * Fixes: NB#103607 - Installing Certified from test repository should not pop legal disclamer dialog.
-  * Fixes: NB#115611 - ham-updates plugin crashes on unloading
   * Fixes: NB#118137 - Device can be used while performing SSU
-	
+
   [ Víctor Jáquez ]
   * Fixes: NB#113409 - Application manager's status menu plugin is using wrong logical ID.
   * Fixes: NB#117277 - Flat-themed buttons on the app manager view
   * New SSU dialogues
-	
+
  -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 28 May 2009 18:54:00 +0100	
-	
+
 hildon-application-manager (1:2.2.20-1) unstable; urgency=low
 
   * Fixes: NB#113743 wrong banner is shown when trying to save log file into
