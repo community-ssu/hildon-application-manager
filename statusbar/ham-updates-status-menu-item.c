@@ -122,11 +122,12 @@ struct _HamUpdatesStatusMenuItemPrivate
 
   /* parent map signal connected? */
   gboolean map_connected;
+  GObject *wid_ancestor;
 };
 
 /* setup prototypes */
 static gboolean setup_dbus (HamUpdatesStatusMenuItem *self);
-static void close_dbus (HamUpdatesStatusMenuItem* self);
+static void close_dbus (HamUpdatesStatusMenuItem *self);
 static void setup_gconf (HamUpdatesStatusMenuItem *self);
 static gboolean setup_alarm (HamUpdatesStatusMenuItem *upno);
 static gboolean setup_alarm_now (gpointer data);
@@ -152,6 +153,8 @@ static void ham_updates_status_menu_display_event_cb
 (osso_display_state_t state, gpointer data);
 static void ham_updates_status_menu_item_parent_set
 (GtkWidget *widget, GtkObject *old_parent, gpointer data);
+static void ham_updates_status_menu_item_map_event (GtkWidget *widget,
+                                                    gpointer data);
 
 /* icon blinking */
 static void blink_icon_off (HamUpdatesStatusMenuItem *self);
@@ -175,6 +178,18 @@ ham_updates_status_menu_item_finalize (GObject *object)
 
   self = HAM_UPDATES_STATUS_MENU_ITEM (object);
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  if (priv->map_connected == TRUE)
+    {
+      /* disconnect parent's "map" */
+      if (priv->wid_ancestor != NULL)
+        g_signal_handlers_disconnect_by_func
+          (priv->wid_ancestor,
+           G_CALLBACK (ham_updates_status_menu_item_map_event), self);
+
+      priv->map_connected = FALSE;
+      priv->wid_ancestor = NULL;
+    }
 
   blink_icon_off (self);
 
@@ -242,6 +257,7 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
   priv->blinker_id = priv->setup_alarm_id = 0;
 
   priv->map_connected = FALSE;
+  priv->wid_ancestor = NULL;
 
   if (setup_dbus (self))
     {
@@ -371,8 +387,10 @@ ham_updates_status_menu_item_parent_set (GtkWidget *widget,
 
   if (priv->map_connected == TRUE)
     {
-      g_signal_handlers_disconnect_by_func
-        (old_parent, ham_updates_status_menu_item_map_event, self);
+      if (priv->wid_ancestor != NULL)
+        g_signal_handlers_disconnect_by_func
+          (priv->wid_ancestor,
+           G_CALLBACK (ham_updates_status_menu_item_map_event), self);
 
       priv->map_connected = FALSE;
     }
@@ -382,7 +400,8 @@ ham_updates_status_menu_item_parent_set (GtkWidget *widget,
   if (ancestor != NULL)
     {
       /* Attach map signal, so we know when status menu is open */
-      g_signal_connect (G_OBJECT (ancestor), "map",
+      priv->wid_ancestor = G_OBJECT (ancestor);
+      g_signal_connect (priv->wid_ancestor, "map",
                         G_CALLBACK (ham_updates_status_menu_item_map_event),
                         self);
 
