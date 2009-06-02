@@ -998,8 +998,6 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 				 cur_section_rank, cur_section_name) == NULL
 	      || (install_sections && !install_sections->next))))
     show_parent_view ();
-  else /* We should refresh current view after catalogue list updating... */
-    show_view (cur_view_struct);
 
   if (c->cont)
     c->cont (c->data);
