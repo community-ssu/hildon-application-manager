@@ -1300,13 +1300,18 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
         {
           package_info *pi = (package_info *) c->cur->data;
           gchar *msg = result_code_to_message (pi, rescode_download_failed);
+
+          /* stop the entertainment dialogue before annoying the user */
+          stop_entertaining_user ();
+          c->entertaining = false;
+
           annoy_user (msg, ip_end, c);
         }
       else
         ip_end (c);
     }
   else
-    ip_download_cur_retry_confirm(result_code, c);
+    ip_download_cur_retry_confirm (result_code, c);
 }
 
 static void
