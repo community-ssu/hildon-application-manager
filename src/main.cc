@@ -1483,7 +1483,7 @@ installed_package_selected (package_info *pi)
     {
       set_details_callback (installed_package_details, pi);
       set_operation_callback (uninstall_operation_callback, pi);
-      set_operation_label (_("ai_me_package_uninstall"));
+      set_operation_label (_("ai_tb_uninstall"));
 
       if (current_tb_struct && current_tb_struct->operation_button)
         gtk_widget_set_sensitive (current_tb_struct->operation_button,
@@ -1493,7 +1493,7 @@ installed_package_selected (package_info *pi)
     {
       set_details_callback (NULL, NULL);
       set_operation_callback (NULL, NULL);
-      set_operation_label (_("ai_me_package_uninstall"));
+      set_operation_label (_("ai_tb_uninstall"));
     }
 }
 
@@ -1511,7 +1511,7 @@ make_install_section_view (view *v)
 {
   GtkWidget *view;
 
-  set_operation_label (_("ai_me_package_install"));
+  set_operation_label (_("ai_tb_install"));
 
   section_info *si = find_section_info (&install_sections,
 					cur_section_rank, cur_section_name);
@@ -1670,7 +1670,7 @@ make_install_applications_view (view *v)
 
   check_catalogues ();
 
-  set_operation_label (_("ai_me_package_install"));
+  set_operation_label (_("ai_tb_install"));
 
   if (install_sections && install_sections->next == NULL)
     {
@@ -1730,7 +1730,7 @@ make_upgrade_applications_view (view *v)
 
   check_catalogues ();
 
-  set_operation_label (_("ai_me_package_update"));
+  set_operation_label (_("ai_tb_update"));
 
   view =
     make_global_package_list (upgradeable_packages,
@@ -1765,7 +1765,7 @@ make_uninstall_applications_view (view *v)
 {
   GtkWidget *view;
 
-  set_operation_label (_("ai_me_package_uninstall"));
+  set_operation_label (_("ai_tb_uninstall"));
 
   view = make_global_package_list (installed_packages,
 				   true,
@@ -1792,8 +1792,8 @@ make_search_results_view (view *v)
       || v->parent == &upgrade_applications_view)
     {
       set_operation_label (v->parent == &install_applications_view
-			   ? _("ai_me_package_install")
-			   : _("ai_me_package_update"));
+			   ? _("ai_tb_install")
+			   : _("ai_tb_update"));
 
       view = make_global_package_list (search_result_packages,
 				       false,
@@ -1807,7 +1807,7 @@ make_search_results_view (view *v)
     }
   else
     {
-      set_operation_label (_("ai_me_package_uninstall"));
+      set_operation_label (_("ai_tb_uninstall"));
 
       view = make_global_package_list (search_result_packages,
 				       true,
@@ -2239,7 +2239,7 @@ static void
 set_operation_label (const char *label)
 {
   if (label == NULL)
-    label = _("ai_me_package_install");
+    label = _("ai_tb_install");
 
   operation_label = label;
   set_operation_toolbar_label (label, operation_func != NULL);
