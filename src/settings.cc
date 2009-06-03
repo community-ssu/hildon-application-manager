@@ -52,6 +52,7 @@ bool red_pill_show_magic_sys = false;
 bool red_pill_include_details_in_log = false;
 bool red_pill_check_always = false;
 bool red_pill_ignore_wrong_domains = true;
+bool red_pill_ignore_thirdparty_policy = false;
 bool red_pill_permanent = false;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
@@ -115,6 +116,8 @@ load_settings ()
 	    red_pill_check_always = val;
 	  else if (sscanf (line, "red-pill-ignore-wrong-domains %d", &val) == 1)
 	    red_pill_ignore_wrong_domains = val;
+	  else if (sscanf (line, "red-pill-ignore-thirdparty-policy %d", &val) == 1)
+	    red_pill_ignore_thirdparty_policy = val;
 	  else if (sscanf (line, "red-pill-permanent %d", &val) == 1)
 	    red_pill_permanent = val;
 	  else
@@ -123,7 +126,7 @@ load_settings ()
       free (line);
       fclose (f);
     }
-  
+
   if (!red_pill_permanent)
     red_pill_mode = false;
 
@@ -147,11 +150,13 @@ save_settings ()
       fprintf (f, "red-pill-show-deps %d\n", red_pill_show_deps);
       fprintf (f, "red-pill-show-all %d\n", red_pill_show_all);
       fprintf (f, "red-pill-show-magic-sys %d\n", red_pill_show_magic_sys);
-      fprintf (f, "red-pill-include-details-in-log %d\n", 
+      fprintf (f, "red-pill-include-details-in-log %d\n",
 	       red_pill_include_details_in_log);
       fprintf (f, "red-pill-check-always %d\n", red_pill_check_always);
       fprintf (f, "red-pill-ignore-wrong-domains %d\n",
 	       red_pill_ignore_wrong_domains);
+      fprintf (f, "red-pill-ignore-thirdparty-policy %d\n",
+	       red_pill_ignore_thirdparty_policy);
       fprintf (f, "red-pill-permanent %d\n", red_pill_permanent);
       fprintf (f, "assume-connection %d\n", assume_connection);
       fflush (f);
@@ -171,6 +176,7 @@ enum boolean_options {
   OPT_DOWNLOAD_PACKAGES_TO_MMC,
   OPT_CHECK_ALWAYS,
   OPT_IGNORE_WRONG_DOMAINS,
+  OPT_IGNORE_THIRDPARTY_POLICY,
   OPT_USE_APT_ALGORITHMS,
 #if 0
   OPT_PERMANENT,
@@ -245,6 +251,9 @@ make_settings_tab (settings_closure *c)
   make_boolean_option (c, vbox, group, OPT_IGNORE_WRONG_DOMAINS,
 		       "Ignore packages from wrong domains",
 		       &red_pill_ignore_wrong_domains);
+  make_boolean_option (c, vbox, group, OPT_IGNORE_THIRDPARTY_POLICY,
+		       "Ignore the third party packages policy for SSU",
+		       &red_pill_ignore_thirdparty_policy);
   make_boolean_option (c, vbox, group, OPT_USE_APT_ALGORITHMS,
 		       "Use apt-get algorithms",
 		       &use_apt_algorithms);
@@ -385,7 +394,7 @@ show_sort_settings_dialog_flow ()
 const char *
 backend_options ()
 {
-  static char options[5];
+  static char options[6];
 
   char *ptr = options;
   if (break_locks)
@@ -394,6 +403,8 @@ backend_options ()
     *ptr++ = 'D';
   if (download_packages_to_mmc)
     *ptr++ = 'M';
+  if (red_pill_mode && red_pill_ignore_thirdparty_policy)
+    *ptr++ = 'T';
   *ptr++ = '\0';
 
   return options;

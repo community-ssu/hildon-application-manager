@@ -196,6 +196,11 @@ bool flag_use_apt_algorithms = false;
 */
 bool flag_download_packages_to_mmc = false;
 
+/* Setting this to false will check for 3rd party package policy to
+   avoid SSU problems
+*/
+bool flag_ignore_thirdparty_policy = false;
+
 /** GENERAL UTILITIES
  */
 
@@ -1411,6 +1416,9 @@ set_options (const char *options)
 
   if (strchr (options, 'A'))
     flag_use_apt_algorithms = true;
+
+  if (strchr (options, 'T'))
+    flag_ignore_thirdparty_policy = true;
 }
 
 void
@@ -3033,18 +3041,17 @@ installable_status ()
 }
 
 static int
-package_policy_status (pkgCache::PkgIterator pkg, bool only_user)
+package_policy_status (pkgCache::PkgIterator pkg)
 {
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   pkgDepCache &cache = *(awc->cache);
   pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter (cache);
 
-  if (only_user
-      && (candidate.end () || !is_user_package (candidate)))
+  if (candidate.end () || !is_user_package (candidate))
     return status_able;
 
   // skip system update meta-packages that are not installed
-  if (only_user && !candidate.end ())
+  if (!candidate.end ())
     {
       package_record rec (candidate);
       int flags = get_flags (rec);
@@ -3137,7 +3144,9 @@ cmd_get_package_info ()
       if (any_newly_or_related_broken ())
 	info.installable_status = installable_status ();
       else
-	info.installable_status = package_policy_status (pkg, true);
+	info.installable_status = flag_ignore_thirdparty_policy
+	  ? status_able
+	  : package_policy_status (pkg);
       info.download_size = (int64_t) cache.DebSize ();
       info.install_user_size_delta = (int64_t) cache.UsrSize ();
 
