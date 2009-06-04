@@ -238,10 +238,8 @@ show_parent_view ()
 static GtkWidget *
 make_padded_button (const char *label)
 {
-  GtkWidget *l = gtk_label_new (label);
-  gtk_misc_set_padding (GTK_MISC (l), 15, 15);
   GtkWidget *btn = hildon_gtk_button_new (HILDON_SIZE_FINGER_HEIGHT);
-  gtk_container_add (GTK_CONTAINER (btn), l);
+  gtk_button_set_label(GTK_BUTTON(btn), label);
   return btn;
 }
 
