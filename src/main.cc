@@ -162,16 +162,17 @@ view search_results_view = {
   NULL, NULL, NULL, false
 };
 
+static GtkWindow *main_window = NULL;
+
 static void
 set_current_view (view *v)
 {
   g_return_if_fail (v != NULL);
 
+  main_window = GTK_WINDOW (v->window);
   cur_view_struct = v;
   set_current_toolbar (v->tb_struct);
 }
-
-static GtkWindow *main_window = NULL;
 
 void
 show_view (view *v)
