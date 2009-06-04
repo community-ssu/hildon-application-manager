@@ -125,6 +125,12 @@ installable_status_to_message (package_info *pi,
 			     pi->get_display_name (false));
       with_details = false;
     }
+  else if (pi->info.installable_status == status_incompatible_thirdparty)
+    {
+      msg = g_strdup_printf ("!!!%s breaks the 3rd party package policy",
+                             pi->get_display_name (false));
+      with_details = true;
+    }
   else
     {
       msg = g_strdup_printf ((pi->installed_version
