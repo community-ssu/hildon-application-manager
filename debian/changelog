@@ -1,8 +1,14 @@
-hildon-application-manager (1:2.2.22~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.22) unstable; urgency=low
 
-  * 
+  [ David Kedves ]
+  * Fixes: NB#119941 - Installing progress bar shown along with Downloading failed info note.
+  * Fixes: NB#120002 - 'Operation in progress' info note is seen after 'Checking for update' finishes.
+  * Fixes: NB#115611 - ham-updates plugin crashes on unloading.
+  
+  [ Víctor Jáquez ]
+  * 3rd party package policy for SSU.
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 02 Jun 2009 13:17:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 04 Jun 2009 21:40:00 +0100	
 
 hildon-application-manager (1:2.2.21-2) unstable; urgency=low
 

@@ -1,3 +1,54 @@
+2009-06-04  Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/main.cc (show_parent_view): Removed the padding of the button's
+	label.
+	(set_current_view): set main_window from set_current_view as well as
+	show_view to prevent a stale value after returning from a non-main.
+
+2009-06-04  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/operations.cc (installable_status_to_message): Added custom
+	message when the installable status is 3rd party policy breakage.
+
+2009-06-03  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (set_options): Receives the 3rd party policy check
+	option. 
+	(package_policy_status): Changed the function signature.
+	(cmd_get_package_info): Disable the policy check if the red-pill
+	option is enabled.
+	* src/settings.cc (load_settings) (save_settings): Handle the 3rd
+	party policy option.
+	(make_settings_tab): Add the checkbox in the settings dialogue.
+	(backend_options): Sends the 3rd party policy to the backend.
+
+2009-06-03  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/main.cc (installed_package_selected) (make_install_section_view)
+	(make_upgrade_applications_view) (make_uninstall_applications_view)
+	(make_search_results_view) (set_operation_label): Updated logical
+	strings in toolbar.
+
+2009-06-02  Víctor Manuel Jáquez Leal  <vjaquez@igalia.com>
+
+	* src/apt-worker-proto.h: Added status_incompatible_thirdparty
+	installable package status.
+	* src/apt-worker.cc (package_policy_status): New function.
+	(cmd_get_package_info): Set the installable status given the new
+	function. 
+
+2009-06-02  David Kedves <dkedves@blumsoft.eu>
+
+	* src/operations.cc (ip_download_cur_reply): Stops the entertainment
+	dialogue when the package download fails before annoying the user
+	(NB#119941).
+	* src/main.cc (get_package_list_reply): Don't refresh the current view
+	after retrieving the package list. (NB#120002)
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_finalize): Disconnect map event on
+	ancestor widget. (NB#115611)
+	(ham_updates_status_menu_item_parent_set): Save the ancestor widget.
+
 2009-06-01  Gabriel Schulhof <gabriel.schulhof@nokia.com>
 
 	* src/apt-worker.cc (show_fb_text) (show_fb_status): Don't chroot the
