@@ -1,0 +1,27 @@
+Package list:
+[X] Package list icon is 48x48 centered in the row. 26x26 icon is centered inside empty 48x48 frame.
+    Use pixbuf cell renderer for icon
+[X] Install/Uninstall/Update happens on row-activate
+[X] Search, Refresh, "Update all" go into the HildonAppMenu
+[X] Info goes to CSM == "Detais" during operation
+
+Repo list:
+[X] No lock icon
+[X] Edit is gone to row-activate ("Edit" localized string is gone)
+[X] Delete moves to details dialog -> "Save" and "Delete" ("Delete" only if read-write)
+
+General:
+[X] "Save"/"Continue" is at the bottom
+[X] HildonPannableArea everywhere
+
+[ ] No "Update All" button if there are no packages to update
+---
+
+Main view:
+[ ] Use "SmallEmpSystemFont" instead of "SmallSystemFont" in labels
+[ ] Try centering the icon and text on top of the buttons
+[ ] Align buttons to the bottom left
+
+Bugs:
+[X] Vertically center package info renderer text
+[ ] Secondary text colour for details/size row
