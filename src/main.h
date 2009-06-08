@@ -152,6 +152,8 @@ void refresh_package_cache_without_user (const char *title,
 						       void *data),
 					 void *data);
 
+void refresh_package_cache_without_user_flow ();
+
 void maybe_refresh_package_cache_without_user ();
 
 void add_temp_catalogues_and_refresh (xexp *tempcat,
@@ -167,6 +169,7 @@ void set_catalogues_and_refresh (xexp *catalogues,
 
 void install_from_file_flow (const char *filename);
 void restore_packages_flow ();
+void update_all_packages_flow ();
 
 /* FORCE_SHOW_CATALOGUE_ERRORS if the user ignored the catalogue errors, this
    function will reset the ignoring request and the dialogue will be shown

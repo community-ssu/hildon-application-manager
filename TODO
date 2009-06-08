@@ -14,7 +14,7 @@ General:
 [X] "Save"/"Continue" is at the bottom
 [X] HildonPannableArea everywhere
 
-[ ] No "Update All" button if there are no packages to update
+[X] No "Update All" button if there are no packages to update
 ---
 
 Main view:
