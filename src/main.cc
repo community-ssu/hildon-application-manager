@@ -1200,14 +1200,14 @@ static entertainment_game rpcwu_games[] = {
 };
 
 void
-refresh_package_cache_without_user (const char *title, 
+refresh_package_cache_without_user (const char *title,
 				    void (*cont) (bool keep_going, void *data),
 				    void *data)
 {
   rpcwu_clos *c = new rpcwu_clos;
   c->cont = cont;
   c->data = data;
-  
+
   if (title)
     set_entertainment_main_title (title, true);
   else
@@ -1391,7 +1391,7 @@ update_all_packages_flow_end (int n_successful, void *data)
   end_interaction_flow ();
 }
 
-static void
+void
 update_all_packages_flow ()
 {
   if (start_interaction_flow ())
