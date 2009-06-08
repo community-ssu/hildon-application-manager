@@ -32,6 +32,7 @@
 #include "util.h"
 #include "log.h"
 #include "apt-worker-client.h"
+#include "menu.h"
 #include "user_files.h"
 
 #define _(x) gettext (x)
@@ -125,6 +126,8 @@ load_settings ()
       free (line);
       fclose (f);
     }
+
+  show_sort_order();
 
   if (!red_pill_permanent)
     red_pill_mode = false;
@@ -333,57 +336,19 @@ show_settings_dialog_flow ()
     }
 }
 
-static void
-sort_settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
-{
-  if (response == GTK_RESPONSE_OK)
-    {
-      package_sort_key =
-	hildon_sort_dialog_get_sort_key (HILDON_SORT_DIALOG (dialog));
-      if (hildon_sort_dialog_get_sort_order (HILDON_SORT_DIALOG (dialog))
-	  == GTK_SORT_ASCENDING)
-	package_sort_sign = 1;
-      else
-	package_sort_sign = -1;
-      save_settings ();
-      sort_all_packages (true);
-    }
-
-  pop_dialog (GTK_WIDGET (dialog));
-  gtk_widget_destroy (GTK_WIDGET (dialog));
-
-  end_interaction_flow ();
-}
-
 void
-show_sort_settings_dialog_flow ()
+set_sort_settings (int sort_key, int sort_order)
 {
-  if (start_interaction_flow ())
-    {
-      GtkWidget *dialog;
+  package_sort_key = sort_key;
+  if (sort_order == GTK_SORT_ASCENDING)
+    package_sort_sign = 1;
+  else
+    package_sort_sign = -1;
 
-      dialog = hildon_sort_dialog_new (NULL);
-      push_dialog (dialog);
+  show_sort_order ();
 
-      hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
-				       _("ai_va_sort_name"));
-      hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
-				       _("ai_va_sort_version"));
-      hildon_sort_dialog_add_sort_key (HILDON_SORT_DIALOG (dialog),
-				       _("ai_va_sort_size"));
-      
-      hildon_sort_dialog_set_sort_key (HILDON_SORT_DIALOG (dialog),
-				       package_sort_key);
-      hildon_sort_dialog_set_sort_order (HILDON_SORT_DIALOG (dialog),
-					 (package_sort_sign > 0
-					  ? GTK_SORT_ASCENDING
-					  : GTK_SORT_DESCENDING));
-      
-      g_signal_connect (dialog, "response",
-			G_CALLBACK (sort_settings_dialog_response),
-			NULL);
-      gtk_widget_show_all (dialog);
-    }
+  save_settings ();
+  sort_all_packages (true);
 }
 
 const char *

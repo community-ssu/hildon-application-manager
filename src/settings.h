@@ -52,7 +52,7 @@ extern bool red_pill_ignore_wrong_domains;
 #define SORT_BY_SIZE    2
 
 void show_settings_dialog_flow ();
-void show_sort_settings_dialog_flow ();
+void set_sort_settings (int sort_by, int order);
 
 // Backend options
 
