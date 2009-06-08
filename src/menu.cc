@@ -58,6 +58,7 @@ static GtkWidget *settings_menu_item = NULL;
 static GtkWidget *install_from_file_menu_item = NULL;
 static GtkWidget *update_all_menu_item = NULL;
 static GtkWidget *search_menu_item = NULL;
+static GtkWidget *sort_menu_item = NULL;
 static GtkWidget *refresh_menu_item = NULL;
 
 void
@@ -102,9 +103,11 @@ create_menu ()
   hildon_program_set_common_app_menu (hildon_program_get_instance (), main);
 
   /* Sort */
-  add_item (main,
-            _("ai_me_view_sort"),
-            show_sort_settings_dialog_flow);
+  sort_menu_item =
+    add_item (main,
+              _("ai_me_view_sort"),
+              show_sort_settings_dialog_flow);
+  show_sort_order();
 
   /* Search */
   search_menu_item =
@@ -183,6 +186,26 @@ enable_update_all (bool f)
 {
   if (update_all_menu_item)
     g_object_set(G_OBJECT(update_all_menu_item), "visible", f, NULL);
+}
+
+void
+show_sort_order()
+{
+  if (sort_menu_item)
+    {
+      char *str = g_strdup_printf("%s/%s",
+        SORT_BY_NAME == package_sort_key 
+          ? _("ai_va_sort_name")
+          : SORT_BY_VERSION == package_sort_key
+            ? _("ai_va_sort_version")
+            : _("ai_va_sort_size"),
+        1 == package_sort_sign
+          ? g_dgettext("hildon-libs", "ckdg_va_sort_ascending")
+          : g_dgettext("hildon-libs", "ckdg_va_sort_descending"));
+
+      hildon_button_set_value(HILDON_BUTTON(sort_menu_item), str);
+      g_free(str);
+    }
 }
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
