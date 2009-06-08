@@ -10,6 +10,7 @@ hildon-application-manager (1:2.2.23~unreleased) unstable; urgency=low
   * Get rid of the toolbars
   * Menu updates, including tap-and-hold for "Details"
   * Update package list widget
+  * Remove sort dialog and replace it with HildonAppMenu filters
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 04 Jun 2009 21:52:00 +0100	
 
