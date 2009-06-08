@@ -55,6 +55,9 @@ add_item (HildonAppMenu *menu, const gchar *label, void (*func)())
 
 static GtkWidget *settings_menu_item = NULL;
 static GtkWidget *install_from_file_menu_item = NULL;
+static GtkWidget *update_all_menu_item = NULL;
+static GtkWidget *search_menu_item = NULL;
+static GtkWidget *refresh_menu_item = NULL;
 
 void
 set_settings_menu_visible (bool flag)
@@ -128,6 +131,24 @@ create_menu ()
 	      _("ai_me_settings"),
 	      show_settings_dialog_flow);
 
+  /* Update all */
+  update_all_menu_item =
+    add_item (main,
+              _("ai_tb_update_all"),
+              update_all_packages_flow);
+
+  /* Search */
+  search_menu_item =
+    add_item (main,
+              _("ai_ti_search"),
+              show_search_dialog_flow);
+
+  /* Refresh */
+  refresh_menu_item = gtk_button_new_from_stock (GTK_STOCK_REFRESH);
+  hildon_app_menu_append (main, GTK_BUTTON (refresh_menu_item));
+  g_signal_connect (G_OBJECT (refresh_menu_item), "clicked",
+                    (GCallback) refresh_package_cache_without_user_flow, NULL);
+
   gtk_widget_show_all (GTK_WIDGET (main));
 
   /* Hide restore_packages menu item when there is no backup */
@@ -139,6 +160,27 @@ create_menu ()
 
   set_settings_menu_visible (red_pill_mode);
   set_install_from_file_menu_visible (red_pill_mode);
+}
+
+void
+enable_search (bool flag)
+{
+  if (search_menu_item)
+    g_object_set (G_OBJECT (search_menu_item), "visible", flag, NULL);
+}
+
+void
+enable_refresh (bool flag)
+{
+  if (refresh_menu_item)
+    g_object_set (G_OBJECT (refresh_menu_item), "visible", flag, NULL);
+}
+
+void
+enable_update_all (bool flag)
+{
+  if (update_all_menu_item)
+    g_object_set (G_OBJECT (update_all_menu_item), "visible", flag, NULL);
 }
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)

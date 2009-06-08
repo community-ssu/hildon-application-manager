@@ -70,8 +70,6 @@ using namespace std;
 static void set_details_callback (void (*func) (gpointer), gpointer data);
 static void set_operation_label (const char *label);
 static void set_operation_callback (void (*func) (gpointer), gpointer data);
-static void enable_search (bool f);
-static void enable_refresh (bool f);
 
 static void get_package_infos_in_background (GList *packages);
 
@@ -2651,20 +2649,6 @@ make_new_window (view *v)
     }
 
   return vbox;
-}
-
-static void
-enable_search (bool f)
-{
-  if (current_tb_struct && current_tb_struct->search_button)
-    gtk_widget_set_sensitive (current_tb_struct->search_button, f);
-}
-
-static void
-enable_refresh (bool f)
-{
-  if (current_tb_struct && current_tb_struct->refresh_button)
-    gtk_widget_set_sensitive (current_tb_struct->refresh_button, f);
 }
 
 static osso_context_t *osso_ctxt;
