@@ -167,26 +167,36 @@ set_current_view (view *v)
       enable_update_all(false);
       enable_refresh(false);
       enable_search(false);
+      enable_sort(false);
     }
   else if (v->id == UNINSTALL_APPLICATIONS_VIEW)
     {
       enable_update_all(false);
       enable_refresh(false);
       enable_search(true);
+      enable_sort(true);
     }
   else if (v->id == INSTALL_APPLICATIONS_VIEW ||
-           v->id == INSTALL_SECTION_VIEW ||
            v->id == SEARCH_RESULTS_VIEW)
     {
       enable_update_all(false);
       enable_refresh(true);
       enable_search(true);
+      enable_sort(true);
+    }
+  else if (v->id == INSTALL_SECTION_VIEW)
+    {
+      enable_update_all(false);
+      enable_refresh(true);
+      enable_search(true);
+      enable_sort(false);
     }
   else if (v->id == UPGRADE_APPLICATIONS_VIEW)
     {
       enable_update_all(package_list_ready && upgradeable_packages);
       enable_refresh(true);
       enable_search(true);
+      enable_sort(true);
     }
 
   cur_view_struct = v;

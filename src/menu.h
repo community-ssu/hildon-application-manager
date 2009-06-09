@@ -33,6 +33,7 @@ void set_install_from_file_menu_visible (bool flag);
 void enable_search (bool f);
 void enable_refresh (bool f);
 void enable_update_all (bool f);
+void enable_sort (bool f);
 void show_sort_order();
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)

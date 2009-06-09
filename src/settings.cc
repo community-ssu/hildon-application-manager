@@ -336,137 +336,19 @@ show_settings_dialog_flow ()
     }
 }
 
-static void
-sort_settings_dialog_response (GtkDialog *dialog, gint response, gpointer clos)
-{
-  if (response == GTK_RESPONSE_OK)
-    {
-      package_sort_key =
-	GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "sort-key"));
-      if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "sort-order"))
-	  == GTK_SORT_ASCENDING)
-	package_sort_sign = 1;
-      else
-	package_sort_sign = -1;
-
-      show_sort_order();
-
-      save_settings ();
-      sort_all_packages (true);
-    }
-
-  pop_dialog (GTK_WIDGET (dialog));
-  gtk_widget_destroy (GTK_WIDGET (dialog));
-
-  end_interaction_flow ();
-}
-
-static GtkTreeModel *
-make_sort_model()
-{
-  GtkTreeIter itr;
-  GtkListStore *ls = gtk_list_store_new(3, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT);
-  char *str = NULL;
-
-  gtk_list_store_append(ls, &itr);
-  str = g_strdup_printf("%s/%s", _("ai_va_sort_name"), 
-                        g_dgettext("hildon-libs", "ckdg_va_sort_ascending"));
-  gtk_list_store_set(ls, &itr, 0, str, 1, SORT_BY_NAME, 2, GTK_SORT_ASCENDING, -1);
-  g_free(str);
-
-  gtk_list_store_append(ls, &itr);
-  str = g_strdup_printf("%s/%s", _("ai_va_sort_name"), 
-                        g_dgettext("hildon-libs", "ckdg_va_sort_descending"));
-  gtk_list_store_set(ls, &itr, 0, str, 1, SORT_BY_NAME, 2, GTK_SORT_DESCENDING, -1);
-  g_free(str);
-
-  gtk_list_store_append(ls, &itr);
-  str = g_strdup_printf("%s/%s", _("ai_va_sort_version"), 
-                        g_dgettext("hildon-libs", "ckdg_va_sort_ascending"));
-  gtk_list_store_set(ls, &itr, 0, str, 1, SORT_BY_VERSION, 2, GTK_SORT_ASCENDING, -1);
-  g_free(str);
-
-  gtk_list_store_append(ls, &itr);
-  str = g_strdup_printf("%s/%s", _("ai_va_sort_version"), 
-                        g_dgettext("hildon-libs", "ckdg_va_sort_descending"));
-  gtk_list_store_set(ls, &itr, 0, str, 1, SORT_BY_VERSION, 2, GTK_SORT_DESCENDING, -1);
-  g_free(str);
-
-  gtk_list_store_append(ls, &itr);
-  str = g_strdup_printf("%s/%s", _("ai_va_sort_size"), 
-                        g_dgettext("hildon-libs", "ckdg_va_sort_ascending"));
-  gtk_list_store_set(ls, &itr, 0, str, 1, SORT_BY_SIZE, 2, GTK_SORT_ASCENDING, -1);
-  g_free(str);
-
-  gtk_list_store_append(ls, &itr);
-  str = g_strdup_printf("%s/%s", _("ai_va_sort_size"), 
-                        g_dgettext("hildon-libs", "ckdg_va_sort_descending"));
-  gtk_list_store_set(ls, &itr, 0, str, 1, SORT_BY_SIZE, 2, GTK_SORT_DESCENDING, -1);
-  g_free(str);
-
-  return GTK_TREE_MODEL(ls);
-}
-
-static void
-sort_dialog_row_activate(GtkTreeView *tree, 
-                         GtkTreePath *tp, 
-                         GtkTreeViewColumn *column, 
-                         GObject *dialog)
-{
-  GtkTreeIter itr;
-  GtkTreeModel *tm = gtk_tree_view_get_model(tree);
-
-  if (gtk_tree_model_get_iter(tm, &itr, tp))
-    {
-      char *sort_order_str;
-      int sort_by, order;
-
-      gtk_tree_model_get(tm, &itr, 0, &sort_order_str, 1, &sort_by, 2, &order, -1);
-      g_object_set_data(dialog, "sort-key", GINT_TO_POINTER(sort_by));
-      g_object_set_data(dialog, "sort-order", GINT_TO_POINTER(order));
-
-      gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_OK);
-    }
-}
-
 void
-show_sort_settings_dialog_flow ()
+set_sort (int sort_key, int sort_order)
 {
-  if (start_interaction_flow ())
-    {
-      GtkTreeViewColumn *column;
-      GtkCellRenderer *cr;
-      GtkWidget *tree, *pan;
-      GtkWidget *dialog;
+  package_sort_key = sort_key;
+  if (sort_order == GTK_SORT_ASCENDING)
+    package_sort_sign = 1;
+  else
+    package_sort_sign = -1;
 
-      dialog = gtk_dialog_new_with_buttons(_("ai_me_view_sort"), NULL, GTK_DIALOG_MODAL, NULL);
+  show_sort_order();
 
-      tree = gtk_tree_view_new_with_model(make_sort_model());
-      column = gtk_tree_view_column_new();
-      cr = GTK_CELL_RENDERER(g_object_new(GTK_TYPE_CELL_RENDERER_TEXT, 
-                       "alignment", PANGO_ALIGN_CENTER, "xalign", 0.5, NULL));
-      gtk_tree_view_column_pack_start(column, cr, TRUE);
-      gtk_tree_view_column_set_attributes(column, cr, "text", 0, NULL);
-      gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
-
-      pan = hildon_pannable_area_new();
-      gtk_container_add(GTK_CONTAINER(pan), tree);
-      gtk_widget_set_size_request(pan, -1, 350);
-
-      gtk_container_add(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), pan);         
-
-      g_signal_connect(G_OBJECT(tree),
-                       "row-activated",
-                       (GCallback)sort_dialog_row_activate, 
-                       dialog);
-
-      push_dialog (dialog);
-
-      g_signal_connect (dialog, "response",
-			G_CALLBACK (sort_settings_dialog_response),
-			NULL);
-      gtk_widget_show_all (dialog);
-    }
+  save_settings ();
+  sort_all_packages (true);
 }
 
 const char *
