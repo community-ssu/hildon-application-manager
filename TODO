@@ -16,11 +16,13 @@ General:
 
 [X] No "Update All" button if there are no packages to update
 ---
-
 Main view:
 [ ] Use "SmallEmpSystemFont" instead of "SmallSystemFont" in labels
 [ ] Try centering the icon and text on top of the buttons
 [ ] Align buttons to the bottom left
+
+Repo list:
+[ ] ReversedDisabledTextColor for readonly repos
 
 Bugs:
 [X] Vertically center package info renderer text
