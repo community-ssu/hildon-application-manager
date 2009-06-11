@@ -35,6 +35,7 @@
 #include "repo.h"
 #include "xexp.h"
 #include "confutils.h"
+#include "main.h"
 
 #define _(x) gettext (x)
 
@@ -463,7 +464,15 @@ eip_end (int n_successful, void *data)
   c->cont (c->data);
 
   if (c->catalogues)
-    xexp_free (c->catalogues);
+    {
+      xexp_free (c->catalogues);
+
+      /* When repository configuration successfully installed,
+       * we should update catalogues in order to get proper
+       * gpgv results (*.gpg.info) */
+      if (n_successful > 0)
+        maybe_refresh_package_cache_without_user ();
+    }
   g_free (c->package);
   delete c;
 }
