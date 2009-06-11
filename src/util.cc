@@ -45,7 +45,6 @@
 #include <libgnomevfs/gnome-vfs.h>
 #include <dbus/dbus.h>
 
-#include "main.h"
 #include "util.h"
 #include "details.h"
 #include "log.h"
