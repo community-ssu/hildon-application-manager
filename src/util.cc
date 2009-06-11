@@ -56,6 +56,7 @@
 #include "user_files.h"
 #include "update-notifier-conf.h"
 #include "package-info-cell-renderer.h"
+#include "confutils.h"
 
 #define _(x) gettext (x)
 #define _FM(x) dgettext ("hildon-fm", x)
@@ -3276,6 +3277,17 @@ load_last_update_time ()
   return t;
 }
 
+int
+last_domain_modification_time ()
+{
+  struct stat dmndir;
+
+  if (stat (PACKAGE_DOMAINS, &dmndir) == 0)
+    return dmndir.st_mtime;
+
+  return 0;
+}
+
 gboolean
 is_package_cache_updated ()
 {
@@ -3292,7 +3304,8 @@ is_package_cache_updated ()
   if (interval <= 0)
     interval = UPNO_DEFAULT_CHECK_INTERVAL;
 
-  if (last_update + interval*60 < time (NULL))
+  if (last_update + interval * 60 < time (NULL)
+      || last_update < last_domain_modification_time ())
     return FALSE;
 
   return TRUE;
