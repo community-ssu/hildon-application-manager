@@ -1037,18 +1037,39 @@ blink_icon_on (HamUpdatesStatusMenuItem *self)
   error = NULL;
 
   if (priv->no_icon == NULL)
-    priv->no_icon = gdk_pixbuf_new_from_inline (-1, transparent_icon_inline,
-                                                FALSE, &error);
-  if (error != NULL)
     {
-      fprintf (stderr, "error loading transparent inline pixbuf: %s",
-               error->message);
-      g_error_free (error);
+      priv->no_icon = gdk_pixbuf_new_from_inline (-1, transparent_icon_inline,
+                                                  FALSE, &error);
+
+      if (error != NULL)
+        {
+          fprintf (stderr, "error loading transparent inline pixbuf: %s",
+                   error->message);
+          g_error_free (error);
+
+          return;
+        }
+
+      if (gdk_pixbuf_get_width (priv->no_icon) !=
+          gdk_pixbuf_get_width (priv->icon)) /* rescale when needed */
+        {
+          GdkPixbuf *rescaled =
+            gdk_pixbuf_scale_simple (priv->no_icon,
+                                     gdk_pixbuf_get_width (priv->icon),
+                                     gdk_pixbuf_get_height (priv->icon),
+                                     GDK_INTERP_NEAREST);
+
+          if (rescaled == NULL)
+            fprintf (stderr, "error at rescaling transparent icon!");
+          else
+            {
+              g_object_unref (priv->no_icon);
+              priv->no_icon = rescaled;
+            }
+        }
     }
-  else
-    {
-      priv->blinker_id = g_timeout_add (BLINK_INTERVAL, blink_icon_cb, self);
-    }
+
+  priv->blinker_id = g_timeout_add (BLINK_INTERVAL, blink_icon_cb, self);
 }
 
 static void
