@@ -1327,6 +1327,7 @@ ip_install_cur (void *data)
   package_info *pi = (package_info *)(c->cur->data);
 
   /* entertain the user while the packages are checked */
+  set_entertainment_cancel (NULL, NULL);
   set_entertainment_fun (NULL, -1, -1, 0);
 
   /* Check battery when doing an upgrade of an OS package */
