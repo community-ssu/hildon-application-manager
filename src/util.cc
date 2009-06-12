@@ -2295,8 +2295,8 @@ select_package_list (GList *package_list,
 }
 
 #define KILO 1024.0
-#define MEGA KILO * KILO
-#define GIGA KILO * MEGA
+#define MEGA (KILO * KILO)
+#define GIGA (KILO * MEGA)
 
 void
 size_string_general (char *buf, size_t n, int64_t bytes)
