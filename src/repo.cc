@@ -44,7 +44,7 @@
 
 #define _(x)       gettext (x)
 
-#define TREE_VIEW_ICON_SIZE 26
+#define TREE_VIEW_ICON_SIZE 48
 
 static bool
 apt_method_is_available (const char* method)
@@ -697,23 +697,10 @@ cat_text_func (GtkTreeViewColumn *column,
   else
     full_name = g_strdup (c->name);
 
-  /* set full text for element */
-  if (c != NULL
-      && c->detail
-      && cd->selected_cat == c)
-    {
-      gchar *markup = NULL;
-
-      markup = g_markup_printf_escaped ("%s\n<small>%s</small>",
-					full_name, c->detail);
-      g_object_set (cell, "markup", markup, NULL);
-
-      g_free (markup);
-    }
-  else
-    {
-	g_object_set (cell, "text", c? full_name : NULL, NULL);
-    }
+  g_object_set (cell, 
+      	      	"text", c? full_name : NULL,
+		"sensitive", c->type == cat_editable,
+		NULL);
 
   g_free (full_name);
 }
@@ -924,7 +911,19 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
 
   /* If it exists, clear previous list store */
   if (c->store)
-    gtk_list_store_clear (c->store);
+    {
+      /* @FIXME:
+        Gotta set entries to NULL first, because some bug in maemo-gtk/hildon
+        is causing calls to cat_icon_func/cat_text_func with garbage data
+      */
+      GtkTreeIter itr;
+      if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (c->store), &itr))
+        do
+          {
+            gtk_list_store_set (c->store, &itr, 0, NULL, -1);
+          } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (c->store), &itr));
+      gtk_list_store_clear (c->store);
+    }
 
   for (xexp *catx = xexp_first (c->catalogues_xexp); catx;
        catx = xexp_rest (catx))
@@ -993,6 +992,7 @@ refresh_cat_list (cat_dialog_closure *c)
 static GtkWidget *
 make_cat_list (cat_dialog_closure *c)
 {
+  GtkTreeViewColumn *column;
   GtkCellRenderer *renderer;
   GtkWidget *scroller;
 
@@ -1000,27 +1000,31 @@ make_cat_list (cat_dialog_closure *c)
   c->tree =
     GTK_TREE_VIEW (gtk_tree_view_new_with_model (GTK_TREE_MODEL (c->store)));
 
+  column = gtk_tree_view_column_new ();
+  gtk_tree_view_append_column (c->tree, column);
+
   renderer = gtk_cell_renderer_pixbuf_new ();
-  g_object_set (renderer, "yalign", 0.0, NULL);
-  gtk_tree_view_insert_column_with_data_func (c->tree,
-					      -1,
-					      NULL,
-					      renderer,
-					      cat_icon_func,
-					      c,
-					      NULL);
+  gtk_tree_view_column_pack_start (column, renderer, FALSE);
+  gtk_tree_view_column_set_cell_data_func (column,
+      	      	      	      	      	   renderer,
+					   cat_icon_func,
+					   c,
+					   NULL);
 
   renderer = gtk_cell_renderer_text_new ();
-  g_object_set (renderer, "yalign", 0.0, NULL);
-  gtk_tree_view_insert_column_with_data_func (c->tree,
-					      -1,
-					      NULL,
-					      renderer,
-					      cat_text_func,
-					      c,
-					      NULL);
+  g_object_set (G_OBJECT (renderer),
+      	      	"xpad", HILDON_MARGIN_DEFAULT,
+		"ellipsize", PANGO_ELLIPSIZE_END,
+		"ellipsize-set", TRUE,
+		NULL);
+  gtk_tree_view_column_pack_start (column, renderer, TRUE);
+  gtk_tree_view_column_set_cell_data_func (column,
+      	      	      	      	      	   renderer,
+					   cat_text_func,
+					   c,
+					   NULL);
 
-  g_signal_connect (c->tree, "row-activated", 
+  g_signal_connect (c->tree, "row-activated",
 		    G_CALLBACK (cat_row_activated), c);
 
   g_signal_connect
@@ -1030,10 +1034,7 @@ make_cat_list (cat_dialog_closure *c)
 
   refresh_cat_list (c);
 
-  scroller = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
-				  GTK_POLICY_AUTOMATIC,
-				  GTK_POLICY_AUTOMATIC);
+  scroller = hildon_pannable_area_new ();
   gtk_container_add (GTK_CONTAINER (scroller), GTK_WIDGET (c->tree));
 
   return scroller;
