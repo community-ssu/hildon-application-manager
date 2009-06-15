@@ -543,7 +543,8 @@ make_small_text_label (const char *text)
 
   GtkWidget *desc = make_small_label (text);
   gtk_misc_set_alignment (GTK_MISC (desc), 0.0, 0.0);
-  gtk_label_set_line_wrap (GTK_LABEL (desc), FALSE);
+  gtk_label_set_line_wrap (GTK_LABEL (desc), TRUE);
+  gtk_label_set_line_wrap_mode (GTK_LABEL (desc), PANGO_WRAP_WORD);
   gtk_label_set_ellipsize (GTK_LABEL (desc), PANGO_ELLIPSIZE_NONE);
   gtk_table_attach (GTK_TABLE (summary_table), desc, 0, 1, 0, 1,
 		    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL,
