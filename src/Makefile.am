@@ -81,10 +81,12 @@ apt_worker_CXXFLAGS = $(AW_DEPS_CFLAGS)
 apt_worker_LDADD = $(AW_DEPS_LIBS) -lapt-pkg
 
 ham_after_boot_SOURCES = ham-after-boot.c \
-				user_files.c \
-	 			xexp.c
-ham_after_boot_CFLAGS = $(HAM_DEPS_CFLAGS)
-ham_after_boot_LDADD = $(HAM_DEPS_LIBS)
+			user_files.c \
+	 		xexp.c
+ham_after_boot_CFLAGS = $(HAM_DEPS_CFLAGS) \
+			$(LAUNCHER_DEPS_CFLAGS)
+ham_after_boot_LDADD = $(HAM_DEPS_LIBS) \
+			$(LAUNCHER_DEPS_LIBS)
 
 mime_open_SOURCES = mime-open.c
 mime_open_CFLAGS =   $(HAM_DEPS_CFLAGS)
