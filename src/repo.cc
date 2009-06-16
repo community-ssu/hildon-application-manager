@@ -353,7 +353,6 @@ struct cat_dialog_closure {
   GtkTreeView *tree;
   GtkListStore *store;
   GtkWidget *new_button;
-  GtkWidget *delete_button;
 
   void (*cont) (bool changed, void *data);
   void *data;
@@ -386,6 +385,34 @@ is_package_catalogue (xexp *catalogue)
   return (file && id);
 }
 
+struct remove_cat_clos {
+  cat_dialog_closure *cat_dialog;
+  xexp *catalogue;
+  GMainLoop *loop;
+};
+
+static void
+remove_cat_cont (bool res, gpointer data)
+{
+  remove_cat_clos *c = (remove_cat_clos *)data;
+  cat_dialog_closure *d = c->cat_dialog;
+
+  if (res)
+    {
+      reset_cat_list (d);
+      xexp_del (d->catalogues_xexp, c->catalogue);
+      set_cat_list (d, NULL);
+      d->dirty = true;
+    }
+
+  if (c->loop && g_main_loop_is_running (c->loop))
+    g_main_loop_quit (c->loop);
+
+  delete c;
+}
+
+#define REPO_RESPONSE_REMOVE 3
+
 static void
 cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 {
@@ -395,6 +422,27 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
   if (c->type == cat_readonly) // it cames from an .install file
     ;
+  else if (response == REPO_RESPONSE_REMOVE)
+    {
+      catcache *cat = c->cat_dialog->selected_cat;
+      if (cat == NULL)
+	return;
+
+      char *text = g_strdup_printf (_("ai_nc_remove_repository"), cat->name);
+      GMainLoop *loop = g_main_loop_new (NULL, TRUE);
+
+      remove_cat_clos *rc = new remove_cat_clos;
+      rc->loop = loop;
+      rc->cat_dialog = c->cat_dialog;
+      rc->catalogue = cat->catalogue_xexp;
+
+      ask_yes_no (text, remove_cat_cont, rc);
+      g_free (text);
+
+      /* let's wait for the dialogue response */
+      g_main_loop_run (loop);
+      g_main_loop_unref (loop);
+    }
   else if (response == GTK_RESPONSE_OK && c->type == cat_package)
     {
       bool disabled =
@@ -522,37 +570,29 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   else
     title = _("ai_ti_edit_repository");
 
-  if (c->type != cat_readonly)
-    {
-      dialog = gtk_dialog_new_with_buttons (title, NULL,
-                                            GTK_DIALOG_MODAL,
-                                            _("ai_bd_new_repository_ok"),
-                                            GTK_RESPONSE_OK,
-                                            GTK_STOCK_CANCEL,
-                                            GTK_RESPONSE_CANCEL,
-                                            NULL);
+  dialog = gtk_dialog_new_with_buttons (title, NULL, GTK_DIALOG_MODAL, NULL);
+  scrolledw = hildon_pannable_area_new ();
+  gtk_container_add (GTK_CONTAINER (GTK_DIALOG(dialog)->vbox), scrolledw);
+  g_object_set (G_OBJECT(scrolledw),
+                "size-request-policy", HILDON_SIZE_REQUEST_CHILDREN, NULL);
 
-      vbox = GTK_DIALOG (dialog)->vbox;
-    }
-  else
-    {
-      dialog = gtk_dialog_new_with_buttons (title, NULL,
-					    GTK_DIALOG_MODAL,
-					    NULL);
+  vbox = gtk_vbox_new (FALSE, 0);
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scrolledw),
+                                          vbox);
 
-      /* Use an scrollbar for the read-only version, and use a vbox
-	 with a 3px padding to make it look like to the other one */
-      vbox = gtk_vbox_new (FALSE, 3);
+  bool readonly = !(c->type == cat_editable);
 
-      scrolledw = gtk_scrolled_window_new (NULL, NULL);
-      gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledw),
-				      GTK_POLICY_AUTOMATIC,
-				      GTK_POLICY_NEVER);
-      gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolledw),
-                                             vbox);
-      gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox),
-                                   scrolledw);
-    }
+  if (!readonly && !c->isnew)
+    gtk_dialog_add_button (GTK_DIALOG (dialog),
+                           _("ai_bd_repository_delete"),
+                           REPO_RESPONSE_REMOVE);
+
+  gtk_dialog_add_buttons (GTK_DIALOG (dialog),
+                         _("ai_bd_new_repository_ok"),
+                         GTK_RESPONSE_OK,
+                         _("ai_bd_new_repository_cancel"),
+                         GTK_RESPONSE_CANCEL,
+                         NULL);
 
   push_dialog (dialog);
 
@@ -561,7 +601,6 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));
 
   const char *current_name = catalogue_name (catalogue);
-  bool readonly = !(c->type == cat_editable);
 
   c->name_entry = add_entry (vbox, group,
 			     _("ai_fi_new_repository_name"),
@@ -601,22 +640,6 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
 		    G_CALLBACK (cat_edit_response), c);
   gtk_widget_show_all (dialog);
   g_object_unref (group);
-}
-
-static catcache *
-get_selected_catalogue (cat_dialog_closure *c)
-{
-  GtkTreeSelection *selection = gtk_tree_view_get_selection (c->tree);
-  GtkTreeIter iter;
-  GtkTreeModel *model;
-  if (gtk_tree_selection_get_selected (selection, &model, &iter))
-    {
-      catcache *c;
-      gtk_tree_model_get (model, &iter, 0, &c, -1);
-      return c;
-    }
-
-  return NULL;
 }
 
 static void
@@ -720,6 +743,7 @@ cat_row_activated (GtkTreeView *treeview,
       if (c == NULL)
         return;
 
+      c->cat_dialog->selected_cat = c;
       show_cat_edit_dialog (c->cat_dialog, c->catalogue_xexp,
 			    false, c->type);
     }
@@ -756,17 +780,7 @@ cat_selection_changed (GtkTreeSelection *selection, gpointer data)
   c->selected_iter = iter;
 
   if (new_selected)
-    {
-      emit_row_changed (model, &iter);
-      if (!c->show_only_errors)
-        gtk_widget_set_sensitive (c->delete_button,
-                                  new_selected->type == cat_editable);
-    }
-  else
-    {
-      if (!c->show_only_errors)
-        gtk_widget_set_sensitive (c->delete_button, FALSE);
-    }
+    emit_row_changed (model, &iter);
 }
 
 static char *
@@ -1036,31 +1050,7 @@ make_cat_list (cat_dialog_closure *c)
   return scroller;
 }
 
-struct remove_cat_clos {
-  cat_dialog_closure *cat_dialog;
-  xexp *catalogue;
-};
-
-static void
-remove_cat_cont (bool res, void *data)
-{
-  remove_cat_clos *c = (remove_cat_clos *)data;
-  cat_dialog_closure *d = c->cat_dialog;
-
-  if (res)
-    {
-      reset_cat_list (d);
-      xexp_del (d->catalogues_xexp, c->catalogue);
-      set_cat_list (d, NULL);
-      d->dirty = true;
-    }
-
-  delete c;
-}
-
 #define REPO_RESPONSE_NEW    1
-#define REPO_RESPONSE_EDIT   2
-#define REPO_RESPONSE_REMOVE 3
 
 static void
 cat_response (GtkDialog *dialog, gint response, gpointer clos)
@@ -1077,30 +1067,6 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       return;
     }
 
-  if (response == REPO_RESPONSE_EDIT)
-    {
-      catcache *cat = get_selected_catalogue (c);
-      if (cat == NULL)
-        return;
-
-      show_cat_edit_dialog (c, cat->catalogue_xexp, false, cat->type);
-      return;
-    }
-
-  if (response == REPO_RESPONSE_REMOVE)
-    {
-      catcache *cat = get_selected_catalogue (c);
-      if (cat == NULL)
-	return;
-
-      char *text = g_strdup_printf (_("ai_nc_remove_repository"), cat->name);
-      remove_cat_clos *rc = new remove_cat_clos;
-      rc->cat_dialog = c;
-      rc->catalogue = cat->catalogue_xexp;
-      ask_yes_no (text, remove_cat_cont, rc);
-      g_free (text);
-    }
-
   if (response == GTK_RESPONSE_CLOSE ||
       response == GTK_RESPONSE_DELETE_EVENT)
     {
@@ -1114,19 +1080,6 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
 
       delete c;
     }
-}
-
-static void
-insensitive_cat_delete_press (GtkButton *button, gpointer data)
-{
-  cat_dialog_closure *c = (cat_dialog_closure *)data;
-
-  GtkTreeModel *model;
-  GtkTreeIter iter;
-
-  if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (c->tree),
-				       &model, &iter))
-    irritate_user (_("ai_ni_unable_remove_repository"));
 }
 
 static void
@@ -1203,7 +1156,6 @@ show_catalogue_dialog (xexp *catalogues,
   c->data = data;
 
   c->new_button = NULL;
-  c->delete_button = NULL;
 
   current_cat_dialog_clos = c;
 
@@ -1223,22 +1175,11 @@ show_catalogue_dialog (xexp *catalogues,
       gtk_dialog_add_button (GTK_DIALOG (dialog),
                              _("ai_bd_repository_new"), REPO_RESPONSE_NEW);
 
-  if (!show_only_errors)
-    c->delete_button =
-      gtk_dialog_add_button (GTK_DIALOG (dialog),
-                             _("ai_bd_repository_delete"),
-                             REPO_RESPONSE_REMOVE);
-
 
   respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
 
   if (!show_only_errors)
-    {
       gtk_widget_set_sensitive (c->new_button, FALSE);
-      gtk_widget_set_sensitive (c->delete_button, FALSE);
-      g_signal_connect (c->delete_button, "insensitive_press",
-			G_CALLBACK (insensitive_cat_delete_press), c);
-    }
 
   gtk_box_pack_start_defaults (GTK_BOX (GTK_DIALOG (dialog)->vbox),
 			       make_cat_list (c));
