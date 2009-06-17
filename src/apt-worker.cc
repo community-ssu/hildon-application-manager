@@ -6340,7 +6340,7 @@ do_rescue (const char *package, const char *download_root,
 	   */
 	  if (erase_record)
 	    erase_operation_record ();
-      
+
 	  if (result == rescode_packages_not_found)
 	    return;
 
@@ -6369,17 +6369,17 @@ cmdline_rescue (char **argv)
 
       if (record == NULL)
 	{
-	  fprintf (stderr, "Nothing to rescue.\n");
+	  fprintf (stderr, "apt-worker: Nothing to rescue.\n");
 	  return 0;
 	}
-      
+
       const char *package = xexp_aref_text (record, "package");
       const char *download_root = xexp_aref_text (record, "download-root");
-      
+
       do_rescue (package, download_root, true);
     }
   else
     do_rescue (argv[1], argv[2], false);
-      
+
   return 0;
 }
