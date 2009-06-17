@@ -207,7 +207,7 @@ show_view (view *v)
 {
   g_return_if_fail (v != NULL);
 
-  g_warning ("showing view %d", v->id);
+  g_debug ("showing view %d", v->id);
 
   GtkWidget *main_vbox = make_new_window (v);
   main_window = GTK_WINDOW (v->window);
@@ -252,7 +252,7 @@ show_parent_view ()
 {
   if (cur_view_struct->parent != NULL)
     {
-      g_warning ("Showing parent view :S");
+      g_debug ("Showing parent view :S");
 
       GtkWidget *win = cur_view_struct->window;
       HildonWindowStack *stack =
@@ -1977,7 +1977,7 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
 static void
 change_search_view_parent (view *new_parent)
 {
-  g_warning ("setting search results parent to %d", new_parent->id);
+  g_debug ("setting search results parent to %d", new_parent->id);
 
   GtkWidget *win = cur_view_struct->window;
   HildonWindowStack *stack =
@@ -1993,7 +1993,7 @@ change_search_view_parent (view *new_parent)
     }
 
   search_results_view.parent = new_parent;
-  g_warning ("the new search results parent and current view is %d",
+  g_debug ("the new search results parent and current view is %d",
              search_results_view.parent->id);
 }
 
@@ -2438,7 +2438,7 @@ stack_window_hide (GtkWidget* widget, gpointer data)
 {
   view *v = (view *) data;
 
-  g_warning ("hide event on view %d", v->id);
+  g_debug ("hide event on view %d", v->id);
   reset_view (v);
 }
 
@@ -2501,7 +2501,7 @@ GtkWindow *
 get_main_window ()
 {
   g_assert (main_window != NULL);
-  g_warning ("main window pointer %p", main_window);
+  g_debug ("main window pointer %p", main_window);
   return main_window;
 }
 
@@ -2519,7 +2519,7 @@ is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
   HildonWindow *window = HILDON_WINDOW (widget);
 
   set_current_view ((view *) data);
-  g_warning ("the top view is %d", cur_view_struct->id);
+  g_debug ("the top view is %d", cur_view_struct->id);
 
   /* Update the seen-updates file if the window is top most again and
      the "Check for updates" view is currently selected */

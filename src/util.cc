@@ -94,7 +94,7 @@ push_dialog (GtkWidget *dialog)
 
   if (dialog_stack)
     {
-      g_warning ("parent %p", dialog_stack->data);
+      g_debug ("parent %p", dialog_stack->data);
       gtk_window_set_transient_for (GTK_WINDOW (dialog),
                                     GTK_WINDOW (dialog_stack->data));
     }
@@ -109,7 +109,7 @@ push_dialog (GtkWidget *dialog)
 				    get_main_window ());
     }
 
-  g_warning ("pushing dialog %p", dialog);
+  g_debug ("pushing dialog %p", dialog);
   dialog_stack = g_slist_prepend (dialog_stack, dialog);
 }
 
@@ -117,7 +117,7 @@ void
 pop_dialog (GtkWidget *dialog)
 {
   g_assert (dialog_stack);
-  g_warning ("child = %p ~ parent = %p", dialog, dialog_stack->data);
+  g_debug ("child = %p ~ parent = %p", dialog, dialog_stack->data);
   g_assert (dialog_stack->data == dialog);
 
   {
@@ -249,7 +249,7 @@ end_interaction_flow ()
       GtkWidget* initmainwin = GTK_WIDGET (dialog_stack->data);
       GtkWidget* curmainwin = GTK_WIDGET (get_main_window ());
       if (initmainwin != curmainwin)
-        g_warning ("We lose the initial interaction flow window!");
+        g_debug ("We lose the initial interaction flow window!");
 
       pop_dialog (initmainwin);
     }
