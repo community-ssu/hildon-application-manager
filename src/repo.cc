@@ -666,12 +666,14 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
                            _("ai_bd_repository_delete"),
                            REPO_RESPONSE_REMOVE);
 
-  gtk_dialog_add_buttons (GTK_DIALOG (dialog),
+  gtk_dialog_add_button (GTK_DIALOG (dialog),
                          _("ai_bd_new_repository_cancel"),
-                         GTK_RESPONSE_CANCEL,
-                         _("ai_bd_new_repository_ok"),
-                         GTK_RESPONSE_OK,
-                         NULL);
+                         GTK_RESPONSE_CANCEL);
+
+  if (c->type != cat_readonly)
+    gtk_dialog_add_button (GTK_DIALOG (dialog),
+                           _("ai_bd_new_repository_ok"),
+                           GTK_RESPONSE_OK);
 
   push_dialog (dialog);
 
