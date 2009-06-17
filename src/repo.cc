@@ -641,9 +641,7 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   c->catalogue = catalogue;
 
   const char *title;
-  if (c->type == cat_readonly)
-    title = _("ai_ti_catalogue_details");
-  else if (isnew)
+  if (isnew)
     title = _("ai_ti_new_repository");
   else
     title = _("ai_ti_edit_repository");
