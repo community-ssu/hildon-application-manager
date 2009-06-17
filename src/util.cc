@@ -1405,7 +1405,7 @@ package_icon_func (GtkTreeViewColumn *column,
       GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
 
       default_icon = gtk_icon_theme_load_icon (icon_theme,
-                                               "general_application_manager",
+                                               "tasklaunch_default_application",
                                                TREE_VIEW_ICON_SIZE,
                                                GtkIconLookupFlags (0),
                                                NULL);
