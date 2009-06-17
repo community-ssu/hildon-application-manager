@@ -1683,7 +1683,7 @@ make_global_package_list (GList *packages,
 {
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
-  GtkWidget *tree, *scroller;
+  GtkWidget *tree, *scroller, *alignment;
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
   GtkWidget *menu = NULL;
 #endif /* TAP_AND_HOLD && MAEMO_CHANGES */
@@ -1721,6 +1721,14 @@ make_global_package_list (GList *packages,
 
   scroller = hildon_pannable_area_new();
   gtk_container_add (GTK_CONTAINER (scroller), tree);
+
+  alignment = gtk_alignment_new (0.5, 0.5, 1.0, 1.0);
+  gtk_alignment_set_padding (GTK_ALIGNMENT (alignment),
+                             HILDON_MARGIN_HALF,
+                             0,
+                             HILDON_MARGIN_DOUBLE,
+                             HILDON_MARGIN_DOUBLE);
+  gtk_container_add (GTK_CONTAINER (alignment), scroller);
 
   global_have_last_selection = false;
   g_signal_connect
@@ -1773,7 +1781,7 @@ make_global_package_list (GList *packages,
 				    NULL, FALSE, 0, 0);
     }
 
-  return scroller;
+  return alignment;
 }
 
 static void

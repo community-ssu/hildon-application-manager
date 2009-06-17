@@ -227,7 +227,7 @@ show_view (view *v)
   v->cur_view = v->maker (v);
   v->dirty = false;
 
-  gtk_box_pack_start (GTK_BOX (main_vbox), v->cur_view, TRUE, TRUE, 10);
+  gtk_box_pack_start (GTK_BOX (main_vbox), v->cur_view, TRUE, TRUE, 0);
   gtk_widget_show (main_vbox);
 
   reset_idle_timer ();
