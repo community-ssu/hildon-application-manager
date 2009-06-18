@@ -6126,7 +6126,7 @@ static int
 rescue_operation_with_dev (const char *dev)
 {
   const char *dir = "/rescue";
-  
+
   fprintf (stderr, "Rescuing from %s\n", dev);
 
   if (mkdir (dir, 0777) < 0
@@ -6161,8 +6161,10 @@ rescue_operation_with_devnode (int major, int minor)
 }
 
 static const char* rescue_devs[] = {
-  "/dev/mmcblk0p1",
-  "/dev/mmcblk1p1",
+  "/dev/mmcblk0p3", // Internal MMC ~/MyDocs
+  "/dev/mmcblk1p1", // External MMC
+  "/dev/mmcblk0p2", // Internal MMC ~/
+  "/dev/mmcblk0p1", // Internal MMC /
   "/dev/mmcblk0",
   "/dev/mmcblk1",
   NULL
