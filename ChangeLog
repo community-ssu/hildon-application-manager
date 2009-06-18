@@ -1,3 +1,261 @@
+2009-06-18 David Kedves <dkedves@blumsoft.eu>
+
+	* src/apt-worker.cc (rescue_devs): Use the correct partition devs.
+	(NB#100888)
+
+2009-06-17 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/main.cc: (show_view): Remove arbitrary padding of 10 from vbox.
+	* src/util.cc: (make_global_package_list): Pack pannable inside
+	GtkAlignment which has specified top, left, and right paddings.
+
+2009-06-17 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/repo.cc (show_cat_edit_dialog): Only not read-only catalogues
+	can save its state.
+	* src/repo.cc (show_cat_edit_dialog): Stop using
+	"ai_ti_catalogue_details" logical string for read only catalogues and
+	use "ai_ti_edit_repository". (NB#122407)
+	* src/apt-worker.cc (cmdline_rescue): Add the apt-worker prefix to the
+	rescue message. (NB#122958)
+
+2009-06-17 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/util.cc: (package_icon_func): Packages that don't have their own
+	icon are now given "tasklaunch_default_application" 
+
+2009-06-17 David Kedves <dkedves@blumsoft.eu>
+
+	* src/main.cc (show_view) (show_parent_view) (search_packages_reply)
+	(change_search_view_parent) (stack_window_hide) (get_main_window)
+	(is_topmost_cb) (push_dialog) (pop_dialog): Write debug messages with
+	g_debug instead of g_warning. (NB#117338)
+
+2009-06-15 David Kedves <dkedves@blumsoft.eu>
+
+	* src/details.cc (make_small_text_label): enable word-wraping in the
+	widget. (NB#122375)
+
+2009-06-16 David Kedves <dkedves@blumsoft.eu>
+
+	* src/Makefile.am: add the launcher compiling/linking flags to
+	ham-after-boot. (NB#121852)
+
+2009-06-16 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/settings.cc: Replace deprecated #include lines with
+	#include <hildon/hildon.h>.
+	* src/repo.cc: (struct cat_dialog_closure): Remove delete_button
+	(remove_cat_cont): Move the function and struct remove_cat_clos
+	further up.
+	(cat_edit_response): Handle REPO_RESPONSE_REMOVE here. This needs
+	the above.
+	(show_cat_edit_dialog): Streamline dialog creation.
+	(get_selected_catalogue): Remove unused function.
+	(cat_row_activated): Save the current catcache in the closure.
+	(cat_selection_changed): Remove code dealing with delete_button.
+	(cat_response): Remove code dealing with REPO_RESPONSE_EDIT.
+	(insensitive_cat_delete_press): Remove this function.
+	(show_catalogue_dialog): Remove code dealing with delete_button.
+
+2009-06-15 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/repo.cc (struct cat_dialog_closure): Get rid of edit_button.
+	(cat_selection_changed): Remove code dealing with edit_button.
+	(insensitive_cat_edit_press): Remove this function.
+	(show_catalogue_dialog): Remove code that sets up edit_button.
+	* src/repo.cc: Change TREE_VIEW_ICON_SIZE to 48.
+	(cat_text_func): Don't add detail via "markup" property.
+	(set_cat_list): Set pointers in GtkListStore to NULL before clearing
+	it, because the GtkListStore gives bogus pointers to the data funcs
+	otherwise. 
+	(make_cat_list): Use a single column with multiple renderers. Put the
+	tree view into a HildonPannableArea, not a GtkScrolledWindow.
+
+2009-06-12 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/util.cc (select_package_list): Correct the size
+	calculations. (NB#122098)
+
+2009-06-11 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/util.cc: removed the already included main.h file.
+
+2009-06-11 David Kedves <dkedves@blumsoft.eu>
+
+	* statusbar/ham-updates-status-menu-item.c (blink_icon_on): Scale the
+	transparent icon if the download icon size is different. (NB#120787)
+	* src/instr.cc (eip_end): Ask to refresh the package cache if new
+	catalogues are installed. (NB#103607)
+	* statusbar/transparent-icon.c: Resized the transparent icon to 18x18
+	(NB#120787).
+
+2009-06-11 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/operations.cc (ip_install_cur): Disable the entertainment cancel
+	because the install cannot be cancelled past this point. (NB#113101)
+
+2009-06-08 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/main.cc: (set_current_view): Make use of new enable_sort
+	function. 
+	* src/menu.cc: sort_by_name_menu_item, sort_by_size_menu_item: Keep
+	these widgets around. 
+	(toggle_sort): New function to handle sort-related GtkRadioButton
+	toggles. 
+	(create_menu): Create sort_by_name_menu_item and
+	sort_by_size_menu_item and reflect the sort order.
+	(enable_sort): New function to handle showing/hiding of sort-related
+	buttons. 
+	(show_sort_order): New function to reflect the sort order in the toggled
+	state of the buttons. It is necessary to avoid setting a button as
+	active if it is already active in order to avoid a signal loop.
+	* src/menu.h (enable_sort): This is a global function.
+	(show_sort_order): This is a global function
+	* settings.cc: include menu.h for sort button updates
+	(load_settings): Update sort buttons after loading settings.
+	(sort_settings_dialog_response): Remove this function.
+	(show_settings_dialog_flow): Remove this function.
+	(set_sort_settings): New function that sets global sort-related
+	variables and updates the sort order buttons.
+	* settings.h: (set_sort_settings): This is a global function.
+
+2009-06-02 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/menu.cc (add_item): Use HildonButton instead of GtkButton.
+	* debian/rules: Add -DTAP_AND_HOLD to CFLAGS
+	* src/util.cc: (button_press_cb): New function. When the user taps on
+	the tree view, record the package_info that was tapped on. 
+	(make_global_package_list): Connect to the tree view's
+	button_press_event. 
+	(tap_and_hold_cb): Remove this signal handler, and the corresponding
+	connect. 
+	* src/menu.cc (create_package_menu): Re-write: Use
+	hildon_gtk_menu_new(). There's only one item: "Details".
+	* src/menu.cc  (create_menu): Move "Search" and "Refresh" buttons to
+	the right place in the menu (as per spec). Update logical ID for
+	"Update All". 
+
+2009-05-30 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/util.cc (select_package_list_with_info): Use HildonPannableArea
+	instead of GtkScrolledWindow.
+	* src/util.cc (make_global_package_list): Use HildonPannableArea
+	instead of GtkScrolledWindow.
+	* src/util.cc (set_global_package_list): Before clearing the
+	GtkListStore, NULL out its pointers.
+	* src/util.cc (global_size_func): Function removed. There's no longer
+	a separate "size" column.
+	(package_icon_func): New function. Provide an icon for each package.
+	(package_info_func): Remove code that deals with pixbuf. Merge code
+	from global_size_func.
+	(make_global_package_list): Don't use multiple columns. There's only
+	one column with two cell renderers: The pixbuf cr for the icon and the
+	package_info cr for the package info. 
+	* src/package-info-cell-renderer.c (style_set): New handler for
+	updating the secondary text colour in the small text
+	PangoAttributeList when the theme changes. 
+	(package_info_cell_renderer_listen_style): New function. Passes to the 
+	cell renderer a widget whose style changes to track for updates to the
+	secondary text colour.
+	* src/package-info-cell-renderer.h: Declare the new global
+	package_info_cell_renderer_listen_style function.
+	* src/package-info-cell-renderer.c (maybe_make_layout): New
+	function. Make a layout if the source string is non-NULL.
+	(paint_row): New function. Paint a single row of text using specified
+	attributes. Avoids code duplication when calculating layout widths.
+	(package_info_cell_renderer_render): Function calls paint_row twice -
+	once for each row.
+	* src/package-info-cell-renderer.c: Remove PROP_PIXBUF and
+	PROP_PIXBUF_SIZE from the top-level enum.
+	(struct _PackageInfoCellRendererPrivate PackageInfoCellRendererPrivate):
+	Remove pixbuf and pixbuf_size from the private structure.
+	(package_info_cell_renderer_instance_init): Remove code dealing with
+	pixbuf. 
+	(package_info_cell_renderer_finalize): Remove code dealing with
+	pixbuf. 
+	(package_info_cell_renderer_class_init): Remove pixbuf-related
+	properties. 
+	(package_info_cell_renderer_get_property): Remove code dealing with
+	pixbuf. 
+	(package_info_cell_renderer_set_property): Remove code dealing with
+	pixbuf. 
+	(package_info_cell_renderer_get_size): Remove pixbuf size from
+	calculation. 
+	(package_info_cell_renderer_render): Function greatly simplified.
+	* src/package-info-cell-renderer.c: Add PROP_PKG_SIZE from the
+	top-level enum
+	(struct _PackageInfoCellRendererPrivate PackageInfoCellRendererPrivate):
+	Add pkg_size from the private structure
+	(package_info_cell_renderer_instance_init): Initialize pkg_size.
+	(package_info_cell_renderer_finalize): Free pkg_size if necessary.
+	(package_info_cell_renderer_class_init): Add "pkg-size" property.
+	(package_info_cell_renderer_get_property): Implement "pkg-size"
+	property. 
+	(package_info_cell_renderer_set_property): Implement "pkg-size"
+	property. 
+	* src/util.cc (make_small_text_view): Make horizontally and
+	vertically pannable HildonPannableArea instead of GtkScrolledWindow.
+	* src/settings.cc (make_settings_tab): Use HildonPannableArea instead
+	of  GtkScrolledWindow.
+	* src/settings.cc (make_boolean_option): Pack a HildonCheckButton
+	directly. Don't use deprecated HildonCaption.
+	* src/settings.cc (settings_dialog_response): Use
+	hildon_check_button_get_active ().
+	* src/log.cc (show_log_dialog_flow): Add "Save As" after "Clear"
+	* src/operations.cc (ip_warn_about_reboot): Add "OK" after "Make
+	Backup" 
+	(ip_abort_cur): Add "Yes" after "No"
+	* src/repo.cc (show_cat_edit_dialog): Add "OK" after "Cancel"
+	* src/settings.cc (show_settings_dialog_flow): Add "Save" after "Cancel"
+	* src/util.cc (ask_yes_no_with_details): Add "OK" after "Confirm
+	Details" 
+	(ask_yes_no_with_arbitrary_details): Add "OK" after "Details"
+	(install_confirm): Add "OK" after "Details"
+	(select_package_list_with_info): Move "Yes" after "No"
+	* src/repo.cc (SCROLL_TO_ERROR_TIMEOUT): Wait this long for size
+	negotiation and realization to subside.
+	(struct scroll_to_params): Parameters for idle function that scrolls
+	the HildonPannableArea to the error message.
+	(scroll_to_timeout): New function. Scroll to the top of a catalogue
+	refresh error message.
+	(add_scroll_timeout): New function. Add the above timeout or push it
+	forward if it's already present and has not yet elapsed.
+	(tv_size_allocate): New function. Handler for the detail text view. 
+	Add scroll timeout.
+	(show_cat_edit_dialog): Pass the detail. Fix the size request to 350
+	and add a text view with the detail if there is one. Add
+	scroll timeout upon realize and push it forward while the text view
+	resizes itself. 
+	(cat_row_activate): call show_cat_edit_dialog passing the detail.
+	(cat_response): New catalogue: call show_cat_edit_dialog passing the
+	detail. 
+	(add_catalogue_details): call show_cat_edit_dialog passing the detail.
+	* src/util.cc (fit_rect_inside_rect): New utility function to scale
+	one rectangle to fit inside another while preserving aspect ratio.
+	Necessary for (potentially) scaling down icons.
+	(pixbuf_from_base64): If the pixbuf is not TREE_VIEW_ICON_SIZE, then
+	center it inside a TREE_VIEW_ICON_SIZE x TREE_VIEW_ICON_SIZE pixbuf,
+	scaling it down to fit, if necessary.  
+	* src/main.h: Move TREE_VIEW_ICON_SIZE here, because it's used in
+	multiple files. 
+	* src/repo.cc: Remove TREE_VIEW_ICON_SIZE.
+	* src/util.cc: (package_icon_func): Load stock package icons as 48x48
+	(TREE_VIEW_ICON_SIZE)
+
+2009-05-25 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (update_seen_updates_file): Remove the icon updates file.
+	* src/user_files.h: removed the icon updates file macro.
+	* statusbar/ham-updates-status-menu-item.c (update_icon_state):
+	Removed the icon file update call. 
+	(update_state): Only use one update file validation.
+	* statusbar/ham-updates.c (ham_updates_dialog_response_cb): Removed
+	the icon updates file.
+	(ham_updates_update_seen_file_icon): Removed function.
+	(ham_updates_are_available_icon): Removed function.
+	* statusbar/ham-updates.h: Removed function exportation.
+
 2009-06-04  Gabriel Schulhof <gabriel.schulhof@nokia.com>
 
 	* src/main.cc (show_parent_view): Removed the padding of the button's

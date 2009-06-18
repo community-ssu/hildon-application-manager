@@ -1,8 +1,32 @@
-hildon-application-manager (1:2.2.23~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.23) unstable; urgency=low
 
-  * 
+  [ Gabriel Schulhof ]
+  * Remove "Edit" button from repo list. repo list row-activate is now "Edit"
+  * Move "Delete" button into the repo details dialog
+  * Make all icons 48x48, centering smaller ones, and (unlikely) scaling larger ones
+  * Show catalogue detail (a.k.a refresh error message) at the bottom of the details dialog
+  * Make Save/Continue/OK buttons the last ones to be added
+  * Pannables, HildonCheckButton in settings dialog
+  * Get rid of the toolbars
+  * Menu updates, including tap-and-hold for "Details"
+  * Update package list widget
+  * Remove sort dialog and replace it with HildonAppMenu filters
+  * Fixes: NB#113101 - Info note 'Unable to cancel, Please wait' is not visible while doing SSU
+  
+  [ David Kedves ]
+  * Fixes: NB#100888 - Device does not starts in rescue mode if the application installation is interrupted.
+  * Fixes: NB#117338 - GLIB WARNING ** seen when AM is launched
+  * Fixes: NB#122375 - Complete description is missing in details dialog.
+  * Fixes: NB#121852 - Info banner "Operating system successfully updated" is not displayed
+  * Fixes: NB#120787 - Title of the application is moving aside when there is blinking icon(update icon) on the status area.
+  
+  [ Víctor Jáquez ]
+  * Get rid of the seen-file-icon
+  * Only not read-only catalogues save their state
+  * Fixes: NB#122407 - Logical string is observed in the details of the add catalogue dialog.
+  * Fixes: NB#122958 - hildon-application-manager prints mysterious message to console
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 04 Jun 2009 21:52:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 18 Jun 2009 17:32:00 +0100	
 
 hildon-application-manager (1:2.2.22) unstable; urgency=low
 
