@@ -2316,7 +2316,7 @@ size_string_general (char *buf, size_t n, int64_t bytes)
 	  num = (bytes + 50.0 * KILO) / (100.0 * KILO);
 	  if (num < 10)
 	    snprintf (buf, n, _FM ("sfil_li_size_100kb_1mb"),
-                      (float) num / 10.0);
+                      (int) num / 10.0);
 	  else
 	    {
               // round to nearest MEGA
@@ -2325,7 +2325,7 @@ size_string_general (char *buf, size_t n, int64_t bytes)
               if (num < 10)
                 snprintf (buf, n, _FM ("sfil_li_size_1mb_10mb"), (float) num);
               else if (num < 1000)
-                snprintf (buf, n, _FM ("sfil_li_size_10mb_1gb"), (int) num);
+                snprintf (buf, n, _FM ("sfil_li_size_10mb_1gb"), (float) num);
               else
                 snprintf (buf, n, _FM ("sfil_li_size_1gb_or_greater"),
                           (float) 1.0 * bytes / GIGA);
