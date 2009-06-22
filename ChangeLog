@@ -1,3 +1,17 @@
+2009-06-22 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (set_current_view): enable sort button if there is not
+	sections to show.
+	(make_install_applications_view): remove ignored buttons enabling.
+	* utils/maemo-confirm-text-user.c (make_small_text_view): Update
+	GtkTextView with HildonTextView (NB#122950)
+	* debian/control: Remove old package conflicts, replaces and provides.
+	* utils/maemo-confirm-text-user.c: Use the official header for
+	hildon. 
+	(make_small_text_view): Update the scrollable window with a pannable
+	area (NB#12295)
+	* src/util.cc (size_string_general): do the correct casts. (NB#123504)
+	
 2009-06-18 David Kedves <dkedves@blumsoft.eu>
 
 	* src/apt-worker.cc (rescue_devs): Use the correct partition devs.
