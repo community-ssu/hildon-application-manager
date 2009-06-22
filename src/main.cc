@@ -189,7 +189,7 @@ set_current_view (view *v)
       enable_update_all (false);
       enable_refresh (true);
       enable_search (true);
-      enable_sort (false);
+      enable_sort (install_sections && !install_sections->next);
     }
   else if (v->id == UPGRADE_APPLICATIONS_VIEW)
     {
@@ -1698,9 +1698,6 @@ make_install_applications_view (view *v)
     }
 
   gtk_widget_show_all (view);
-
-  enable_search (true);
-  enable_refresh (true);
 
   maybe_refresh_package_cache_without_user ();
 
