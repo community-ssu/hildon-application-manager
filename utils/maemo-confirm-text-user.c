@@ -115,8 +115,8 @@ make_small_text_view (const char *file)
                         "mov-mode", HILDON_MOVEMENT_MODE_BOTH,
                         NULL));
 
-  view = gtk_text_view_new ();
-  buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+  view = hildon_text_view_new ();
+  buffer = hildon_text_view_get_buffer (GTK_TEXT_VIEW (view));
 
   fill_text_buffer_from_file (buffer, file);
 
