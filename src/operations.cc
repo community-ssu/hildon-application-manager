@@ -267,7 +267,7 @@ static void ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 
 static void ip_not_enough_memory (void *data, int64_t download_size);
 static void ip_not_enough_battery_confirm (void (*cont) (void *data), void *data);
-static void ip_not_enough_battery_confirm_response (bool res, void *data);
+static void ip_not_enough_battery_confirm_response (void *data);
 
 static void ip_install_one (void *data);
 static void ip_maybe_continue (bool res, void *data);
@@ -930,15 +930,17 @@ ip_not_enough_battery_confirm (void (*cont) (void *data),
   neb_clos->callback = cont;
   neb_clos->data = c;
 
-  ask_yes_no (text, ip_not_enough_battery_confirm_response, neb_clos);
+  annoy_user (text, ip_not_enough_battery_confirm_response, neb_clos);
 
   g_free (text);
 }
 
 static void
-ip_not_enough_battery_confirm_response (bool res, void *data)
+ip_not_enough_battery_confirm_response (void *data)
 {
   ipneb_clos *c = (ipneb_clos *)data;
+
+  bool res = enough_battery_p ();
 
   if (res)
     c->callback (c->data);
