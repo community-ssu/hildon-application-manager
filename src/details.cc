@@ -818,7 +818,7 @@ spd_with_details (void *data, bool filling_details)
 	  spd_nb_widgets[SPD_DEPS_PAGE] = spd_create_deps_page (c);
 	  gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
 				    spd_nb_widgets[SPD_DEPS_PAGE],
-				    gtk_label_new ("Dependencies"));
+				    gtk_label_new (_("ai_ti_details_noteb_dependencies")));
 	}
     }
 
