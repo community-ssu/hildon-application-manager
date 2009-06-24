@@ -723,15 +723,18 @@ ip_install_loop (ip_clos *c)
       else
 	ip_end (c);
     }
-  else
+  else if (red_pill_mode)
     {
       /* Check for domain violations
+       * Only in red_pill mode, because if you are in blue-pill mode
+       * package updates from wrong domains aren't visible.
        */
-
       package_info *pi = (package_info *)(c->cur->data);
-      
+
       apt_worker_install_check (pi->name, ip_check_domain_reply, c);
     }
+  else
+    ip_get_info_for_install (c);
 }
 
 static void
@@ -763,22 +766,12 @@ ip_check_domain_reply (int cmd, apt_proto_decoder *dec, void *data)
     {
       gchar *msg = NULL;
 
-      if (red_pill_mode)
-	{
-	  msg = g_strdup_printf ("%s\nInstall anyway?", msg);
+      msg = g_strdup_printf ("%s\nInstall anyway?", msg);
 
-	  ask_custom (msg,
-                      dgettext ("hildon-libs", "wdgt_bd_yes"),
-                      dgettext ("hildon-libs", "wdgt_bd_no"),
-		      ip_install_anyway, c);
-	}
-      else
-        {
-          package_info *pi = (package_info *)(c->cur->data);
-          msg = g_strdup_printf (_("ai_ni_error_broken_path_%s"),
-                                 pi->get_display_name (false));
-          ip_abort_cur (c, msg, false);
-        }
+      ask_custom (msg,
+                  dgettext ("hildon-libs", "wdgt_bd_yes"),
+                  dgettext ("hildon-libs", "wdgt_bd_no"),
+                  ip_install_anyway, c);
 
       g_free (msg);
     }
