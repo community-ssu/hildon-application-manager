@@ -2702,6 +2702,14 @@ main (int argc, char **argv)
 
   hildon_gtk_init (&argc, &argv);
 
+  /* we should create main_window and set
+   * cur_view_struct to main_view before dbus init,
+   * because a dbus message may change the current view...
+   */
+  show_view (&main_view);
+  main_window = GTK_WINDOW (main_view.window);
+  cur_view_struct = &main_view;
+
   init_dbus_or_die (show);
 
   osso_ctxt = osso_initialize ("hildon_application_manager",
@@ -2714,10 +2722,6 @@ main (int argc, char **argv)
   g_set_application_name ("");
 
   clear_log ();
-
-  show_view (&main_view);
-  main_window = GTK_WINDOW (main_view.window);
-  cur_view_struct = &main_view;
 
   g_signal_connect (G_OBJECT (main_window), "destroy",
                     G_CALLBACK (window_destroy), NULL);
