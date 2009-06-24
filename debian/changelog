@@ -1,7 +1,7 @@
 hildon-application-manager (1:2.2.23-1) unstable; urgency=low
 
   [ Víctor Jáquez ]
-  * Fixes: NB#23504: During SSU update package size showing zero.
+  * Fixes: NB#123504: During SSU update package size showing zero.
   * Use the new widgets for the maemo-confirm-text helper
   * Removed deprecated package restrictions
   * Shows the sort button in the menu if there's no sections to show. 
