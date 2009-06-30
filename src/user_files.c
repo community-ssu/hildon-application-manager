@@ -184,7 +184,8 @@ user_file_write_xexp (const gchar *name, xexp *x)
       if (f != NULL)
         {
           xexp_write (f, x);
-          fclose (f);
+          if (fflush (f) || fsync (fileno (f)) || fclose (f))
+            return;
         }
     }
 }
