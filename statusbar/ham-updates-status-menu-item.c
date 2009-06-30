@@ -366,8 +366,14 @@ ham_updates_status_menu_item_map_event (GtkWidget *widget, gpointer data)
   g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
 
   self = HAM_UPDATES_STATUS_MENU_ITEM (data);
-  LOG ("map signal");
-  set_icon_state (self, ICON_STATE_STATIC);
+
+  if (get_icon_state (self) == ICON_STATE_BLINKING)
+    {
+      /* let's update the tapped updates file */
+      ham_updates_icon_tapped ();
+
+      set_icon_state (self, ICON_STATE_STATIC);
+    }
 }
 
 static void
@@ -909,7 +915,7 @@ static void
 ham_updates_status_menu_item_response_cb (HamUpdatesStatusMenuItem *self,
                                           gint response, gpointer data)
 {
-  set_icon_state (self, ICON_STATE_INVISIBLE);
+  update_state (self);
 
   if (response == GTK_RESPONSE_YES)
     ham_execute (self);
@@ -949,8 +955,8 @@ setup_ui (HamUpdatesStatusMenuItem *self)
 {
   build_status_menu_button (self);
   build_status_area_icon (self);
-  load_icon_state (self);
-  /* update_icon_state (self); */
+  /* load_icon_state (self); */
+  update_state (self);
 }
 
 static void
@@ -1144,19 +1150,13 @@ set_icon_state (HamUpdatesStatusMenuItem* self, State state)
   if (state == oldstate)
     return;
 
-  /* we can only go to blinking if we're invisible
-     or we can only go to static if we're blinking */
-  if ((oldstate != ICON_STATE_INVISIBLE && state == ICON_STATE_BLINKING)
-      || (oldstate != ICON_STATE_BLINKING && state == ICON_STATE_STATIC))
-    return;
-
   {
     HamUpdatesStatusMenuItemPrivate *priv;
 
     priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
     LOG ("Changing icon state from %d to %d", priv->icon_state, state);
     priv->icon_state = state;
-    save_icon_state (self);
+    /* save_icon_state (self); */
     update_icon_state (self);
   }
 }
@@ -1176,7 +1176,8 @@ update_state (HamUpdatesStatusMenuItem *self)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
   gboolean visible;
-  gboolean updates;
+  UpdatesStatus updates;
+  gboolean notification;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
@@ -1184,29 +1185,23 @@ update_state (HamUpdatesStatusMenuItem *self)
 
   g_object_get (G_OBJECT (self), "visible", &visible, NULL);
 
+  updates = ham_updates_status (priv->updates, priv->osso);
+  notification = ham_notifier_are_available (NULL)
+    && (get_icon_state (self) != ICON_STATE_STATIC);
+
   /* shall we show the updates button? */
-  updates = ham_updates_are_available (priv->updates, priv->osso);
-  if (updates == TRUE)
-    {
-      if (visible == FALSE)
-        gtk_widget_show (GTK_WIDGET (self));
-    }
+  if (updates != UPDATES_NONE)
+    gtk_widget_show (GTK_WIDGET (self));
   else
-    {
-      if (visible == TRUE)
-        gtk_widget_hide (GTK_WIDGET (self));
-    }
+    gtk_widget_hide (GTK_WIDGET (self));
 
   /* shall we blink the status area icon? */
-  if (updates == TRUE
-      || ham_notifier_are_available (NULL) == TRUE)
-    {
-      set_icon_state (self, ICON_STATE_BLINKING);
-    }
+  if (updates == UPDATES_NEW || notification == TRUE)
+    set_icon_state (self, ICON_STATE_BLINKING);
+  else if (updates == UPDATES_TAPPED)
+    set_icon_state (self, ICON_STATE_STATIC);
   else
-    {
-      set_icon_state (self, ICON_STATE_INVISIBLE);
-    }
+    set_icon_state (self, ICON_STATE_INVISIBLE);
 }
 
 static void

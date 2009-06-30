@@ -148,11 +148,87 @@ update_seen_file (const gchar *seen_ufile)
 
   available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
 
-  if (available_updates  != NULL)
+  if (available_updates != NULL)
     {
       user_file_write_xexp (seen_ufile, available_updates);
       xexp_free (available_updates);
     }
+}
+
+static void
+clean_updates_ufile (const gchar *ufile)
+{
+  g_return_if_fail (ufile != NULL);
+
+  xexp *updates = xexp_list_new ("updates");
+
+  if (updates != NULL)
+    {
+      user_file_write_xexp (ufile, updates);
+      xexp_free (updates);
+    }
+}
+
+void
+ham_updates_icon_tapped ()
+{
+  xexp *available_updates;
+  xexp *seen_updates;
+  xexp *tapped_updates;
+
+  g_warning ("icon tapped!!");
+
+  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
+  if (available_updates == NULL)
+    {
+      clean_updates_ufile (UFILE_TAPPED_UPDATES);
+      return;
+    }
+
+  seen_updates = user_file_read_xexp (UFILE_SEEN_UPDATES);
+
+  tapped_updates = xexp_list_new ("updates");
+
+  if (tapped_updates != NULL)
+    {
+      xexp *x;
+      xexp *y;
+
+      for (x = xexp_first (available_updates); x != NULL; x = xexp_rest (x))
+        {
+          if (!xexp_is_text (x))
+            continue;
+
+          y = NULL;
+          if ((seen_updates != NULL) && xexp_is_list (seen_updates))
+            {
+              const gchar *pkg;
+
+              pkg = xexp_text (x);
+
+              for (y = xexp_first (seen_updates); y != NULL; y = xexp_rest (y))
+                if (xexp_is_text (y) && strcmp (pkg, xexp_text (y)) == 0)
+                  break;
+            }
+
+          /* this available_update is not in the seen_udpates */
+          if (y == NULL)
+            {
+              xexp *tapped = NULL;
+              tapped = xexp_text_new (xexp_tag (x), xexp_text (x));
+              xexp_cons (tapped_updates, tapped);
+            }
+        }
+
+      user_file_write_xexp (UFILE_TAPPED_UPDATES, tapped_updates);
+
+      if (tapped_updates != NULL)
+        xexp_free (tapped_updates);
+    }
+
+  xexp_free (available_updates);
+  if (seen_updates != NULL)
+    xexp_free (seen_updates);
 }
 
 static void
@@ -165,6 +241,7 @@ ham_updates_dialog_response_cb (GtkDialog *dialog,
       if (response == GTK_RESPONSE_NO)
         {
           update_seen_file (UFILE_SEEN_UPDATES);
+          clean_updates_file (UFILE_TAPPED_UPDATES);
         }
 
       gtk_widget_destroy (GTK_WIDGET (dialog));
@@ -558,11 +635,80 @@ ham_is_showing_check_for_updates_view (osso_context_t *context)
   return FALSE;
 }
 
-gboolean
-ham_updates_are_available (HamUpdates *self, osso_context_t *context)
+static gboolean
+is_there_unseen_updates (const gchar *seen_ufile, const gchar *tapped_ufile)
+{
+  xexp *tapped_updates = NULL;
+  xexp *available_updates = NULL;
+  xexp *seen_updates = NULL;
+  gboolean ret = TRUE;
+
+  /* not really necessary because it's an internal function */
+  g_return_val_if_fail (seen_ufile != NULL && tapped_ufile != NULL, FALSE);
+
+  available_updates = xexp_read_file (AVAILABLE_UPDATES_FILE);
+  if (available_updates == NULL)
+    return FALSE;
+
+  tapped_updates = user_file_read_xexp (tapped_ufile);
+  if (tapped_updates == NULL)
+    goto bailout;
+
+  seen_updates = user_file_read_xexp (seen_ufile);
+
+  xexp *x;
+  xexp *y;
+  ret = FALSE;
+
+  for (x = xexp_first (available_updates); x != NULL; x = xexp_rest (x))
+    {
+      const gchar *pkg;
+
+      if (!xexp_is_text (x))
+        continue;
+
+      pkg = xexp_text (x);
+
+      /* filter out seen updates */
+      if ((seen_updates != NULL) && xexp_is_list (seen_updates))
+        {
+          for (y = xexp_first (seen_updates); y != NULL; y = xexp_rest (y))
+            if (xexp_is_text (y) && strcmp (pkg, xexp_text (y)) == 0)
+              break;
+
+          if (y != NULL)
+            continue; /* we have seen this update, go for the next item */
+        }
+
+      /* filter out tapped updates */
+      for (y = xexp_first (tapped_updates); y != NULL; y = xexp_rest (y))
+        if (xexp_is_text (y) && strcmp (pkg, xexp_text (y)) == 0)
+          break;
+
+      if (y != NULL)
+        continue; /* we have tapped this update, go for the next item */
+
+      /* when we reach these lines we found a new package :-) */
+      ret = TRUE;
+      break;
+    }
+
+ bailout:
+  xexp_free (available_updates);
+  if (tapped_updates != NULL)
+    xexp_free (tapped_updates);
+  if (seen_updates != NULL)
+    xexp_free (seen_updates);
+
+  return ret;
+}
+
+UpdatesStatus
+ham_updates_status (HamUpdates *self, osso_context_t *context)
 {
   HamUpdatesPrivate *priv;
   Updates *updates;
+  UpdatesStatus ret = UPDATES_NONE;
 
   g_return_val_if_fail (self != NULL, FALSE);
   g_return_val_if_fail (context != NULL, FALSE);
@@ -572,7 +718,10 @@ ham_updates_are_available (HamUpdates *self, osso_context_t *context)
   updates = updates_fetch (UFILE_SEEN_UPDATES);
 
   if (updates == NULL)
-    return FALSE;
+    {
+      /* @TODO: empty all other files */
+      return ret;
+    }
 
   if (updates->total > 0
       && !ham_is_showing_check_for_updates_view (context))
@@ -583,15 +732,22 @@ ham_updates_are_available (HamUpdates *self, osso_context_t *context)
 	{
 	  hildon_button_set_value (HILDON_BUTTON (priv->button), value);
 	  g_free (value);
+
+          if (is_there_unseen_updates (UFILE_SEEN_UPDATES,
+                                       UFILE_TAPPED_UPDATES))
+            ret = UPDATES_NEW;
+          else
+            ret = UPDATES_TAPPED;
+
           updates_free (updates);
 
-	  return TRUE;
+	  return ret;
 	}
     }
 
   updates_free (updates);
 
-  return FALSE;
+  return ret;
 }
 
 static Updates *

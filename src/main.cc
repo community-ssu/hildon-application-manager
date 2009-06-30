@@ -1722,6 +1722,11 @@ update_seen_updates_file (void)
   /* Write it to disk */
   user_file_write_xexp (UFILE_SEEN_UPDATES, seen_updates);
   xexp_free (seen_updates);
+
+  /* Clean the tapped updates */
+  xexp *tapped_updates = xexp_list_new ("updates");
+  user_file_write_xexp (UFILE_TAPPED_UPDATES, tapped_updates);
+  xexp_free (tapped_updates);
 }
 
 GtkWidget *

@@ -42,6 +42,13 @@ G_BEGIN_DECLS
 #define HAM_UPDATES_GET_CLASS(obj)				\
 	(G_TYPE_INSTANCE_GET_CLASS ((obj), HAM_UPDATES_TYPE, HamUpdatesClass))
 
+typedef enum
+{
+  UPDATES_NEW,    /* icon blinking  */
+  UPDATES_TAPPED, /* icon static    */
+  UPDATES_NONE    /* icon invisible */
+} UpdatesStatus;
+
 typedef struct _HamUpdates HamUpdates;
 typedef struct _HamUpdatesClass HamUpdatesClass;
 
@@ -65,7 +72,8 @@ gboolean ham_updates_check (HamUpdates *self, gchar *proxy);
 gboolean ham_updates_set_alarm (HamUpdates *self, alarm_event_t *event);
 GtkWidget *ham_updates_get_button (HamUpdates *self);
 time_t ham_updates_get_interval (HamUpdates *self);
-gboolean ham_updates_are_available (HamUpdates *self, osso_context_t *context);
+UpdatesStatus ham_updates_status (HamUpdates *self, osso_context_t *context);
+void ham_updates_icon_tapped ();
 
 G_END_DECLS
 
