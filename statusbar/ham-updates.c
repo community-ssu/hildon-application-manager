@@ -639,21 +639,18 @@ updates_fetch (const gchar *seen_ufile)
           }
 
         if (y == NULL)
-          retval->total++;
+          {
+            retval->total++;
 
-        if (xexp_is (x, "os"))
-	  {
-	    retval->os = g_slist_append (retval->os, g_strdup (xexp_text (x)));
-	  }
-        else if (xexp_is (x, "certified"))
-	  {
-	    retval->certified = g_slist_append (retval->certified,
-						g_strdup (xexp_text (x)));
-	  }
-        else
-	  {
-	    retval->other = g_slist_append (retval->other,
-					    g_strdup (xexp_text (x)));
+            if (xexp_is (x, "os"))
+              retval->os = g_slist_append (retval->os,
+                                           g_strdup (xexp_text (x)));
+            else if (xexp_is (x, "certified"))
+              retval->certified = g_slist_append (retval->certified,
+                                                  g_strdup (xexp_text (x)));
+            else
+              retval->other = g_slist_append (retval->other,
+                                              g_strdup (xexp_text (x)));
 	  }
       }
 
