@@ -139,8 +139,6 @@ static void setup_ui (HamUpdatesStatusMenuItem *self);
 static void delete_all_alarms (void);
 
 /* state handling prototypes */
-static void load_icon_state (HamUpdatesStatusMenuItem *self);
-static void save_icon_state (HamUpdatesStatusMenuItem *self);
 static void update_state (HamUpdatesStatusMenuItem *self);
 static void set_icon_state (HamUpdatesStatusMenuItem *self, State state);
 static State get_icon_state (HamUpdatesStatusMenuItem *self);
@@ -955,51 +953,7 @@ setup_ui (HamUpdatesStatusMenuItem *self)
 {
   build_status_menu_button (self);
   build_status_area_icon (self);
-  /* load_icon_state (self); */
   update_state (self);
-}
-
-static void
-load_icon_state (HamUpdatesStatusMenuItem *self)
-{
-  HamUpdatesStatusMenuItemPrivate *priv;
-  xexp *state = NULL;
-
-  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-
-  state = user_file_read_xexp (UFILE_UPDATE_NOTIFIER);
-
-  if (state != NULL)
-    {
-      State saved_state;
-
-      saved_state = xexp_aref_int (state, "icon-state", ICON_STATE_INVISIBLE);
-
-      /* we need to bypass the icon transition rules here */
-      priv->icon_state = saved_state;
-      update_icon_state (self);
-
-      /* let's be cautious about the blinking/static state */
-      if (saved_state != ICON_STATE_INVISIBLE)
-        update_state (self);
-
-      xexp_free (state);
-    }
-
-  LOG ("state loaded");
-}
-
-static void
-save_icon_state (HamUpdatesStatusMenuItem *self)
-{
-  xexp *x_state = NULL;
-
-  x_state = xexp_list_new ("state");
-  xexp_aset_int (x_state, "icon-state", (gint) get_icon_state (self));
-  user_file_write_xexp (UFILE_UPDATE_NOTIFIER, x_state);
-  xexp_free (x_state);
-
-  LOG ("state saved");
 }
 
 #include "transparent-icon.c"
@@ -1156,7 +1110,6 @@ set_icon_state (HamUpdatesStatusMenuItem* self, State state)
     priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
     LOG ("Changing icon state from %d to %d", priv->icon_state, state);
     priv->icon_state = state;
-    /* save_icon_state (self); */
     update_icon_state (self);
   }
 }
