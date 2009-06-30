@@ -793,19 +793,14 @@ xexp_write_file (const char *filename, xexp *x)
     goto error;
 
   xexp_write (f, x);
-  if (ferror (f))
-    goto error;
 
-  if (fflush (f) || fsync (fileno (f)) || fclose (f))
+  if ((ferror (f) | fflush (f) | fsync (fileno (f)) | fclose (f))
+      || (rename (tmp_filename, filename) < 0))
     {
       f = NULL;
       goto error;
     }
-  f = NULL;
 
-  if (rename (tmp_filename, filename) < 0)
-    goto error;
-  
   g_free (tmp_filename);
   return 1;
 
