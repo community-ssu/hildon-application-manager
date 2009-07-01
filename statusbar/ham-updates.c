@@ -241,7 +241,7 @@ ham_updates_dialog_response_cb (GtkDialog *dialog,
       if (response == GTK_RESPONSE_NO)
         {
           update_seen_file (UFILE_SEEN_UPDATES);
-          clean_updates_file (UFILE_TAPPED_UPDATES);
+          clean_updates_ufile (UFILE_TAPPED_UPDATES);
         }
 
       gtk_widget_destroy (GTK_WIDGET (dialog));
