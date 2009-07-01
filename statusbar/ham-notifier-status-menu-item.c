@@ -368,7 +368,7 @@ update_button_visibility (HamNotifierStatusMenuItem *self)
 
   g_object_get (G_OBJECT (self), "visible", &visible, NULL);
 
-  if (ham_notifier_are_available (priv->notifier) == TRUE)
+  if (ham_notifier_status (priv->notifier) != NOTIFICATIONS_NONE)
     {
       if (visible == FALSE)
 	gtk_widget_show (GTK_WIDGET (self));

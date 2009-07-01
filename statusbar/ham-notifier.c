@@ -40,7 +40,7 @@
 #include <xexp.h>
 #include <user_files.h>
 
-/* #define DEBUG */
+#define DEBUG
 #include "util.h"
 #include "update-notifier-conf.h"
 
@@ -71,6 +71,8 @@ enum
 static guint ham_notifier_signals[LAST_SIGNAL];
 
 static void ham_notifier_build_button (HamNotifier *self);
+static void empty_ufile_notifications (const gchar *ufile);
+
 
 G_DEFINE_TYPE (HamNotifier, ham_notifier, G_TYPE_OBJECT)
 
@@ -143,16 +145,22 @@ compare_xexp_text (xexp *x_a, xexp *x_b, const char *tag)
 
 /* Copy AVAILABLE_NOTIFICATIONS_FILE into SEEN_NOTIFICATIONS_FILE */
 static void
-update_seen_notifications ()
+update_notifications (const gchar* ufile)
 {
   xexp *avail_nots;
 
   avail_nots = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
   if (avail_nots != NULL)
     {
-      user_file_write_xexp (UFILE_SEEN_NOTIFICATIONS, avail_nots);
+      user_file_write_xexp (ufile, avail_nots);
       xexp_free (avail_nots);
     }
+}
+
+static void
+update_seen_notifications ()
+{
+  update_notifications (UFILE_SEEN_NOTIFICATIONS);
 }
 
 static void
@@ -163,6 +171,7 @@ ham_notifier_dialog_response_cb (GtkDialog *dialog,
       || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
     {
       update_seen_notifications ();
+      empty_ufile_notifications (UFILE_TAPPED_NOTIFICATIONS);
       gtk_widget_destroy (GTK_WIDGET (dialog));
       g_signal_emit (data, ham_notifier_signals[RESPONSE], 0, response);
     }
@@ -476,15 +485,15 @@ download_notifications (gchar *proxy)
 }
 
 static void
-empty_seen_notifications ()
+empty_ufile_notifications (const gchar *ufile)
 {
   /* as we have new notifications, we no longer need the old seen ones;
-   * the writing of UFILE_SEEN_NOTIFICATIONS will trigger an inotify */
-  xexp* empty_seen_notifications;
+   * the writing of UFILE_*_NOTIFICATIONS will trigger an inotify */
+  xexp *empty_notifications;
 
-  empty_seen_notifications = xexp_list_new ("info");
-  user_file_write_xexp (UFILE_SEEN_NOTIFICATIONS, empty_seen_notifications);
-  xexp_free (empty_seen_notifications);
+  empty_notifications = xexp_list_new ("info");
+  user_file_write_xexp (ufile, empty_notifications);
+  xexp_free (empty_notifications);
 }
 
 void
@@ -492,8 +501,9 @@ ham_notifier_empty_seen_notifications ()
 {
   xexp *avail_notifications;
   xexp *seen_notifications;
+  xexp *tapped_notifications;
 
-  seen_notifications = NULL;
+  seen_notifications = tapped_notifications = NULL;
   avail_notifications = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
   if (avail_notifications == NULL)
     goto exit;
@@ -517,7 +527,30 @@ ham_notifier_empty_seen_notifications ()
                                          seen_notifications,
                                          "uri")))))
     {
-      empty_seen_notifications ();
+      empty_ufile_notifications (UFILE_SEEN_NOTIFICATIONS);
+    }
+
+  tapped_notifications = user_file_read_xexp (UFILE_TAPPED_NOTIFICATIONS);
+
+  /* let's create an empty tapped-notifications file either
+     there's not tapped-notification file right now,
+     or if the tapped-notifications and available-notifications are
+     different */
+  if (tapped_notifications == NULL
+      || (xexp_is_tag_and_not_empty (avail_notifications, "info")
+          && (!xexp_is_tag_and_not_empty (tapped_notifications, "info")
+              || (xexp_is_tag_and_not_empty (tapped_notifications, "info")
+                  && !compare_xexp_text (avail_notifications,
+                                         tapped_notifications,
+                                         "title")
+                  && !compare_xexp_text (avail_notifications,
+                                         tapped_notifications,
+                                         "text")
+                  && !compare_xexp_text (avail_notifications,
+                                         tapped_notifications,
+                                         "uri")))))
+    {
+      empty_ufile_notifications (UFILE_TAPPED_NOTIFICATIONS);
     }
 
 exit:
@@ -526,6 +559,9 @@ exit:
 
   if (seen_notifications != NULL)
     xexp_free (seen_notifications);
+
+  if (tapped_notifications != NULL)
+    xexp_free (tapped_notifications);
 }
 
 static gpointer
@@ -583,15 +619,16 @@ ham_notifier_get_url (HamNotifier *self)
   return g_strdup (priv->url);
 }
 
-static gboolean
-new_notifications (HamNotifier *self)
+static NotificationsStatus
+notifications_status (HamNotifier *self)
 {
   xexp *seen_nots;
   xexp *avail_nots;
-  gboolean isnew;
+  xexp *tapped_nots;
+  NotificationsStatus status;
 
-  seen_nots = NULL;
-  isnew = FALSE;
+  seen_nots = tapped_nots = NULL;
+  status = NOTIFICATIONS_NONE;
 
   avail_nots = user_file_read_xexp (UFILE_AVAILABLE_NOTIFICATIONS);
   if (avail_nots == NULL)
@@ -599,7 +636,7 @@ new_notifications (HamNotifier *self)
 
   if (xexp_is_tag_and_not_empty (avail_nots, "info"))
     {
-      isnew = xexp_aref_text (avail_nots, "title") != NULL
+      gboolean isnew = xexp_aref_text (avail_nots, "title") != NULL
         && xexp_aref_text (avail_nots, "text") != NULL
         && xexp_aref_text (avail_nots, "uri") != NULL;
 
@@ -607,19 +644,38 @@ new_notifications (HamNotifier *self)
         goto exit;
     }
 
+  tapped_nots = user_file_read_xexp (UFILE_TAPPED_NOTIFICATIONS);
+  if (tapped_nots != NULL
+      && xexp_is_tag_and_not_empty (tapped_nots, "info"))
+    {
+      gboolean istapped = compare_xexp_text (avail_nots, tapped_nots, "title")
+        && compare_xexp_text (avail_nots, tapped_nots, "text")
+        && compare_xexp_text (avail_nots, tapped_nots, "uri");
+
+      if (istapped == TRUE)
+        {
+          status = NOTIFICATIONS_TAPPED;
+          goto exit;
+        }
+    }
+
+  status = NOTIFICATIONS_NEW;
   seen_nots = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
   if (seen_nots == NULL)
-      goto exit;
+    goto exit;
 
   if (xexp_is_tag_and_not_empty (seen_nots, "info"))
     {
-      isnew = !compare_xexp_text (avail_nots, seen_nots, "title")
+      gboolean isnew = !compare_xexp_text (avail_nots, seen_nots, "title")
         && !compare_xexp_text (avail_nots, seen_nots, "text")
         && !compare_xexp_text (avail_nots, seen_nots, "uri");
+
+      if (isnew == FALSE)
+        status = NOTIFICATIONS_NONE;
     }
 
  exit:
-  if (isnew == TRUE && self != NULL)
+  if (status != NOTIFICATIONS_NONE && self != NULL)
     {
       HamNotifierPrivate *priv;
 
@@ -631,12 +687,22 @@ new_notifications (HamNotifier *self)
   if (avail_nots != NULL)
     xexp_free (avail_nots);
 
+  if (tapped_nots != NULL)
+    xexp_free (tapped_nots);
+
   if (seen_nots != NULL)
     xexp_free (seen_nots);
 
-  LOG ("there's%snew notifications", !isnew ? " NOT " : " ");
+  LOG ("there's%snew notifications %d", status == NOTIFICATIONS_NONE ?
+       " NOT " : " ", status);
 
-  return isnew;
+  return status;
+}
+
+void
+ham_notifier_icon_tapped ()
+{
+  update_notifications (UFILE_TAPPED_NOTIFICATIONS);
 }
 
 static gchar *
@@ -675,26 +741,27 @@ build_button_content ()
   return content;
 }
 
-gboolean
-ham_notifier_are_available (HamNotifier *self)
+NotificationsStatus
+ham_notifier_status (HamNotifier *self)
 {
-  if (new_notifications (self) == TRUE)
+  NotificationsStatus status;
+
+  status = notifications_status (self);
+
+  if (status != NOTIFICATIONS_NONE
+      && self != NULL)
     {
-      if (self != NULL)
+      gchar *value;
+
+      if ((value = build_button_content (self)) != NULL)
         {
-          gchar *value;
+          HamNotifierPrivate *priv;
 
-          if ((value = build_button_content (self)) != NULL)
-            {
-              HamNotifierPrivate *priv;
-
-              priv = HAM_NOTIFIER_GET_PRIVATE (self);
-              hildon_button_set_value (HILDON_BUTTON (priv->button), value);
-              g_free (value);
-            }
+          priv = HAM_NOTIFIER_GET_PRIVATE (self);
+          hildon_button_set_value (HILDON_BUTTON (priv->button), value);
+          g_free (value);
         }
-      return TRUE;
     }
 
-  return FALSE;
+  return status;
 }

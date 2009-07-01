@@ -369,6 +369,7 @@ ham_updates_status_menu_item_map_event (GtkWidget *widget, gpointer data)
     {
       /* let's update the tapped updates file */
       ham_updates_icon_tapped ();
+      ham_notifier_icon_tapped ();
 
       set_icon_state (self, ICON_STATE_STATIC);
     }
@@ -1130,7 +1131,7 @@ update_state (HamUpdatesStatusMenuItem *self)
   HamUpdatesStatusMenuItemPrivate *priv;
   gboolean visible;
   UpdatesStatus updates;
-  gboolean notification;
+  NotificationsStatus notification;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
@@ -1139,8 +1140,7 @@ update_state (HamUpdatesStatusMenuItem *self)
   g_object_get (G_OBJECT (self), "visible", &visible, NULL);
 
   updates = ham_updates_status (priv->updates, priv->osso);
-  notification = ham_notifier_are_available (NULL)
-    && (get_icon_state (self) != ICON_STATE_STATIC);
+  notification = ham_notifier_status (NULL);
 
   /* shall we show the updates button? */
   if (updates != UPDATES_NONE)
@@ -1149,9 +1149,11 @@ update_state (HamUpdatesStatusMenuItem *self)
     gtk_widget_hide (GTK_WIDGET (self));
 
   /* shall we blink the status area icon? */
-  if (updates == UPDATES_NEW || notification == TRUE)
+  if (updates == UPDATES_NEW
+      || notification == NOTIFICATIONS_NEW)
     set_icon_state (self, ICON_STATE_BLINKING);
-  else if (updates == UPDATES_TAPPED)
+  else if (updates == UPDATES_TAPPED
+           || notification == NOTIFICATIONS_TAPPED)
     set_icon_state (self, ICON_STATE_STATIC);
   else
     set_icon_state (self, ICON_STATE_INVISIBLE);

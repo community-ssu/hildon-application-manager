@@ -35,6 +35,7 @@ extern "C" {
 #define UFILE_SEEN_UPDATES "seen-updates"
 #define UFILE_TAPPED_UPDATES "tapped-updates"
 #define UFILE_SEEN_NOTIFICATIONS "seen-notifications"
+#define UFILE_TAPPED_NOTIFICATIONS "tapped-notifications"
 #define UFILE_AVAILABLE_NOTIFICATIONS "available-notifications"
 #define UFILE_AVAILABLE_NOTIFICATIONS_TMP   UFILE_AVAILABLE_NOTIFICATIONS ".tmp"
 #define UFILE_BOOT "boot"

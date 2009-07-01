@@ -42,6 +42,13 @@ G_BEGIN_DECLS
 #define HAM_NOTIFIER_GET_CLASS(obj)				\
 	(G_TYPE_INSTANCE_GET_CLASS ((obj), HAM_NOTIFIER_TYPE, HamNotifierClass))
 
+typedef enum
+{
+  NOTIFICATIONS_NEW,    /* icon blinking  */
+  NOTIFICATIONS_TAPPED, /* icon static    */
+  NOTIFICATIONS_NONE    /* icon invisible */
+} NotificationsStatus;
+
 typedef struct _HamNotifier HamNotifier;
 typedef struct _HamNotifierClass HamNotifierClass;
 
@@ -63,9 +70,10 @@ GType ham_notifier_get_type (void);
 gboolean ham_notifier_check (gchar *proxy);
 GtkWidget *ham_notifier_get_button (HamNotifier *self);
 gchar *ham_notifier_get_url (HamNotifier *self);
-gboolean ham_notifier_are_available (HamNotifier *self);
+NotificationsStatus ham_notifier_status (HamNotifier *self);
 
 void ham_notifier_empty_seen_notifications ();
+void ham_notifier_icon_tapped ();
 
 G_END_DECLS
 
