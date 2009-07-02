@@ -259,8 +259,8 @@ ham_notifier_button_clicked_cb (GtkButton *button, gpointer data)
       dlg = gtk_dialog_new_with_buttons
 	(_("ai_sb_app_push_desc"), NULL,
 	 GTK_DIALOG_MODAL,
-	 _("ai_sb_app_push_link"), GTK_RESPONSE_YES,
 	 _("ai_sb_app_push_no"), GTK_RESPONSE_NO,
+	 _("ai_sb_app_push_link"), GTK_RESPONSE_YES,
 	 NULL);
 
       ham_notifier_set_dialog_info (self, GTK_DIALOG (dlg), content);
