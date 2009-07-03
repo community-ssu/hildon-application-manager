@@ -234,16 +234,16 @@ show_log_dialog_flow ()
 					    NULL);
       push_dialog (dialog);
       respond_on_escape (GTK_DIALOG (dialog), GTK_RESPONSE_CLOSE);
-      
+
       gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-      
+
       text_view = make_small_text_view (log_text? log_text->str : "");
-      
+
       gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), text_view);
-      
-      gtk_widget_set_usize (dialog, 600,300);
+
+      gtk_widget_set_size_request (dialog, 600,300);
       gtk_widget_show_all (dialog);
-      
+
       do
 	{
 	  gtk_widget_show_all (dialog);
