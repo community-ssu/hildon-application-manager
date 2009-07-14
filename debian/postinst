@@ -35,11 +35,13 @@ rem_inittab ()
     mv /etc/inittab.tmp /etc/inittab
 }
 
-add_inittab "resc::bootwait:/usr/libexec/apt-worker rescue"
-
 # At one point, apt-worker was called apt-worker.bin.  Make sure we
 # get rid of it.
 rem_inittab "resc::bootwait:/usr/libexec/apt-worker.bin rescue"
+
+# Then the rescue operation in apt-worker was no enough. Now ham-rescue.sh
+# is used.
+rem_inittab "resc::bootwait:/usr/libexec/apt-worker rescue"
 
 if [ ! -d /var/lib/hildon-application-manager ]; then
   mkdir /var/lib/hildon-application-manager
