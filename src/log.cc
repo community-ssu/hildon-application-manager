@@ -129,6 +129,9 @@ save_log (char *uri, void *data)
   GnomeVFSFileInfo info;
   GnomeVFSResult result;
 
+  /* Now users able to delete the parent dialog (save dialog is closed)... */
+  g_object_set (G_OBJECT (data), "deletable", TRUE, NULL);
+
   if (uri == NULL)
     {
       /* Dialog was cancelled, do nothing.
@@ -185,9 +188,11 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
       if (log_text && text_view)
 	set_small_text_view_text (text_view, log_text->str);
     }
-
-  if (response == RESPONSE_SAVE)
+  else if (response == RESPONSE_SAVE)
     {
+      /* We should ignore delete-event when save dialog is shown... */
+      g_object_set (G_OBJECT (dialog), "deletable", FALSE, NULL);
+
       const char *home = getenv ("HOME");
       char *folder = NULL;
       char *name = g_strconcat (_("ai_li_save_log_default_name"), ".txt",
@@ -202,18 +207,33 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
 				  GTK_WINDOW (dialog),
 				  folder,
 				  name,
-				  save_log, NULL);
+				  save_log, dialog);
       g_free (folder);
       g_free (name);
     }
-
-  if (response == GTK_RESPONSE_CLOSE ||
-      response == GTK_RESPONSE_DELETE_EVENT)
+  else if (response == GTK_RESPONSE_CLOSE
+           || response == GTK_RESPONSE_DELETE_EVENT)
     {
-      pop_dialog (GTK_WIDGET (dialog));
-      gtk_widget_destroy (GTK_WIDGET (dialog));
-      end_interaction_flow ();
+      gboolean deletable;
+      g_object_get (G_OBJECT (dialog), "deletable", &deletable, NULL);
+
+      if (deletable)
+        {
+          pop_dialog (GTK_WIDGET (dialog));
+          gtk_widget_destroy (GTK_WIDGET (dialog));
+          end_interaction_flow ();
+        }
     }
+}
+
+static gboolean
+log_dialog_delete (GtkWidget *widget, GdkEvent *event, gpointer unused)
+{
+  /** XXX: Why not GTK does this? */
+  gboolean deletable;
+  g_object_get (G_OBJECT (widget), "deletable", &deletable, NULL);
+
+  return !deletable;
 }
 
 void
@@ -222,7 +242,6 @@ show_log_dialog_flow ()
   if (start_interaction_flow ())
     {
       GtkWidget *dialog, *text_view;
-      gint response;
 
       dialog = gtk_dialog_new_with_buttons (_("ai_ti_log"),
 					    NULL,
@@ -242,16 +261,15 @@ show_log_dialog_flow ()
       gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), text_view);
 
       gtk_widget_set_size_request (dialog, 600,300);
-      gtk_widget_show_all (dialog);
 
-      do
-	{
-	  gtk_widget_show_all (dialog);
-	  response = gtk_dialog_run (GTK_DIALOG (dialog));
-	  log_response (GTK_DIALOG (dialog), response, text_view);
-	}
-      while (response != GTK_RESPONSE_CLOSE &&
-             response != GTK_RESPONSE_DELETE_EVENT);
+      g_object_set (G_OBJECT (dialog), "deletable", TRUE, NULL);
+
+      g_signal_connect (dialog, "delete-event",
+                        G_CALLBACK (log_dialog_delete), NULL);
+      g_signal_connect (dialog, "response",
+                        G_CALLBACK (log_response), text_view);
+
+      gtk_widget_show_all (dialog);
     }
 }
 
