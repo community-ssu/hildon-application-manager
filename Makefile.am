@@ -15,6 +15,9 @@ backup_DATA = hildon-application-manager.conf
 restoredir = $(sysconfdir)/osso-backup/restore.d/always/
 restore_SCRIPTS = hildon-application-manager.sh
 
+rescuedir = $(libexecdir)
+rescue_SCRIPTS = ham-rescue.sh
+
 sudoersdir = $(sysconfdir)/sudoers.d/
 sudoers_DATA = hildon-application-manager.sudoers
 
@@ -47,7 +50,8 @@ EXTRA_DIST = COPYING.LIB                                        \
              hildon-application-manager.xml			\
              hildon-application-manager.conf			\
              hildon-application-manager.sh			\
-             hildon-application-manager.sudoers
+             hildon-application-manager.sudoers 		\
+             ham-rescue.sh
 
 deb:
 	./make-package $(PACKAGE) $(VERSION) .
