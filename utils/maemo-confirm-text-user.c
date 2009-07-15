@@ -116,7 +116,7 @@ make_small_text_view (const char *file)
                         NULL));
 
   view = hildon_text_view_new ();
-  buffer = hildon_text_view_get_buffer (GTK_TEXT_VIEW (view));
+  buffer = hildon_text_view_get_buffer (HILDON_TEXT_VIEW (view));
 
   fill_text_buffer_from_file (buffer, file);
 
