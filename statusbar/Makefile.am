@@ -23,6 +23,7 @@ ham_updates_status_menu_item_la_LIBADD = \
 	$(NOTIFIER_DEPS_LIBS)
 
 ham_updates_status_menu_item_la_LDFLAGS = \
+	-export-symbols ham-updates-status-menu-item.sym \
 	-module -avoid-version -no-undefined
 
 ham_updates_status_menu_item_la_SOURCES = 	\
@@ -47,6 +48,7 @@ ham_notifier_status_menu_item_la_LIBADD = \
 	$(NOTIFIER_DEPS_LIBS)
 
 ham_notifier_status_menu_item_la_LDFLAGS = \
+	-export-symbols ham-notifier-status-menu-item.sym \
 	-module -avoid-version -no-undefined
 
 ham_notifier_status_menu_item_la_SOURCES = 	\
