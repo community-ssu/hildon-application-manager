@@ -1,3 +1,142 @@
+2009-07-15 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* utils/maemo-confirm-text-user.c (make_small_text_view): update the
+	cast type.
+	* statusbar/Makefile.am: Use the -export-symbols parameter for libtool
+	* statusbar/ham-notifier-status-menu-item.sym,
+	statusbar/ham-updates-status-menu-item.sym: New files
+
+2009-07-14 David Kedves <dkedves@blumsoft.eu>
+
+	* Makefile.am: Removed the inittab command adding and remove
+	deprecated ones. 
+	* Makefile.am: Installs the ham-rescue.sh script.
+	* ham-rescue.sh: New file.
+
+2009-07-14 David Kedves <dkedves@blumsoft.eu>
+
+	* src/log.cc (save_log): Setting the log dialogue as deletable.
+	(log_response): Setting the log dialogue as non-deletable when the save
+	response is received. Process the delete/close event if the log
+	dialogue is deletable.
+	(log_dialog_delete): New function.
+	(show_log_dialog_flow): Removed the use of gtk_dialog_run () and use
+	the async callback for handling the dialogue.
+
+2009-07-03 David Kedves <dkedves@blumsoft.eu>
+
+	* src/log.cc (show_log_dialog_flow): Use gtk_widget_set_size_request()
+	rather than the depracated gtk_widget_set_usize()
+
+2009-07-02 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* statusbar/ham-updates.c (ham_updates_button_clicked_cb): Make the
+	continue button the last button according to the spec.
+	* statusbar/ham-notifier.c (ham_notifier_button_clicked_cb): Make the
+	continue button the last button according to the spec.
+
+2009-07-01 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* statusbar/ham-updates.c (ham_updates_dialog_response_cb): Fixed an
+	unresolved symbol.
+	* src/user_files.h: Added the user file tapped-notifications macro.
+	* statusbar/ham-notifier.h (NotificationsStatus): Declare the enum
+	with the new three states.
+	(ham_notifier_are_available): Removed functions declaration.
+	(ham_notifier_status): New function declaration.
+	(void ham_notifier_icon_tapped): New function declaration.
+	* statusbar/ham-notifier.c (update_notifications): New function.
+	(update_seen_notifications): Use update_notifications ().
+	(ham_notifier_dialog_response_cb): empty the tapped notifications at
+	dialog response.
+	(empty_ufile_notifications): New function.
+	(empty_seen_notifications): Removed function.
+	(ham_notifier_empty_seen_notifications): Emtpy the tapped notification
+	file if there's a new notificaiton.
+	(new_notifications): Removed function.
+	(notifications_status): New function.
+	(ham_notifier_icon_tapped): New function.
+	(ham_notifier_are_available): Removed function.
+	(ham_notifier_status): New function.
+	* statusbar/ham-notifier-status-menu-item.c
+	(update_button_visibility): Use the states return value.
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_map_event): Update the tapped
+	notifications file.
+	(update_state): Use the notification state return value.
+
+2009-06-30 David Kedves <dkedves@blumsoft.eu>
+
+	* statusbar/ham-updates-status-menu-item.c (load_icon_state): Removed
+	function.
+	(save_icon_state): Removed function.
+	(setup_ui): Removed commented out function call.
+	(set_icon_state): Removed commented out function call.
+
+2009-06-30 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/user_files.h: Added the user file tapped-updates macro
+	definition. 
+	* statusbar/ham-updates.h (UpdatesStatus): Declare the enum with the
+	new three sw updates states.
+	(ham_updates_are_available): Removed this function declaration.
+	(ham_updates_status): New function declaration.
+	(ham_updates_icon_tapped): New function declaration.
+	* statusbar/ham-updates.c (update_seen_file): Typo.
+	(clean_updates_ufile): New function.
+	(ham_updates_icon_tapped): New function.
+	(ham_updates_dialog_response_cb): Clean the tapped updates file when
+	the updates are ignored.
+	(ham_updates_are_available): Function removed.
+	(is_there_unseen_updates): New function.
+	(ham_updates_status): New function.
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_map_event): Put static the icon state
+	only if the icon is in blinking state.
+	(ham_updates_status_menu_item_response_cb): Update the state instead
+	of just turning off the icon.
+	(setup_ui): Do not load icon state, update the state instead.
+	(set_icon_state): Removed the transition rules.
+	(update_state): Use the three state sw updates state.
+	* src/main.cc (update_seen_updates_file): Clean the tapped updates
+	file when the updates are seen.
+	* statusbar/ham-updates.c (updates_fetch): Add missing parenthesis in
+	if block.
+	* src/xexp.c (xexp_write_file): flush, sync and close the xexp file,
+	and afterwars rename it, even is something failed.
+	* src/user_files.c (user_file_write_xexp): flush, sync and close the
+	saved user file.
+
+2009-06-26 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (make_main_view): Removed app-specified dialogue margins
+	(NB#125118)
+
+2009-06-24 David Kedves <dkedves@blumsoft.eu>
+
+	* src/operations.cc (ip_install_loop): call apt_worker_install_check
+	only in redpill mode.
+	(ip_check_domain_reply): Remove the use of "ai_ni_error_broken_path_%s"
+	logical id.
+	* src/main.cc (main): Create window before dbus initialisation
+	(NB#123335) 
+
+2009-06-24 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* debian/changelog: typo in bug id.
+	* src/details.cc (spd_with_details): Use logical id for
+	string. (NB#124462). 
+
+2009-06-23 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/operations.cc (ip_not_enough_battery_confirm): The battery
+	message is a information note. (NB#124253)
+	(ip_not_enough_battery_confirm_response): Changed the function
+	signature and validates if the battery is in charging
+	state. (NB#124253) 
+	* debian/control: Renable the maemo-install-utils provide declaration,
+	needed by test packages.
+
 2009-06-22 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (set_current_view): enable sort button if there is not

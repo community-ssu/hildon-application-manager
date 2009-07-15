@@ -1,8 +1,22 @@
-hildon-application-manager (1:2.2.24~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.24) unstable; urgency=low
 
-  * 
+  [ David Kedves ]
+  * Fixes: NB#123335 - Updates view is not populated in SSU
+  * Fixes: NB#112232 - Error note 'ai_ni_error_broken_path_%s' is not shown
+  * Fixes: NB#123744 - The "Save log" dialog hangs if the preceding dialog is cancelled
+  * A new script for handling the rescue boot mode.
+  
+  [ Víctor Jáquez ]
+  * Fixes: NB#124253 - §ai_ni_error_battery_empty§ is displayed as Hildon Touch Confirmation note
+  * Fixes: NB#124462 - Application manager - Unlocalised dependencies tab when red pill mode is active
+  * Fixes: NB#121273 - Update icon is not blinking when there is an another update available.
+  * Fixes: NB#125848 - Wrong order of dialog buttons in confirm update dialog
+  * Fixes: NB#126279 - H-A-M status menu plugins should export less symbols
+  * Removed the app-specific dialogue margins
+  * Added fflush and fsync in some xexp file operations
+  * Replicated the new functionaly of updates in the software notifications
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 22 Jun 2009 19:49:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 15 Jul 2009 14:25:00 +0100	
 
 hildon-application-manager (1:2.2.23-1) unstable; urgency=low
 
