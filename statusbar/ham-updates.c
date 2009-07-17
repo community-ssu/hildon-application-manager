@@ -43,7 +43,7 @@
 #define _(x) dgettext ("hildon-application-manager", (x))
 
 #define HAM_UPDATES_BUTTON_ICON_NAME     "general_application_manager"
-#define HAM_UPDATES_BUTTON_ICON_SIZE     64
+#define HAM_UPDATES_BUTTON_ICON_SIZE     48
 
 #define HAM_UPDATES_OS         _("ai_sb_update_os")
 #define HAM_UPDATES_NOKIA      _("ai_sb_update_nokia_%d")
@@ -389,7 +389,11 @@ ham_updates_button_set_icon (HildonButton *button)
       image = gtk_image_new_from_pixbuf (pixbuf);
 
       if (image != NULL)
-	hildon_button_set_image (button, image);
+        {
+          hildon_button_set_image (button, image);
+          hildon_button_set_image_position (HILDON_BUTTON (button),
+                                            GTK_POS_LEFT);
+        }
 
       g_object_unref (pixbuf);
     }
@@ -403,9 +407,10 @@ ham_updates_build_button (HamUpdates *self)
   priv = HAM_UPDATES_GET_PRIVATE (self);
 
   priv->button = hildon_button_new_with_text
-    (HILDON_SIZE_FULLSCREEN_WIDTH | HILDON_SIZE_FINGER_HEIGHT,
+    (HILDON_SIZE_FINGER_HEIGHT | HILDON_SIZE_AUTO_WIDTH,
      HILDON_BUTTON_ARRANGEMENT_VERTICAL,
      _("apma_menu_plugin_title_software_updates"), "");
+  hildon_button_set_alignment (HILDON_BUTTON (priv->button), 0, 0, 1, 1);
 
   ham_updates_button_set_icon (HILDON_BUTTON (priv->button));
 
