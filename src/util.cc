@@ -3168,8 +3168,10 @@ ensure_network (void (*callback) (bool success, void *data), void *data)
   ensure_network_cont (false);
 }
 
-char *
-get_http_proxy ()
+/* FIXME: this mechanism to obtain the http proxy seems to be
+ * deprecated in Fremantle */
+static char *
+get_gconf_http_proxy ()
 {
   char *proxy;
   char *proxy_mode = NULL;
@@ -3265,6 +3267,47 @@ get_https_proxy ()
   g_free(host);
 
   g_object_unref (conf);
+
+  return proxy;
+}
+
+char *
+get_http_proxy ()
+{
+  gchar *proxy = NULL;
+
+  if ((proxy = getenv ("http_proxy")) != NULL)
+    return g_strdup (proxy);
+
+  if (connection_object != NULL)
+    {
+      ConIcProxyMode proxy_mode;
+      const gchar* host;
+      gint port;
+
+      proxy_mode = con_ic_connection_get_proxy_mode (connection_object);
+      if (proxy_mode == CON_IC_PROXY_MODE_MANUAL)
+        {
+          host = con_ic_connection_get_proxy_host (connection_object,
+                                                   CON_IC_PROXY_PROTOCOL_HTTP);
+          port = con_ic_connection_get_proxy_port (connection_object,
+                                                   CON_IC_PROXY_PROTOCOL_HTTP);
+
+          if (host != NULL)
+            proxy = g_strdup_printf ("http://%s:%d", host, port);
+        }
+      else if (proxy_mode == CON_IC_PROXY_MODE_AUTO)
+        {
+          const char *proxy_url;
+          proxy_url = con_ic_connection_get_proxy_autoconfig_url (connection_object);
+          if (proxy_url)
+            proxy = g_strdup (proxy_url);
+        }
+    }
+  else
+    {
+      proxy = get_gconf_http_proxy ();
+    }
 
   return proxy;
 }
