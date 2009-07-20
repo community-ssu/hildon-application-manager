@@ -3168,8 +3168,10 @@ ensure_network (void (*callback) (bool success, void *data), void *data)
   ensure_network_cont (false);
 }
 
-/* FIXME: this mechanism to obtain the http proxy seems to be
- * deprecated in Fremantle */
+/* @FIXME:
+   This mechanism to obtain the http proxy seems to be
+   deprecated in Fremantle
+*/
 static char *
 get_gconf_http_proxy ()
 {
@@ -3290,10 +3292,7 @@ get_conic_proxy (ConIcProxyProtocol conic_protocol)
     }
   else if (proxy_mode == CON_IC_PROXY_MODE_AUTO)
     {
-      const char *proxy_url;
-      proxy_url = con_ic_connection_get_proxy_autoconfig_url (connection_object);
-      if (proxy_url)
-        proxy = g_strdup (proxy_url);
+      // @TODO: shall we support this?
     }
 
   return proxy;
