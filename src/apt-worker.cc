@@ -1441,11 +1441,21 @@ cmd_set_env ()
       setenv ("http_proxy", http_proxy, 1);
       DBG ("http_proxy: %s", http_proxy);
     }
+  else
+    {
+      // clear HTTP_PROXY from environment otherwise
+      unsetenv ("http_proxy");
+    }
 
   if (https_proxy)
     {
       setenv ("https_proxy", https_proxy, 1);
       DBG ("https_proxy: %s", https_proxy);
+    }
+  else
+    {
+      // clear HTTPS_PROXY from environment otherwise
+      unsetenv ("https_proxy");
     }
 
   if (internal_mmc)
