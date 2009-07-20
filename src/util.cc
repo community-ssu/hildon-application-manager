@@ -3172,6 +3172,7 @@ char *
 get_http_proxy ()
 {
   char *proxy;
+  char *proxy_mode = NULL;
 
   GConfClient *conf = gconf_client_get_default ();
 
@@ -3184,8 +3185,10 @@ get_http_proxy ()
   */
   gconf_client_clear_cache (conf);
 
-  if (gconf_client_get_bool (conf, "/system/http_proxy/use_http_proxy",
-			     NULL))
+  proxy_mode = gconf_client_get_string (conf, "/system/proxy/mode", NULL);
+  if (strcmp (proxy_mode, "none")
+      && gconf_client_get_bool (conf, "/system/http_proxy/use_http_proxy",
+                                NULL))
     {
       char *user = NULL;
       char *password = NULL;
@@ -3229,6 +3232,7 @@ get_http_proxy ()
            non-transparent proxies are evil anyway.
    */
 
+  g_free (proxy_mode);
   g_object_unref (conf);
 
   return proxy;
