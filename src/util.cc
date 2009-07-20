@@ -3240,8 +3240,8 @@ get_gconf_http_proxy ()
   return proxy;
 }
 
-char *
-get_https_proxy ()
+static char *
+get_gconf_https_proxy ()
 {
   char *proxy = NULL;
 
@@ -3271,6 +3271,34 @@ get_https_proxy ()
   return proxy;
 }
 
+static char *
+get_conic_proxy (ConIcProxyProtocol conic_protocol)
+{
+  ConIcProxyMode proxy_mode;
+  const gchar* host;
+  gint port;
+  gchar *proxy = NULL;
+
+  proxy_mode = con_ic_connection_get_proxy_mode (connection_object);
+  if (proxy_mode == CON_IC_PROXY_MODE_MANUAL)
+    {
+      host = con_ic_connection_get_proxy_host (connection_object, conic_protocol);
+      port = con_ic_connection_get_proxy_port (connection_object, conic_protocol);
+
+      if (host != NULL)
+        proxy = g_strdup_printf ("http://%s:%d", host, port);
+    }
+  else if (proxy_mode == CON_IC_PROXY_MODE_AUTO)
+    {
+      const char *proxy_url;
+      proxy_url = con_ic_connection_get_proxy_autoconfig_url (connection_object);
+      if (proxy_url)
+        proxy = g_strdup (proxy_url);
+    }
+
+  return proxy;
+}
+
 char *
 get_http_proxy ()
 {
@@ -3279,35 +3307,28 @@ get_http_proxy ()
   if ((proxy = getenv ("http_proxy")) != NULL)
     return g_strdup (proxy);
 
+  /* Try libconic first or fallback to gconf if not available */
   if (connection_object != NULL)
-    {
-      ConIcProxyMode proxy_mode;
-      const gchar* host;
-      gint port;
-
-      proxy_mode = con_ic_connection_get_proxy_mode (connection_object);
-      if (proxy_mode == CON_IC_PROXY_MODE_MANUAL)
-        {
-          host = con_ic_connection_get_proxy_host (connection_object,
-                                                   CON_IC_PROXY_PROTOCOL_HTTP);
-          port = con_ic_connection_get_proxy_port (connection_object,
-                                                   CON_IC_PROXY_PROTOCOL_HTTP);
-
-          if (host != NULL)
-            proxy = g_strdup_printf ("http://%s:%d", host, port);
-        }
-      else if (proxy_mode == CON_IC_PROXY_MODE_AUTO)
-        {
-          const char *proxy_url;
-          proxy_url = con_ic_connection_get_proxy_autoconfig_url (connection_object);
-          if (proxy_url)
-            proxy = g_strdup (proxy_url);
-        }
-    }
+    proxy = get_conic_proxy (CON_IC_PROXY_PROTOCOL_HTTP);
   else
-    {
-      proxy = get_gconf_http_proxy ();
-    }
+    proxy = get_gconf_http_proxy ();
+
+  return proxy;
+}
+
+char *
+get_https_proxy ()
+{
+  gchar *proxy = NULL;
+
+  if ((proxy = getenv ("https_proxy")) != NULL)
+    return g_strdup (proxy);
+
+  /* Try libconic first or fallback to gconf if not available */
+  if (connection_object != NULL)
+    proxy = get_conic_proxy (CON_IC_PROXY_PROTOCOL_HTTPS);
+  else
+    proxy = get_gconf_https_proxy ();
 
   return proxy;
 }
