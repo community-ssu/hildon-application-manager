@@ -658,25 +658,25 @@ notifications_status (HamNotifier *self)
         && compare_xexp_text (avail_nots, tapped_nots, "uri");
 
       if (istapped == TRUE)
-        {
-          status = NOTIFICATIONS_TAPPED;
-          goto exit;
-        }
+        status = NOTIFICATIONS_TAPPED;
     }
 
-  status = NOTIFICATIONS_NEW;
   seen_nots = user_file_read_xexp (UFILE_SEEN_NOTIFICATIONS);
-  if (seen_nots == NULL)
-    goto exit;
-
-  if (xexp_is_tag_and_not_empty (seen_nots, "info"))
+  if (seen_nots != NULL
+      && xexp_is_tag_and_not_empty (seen_nots, "info"))
     {
-      gboolean isnew = !compare_xexp_text (avail_nots, seen_nots, "title")
-        && !compare_xexp_text (avail_nots, seen_nots, "text")
-        && !compare_xexp_text (avail_nots, seen_nots, "uri");
+      gboolean isseen = compare_xexp_text (avail_nots, seen_nots, "title")
+        && compare_xexp_text (avail_nots, seen_nots, "text")
+        && compare_xexp_text (avail_nots, seen_nots, "uri");
 
-      if (isnew == FALSE)
-        status = NOTIFICATIONS_NONE;
+      status = (isseen == TRUE) ?
+        NOTIFICATIONS_NONE :
+        NOTIFICATIONS_NEW;
+    }
+  else
+    {
+      if (status == NOTIFICATIONS_NONE)
+        status = NOTIFICATIONS_NEW;
     }
 
  exit:
