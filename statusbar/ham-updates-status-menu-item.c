@@ -304,16 +304,25 @@ get_http_proxy (HamUpdatesStatusMenuItem *self)
 
   if (priv->conic != NULL)
     {
+      ConIcProxyMode proxy_mode;
       const gchar* host;
       gint port;
 
-      host = con_ic_connection_get_proxy_host (priv->conic,
-                                               CON_IC_PROXY_PROTOCOL_HTTP);
-      port = con_ic_connection_get_proxy_port (priv->conic,
-                                               CON_IC_PROXY_PROTOCOL_HTTP);
+      proxy_mode = con_ic_connection_get_proxy_mode (priv->conic);
+      if (proxy_mode == CON_IC_PROXY_MODE_MANUAL)
+        {
+          host = con_ic_connection_get_proxy_host (priv->conic,
+                                                   CON_IC_PROXY_PROTOCOL_HTTP);
+          port = con_ic_connection_get_proxy_port (priv->conic,
+                                                   CON_IC_PROXY_PROTOCOL_HTTP);
 
-      if (host != NULL)
-        proxy = g_strdup_printf ("http://%s:%d", host, port);
+          if (host != NULL)
+            proxy = g_strdup_printf ("http://%s:%d", host, port);
+        }
+      else if (proxy_mode == CON_IC_PROXY_MODE_AUTO)
+        {
+          /* @TODO: shall we support this? */
+        }
     }
   else if (priv->gconf != NULL)
     {
