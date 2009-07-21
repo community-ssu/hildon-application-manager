@@ -3426,17 +3426,42 @@ find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
             g_strfreev (comps);
           }
       }
-    
+
     g_free (uri); uri = NULL;
-  }   
+  }
 
 beach:
-  gchar *retval = catname ? g_strdup (catname) :
-    g_strdup_printf ("%s %s %s", archiveuri ? archiveuri : pfi.Site (),
-                     pfi.Archive (), pfi.Component ());
+  gchar *retval = NULL;
+
+  if (catname)
+    {
+      /* return catalogue name if found */
+      retval = g_strdup (catname);
+    }
+  else
+    {
+      /* build a custom string with URI, dist and component (if present) */
+      const gchar *const_dist = pfi.Archive ();
+      const gchar *const_comp = pfi.Component ();
+      gchar *uri = g_strdup (archiveuri ? archiveuri : pfi.Site ());
+      gchar *dist;
+      gchar *comp;
+
+      /* get needed (and available) values */
+      dist = const_dist ? g_strdup_printf (" %s", const_dist) : NULL;
+      comp = const_comp ? g_strdup_printf (" %s", const_comp) : NULL;
+
+      /* build the result string */
+      retval = g_strdup_printf ("%s%s%s", uri, dist ? dist : "", comp ? comp :"");
+
+      /* free memory */
+      g_free (uri);
+      g_free (dist);
+      g_free (comp);
+    }
 
   g_free (archiveuri);
-  
+
   if (catalogues)
     xexp_free (catalogues);
 
