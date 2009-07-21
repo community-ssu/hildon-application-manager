@@ -1,3 +1,19 @@
+2009-07-20 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* statusbar/ham-notifier.c (notifications_status): Fixed the
+	notification state calculation (NB#128519)
+
+2009-07-17 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* statusbar/ham-updates.c: changed the icon size to 48 pixels.
+	(ham_updates_button_set_icon): set the icon position to left.
+	(ham_updates_build_button): cet the with to auto and set the button
+	alignment. (NB#127774)
+	* statusbar/ham-notifier.c: changed the icon size to 48 pixels.
+	(ham_notifier_button_set_icon): set the icon position to left.
+	(ham_notifier_build_button): cet the with to auto and set the button
+	alignment.
+
 2009-07-15 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* utils/maemo-confirm-text-user.c (make_small_text_view): update the

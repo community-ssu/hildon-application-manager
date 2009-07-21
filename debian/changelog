@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.25~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.24-2) unstable; urgency=low
 
-  * 
+  [ Víctor Jáquez ]
+  * Fixes: NB#128519 - Update icon is still shown even after the updation.
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 16 Jul 2009 13:02:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 21 Jul 2009 11:48:00 +0100	
 
 hildon-application-manager (1:2.2.24-1) unstable; urgency=low
 
