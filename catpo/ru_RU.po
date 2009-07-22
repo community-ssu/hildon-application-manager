@@ -41,7 +41,7 @@ msgid "network"
 msgstr "Интернет и Сети"
 
 msgid "office"
-msgstr "Оффис"
+msgstr "Офис"
 
 msgid "science"
 msgstr "Наука"

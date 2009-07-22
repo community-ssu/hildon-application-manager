@@ -1,6 +1,6 @@
 hildon-application-manager (1:2.2.25~unreleased) unstable; urgency=low
 
-  * 
+  * Fixes: NB#127985 - Wrong translation of the word "Office" into russian.
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 21 Jul 2009 12:19:00 +0100	
 
