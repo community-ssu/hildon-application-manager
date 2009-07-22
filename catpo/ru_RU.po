@@ -17,7 +17,7 @@
 # 02110-1301 USA
 
 msgid "desktop"
-msgstr "Десктоп"
+msgstr "Рабочий стол"
 
 msgid "development"
 msgstr "Программирование"
@@ -32,13 +32,13 @@ msgid "graphics"
 msgstr "Графика"
 
 msgid "multimedia"
-msgstr "Мультимедия"
+msgstr "Мультимедиа"
 
 msgid "navigation"
-msgstr "Позиционирование и Навигация"
+msgstr "Позиционирование и навигация"
 
 msgid "network"
-msgstr "Интернет и Сети"
+msgstr "Интернет и сети"
 
 msgid "office"
 msgstr "Офис"
