@@ -1,8 +1,13 @@
-hildon-application-manager (1:2.2.25~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.25) unstable; urgency=low
 
+  [ Marius Vollmer ]
   * Fixes: NB#127985 - Wrong translation of the word "Office" into russian.
+  
+  [ Mario Sanchez ]
+  * Fixes: NB#128216 - Application Manager attempts to use disabled proxy.
+  * Fixes: NB#126236 - Don't show "(null)" strings to users.
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 21 Jul 2009 12:19:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 23 Jul 2009 11:48:00 +0100	
 
 hildon-application-manager (1:2.2.24-2) unstable; urgency=low
 

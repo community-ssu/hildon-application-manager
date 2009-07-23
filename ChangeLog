@@ -1,3 +1,34 @@
+2009-07-22 Marius Vollmer <marius.vollmer@nokia.com>
+
+	* Fix on ru_RU translation. (NB#127985)
+	
+2009-07-21 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (find_catalogue_for_pkgfile): only add the output
+	of pfi.Archive() and pfi.Component() to the custom string
+	built, along with the catalogue's URI, when they contain valid
+	values. (NB#126236)
+
+2009-07-20 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/util.cc (get_conic_proxy): Remove the incomplete proxy
+	autoconfig support.
+
+2009-07-20 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (get_gconf_https_proxy): function renamed.
+	(get_conic_proxy): new function.
+	(get_http_proxy): use the new function.
+	(get_https_proxy): use the new fucntion.
+	* src/util.cc (get_gconf_http_proxy): new function.
+	(get_http_proxy): Only use gconf directly if there's no connection
+	object available (libconic).
+	* src/apt-worker.cc (cmd_set_env): unset the proxy environment
+	variables if it isn't received. This makes possible to get "instant
+	effects". 
+	* statusbar/ham-updates-status-menu-item.c (get_http_proxy): Check the
+	proxy mode. (NB#128216)
+
 2009-07-20 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* statusbar/ham-notifier.c (notifications_status): Fixed the
