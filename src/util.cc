@@ -2315,8 +2315,7 @@ size_string_general (char *buf, size_t n, int64_t bytes)
 	  // bytes ~ num * 100 * KILO
 	  num = (bytes + 50.0 * KILO) / (100.0 * KILO);
 	  if (num < 10)
-	    snprintf (buf, n, _FM ("sfil_li_size_100kb_1mb"),
-                      (int) num / 10.0);
+	    snprintf (buf, n, _FM ("sfil_li_size_100kb_1mb"), (int) (bytes / KILO));
 	  else
 	    {
               // round to nearest MEGA
@@ -2355,9 +2354,8 @@ size_string_detailed (char *buf, size_t n, int64_t bytes)
 	  // round to nearest 100 KILO
 	  // bytes ~ num * 100 * KILO
 	  num = (bytes + 50.0 * KILO) / (100.0 * KILO);
-	  if (num < 10)
-	    snprintf (buf, n, _FM ("ckdg_va_properties_size_100kb_1mb"),
-                      (int) num / 10.0);
+	  if (num < 10) {
+	    snprintf (buf, n, _FM ("ckdg_va_properties_size_100kb_1mb"), (int) (bytes / KILO));
 	  else
 	    {
               // round to nearest MEGA
