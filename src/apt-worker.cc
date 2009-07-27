@@ -6363,10 +6363,10 @@ do_rescue (const char *package, const char *download_root,
 	{
 	  int result = rescue_operation_with_dir (download_root);
 
-	  if (result == rescode_packages_not_found)
+	  if (result != rescode_success)
 	    result = rescue_with_all_devs ();
 
-	  if (result == rescode_packages_not_found)
+	  if (result != rescode_success)
 	    result = rescue_with_all_devnodes ();
 
 	  /* If we get this far, we have done everything we can.  If
