@@ -3634,11 +3634,11 @@ cmd_get_package_details ()
       AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
       pkgCache::PkgIterator pkg;
       pkgCache::VerIterator ver;
-      
+
       if (find_package_version (awc->cache, pkg, ver, package, version))
         {
           package_record rec (ver);
-	  
+
           response.encode_string (rec.P.Maintainer().c_str());
           response.encode_string 
             (get_long_description (summary_kind, pkg, rec).c_str());
@@ -3657,6 +3657,7 @@ cmd_get_package_details ()
           response.encode_string (NULL);      // maintainer
           response.encode_string (NULL);      // description
           response.encode_int (deptype_end);  // dependencies
+          response.encode_string (NULL);      // repository
           response.encode_int (sumtype_end);  // summary
         }
     }
