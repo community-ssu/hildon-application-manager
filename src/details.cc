@@ -384,6 +384,7 @@ spd_get_details_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   c->pi->dependencies = decode_dependencies (dec);
   c->pi->repository = dec->decode_string_dup ();
+
   if (!red_pill_mode || !red_pill_show_deps)
     {
       // Too much information can kill you.
@@ -403,10 +404,7 @@ static GtkWidget *
 spd_create_common_page (void *data)
 {
   spd_clos *c = (spd_clos *)data;
-  GtkWidget *table, *common;
-
-  /* Show the 'Updating' banner */
-  show_updating ();
+  GtkWidget *table, *common, *pannable;
 
   /* Creates the table */
   table = gtk_table_new (9, 2, FALSE);
@@ -414,9 +412,11 @@ spd_create_common_page (void *data)
   gtk_table_set_row_spacings (GTK_TABLE (table), 0);
   c->table = table;
 
-  common = hildon_pannable_area_new ();
-  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (common),
+  common = gtk_vbox_new (TRUE, 0);
+  pannable = hildon_pannable_area_new ();
+  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (pannable),
                                           table);
+  gtk_box_pack_start (GTK_BOX (common), pannable, TRUE, TRUE, 0);
 
   return common;
 }
@@ -429,9 +429,6 @@ spd_update_common_page (void *data)
   package_info *pi = c->pi;
   const char *status;
   gint last_row = -1;
-
-  /* Prevent the 'Updating' banner from being shown */
-  prevent_updating ();
 
   if (pi->installed_version && pi->available_version)
     {
@@ -719,11 +716,7 @@ spd_with_details (void *data, bool filling_details)
   GtkWidget *dialog, *notebook;
   GtkWidget **spd_nb_widgets = NULL;
   package_info *pi = c->pi;
-  bool is_ssu_pkg = is_pkg_ssu (pi);
-
-  /* Set this value to check whether the dialog is showing the full
-     details for a package or not */
-  c->showing_details = (pi->have_detail_kind == c->kind);
+  bool is_ssu_pkg = false;
 
   if (!filling_details)
     {
@@ -747,16 +740,13 @@ spd_with_details (void *data, bool filling_details)
       /* Init the global array of notebook pages */
       spd_nb_widgets = g_new (GtkWidget *, SPD_NUM_PAGES);
 
+      /* Show the 'Updating' banner */
+      show_updating ();
+
       /* Initialize the notebook pages before appending them */
-      if (!is_ssu_pkg)
-        spd_nb_widgets[SPD_COMMON_PAGE] = spd_create_common_page (c);
-      else
-        spd_nb_widgets[SPD_COMMON_PAGE] = gtk_vbox_new (TRUE, 0);
-
+      spd_nb_widgets[SPD_COMMON_PAGE] = spd_create_common_page (c);
       spd_nb_widgets[SPD_DESCRIPTION_PAGE] = gtk_vbox_new (TRUE, 0);
-
-      if (!is_ssu_pkg)
-        spd_nb_widgets[SPD_SUMMARY_PAGE] = gtk_vbox_new (TRUE, 0);
+      spd_nb_widgets[SPD_SUMMARY_PAGE] = gtk_vbox_new (TRUE, 0);
 
       /* Append the needed notebook pages */
       gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
@@ -767,10 +757,9 @@ spd_with_details (void *data, bool filling_details)
 				spd_nb_widgets[SPD_DESCRIPTION_PAGE],
 				gtk_label_new (_("ai_ti_details_noteb_description")));
 
-      if (!is_ssu_pkg)
-        gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-                                  spd_nb_widgets[SPD_SUMMARY_PAGE],
-                                  gtk_label_new (spd_get_summary_label (c)));
+      gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
+                                spd_nb_widgets[SPD_SUMMARY_PAGE],
+                                gtk_label_new (spd_get_summary_label (c)));
 
       /* Save needed references */
       c->dialog = dialog;
@@ -779,6 +768,10 @@ spd_with_details (void *data, bool filling_details)
     }
   else
     {
+      /* Set this value to check whether the dialog is showing the full
+         details for a package or not */
+      c->showing_details = (pi->have_detail_kind == c->kind);
+
       /* It's the second time this function is called, so use the
 	 previously stored widget references */
       dialog = c->dialog;
@@ -788,6 +781,11 @@ spd_with_details (void *data, bool filling_details)
 
   if (c->showing_details)
     {
+      is_ssu_pkg = is_pkg_ssu (pi);
+
+      /* Prevent the 'Updating' banner from being shown */
+      prevent_updating ();
+
       if (is_ssu_pkg)
         {
           spd_set_page_widget (c, SPD_COMMON_PAGE, spd_create_ssu_page (c));
@@ -810,7 +808,12 @@ spd_with_details (void *data, bool filling_details)
           /* Update 'summary' tab label */
           gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
                                       spd_nb_widgets[SPD_SUMMARY_PAGE],
-                                      gtk_label_new(spd_get_summary_label (c)));
+                                      gtk_label_new (spd_get_summary_label (c)));
+        }
+      else
+        {
+          // we don't need this tab
+          gtk_notebook_remove_page (GTK_NOTEBOOK (notebook), SPD_SUMMARY_PAGE);
         }
 
       if (pi->dependencies && !is_ssu_pkg)
@@ -828,7 +831,7 @@ spd_with_details (void *data, bool filling_details)
   gtk_widget_set_size_request (dialog, 600, 320);
   gtk_widget_show_all (dialog);
 
-  if (c->show_problems && !is_ssu_pkg)
+  if (c->show_problems && c->showing_details && !is_ssu_pkg)
     gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook),
 				   SPD_SUMMARY_PAGE);
 }
