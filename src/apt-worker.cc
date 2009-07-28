@@ -3366,134 +3366,138 @@ chop_uri (gchar *uri)
 }
 
 static gchar*
-find_archive_uri_for_pkgfile (pkgCache::PkgFileIterator pfi)
+find_catalogue_by_info (const char* p_uri,
+                        const char* p_dist,
+                        const char* p_comp)
 {
-  gchar *archiveuri = NULL;
-  pkgIndexFile *index;
-  pkgSourceList list;
-    
-  if (list.ReadMainList () && list.FindIndex (pfi, index))
-    {
-      archiveuri =
-        chop_uri (g_strdup (index->ArchiveURI (string ("")).c_str ()));
-      delete index;
-    }
-
-  return archiveuri;
-}
-
-static gchar*
-find_catalogue_for_pkgfile (pkgCache::PkgFileIterator pfi)
-{
-  const gchar *catname = NULL;
-  gchar *archiveuri = NULL;
+  gchar *catname = NULL;
   xexp *catalogues = read_catalogues ();
 
   if (!catalogues)
-    goto beach;
+    return NULL;
 
-  archiveuri = find_archive_uri_for_pkgfile (pfi);
-  
-  if (!archiveuri)
-    goto beach;
-  
   for (xexp *cat = xexp_first (catalogues); cat; cat = xexp_rest (cat))
-  {
-    gchar *uri = chop_uri (g_strdup (xexp_aref_text (cat, "uri")));
-    if (uri && g_strstr_len (uri, strlen (uri), archiveuri))
-      {
-        const gchar *dist = xexp_aref_text (cat, "dist");
-        if (!dist)
-          dist = default_distribution;
+    {
+      const gchar *uri = xexp_aref_text (cat, "uri");
+      bool enabled = !xexp_aref_bool (cat, "disabled");
+      if (enabled && uri && g_strstr_len (uri, -1, p_uri))
+        {
+          const gchar *dist = xexp_aref_text (cat, "dist");
+          if (!dist)
+            dist = default_distribution;
 
-        if (!g_strcmp0 (dist, pfi.Archive ()))
-          {
-            const gchar *comp = xexp_aref_text (cat, "components");
-            gchar **comps = (comp ? g_strsplit_set (comp, " \t\n", 0) : NULL);
+          if (!g_strcmp0 (dist, p_dist))
+            {
+              if (p_comp != NULL && p_comp[0] != '\0')
+                {
+                  const gchar *comp = xexp_aref_text (cat, "components");
+                  gchar **comps = g_strsplit_set (comp, " \t\n", -1);
 
-            if (comps)
-              {
-                for (gint i = 0; comps[i]; i++)
-                  if (!g_strcmp0 (comps[i], pfi.Component ()))
+                  if (comps != NULL)
                     {
-                      g_free (uri);
+                      for (gint i = 0; comps[i]; i++)
+                        {
+                          if (!g_strcmp0 (comps[i], p_comp))
+                            {
+                              g_strfreev (comps);
+                              catname = g_strdup (xexp_aref_text (cat, "name"));
+                              goto done;
+                            }
+                        }
                       g_strfreev (comps);
-                      catname = xexp_aref_text (cat, "name");
-                      goto beach;
                     }
-              }
-
-            g_strfreev (comps);
-          }
-      }
-
-    g_free (uri); uri = NULL;
-  }
-
-beach:
-  gchar *retval = NULL;
-
-  if (catname)
-    {
-      /* return catalogue name if found */
-      retval = g_strdup (catname);
-    }
-  else
-    {
-      /* build a custom string with URI, dist and component (if present) */
-      const gchar *const_dist = pfi.Archive ();
-      const gchar *const_comp = pfi.Component ();
-      gchar *uri = g_strdup (archiveuri ? archiveuri : pfi.Site ());
-      gchar *dist;
-      gchar *comp;
-
-      /* get needed (and available) values */
-      dist = const_dist ? g_strdup_printf (" %s", const_dist) : NULL;
-      comp = const_comp ? g_strdup_printf (" %s", const_comp) : NULL;
-
-      /* build the result string */
-      retval = g_strdup_printf ("%s%s%s", uri, dist ? dist : "", comp ? comp :"");
-
-      /* free memory */
-      g_free (uri);
-      g_free (dist);
-      g_free (comp);
+                }
+              else
+                {
+                  // it has no components defined
+                  catname = g_strdup (xexp_aref_text (cat, "name"));
+                  goto done;
+                }
+            }
+        }
     }
 
-  g_free (archiveuri);
-
-  if (catalogues)
-    xexp_free (catalogues);
-
-  return retval;
+ done:
+  xexp_free (catalogues);
+  return catname;
 }
 
 static void
-encode_package_repository (pkgCache::VerIterator ver, int summary_kind)
+encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
 {
   // XXX - I don't know how to assure that the "selected" VerFile in the
   //       VerFileItertor is the installable VerFile, but always seems
   //       to be the first one in the iterator.
 
-  pkgCache::VerFileIterator vfi;
-  
-  if (summary_kind != 1) /* only installable packages */
-    goto not_avail;
-    
-  vfi = ver.FileList ();
-  if (vfi.end () == false)
+  pkgSourceList List;
+  pkgIndexFile *Index;
+
+  if (summary_kind == 1 && List.ReadMainList ())
     {
-      pkgCache::PkgFileIterator pfi = vfi.File ();
-      if (pfi.end () == false)
+      if (Version.end () == false)
         {
-          gchar* repo = find_catalogue_for_pkgfile (pfi);
-          response.encode_string (repo);
-          g_free (repo);
-          return;
+          pkgCache::VerFileIterator Vf = Version.FileList ();
+          if (Vf.end () == false)
+            {
+              if (List.FindIndex (Vf.File (), Index))
+                {
+                  char *archive_info, *archive_uri, *dist, *comp;
+
+                  archive_uri = archive_info = comp = dist = NULL;
+
+                  // extract the uri
+                  archive_uri =
+                    chop_uri (g_strdup (Index->ArchiveURI ("").c_str ()));
+
+                  archive_info =
+                    g_strdup (Index->ArchiveInfo (Version).c_str ());
+
+                  // extract the dist
+                  char **info = g_strsplit_set (archive_info, " ", -1);
+                  if (info != NULL)
+                    {
+                      if (info[1] != NULL)
+                        dist = g_strdup (info[1]);
+                      g_strfreev (info);
+                    }
+
+                  // the component
+                  comp = g_strdup (Vf.File ().Component ());
+
+                  // nasty hack for some repositories which join the
+                  // component to the distribution (dist/comp)
+                  if (comp != NULL && comp[0] != '\0')
+                    {
+                      char *p = g_strstr_len (dist, -1, comp);
+                      if (p != NULL && p[0] != '\0' && p - dist - 1 > 0)
+                        {
+                          char* tmp = g_strndup (dist, p - dist - 1);
+                          g_free (dist);
+                          dist = tmp;
+                        }
+                    }
+
+                  delete Index;
+
+                  char* catalogue = find_catalogue_by_info (archive_uri,
+                                                            dist, comp);
+
+                  if (catalogue != NULL)
+                    response.encode_string (catalogue);
+                  else
+                    response.encode_string (archive_info);
+
+                  g_free (archive_uri);
+                  g_free (dist);
+                  g_free (comp);
+                  g_free (catalogue);
+
+                  return;
+                }
+            }
         }
     }
 
-not_avail:
     response.encode_string (NULL);
 }
 
