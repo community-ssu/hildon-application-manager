@@ -1,3 +1,29 @@
+2009-07-27 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/details.cc (spd_create_common_page): removed the 'update' banner
+	logic and added a outer box container.
+	(spd_update_common_page): taked out the 'update' banner logic.
+	(spd_with_details): the showing details boolean is only evaluated if
+	the dialogue is filling the details. The broken SSU boolean is only
+	evaluated if the dialog is showing the details. Removed all the ssu
+	logic if the dialogue is not filling details. Bring in the 'update'
+	banner logic. Remove an unused tab if broken SSU.
+
+2009-07-27 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (cmd_get_package_details): Encode the repository
+	value to null if package is not found.
+
+2009-07-27 David Kedves <dkedves@blumsoft.eu>
+
+	* src/apt-worker.cc (do_rescue): properly handle rescue_with_all_devs ()
+	and rescue_with_all_devnodes () result codes.
+
+2009-07-24 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (size_string_general): use right value (in kB).
+	(size_string_datailed): use right value (in kB).
+	
 2009-07-22 Marius Vollmer <marius.vollmer@nokia.com>
 
 	* Fix on ru_RU translation. (NB#127985)

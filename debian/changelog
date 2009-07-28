@@ -1,8 +1,13 @@
-hildon-application-manager (1:2.2.26~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.26) unstable; urgency=low
 
-  * 
+  [ David Kedves ]
+  * Fixes: NB#100888 - Device does not starts in rescue mode if the application installation is interrupted.
+  * Fixes: NB#117600 - [REGF]SW update is not getting cancelled upon removal of battery during SSU
+  
+  [ Víctor Jáquez ]
+  * Fixes: NB#124298 - Application manager crashes when tapped on the details button
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 23 Jul 2009 21:09:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 28 Jul 2009 19:24:00 +0100	
 
 hildon-application-manager (1:2.2.25-1) unstable; urgency=low
 
