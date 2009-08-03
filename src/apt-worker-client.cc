@@ -888,3 +888,17 @@ apt_worker_set_env (apt_worker_callback *callback,
                    request.get_buf (), request.get_len (),
                    callback, data);
 }
+
+void
+apt_worker_third_party_policy_check (const char *package,
+                                     const char *version,
+                                     apt_worker_callback *callback,
+                                     void *data)
+{
+  request.reset ();
+  request.encode_string (package);
+  request.encode_string (version);
+  call_apt_worker (APTCMD_THIRD_PARTY_POLICY_CHECK,
+                   request.get_buf (), request.get_len (),
+                   callback, data);
+}

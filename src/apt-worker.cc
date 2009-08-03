@@ -998,6 +998,7 @@ void cmd_get_system_update_packages ();
 void cmd_reboot ();
 void cmd_set_options ();
 void cmd_set_env ();
+void cmd_third_party_policy_check ();
 
 int cmdline_check_updates (char **argv);
 int cmdline_rescue (char **argv);
@@ -1069,7 +1070,8 @@ static const char *cmd_names[] = {
   "GET_SYSTEM_UPDATE_PACKAGES",
   "FLASH_AND_REBOOT",
   "SET_OPTIONS",
-  "SET_ENV"
+  "SET_ENV",
+  "THIRD_PARTY_POLICY_CHECK"
 };
 #endif
 
@@ -1193,6 +1195,10 @@ handle_request ()
 
     case APTCMD_SET_ENV:
       cmd_set_env ();
+      break;
+
+    case APTCMD_THIRD_PARTY_POLICY_CHECK:
+      cmd_third_party_policy_check ();
       break;
 
     default:
@@ -3665,6 +3671,20 @@ cmd_get_package_details ()
           response.encode_int (sumtype_end);  // summary
         }
     }
+}
+
+/* APTCMD_THIRD_PARTY_POLICY_CHECK
+*/
+
+void
+cmd_third_party_policy_check ()
+{
+  const char *package = request.decode_string_in_place ();
+  const char *version = request.decode_string_in_place ();
+  third_party_policy_status policy_status = third_party_compatible;
+
+  // return result
+  response.encode_int (policy_status);
 }
 
 /* APTCMD_CHECK_UPDATES

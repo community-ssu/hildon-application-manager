@@ -145,4 +145,9 @@ void apt_worker_set_options (const char *options,
 void apt_worker_set_env (apt_worker_callback *callback,
 			 void *data);
 
+void apt_worker_third_party_policy_check (const char *package,
+                                          const char *version,
+                                          apt_worker_callback *callback,
+                                          void *data);
+
 #endif /* !APT_WORKER_CLIENT_H */
