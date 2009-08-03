@@ -46,6 +46,7 @@ extern bool red_pill_show_magic_sys;
 extern bool red_pill_include_details_in_log;
 extern bool red_pill_check_always;
 extern bool red_pill_ignore_wrong_domains;
+extern bool red_pill_ignore_thirdparty_policy;
 
 #define SORT_BY_NAME    0
 #define SORT_BY_VERSION 1

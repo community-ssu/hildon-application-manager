@@ -45,7 +45,12 @@ is_installable (package_info *pi)
 {
   bool info_status = (pi->have_info
                       && pi->info.installable_status == status_able);
-  return (pi->third_party_policy != third_party_incompatible) && info_status;
+
+  /* Consider red pill mode options */
+  if (red_pill_mode && red_pill_ignore_thirdparty_policy)
+    return info_status;
+  else
+    return (pi->third_party_policy != third_party_incompatible) && info_status;
 }
 
 static const char *

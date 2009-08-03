@@ -806,7 +806,8 @@ ip_third_party_policy_check (package_info *pi, void *data, bool unused)
   ip_clos *c = (ip_clos *)data;
   gchar *msg = NULL;
 
-  if (pi->third_party_policy == third_party_compatible)
+  if ((red_pill_mode && red_pill_ignore_thirdparty_policy)
+      || (pi->third_party_policy == third_party_compatible))
     {
       /* Just continue with the installation in this case */
       ip_with_new_info (pi, c);
