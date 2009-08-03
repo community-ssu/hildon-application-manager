@@ -77,6 +77,7 @@ struct package_info {
 
   bool have_info;
   apt_proto_package_info info;
+  third_party_policy_status third_party_policy;
  
   detail_kind have_detail_kind;
   char *maintainer;

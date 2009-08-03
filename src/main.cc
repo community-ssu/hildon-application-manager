@@ -435,6 +435,7 @@ package_info::package_info ()
   available_icon = NULL;
 
   have_info = false;
+  third_party_policy = third_party_unknown;
 
   have_detail_kind = no_details;
   maintainer = NULL;

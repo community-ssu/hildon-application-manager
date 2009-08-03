@@ -40,6 +40,14 @@
 /* Utilities
  */
 
+static bool
+is_installable (package_info *pi)
+{
+  bool info_status = (pi->have_info
+                      && pi->info.installable_status == status_able);
+  return (pi->third_party_policy != third_party_incompatible) && info_status;
+}
+
 static const char *
 deptype_name (apt_proto_deptype dep)
 {
@@ -129,7 +137,7 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
 
       if (pi->installed_version)
 	{
-	  if (pi->info.installable_status == status_able)
+	  if (is_installable (pi))
 	    {
 	      if (pi->info.install_user_size_delta >= 0)
 		{
@@ -157,7 +165,7 @@ decode_summary (apt_proto_decoder *dec, package_info *pi, detail_kind kind)
 	}
       else
 	{
-	  if (pi->info.installable_status == status_able)
+	  if (is_installable (pi))
 	    {
 	      if (pi->info.install_user_size_delta >= 0)
 		{
@@ -440,14 +448,14 @@ spd_update_common_page (void *data)
     {
       if (pi->broken)
         {
-          if (pi->info.installable_status == status_able)
+          if (is_installable (pi))
             status = _("ai_va_details_status_broken_updateable");
           else
             status = _("ai_va_details_status_broken_not_updateable");
         }
       else
         {
-          if (pi->info.installable_status == status_able)
+          if (is_installable (pi))
             status = _("ai_va_details_status_updateable");
           else
             status = _("ai_va_details_status_not_updateable");
@@ -462,7 +470,7 @@ spd_update_common_page (void *data)
     }
   else if (pi->available_version)
     {
-      if (pi->info.installable_status == status_able)
+      if (is_installable (pi))
         status = _("ai_va_details_status_installable");
       else
         status = _("ai_va_details_status_not_installable");
@@ -584,7 +592,7 @@ spd_create_summary_page (void *data)
       if (pi->have_detail_kind == remove_details)
 	possible = (pi->info.removable_status == status_able);
       else
-	possible = (pi->info.installable_status == status_able);
+	possible = is_installable (pi);
     }
 
   summary_table = gtk_table_new (1, 2, FALSE);
@@ -658,7 +666,7 @@ spd_get_summary_label (void *data)
      package have not been retrieved yet */
   if (pi->have_detail_kind == remove_details)
     summary_label = _("ai_ti_details_noteb_uninstalling");
-  else if (c->showing_details && pi->info.installable_status != status_able)
+  else if (c->showing_details && !is_installable (pi))
     summary_label = _("ai_ti_details_noteb_problems");
   else if (pi->installed_version && pi->available_version)
     summary_label = _("ai_ti_details_noteb_updating");
