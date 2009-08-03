@@ -718,6 +718,10 @@ spd_with_details (void *data, bool filling_details)
   package_info *pi = c->pi;
   bool is_ssu_pkg = false;
 
+  /* Set this value to check whether the dialog is showing the full
+     details for a package or not */
+  c->showing_details = (pi->have_detail_kind == c->kind);
+
   if (!filling_details)
     {
       /* If it's not filling the details for a package it would mean
@@ -768,10 +772,6 @@ spd_with_details (void *data, bool filling_details)
     }
   else
     {
-      /* Set this value to check whether the dialog is showing the full
-         details for a package or not */
-      c->showing_details = (pi->have_detail_kind == c->kind);
-
       /* It's the second time this function is called, so use the
 	 previously stored widget references */
       dialog = c->dialog;
