@@ -65,6 +65,7 @@ enum apt_command {
   APTCMD_REBOOT,
   APTCMD_SET_OPTIONS,
   APTCMD_SET_ENV,
+  APTCMD_THIRD_PARTY_POLICY_CHECK,
 
   APTCMD_MAX
 };
@@ -482,5 +483,22 @@ enum apt_proto_pkgtrust {
 // - removable_mmc (string).  Defines mountpoint for the external MMC
 //
 // Response: empty.
+
+// SET_THIRD_PARTY_POLICY_CHECK - check the 3rd party policy for a package.
+//
+// Parameters:
+//
+// - package (string).
+// - version (string).
+//
+// Response:
+//
+// - third_party_policy_status (int).
+
+enum third_party_policy_status {
+  third_party_unknown,
+  third_party_compatible,
+  third_party_incompatible
+};
 
 #endif /* !APT_WORKER_PROTO_H */
