@@ -125,12 +125,6 @@ installable_status_to_message (package_info *pi,
 			     pi->get_display_name (false));
       with_details = false;
     }
-  else if (pi->info.installable_status == status_incompatible_thirdparty)
-    {
-      msg = g_strdup_printf ("!!!%s breaks the 3rd party package policy",
-                             pi->get_display_name (false));
-      with_details = true;
-    }
   else
     {
       msg = g_strdup_printf ((pi->installed_version
@@ -260,7 +254,10 @@ static void ip_install_loop (ip_clos *c);
 static void ip_check_domain_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_anyway (bool res, void *data);
 static void ip_get_info_for_install (void *data);
-static void ip_with_new_info (package_info *pi, void *data, bool changed);
+static void ip_third_party_policy_check (package_info *pi, void *data,
+                                         bool changed);
+static void ip_third_party_policy_check_reply (package_info *pi, void *data);
+static void ip_with_new_info (package_info *pi, void *data);
 static void ip_warn_about_reboot (ip_clos *c);
 static void ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 					   gpointer data);
@@ -800,11 +797,56 @@ ip_get_info_for_install (void *data)
      installations.
   */
   pi->have_info = false;
-  get_package_info (pi, true, ip_with_new_info, c);
+  get_package_info (pi, true, ip_third_party_policy_check, c);
 }
 
 static void
-ip_with_new_info (package_info *pi, void *data, bool changed)
+ip_third_party_policy_check (package_info *pi, void *data, bool unused)
+{
+  ip_clos *c = (ip_clos *)data;
+  gchar *msg = NULL;
+
+  if (pi->third_party_policy == third_party_compatible)
+    {
+      /* Just continue with the installation in this case */
+      ip_with_new_info (pi, c);
+    }
+  else if (pi->third_party_policy == third_party_incompatible)
+    {
+      /* Set the proper status message and abort */
+       msg = g_strdup_printf ("!!!%s breaks the 3rd party package policy",
+                              pi->get_display_name (false));
+      ip_abort_cur (c, msg, true);
+      g_free (msg);
+    }
+  else
+    {
+      /* Check the third party policy for the first time */
+      check_third_party_policy (pi, ip_third_party_policy_check_reply, c);
+    }
+}
+
+static void ip_third_party_policy_check_reply (package_info *pi, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if (pi->third_party_policy == third_party_incompatible)
+    {
+      /* Set the proper status message and abort */
+      gchar *msg = g_strdup_printf ("!!!%s breaks the 3rd party package policy",
+                                    pi->get_display_name (false));
+      ip_abort_cur (c, msg, true);
+      g_free (msg);
+    }
+  else
+    {
+      /* Continue with installation if compliant */
+      ip_with_new_info (pi, c);
+    }
+}
+
+static void
+ip_with_new_info (package_info *pi, void *data)
 {
   ip_clos *c = (ip_clos *)data;
 

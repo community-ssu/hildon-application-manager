@@ -106,6 +106,10 @@ void get_package_infos (GList *packages,
 			void (*cont) (void *data),
 			void *data);
 
+void check_third_party_policy (package_info *pi,
+                               void (*cont) (package_info *, void *),
+                               void *data);
+
 struct section_info {
 
   section_info ();

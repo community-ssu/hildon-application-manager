@@ -1198,6 +1198,53 @@ gpiib_done (package_info *pi, void *data, bool changed)
     sort_all_packages (true);
 }
 
+/* CHECK_THIRD_PARTY_POLICY
+ */
+
+struct ctpp_closure {
+  void (*cont) (package_info *, void *);
+  void *data;
+  package_info *pi;
+};
+
+static void ctpp_reply  (int cmd, apt_proto_decoder *dec, void *clos);
+
+void
+check_third_party_policy (package_info *pi,
+                          void (*cont) (package_info *, void *),
+                          void *data)
+{
+  ctpp_closure *c = new ctpp_closure;
+  c->cont = cont;
+  c->data = data;
+  c->pi = pi;
+  pi->ref ();
+  apt_worker_third_party_policy_check (pi->name,
+                                       pi->available_version,
+                                       ctpp_reply,
+                                       c);
+}
+
+static void
+ctpp_reply  (int cmd, apt_proto_decoder *dec, void *clos)
+{
+  ctpp_closure *c = (ctpp_closure *)clos;
+  void (*cont) (package_info *, void *) = c->cont;
+  void *data = c->data;
+  package_info *pi = c->pi;
+
+  delete c;
+
+  if (dec != NULL && !dec->corrupted ())
+    {
+      /* Update package info with retrieved information */
+      pi->third_party_policy = (third_party_policy_status)dec->decode_int ();
+    }
+
+  cont (pi, data);
+  pi->unref ();
+}
+
 /* REFRESH_PACKAGE_CACHE_WITHOUT_USER
  */
 
