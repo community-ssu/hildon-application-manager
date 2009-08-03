@@ -200,6 +200,9 @@ bool flag_download_packages_to_mmc = false;
    avoid SSU problems
 */
 bool flag_ignore_thirdparty_policy = false;
+/* SSU package name for checking the 3rd party policy
+ */
+char *ssu_package_name = NULL;
 
 /** GENERAL UTILITIES
  */
@@ -2834,6 +2837,22 @@ cmd_get_package_list ()
       /* Get installed and candidate iterators for current package */
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
+
+      // Look for the SSU package if not already identified
+      if (ssu_package_name == NULL
+          && (!installed.end () || !candidate.end()))
+        {
+          pkgCache::VerIterator viter = !candidate.end()
+            ? candidate
+            : installed;
+          package_record rec (viter);
+          int flags = get_flags (rec);
+          if (flags & pkgflag_system_update)
+            {
+              /* This should happen once only */
+              ssu_package_name = g_strdup (pkg.Name());
+            }
+        }
 
       // skip non user packages if requested.  Both the installed and
       // candidate versions must be non-user packages for a package to
