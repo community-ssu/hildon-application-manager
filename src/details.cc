@@ -413,7 +413,13 @@ spd_create_common_page (void *data)
   c->table = table;
 
   common = gtk_vbox_new (TRUE, 0);
-  pannable = hildon_pannable_area_new ();
+  pannable = GTK_WIDGET (
+    g_object_new (HILDON_TYPE_PANNABLE_AREA,
+                  "hscrollbar-policy", GTK_POLICY_AUTOMATIC,
+                  "vscrollbar-policy", GTK_POLICY_AUTOMATIC,
+                  "mov-mode", HILDON_MOVEMENT_MODE_BOTH,
+                  NULL)
+    );
   hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (pannable),
                                           table);
   gtk_box_pack_start (GTK_BOX (common), pannable, TRUE, TRUE, 0);
