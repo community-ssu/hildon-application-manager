@@ -363,8 +363,6 @@ backend_options ()
     *ptr++ = 'D';
   if (download_packages_to_mmc)
     *ptr++ = 'M';
-  if (red_pill_mode && red_pill_ignore_thirdparty_policy)
-    *ptr++ = 'T';
   *ptr++ = '\0';
 
   return options;

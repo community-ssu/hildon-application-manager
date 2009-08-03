@@ -196,10 +196,6 @@ bool flag_use_apt_algorithms = false;
 */
 bool flag_download_packages_to_mmc = false;
 
-/* Setting this to false will check for 3rd party package policy to
-   avoid SSU problems
-*/
-bool flag_ignore_thirdparty_policy = false;
 /* SSU package name for checking the 3rd party policy
  */
 char *ssu_package_name = NULL;
@@ -1425,9 +1421,6 @@ set_options (const char *options)
 
   if (strchr (options, 'A'))
     flag_use_apt_algorithms = true;
-
-  if (strchr (options, 'T'))
-    flag_ignore_thirdparty_policy = true;
 }
 
 void
