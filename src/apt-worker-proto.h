@@ -286,7 +286,6 @@ enum apt_proto_able_status {
   status_incompatible_current,     // incompatible with current OS
   status_system_update_unremovable,// could be removed but it's a bad idea
   status_not_found,                // there is no such package
-  status_incompatible_thirdparty   // package that breaks the SSU policy
 };
 
 enum apt_proto_install_flags {
