@@ -472,4 +472,15 @@ enum apt_proto_pkgtrust {
 //
 // Response: empty.
 
+// SET_ENV - set the environment variables for the backend.
+//
+// Parameters:
+//
+// - http_proxy (string).  Defines an HTTP proxy.
+// - https_proxy (string).  Defines an HTTPS proxy.
+// - internal_mmc (string).  Defines mountpoint for the internal MMC
+// - removable_mmc (string).  Defines mountpoint for the external MMC
+//
+// Response: empty.
+
 #endif /* !APT_WORKER_PROTO_H */
