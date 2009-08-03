@@ -3076,66 +3076,6 @@ installable_status ()
 }
 
 static int
-package_policy_status (pkgCache::PkgIterator pkg)
-{
-  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
-  pkgDepCache &cache = *(awc->cache);
-  pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter (cache);
-
-  if (candidate.end () || !is_user_package (candidate))
-    return status_able;
-
-  // skip system update meta-packages that are not installed
-  if (!candidate.end ())
-    {
-      package_record rec (candidate);
-      int flags = get_flags (rec);
-      if (flags & pkgflag_system_update)
-	return status_able;
-    }
-
-  for (pkgCache::DepIterator Dep = candidate.DependsList ();
-       Dep.end () != true;
-       Dep++)
-    {
-      pkgCache::PkgIterator dpkg = Dep.TargetPkg ();
-      pkgCache::VerIterator verdpkg = cache[dpkg].CandidateVerIter (cache);
-
-      // Check only non-user packages
-      if (verdpkg.end () || is_user_package (verdpkg))
-	continue;
-
-
-      int op = Dep->CompareOp & 0x0F;
-
-      if (Dep->Type == pkgCache::Dep::Depends)
-	{
-	  if (op == pkgCache::Dep::NoOp
-	      || op == pkgCache::Dep::GreaterEq
-	      || op == pkgCache::Dep::Greater)
-	    continue;
-
-	  log_stderr ("%s breaks 3rd party dependencies policy:",
-		      pkg.Name ());
-	  return status_incompatible_thirdparty;
-	}
-      else if (Dep->Type == pkgCache::Dep::Conflicts)
-	{
-	  if (op == pkgCache::Dep::NoOp
-	      || op == pkgCache::Dep::Less
-	      || op == pkgCache::Dep::LessEq
-	      || op == pkgCache::Dep::Equals)
-	    continue;
-
-	  log_stderr ("%s breaks 3rd party conflicts policy", pkg.Name ());
-	  return status_incompatible_thirdparty;
-	}
-    }
-
-  return status_able;
-}
-
-static int
 removable_status ()
 {
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
@@ -3179,9 +3119,7 @@ cmd_get_package_info ()
       if (any_newly_or_related_broken ())
 	info.installable_status = installable_status ();
       else
-	info.installable_status = flag_ignore_thirdparty_policy
-	  ? status_able
-	  : package_policy_status (pkg);
+	info.installable_status = status_able;
       info.download_size = (int64_t) cache.DebSize ();
       info.install_user_size_delta = (int64_t) cache.UsrSize ();
 
@@ -3695,12 +3633,99 @@ cmd_get_package_details ()
 /* APTCMD_THIRD_PARTY_POLICY_CHECK
 */
 
+static bool
+is_ssu_dependency (pkgCache::PkgIterator pkg)
+{
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
+  pkgCache::VerIterator verdpkg = cache[pkg].CandidateVerIter (cache);
+
+  // Return false if we do not have an SSU package available
+  if (ssu_package_name == NULL)
+    return false;
+
+  // Non-user packages are not part of SSU
+  if (verdpkg.end () || is_user_package (verdpkg))
+    return false;
+
+  // Find out whether it's a dependency for the SSU package
+  for (pkgCache::DepIterator Dep = pkg.RevDependsList ();
+       Dep.end () != true;
+       Dep++)
+    {
+      const char *depname = Dep.ParentPkg().Name();
+      if (!strcmp (depname, ssu_package_name))
+        return true;
+    }
+
+  // not a ssu package if reached
+  return false;
+}
+
 void
 cmd_third_party_policy_check ()
 {
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgCache::PkgIterator pkg;
+  pkgCache::VerIterator ver;
   const char *package = request.decode_string_in_place ();
   const char *version = request.decode_string_in_place ();
   third_party_policy_status policy_status = third_party_compatible;
+
+  if (find_package_version (awc->cache, pkg, ver, package, version))
+    {
+      pkgDepCache &cache = *(awc->cache);
+      pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter (cache);
+      package_record rec (candidate);
+      int flags = get_flags (rec);
+
+      // Apply policy to user packages only skip system update
+      // meta-packages that are not installed
+      if (is_user_package (candidate) && !candidate.end ()
+          && !(flags & pkgflag_system_update))
+        {
+          for (pkgCache::DepIterator Dep = candidate.DependsList ();
+               Dep.end () != true;
+               Dep++)
+            {
+              pkgCache::PkgIterator dpkg = Dep.TargetPkg ();
+              pkgCache::VerIterator verdpkg =
+                cache[dpkg].CandidateVerIter (cache);
+
+              // Check whether SSU metapackage is dependant on this
+              if (!is_ssu_dependency (dpkg))
+                continue;
+
+              int op = Dep->CompareOp & 0x0F;
+
+              if (Dep->Type == pkgCache::Dep::Depends)
+                {
+                  if (op == pkgCache::Dep::NoOp
+                      || op == pkgCache::Dep::GreaterEq
+                      || op == pkgCache::Dep::Greater)
+                    continue;
+
+                  log_stderr ("%s breaks 3rd party dependencies policy:",
+                              pkg.Name ());
+                  policy_status = third_party_incompatible;
+                  break;
+                }
+              else if (Dep->Type == pkgCache::Dep::Conflicts)
+                {
+                  if (op == pkgCache::Dep::NoOp
+                      || op == pkgCache::Dep::Less
+                      || op == pkgCache::Dep::LessEq
+                      || op == pkgCache::Dep::Equals)
+                    continue;
+
+                  log_stderr ("%s breaks 3rd party conflicts policy",
+                              pkg.Name ());
+                  policy_status = third_party_incompatible;
+                  break;
+                }
+            }
+        }
+    }
 
   // return result
   response.encode_int (policy_status);
