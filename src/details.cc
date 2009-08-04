@@ -311,7 +311,12 @@ enum spd_nb_page_index {
 
 static spd_clos *current_spd_clos = NULL;
 
-static void spd_get_details (package_info *pi, void *data, bool changed);
+static void spd_third_party_policy_check (package_info *pi,
+                                          void *data,
+                                          bool unused);
+static void spd_third_party_policy_check_reply (package_info *pi, void *data);
+
+static void spd_get_details (void *data);
 static void spd_get_details_reply (int cmd, apt_proto_decoder *dec, void *data);
 
 static GtkWidget *spd_create_common_page (void *data);
@@ -350,7 +355,7 @@ show_package_details (package_info *pi, detail_kind kind,
   if (pi->have_detail_kind != c->kind)
     {
       spd_with_details (c, false);
-      get_package_info (pi, false, spd_get_details, c);
+      get_package_info (pi, false, spd_third_party_policy_check, c);
     }
   else
     {
@@ -359,10 +364,34 @@ show_package_details (package_info *pi, detail_kind kind,
     }
 }
 
-void
-spd_get_details (package_info *pi, void *data, bool changed)
+static void
+spd_third_party_policy_check (package_info *pi, void *data, bool unused)
 {
   spd_clos *c = (spd_clos *)data;
+
+  if (pi->third_party_policy != third_party_unknown)
+    {
+      /* Continue if this information was already known */
+      spd_get_details (c);
+    }
+  else
+    {
+      /* Check the third party policy for the first time */
+      check_third_party_policy (pi, spd_third_party_policy_check_reply, c);
+    }
+}
+
+static void spd_third_party_policy_check_reply (package_info *pi, void *data)
+{
+  /* Just continue once the third party policy was checked */
+  spd_get_details (data);
+}
+
+void
+spd_get_details (void *data)
+{
+  spd_clos *c = (spd_clos *)data;
+  package_info *pi = c->pi;
 
   apt_worker_get_package_details (pi->name, (c->kind == remove_details
 					     ? pi->installed_version
