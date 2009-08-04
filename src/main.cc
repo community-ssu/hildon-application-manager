@@ -1506,7 +1506,7 @@ static void
 installed_package_activated (package_info *pi)
 {
   if (pi->flags & pkgflag_system_update)
-    irritate_user (_("ai_ni_unable_to_uninstall_system_update"));
+    show_package_details_flow (pi, remove_details);
   else
     uninstall_package_flow (pi);
 }
