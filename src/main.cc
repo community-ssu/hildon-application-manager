@@ -1706,6 +1706,19 @@ make_install_applications_view (view *v)
 void
 show_check_for_updates_view ()
 {
+  GtkWidget *win = cur_view_struct->window;
+  HildonWindowStack *stack =
+    hildon_stackable_window_get_stack (HILDON_STACKABLE_WINDOW (win));
+
+  while (win != main_view.window && win != upgrade_applications_view.window)
+    {
+      set_current_view (cur_view_struct->parent);
+      GtkWidget *hide_win = hildon_window_stack_pop_1 (stack);
+      g_assert (hide_win == win);  // stack and curr_view may be different
+      win = cur_view_struct->window;
+      gtk_widget_destroy (hide_win);
+    }
+
   show_view (&upgrade_applications_view);
 }
 
