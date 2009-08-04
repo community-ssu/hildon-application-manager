@@ -1765,13 +1765,11 @@ make_upgrade_applications_view (view *v)
 
   get_package_infos_in_background (upgradeable_packages);
 
-  enable_search (true);
-  enable_refresh (true);
-
   if (package_list_ready
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
       update_seen_updates_file ();
+      enable_update_all (true);
     }
 
   maybe_refresh_package_cache_without_user ();
