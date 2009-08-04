@@ -1833,7 +1833,7 @@ up_remove_with_info (package_info *pi, void *data, bool changed)
     {
       add_log ("-----\n");
       add_log ("Uninstalling %s %s\n", c->pi->name, c->pi->installed_version);
-      
+
       char *title = g_strdup_printf (_("ai_nw_uninstalling"),
 				     c->pi->get_display_name (true));
       set_entertainment_fun (NULL, -1, -1, 0);
@@ -1847,9 +1847,7 @@ up_remove_with_info (package_info *pi, void *data, bool changed)
     }
   else
     {
-      if (c->pi->info.removable_status == status_system_update_unremovable)
-	annoy_user (_("ai_ni_unable_to_uninstall_system_update"), up_end, c);
-      else if (c->pi->info.removable_status == status_needed)
+      if (c->pi->info.removable_status == status_needed)
 	{
 	  char *str = g_strdup_printf (_("ai_ni_error_uninstall_packagesneeded"),
 				       c->pi->get_display_name (true));
