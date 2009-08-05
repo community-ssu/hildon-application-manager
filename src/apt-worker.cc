@@ -3761,8 +3761,7 @@ cmd_third_party_policy_check ()
                 }
               else if (Dep->Type == pkgCache::Dep::Conflicts)
                 {
-                  if (op == pkgCache::Dep::NoOp
-                      || op == pkgCache::Dep::Less
+                  if (op == pkgCache::Dep::Less
                       || op == pkgCache::Dep::LessEq
                       || op == pkgCache::Dep::Equals)
                     continue;
