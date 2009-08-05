@@ -2866,9 +2866,9 @@ cmd_get_package_list ()
 
       // Look for the SSU package if needed
       if (ssu_packages_needs_refresh
-          && (!installed.end () || !candidate.end()))
+          && (!installed.end () || !candidate.end ()))
         {
-          pkgCache::VerIterator viter = !candidate.end()
+          pkgCache::VerIterator viter = !candidate.end ()
             ? candidate
             : installed;
           package_record rec (viter);
@@ -2877,7 +2877,7 @@ cmd_get_package_list ()
             {
               /* Add it to the local GSList */
               ssu_pkgs_found = g_slist_prepend (ssu_pkgs_found,
-                                                g_strdup (pkg.Name()));
+                                                g_strdup (pkg.Name ()));
             }
         }
 
@@ -2939,7 +2939,7 @@ cmd_get_package_list ()
       else
 	encode_empty_version_info (true);
 
-      // Available version 
+      // Available version
       //
       // We only offer an available version if the package is not
       // installed at all, or if the available version is newer than
@@ -2982,10 +2982,10 @@ cmd_get_package_list ()
       // Append the "magic:sys" package that represents all system
       // packages.  This artificial package is identified by its name
       // and handled specially by MARK_NAMED_PACKAGE_FOR_INSTALL, etc.
-      
+
       // Name
       response.encode_string ("magic:sys");
-      
+
       // Broken?  XXX - give real information here
       response.encode_int (FALSE);
 
@@ -2996,7 +2996,7 @@ cmd_get_package_list ()
       response.encode_string ("Operating System");
       response.encode_string ("All system packages");
       response.encode_string (NULL);
-      
+
       // Available version
       response.encode_string ("");
       response.encode_string ("user/system");
