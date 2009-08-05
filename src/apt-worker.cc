@@ -196,9 +196,9 @@ bool flag_use_apt_algorithms = false;
 */
 bool flag_download_packages_to_mmc = false;
 
-/* SSU package name for checking the 3rd party policy
+/* List of packages found with the 'system-update' flag (SSU packages)
  */
-char *ssu_package_name = NULL;
+GArray *ssu_packages = NULL;
 
 /** GENERAL UTILITIES
  */
@@ -2813,6 +2813,7 @@ cmd_get_package_list ()
   bool only_available = request.decode_int ();
   const char *pattern = request.decode_string_in_place ();
   bool show_magic_sys = request.decode_int ();
+  GSList *ssu_pkgs_found = NULL;
 
   if (!ensure_cache (true))
     {
@@ -2832,8 +2833,7 @@ cmd_get_package_list ()
       pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
 
       // Look for the SSU package if not already identified
-      if (ssu_package_name == NULL
-          && (!installed.end () || !candidate.end()))
+      if (!installed.end () || !candidate.end())
         {
           pkgCache::VerIterator viter = !candidate.end()
             ? candidate
@@ -2842,8 +2842,9 @@ cmd_get_package_list ()
           int flags = get_flags (rec);
           if (flags & pkgflag_system_update)
             {
-              /* This should happen once only */
-              ssu_package_name = g_strdup (pkg.Name());
+              /* Add it to the local GSList */
+              ssu_pkgs_found = g_slist_prepend (ssu_pkgs_found,
+                                                g_strdup (pkg.Name()));
             }
         }
 
@@ -2925,6 +2926,35 @@ cmd_get_package_list ()
 	  flags = get_flags (rec);
 	}
       response.encode_int (flags);
+    }
+
+  /* Update the global GArray with the list of SSU packages found */
+
+  /* Clear the ssu packages array, if existing */
+  if (ssu_packages != NULL)
+    {
+      /* Also free the strings in the GArray */
+      g_array_free (ssu_packages, TRUE);
+      ssu_packages = NULL;
+    }
+
+  /* Copy data from local GSList to global GArray */
+  if (ssu_pkgs_found != NULL)
+    {
+      GSList *item = NULL;
+
+      ssu_packages = g_array_sized_new (FALSE, FALSE, sizeof (gchar*),
+                                        g_slist_length (ssu_pkgs_found));
+
+      ssu_pkgs_found = g_slist_reverse (ssu_pkgs_found);
+      for (item = ssu_pkgs_found; item; item = g_slist_next (item))
+        {
+          /* Do not strdup strings as they will be used in the GArray */
+          ssu_packages = g_array_append_val (ssu_packages, item->data);
+        }
+
+      /* Free local GSList */
+      g_slist_free (ssu_pkgs_found);
     }
 
   if (show_magic_sys)
@@ -3634,21 +3664,27 @@ is_ssu_dependency (pkgCache::PkgIterator pkg)
   pkgCache::VerIterator verdpkg = cache[pkg].CandidateVerIter (cache);
 
   // Return false if we do not have an SSU package available
-  if (ssu_package_name == NULL)
+  if (ssu_packages == NULL)
     return false;
 
   // Non-user packages are not part of SSU
   if (verdpkg.end () || is_user_package (verdpkg))
     return false;
 
-  // Find out whether it's a dependency for the SSU package
+  // Find out whether it's a dependency for a SSU package
   for (pkgCache::DepIterator Dep = pkg.RevDependsList ();
        Dep.end () != true;
        Dep++)
     {
       const char *depname = Dep.ParentPkg().Name();
-      if (!strcmp (depname, ssu_package_name))
-        return true;
+
+      /* Look through the list of packages with the 'system-update' flag */
+      for (guint i = 0; i < ssu_packages->len; i++)
+        {
+          gchar *ssu_pkg = g_array_index (ssu_packages, gchar*, i);
+          if (!strcmp (depname, ssu_pkg))
+            return true;
+        }
     }
 
   // not a ssu package if reached
