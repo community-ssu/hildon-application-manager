@@ -200,6 +200,10 @@ bool flag_download_packages_to_mmc = false;
  */
 GArray *ssu_packages = NULL;
 
+/* Flag to tell whether the ssu_packages GArray needs to be refreshed
+ */
+gboolean ssu_packages_needs_refresh = true;
+
 /** GENERAL UTILITIES
  */
 
@@ -2832,8 +2836,9 @@ cmd_get_package_list ()
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
 
-      // Look for the SSU package if not already identified
-      if (!installed.end () || !candidate.end())
+      // Look for the SSU package if needed
+      if (ssu_packages_needs_refresh
+          && (!installed.end () || !candidate.end()))
         {
           pkgCache::VerIterator viter = !candidate.end()
             ? candidate
@@ -2928,33 +2933,37 @@ cmd_get_package_list ()
       response.encode_int (flags);
     }
 
-  /* Update the global GArray with the list of SSU packages found */
-
-  /* Clear the ssu packages array, if existing */
-  if (ssu_packages != NULL)
+  /* Update the global GArray, if needed */
+  if (ssu_packages_needs_refresh)
     {
-      /* Also free the strings in the GArray */
-      g_array_free (ssu_packages, TRUE);
-      ssu_packages = NULL;
-    }
-
-  /* Copy data from local GSList to global GArray */
-  if (ssu_pkgs_found != NULL)
-    {
-      GSList *item = NULL;
-
-      ssu_packages = g_array_sized_new (FALSE, FALSE, sizeof (gchar*),
-                                        g_slist_length (ssu_pkgs_found));
-
-      ssu_pkgs_found = g_slist_reverse (ssu_pkgs_found);
-      for (item = ssu_pkgs_found; item; item = g_slist_next (item))
+      /* Clear the ssu packages array, if existing */
+      if (ssu_packages != NULL)
         {
-          /* Do not strdup strings as they will be used in the GArray */
-          ssu_packages = g_array_append_val (ssu_packages, item->data);
+          g_array_free (ssu_packages, TRUE);
+          ssu_packages = NULL;
         }
 
-      /* Free local GSList */
-      g_slist_free (ssu_pkgs_found);
+      /* Copy data from local GSList to global GArray */
+      if (ssu_pkgs_found != NULL)
+        {
+          GSList *item = NULL;
+
+          ssu_packages = g_array_sized_new (FALSE, FALSE, sizeof (gchar*),
+                                            g_slist_length (ssu_pkgs_found));
+
+          ssu_pkgs_found = g_slist_reverse (ssu_pkgs_found);
+          for (item = ssu_pkgs_found; item; item = g_slist_next (item))
+            {
+              /* Do not strdup strings as they will be used in the GArray */
+              ssu_packages = g_array_append_val (ssu_packages, item->data);
+            }
+
+          /* Free local GSList */
+          g_slist_free (ssu_pkgs_found);
+        }
+
+      /* Update global flag */
+      ssu_packages_needs_refresh = false;
     }
 
   if (show_magic_sys)
@@ -4146,6 +4155,14 @@ cmd_check_updates (bool with_status)
   update_sources_list (catalogues);
 
   int result_code = update_package_cache (catalogues, with_status);
+
+  if ((result_code == rescode_success)
+      || (result_code == rescode_partial_success))
+    {
+      /* Some packages with the 'system-update' could
+         appear / disappear under this conditions */
+      ssu_packages_needs_refresh = true;
+    }
 
   /* Save potential errors to disk */
   save_failed_catalogues (catalogues);
