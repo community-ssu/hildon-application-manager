@@ -2808,6 +2808,34 @@ encode_empty_version_info (bool include_size)
   response.encode_string (NULL);
 }
 
+static void
+ssu_packages_free ()
+{
+  if (ssu_packages != NULL)
+    {
+      g_array_free (ssu_packages, TRUE);
+      ssu_packages = NULL;
+    }
+}
+
+static void
+ssu_packages_set (GSList *ssu_list)
+{
+  ssu_packages_free ();
+
+  if (ssu_list != NULL)
+    {
+      ssu_packages = g_array_sized_new (TRUE, FALSE, sizeof (gchar*),
+                                        g_slist_length (ssu_list));
+      for (GSList *item = g_slist_reverse (ssu_list);
+           item; item = g_slist_next (item))
+        {
+          /* Do not strdup strings as they will be used in the GArray */
+          ssu_packages = g_array_append_val (ssu_packages, item->data);
+        }
+    }
+}
+
 void
 cmd_get_package_list ()
 {
@@ -2936,30 +2964,13 @@ cmd_get_package_list ()
   /* Update the global GArray, if needed */
   if (ssu_packages_needs_refresh)
     {
-      /* Clear the ssu packages array, if existing */
-      if (ssu_packages != NULL)
-        {
-          g_array_free (ssu_packages, TRUE);
-          ssu_packages = NULL;
-        }
+      ssu_packages_set (ssu_pkgs_found);
 
-      /* Copy data from local GSList to global GArray */
       if (ssu_pkgs_found != NULL)
         {
-          GSList *item = NULL;
-
-          ssu_packages = g_array_sized_new (FALSE, FALSE, sizeof (gchar*),
-                                            g_slist_length (ssu_pkgs_found));
-
-          ssu_pkgs_found = g_slist_reverse (ssu_pkgs_found);
-          for (item = ssu_pkgs_found; item; item = g_slist_next (item))
-            {
-              /* Do not strdup strings as they will be used in the GArray */
-              ssu_packages = g_array_append_val (ssu_packages, item->data);
-            }
-
           /* Free local GSList */
           g_slist_free (ssu_pkgs_found);
+          ssu_pkgs_found = NULL;
         }
 
       /* Update global flag */
