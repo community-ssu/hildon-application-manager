@@ -1,3 +1,131 @@
+2009-08-06 Soini Mox <ext-mox.soini@nokia.com>
+
+	* src/log.cc (log_response): Use portable function to get user special
+	directories. (NB#131733)
+
+2009-08-05 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (cmd_third_party_policy_check): Conflictive SSU
+	dependencies should not be NoOp.
+
+2009-08-05 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (ssu_packages_free): New function.
+	(ssu_packages_set): New function.
+	(cmd_get_package_list): Use the new functions.
+
+2009-08-05 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (ssu_packages_needs_refresh): New. Global flag to
+	control when refreshing the ssu_packages GArray would be required.
+	(cmd_get_package_list): Check the ssu_packages_needs_refresh flag.
+	(cmd_check_updates): Set the ssu_packages_needs_refresh flag to true
+	when either the update process was successful or partially successful.
+	* src/apt-worker.cc (ssu_packages): New. GArray replacing for the
+	former gchar *ssu_package_name global variable.
+	(cmd_get_package_list): Build a list of SSU packages and save their
+	names into the global GArray ssu_packages.
+	(is_ssu_dependency): Check all the elements in ssu_packages.
+
+2009-08-04 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/details.cc (show_package_details): get_package_info to continue
+	with spd_third_party_policy_check instead of spd_get_details.
+	(spd_third_party_policy_check): New. Checks pi->third_party_policy
+	and calls to check_third_party_policy if still an unknown value.
+	(spd_third_party_policy_check_reply): Handles resply from
+	check_third_party_policy.
+	(spd_get_details): Params list simplified as possible.
+
+2009-08-03 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/details.cc (is_installable): Mind the red pill option
+	to ignore the third package policy when red pill mode is on.
+	* src/operations.cc (ip_third_party_policy_check): Do not check the
+	third party policy if the red pill mode option is set.
+	* src/settings.h (red_pill_ignore_thirdparty_policy): Export this
+	value out of settings.cc.
+	* src/apt-worker.cc (flag_ignore_thirdparty_policy): Removed.
+	(set_options): Removed usage of flag_ignore_thirdparty_policy.
+	* src/settings.cc (backend_options): Do not encode as a 'backend
+	option' the value of red_pill_ignore_thirdparty_policy.
+	* src/apt-worker-proto.h (enum apt_proto_able_status): Removed
+	status_incompatible_thirdparty from this enumeration.
+	* src/apt-worker.cc (package_policy_status): Removed. This code will
+	be used from now on from cmd_third_party_policy_check.
+	(cmd_get_package_info): Removed usage of package_policy_status.
+	(is_ssu_dependency): New. Check if the SSU package (if found)
+	depends on a given package, by checking its reverse dependencies.
+	(cmd_third_party_policy_check): Actual implementation based on the
+	old package_policy_status and the new is_ssu_dependency functions.
+	* src/main.cc (struct ctpp_closure): New.
+	(check_third_party_policy): New. It actually checks the third party
+	policy by calling to apt_worker_third_party_policy_check.
+	(ctpp_reply): Handles the reply from apt-worker.
+	* src/operations.cc (installable_status_to_message): No longer
+	consider status_incompatible_thirdparty for printing a message.
+	(ip_third_party_policy_check): New. Check the third party policy for
+	a given package through check_third_party_policy, if needed.
+	(ip_third_party_policy_check_reply): New. Handles the reply from
+	check_third_party_policy. Abort and show a message if needed.
+	(ip_get_info_for_install): Delegate in ip_third_party_policy_check
+	instead of in ip_with_new_info after executing get_package_info.
+	(ip_with_new_info): Changed prototype as the boolean 'changed'
+	parameter is no longer needed here.
+	* src/main.h, src/main.cc (third_party_policy): New attribute for
+	every package, telling about the status (if known) of the third party
+	policy with regard to that package.
+	* src/main.cc (package_info): Initialize third_party_policy to the
+	default third_party_unknown value.
+	* src/details.cc (is_installable): New. Checks both installable_status
+	and third_party_policy to determine whether a package is installable.
+	(decode_summary): Use new static function is_installable() here.
+	(spd_update_common_page): Likewise.
+	(spd_create_summary_page): Likewise.
+	(spd_get_summary_label): Likewise.
+	* src/apt-worker.cc (ssu_package_name): New global variable to save
+	the name of the SSU package after having looked for it.
+	(cmd_get_package_list): Save the name of the SSU package, when found
+	out, in the ssu_package_name global variable.
+	* src/apt-worker-client.h, src/apt-worker-client.h
+	(apt_worker_third_party_policy_check): New client function for the
+	new APTCMD_THIRD_PARTY_POLICY_CHECK operation in the apt-worker.
+	* src/apt-worker.cc (cmd_names): Added "THIRD_PARTY_POLICY_CHECK".
+	(cmd_third_party_policy_check): Dummy implementation which always
+	returns the same value for any package: third_party_compatible.
+	(handle_request): Call cmd_third_party_policy_check() when needed.
+	* src/apt-worker-proto.h (enum apt_command): Added new command to the
+	enumeration: APTCMD_THIRD_PARTY_POLICY_CHECK.
+	(enum third_party_policy_status): New. Describes possible states of
+	the third party policy for a given package.
+
+2009-08-04 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (make_upgrade_applications_view): Enable the update all
+	button when the package list is ready. (NB#129995)
+	* src/main.cc (show_check_for_updates_view): Remove the previous
+	windows in the stack when requesting a check for updates view.
+	* src/operations.cc (up_remove_with_info): Show a generic error
+	message in case of a system upgrade removal request.
+	* src/main.cc (installed_package_activated): Show details dialog when
+	tapped on the system update package. (NB#129689)
+
+2009-08-03 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/details.cc (spd_create_common_page): Set the scroll policy and
+	movement mode in the pannable area displaing the summary information
+	in the details widget. (NB#130725)
+	* src/details.cc (spd_with_details): Move out the calculation of the
+	showing details boolean parameter, because it is independent of the
+	filling details paramater.
+
+2009-07-28 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (find_archive_uri_for_pkgfile): Removed function.
+	(find_catalogue_by_info): New function
+	(encode_package_repository): Enhance the catalogue uri to repository
+	name translation.
+
 2009-07-27 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/details.cc (spd_create_common_page): removed the 'update' banner

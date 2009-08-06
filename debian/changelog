@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.27~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.27) unstable; urgency=low
 
-  * 
+  [ Mario Sanchez ]
+  * Fixes: NB#126335 - [AF Checked]  Unhelpful "$Application breaks the 3rd party package policy" error
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 28 Jul 2009 19:34:00 +0100	
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 06 Aug 2009 18:28:00 +0100	
 
 hildon-application-manager (1:2.2.26) unstable; urgency=low
 
