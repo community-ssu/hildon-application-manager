@@ -200,8 +200,14 @@ log_response (GtkDialog *dialog, gint response, gpointer clos)
 
       if (last_save_log_dir)
 	folder = g_strdup (last_save_log_dir);
-      else if (home)
-	folder = g_strdup_printf ("file://%s/MyDocs/.documents", home);
+      else
+        {
+          const char *dir = g_get_user_special_dir (G_USER_DIRECTORY_DOCUMENTS);
+          if (dir)
+            folder = g_strdup_printf ("file://%s", dir);
+          else if (home)
+            folder = g_strdup_printf ("file://%s/MyDocs/.documents", home);
+        }
 
       show_file_chooser_for_save (_("ai_ti_save_log"),
 				  GTK_WINDOW (dialog),
