@@ -289,7 +289,10 @@ expose_main_view (GtkWidget *w, GdkEventExpose *ev, gpointer data)
       gdk_drawable_get_size (w->window, &ww, &wh);
 
       gdk_draw_drawable (w->window, style->fg_gc[GTK_STATE_NORMAL],
-                         pixmap, 0, 0, ww-pw, wh-ph, pw, ph);
+                         pixmap, 0, 0,
+                         ww - pw - HILDON_MARGIN_TRIPLE,
+                         wh - ph - HILDON_MARGIN_TRIPLE,
+                         pw, ph);
     }
 
   gtk_container_propagate_expose (GTK_CONTAINER (w),
