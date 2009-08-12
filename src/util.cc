@@ -2257,7 +2257,7 @@ select_package_list_with_info (void *data)
 		    G_CALLBACK (update_packages_list_selection),
 		    upls_data);
 
-  gtk_widget_set_usize (dialog, 600, 320);
+  gtk_widget_set_size_request (dialog, 600, 320);
   gtk_widget_show_all (dialog);
 
   /* Run dialog, waiting for a response */

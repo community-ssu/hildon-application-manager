@@ -152,7 +152,6 @@ show_search_dialog_flow ()
       gtk_dialog_set_default_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK);
       push_dialog (dialog);
       gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-      //gtk_widget_set_usize (dialog, 400, -1);
       vbox = GTK_DIALOG (dialog)->vbox;
 
       group = GTK_SIZE_GROUP (gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL));

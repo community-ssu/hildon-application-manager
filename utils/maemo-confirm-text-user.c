@@ -192,7 +192,7 @@ main (int argc, char **argv)
   gtk_box_pack_end (GTK_BOX (GTK_DIALOG (dialog)->vbox),
                     make_check_button (dialog), FALSE, FALSE, 1);
 
-  gtk_widget_set_usize (dialog, 600, 300);
+  gtk_widget_set_size_request (dialog, 600, 300);
   gtk_widget_show_all (dialog);
 
   return (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_OK)? 0 : 1;

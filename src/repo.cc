@@ -1300,7 +1300,7 @@ show_catalogue_dialog (xexp *catalogues,
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (cat_response), c);
 
-  gtk_widget_set_usize (dialog, 600, 300);
+  gtk_widget_set_size_request (dialog, 600, 300);
 
   gtk_widget_show_all (dialog);
 

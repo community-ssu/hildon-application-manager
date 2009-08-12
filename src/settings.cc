@@ -327,7 +327,7 @@ show_settings_dialog_flow ()
       gtk_box_pack_start (GTK_BOX (GTK_DIALOG(dialog)->vbox),
 			  make_settings_tab (c),
 			  TRUE, TRUE, 5);
-      gtk_widget_set_usize (dialog, -1, 300);
+      gtk_widget_set_size_request (dialog, -1, 300);
 
       g_signal_connect (dialog, "response",
 			G_CALLBACK (settings_dialog_response),
