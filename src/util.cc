@@ -1693,7 +1693,10 @@ make_global_package_list (GList *packages,
   if (packages == NULL)
     {
       GtkWidget *label = gtk_label_new (empty_label);
-      gtk_misc_set_alignment (GTK_MISC (label), 0.5, 0.0);
+      hildon_helper_set_logical_font (label, "LargeSystemFont");
+      hildon_helper_set_logical_color (label, GTK_RC_FG, GTK_STATE_NORMAL,
+                                       "SecondaryTextColor");
+      gtk_misc_set_alignment (GTK_MISC (label), 0.5, 0.5);
       return label;
     }
 
