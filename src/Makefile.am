@@ -12,8 +12,6 @@ hildon_application_manager_SOURCES = main.h			\
 					    operations.cc		\
 					    package-info-cell-renderer.h \
 					    package-info-cell-renderer.c \
-					    ham-long-label.h		\
-					    ham-long-label.c		\
 					    util.h			\
 					    util.cc			\
 					    details.h			\
