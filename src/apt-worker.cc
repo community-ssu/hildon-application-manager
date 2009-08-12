@@ -6321,10 +6321,10 @@ rescue_operation_with_devnode (int major, int minor)
 }
 
 static const char* rescue_devs[] = {
-  "/dev/mmcblk0p3", // Internal MMC ~/MyDocs
+  "/dev/mmcblk0p1", // Internal MMC ~/MyDocs
   "/dev/mmcblk1p1", // External MMC
-  "/dev/mmcblk0p2", // Internal MMC ~/
-  "/dev/mmcblk0p1", // Internal MMC /
+  "/dev/mmcblk0p2", // Internal MMC /home
+  "/dev/mmcblk0p3", // Internal MMC swap
   "/dev/mmcblk0",
   "/dev/mmcblk1",
   NULL
