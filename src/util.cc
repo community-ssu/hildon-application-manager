@@ -34,13 +34,9 @@
 
 #include <gtk/gtk.h>
 #include <gconf/gconf-client.h>
-#include <hildon/hildon-note.h>
+#include <hildon/hildon.h>
 #include <hildon/hildon-file-chooser-dialog.h>
-#include <hildon/hildon-check-button.h>
-#include <hildon/hildon-banner.h>
-#include <hildon/hildon-pannable-area.h>
 #include <gdk/gdkkeysyms.h>
-#include <hildon/hildon-defines.h>
 #include <conic.h>
 #include <libgnomevfs/gnome-vfs.h>
 #include <dbus/dbus.h>
