@@ -328,6 +328,7 @@ make_main_view (view *v)
   gtk_container_add (GTK_CONTAINER (view), alignment);
 
   vbox = gtk_vbox_new (FALSE, HILDON_MARGIN_TRIPLE);
+  gtk_container_set_border_width (GTK_CONTAINER(vbox), HILDON_MARGIN_TRIPLE);
   gtk_container_add (GTK_CONTAINER (alignment), vbox);
 
   // Applications we have
