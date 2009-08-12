@@ -309,17 +309,43 @@ device_label_destroyed (GtkWidget *widget, gpointer data)
     device_label = NULL;
 }
 
+static GtkWidget *
+make_button_layout (const char *icon_key, GtkWidget *label, ...)
+{
+  va_list va;
+  GtkBox *vbox, *hbox;
+  GtkWidget *button, *image;
+
+  vbox = GTK_BOX (gtk_vbox_new (FALSE, HILDON_MARGIN_DEFAULT));
+  hbox = GTK_BOX (gtk_hbox_new (FALSE, HILDON_MARGIN_DEFAULT));
+
+  image = gtk_image_new_from_icon_name (icon_key, HILDON_ICON_SIZE_SMALL);
+  gtk_misc_set_alignment (GTK_MISC (image), 0.5, 0.5);
+
+  gtk_box_pack_start (hbox, image, FALSE, TRUE, 0);
+  gtk_box_pack_start (hbox, label, FALSE, TRUE, 0);
+  gtk_box_pack_start (vbox,
+                     GTK_WIDGET (g_object_new (GTK_TYPE_ALIGNMENT,
+                                               "xalign", 0.5, "yalign", 0.5,
+                                               "xscale", 0.0, "yscale", 0.0,
+                                               "child", hbox, NULL)),
+                      FALSE, TRUE, 0);
+
+  va_start (va, label);
+  while ((button = va_arg (va, GtkWidget *)) != NULL)
+    gtk_box_pack_start (vbox, button, FALSE, TRUE, 0);
+  va_end (va);
+
+  return GTK_WIDGET (vbox);
+}
+
 GtkWidget *
 make_main_view (view *v)
 {
   GtkWidget *view;
   GtkWidget *alignment;
   GtkWidget *vbox;
-  GtkWidget *table;
-  GtkWidget *btn, *label, *image;
-  GtkSizeGroup *btn_group;
-
-  btn_group = gtk_size_group_new (GTK_SIZE_GROUP_BOTH);
+  GtkWidget *btn_uninstall, *btn_install, *btn_upgrade, *label;
 
   view = gtk_event_box_new ();
   gtk_widget_set_name (view, "osso-application-installer-main-view");
@@ -335,83 +361,56 @@ make_main_view (view *v)
   gtk_container_add (GTK_CONTAINER (alignment), vbox);
 
   // Applications we have
-  table = gtk_table_new (2, 2, FALSE);
-  gtk_table_set_col_spacings (GTK_TABLE (table), HILDON_MARGIN_DEFAULT);
-  gtk_table_set_row_spacings (GTK_TABLE (table), HILDON_MARGIN_DEFAULT);
 
   // first label
-  image = gtk_image_new_from_icon_name ("general_device_root_folder",
-					HILDON_ICON_SIZE_SMALL);
-  gtk_misc_set_alignment (GTK_MISC (image), 0.5, 0.5);
-  gtk_table_attach (GTK_TABLE (table), image, 0, 1, 0, 1,
-                    GTK_FILL, GTK_FILL, 0, 0);
-
   device_label = gtk_label_new (device_name ());
   hildon_helper_set_logical_color (device_label, GTK_RC_FG, GTK_STATE_NORMAL,
                                    "SecondaryTextColor");
-  hildon_helper_set_logical_font(device_label, "SmallSystemFont");
-  gtk_label_set_ellipsize (GTK_LABEL (device_label), PANGO_ELLIPSIZE_END);
+  hildon_helper_set_logical_font (device_label, "SmallEmpSystemFont");
   gtk_misc_set_alignment (GTK_MISC (device_label), 0.0, 0.5);
-  gtk_table_attach (GTK_TABLE (table), device_label, 1, 2, 0, 1,
-                    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
 
   g_signal_connect (device_label, "destroy",
 		    G_CALLBACK (device_label_destroyed), NULL);
 
   // first button
-  btn = make_padded_button (_("ai_li_uninstall"));
-  g_signal_connect (G_OBJECT (btn), "clicked",
+  btn_uninstall = make_padded_button (_("ai_li_uninstall"));
+  g_signal_connect (G_OBJECT (btn_uninstall), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &uninstall_applications_view);
-  gtk_size_group_add_widget (btn_group, btn);
-  grab_focus_on_map (btn);
-  gtk_table_attach (GTK_TABLE (table), btn, 1, 2, 1, 2,
-                    GtkAttachOptions(GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
+  grab_focus_on_map (btn_uninstall);
 
-  gtk_box_pack_start (GTK_BOX (vbox), table, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox),
+                      make_button_layout ("general_device_root_folder",
+                                          device_label, btn_uninstall, NULL),
+		      TRUE, TRUE, 0);
 
   // Applications we may want
-  table = gtk_table_new (3, 2, FALSE);
-  gtk_table_set_col_spacings (GTK_TABLE (table), HILDON_MARGIN_DEFAULT);
-  gtk_table_set_row_spacings (GTK_TABLE (table), HILDON_MARGIN_DEFAULT);
 
   // second label
-  image = gtk_image_new_from_icon_name ("general_web",
-					HILDON_ICON_SIZE_SMALL);
-  gtk_misc_set_alignment (GTK_MISC (image), 0.5, 0.5);
-  gtk_table_attach (GTK_TABLE (table), image, 0, 1, 0, 1,
-                    GTK_FILL, GTK_FILL, 0, 0);
-
   label = gtk_label_new (_("ai_li_repository"));
   hildon_helper_set_logical_color (label, GTK_RC_FG, GTK_STATE_NORMAL,
                                    "SecondaryTextColor");
-  hildon_helper_set_logical_font(label, "SmallSystemFont");
+  hildon_helper_set_logical_font(label, "SmallEmpSystemFont");
   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-  gtk_table_attach (GTK_TABLE (table), label, 1, 2, 0, 1,
-                    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
 
   // second button
-  btn = make_padded_button (_("ai_li_install"));
-  g_signal_connect (G_OBJECT (btn), "clicked",
+  btn_install = make_padded_button (_("ai_li_install"));
+  g_signal_connect (G_OBJECT (btn_install), "clicked",
 		    G_CALLBACK (show_view_callback),
 		    &install_applications_view);
-  gtk_size_group_add_widget (btn_group, btn);
-  gtk_table_attach (GTK_TABLE (table), btn, 1, 2, 1, 2,
-                    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
 
   // third button
-  btn = make_padded_button (_("ai_li_update"));
-  g_signal_connect (G_OBJECT (btn), "clicked",
+  btn_upgrade = make_padded_button (_("ai_li_update"));
+  g_signal_connect (G_OBJECT (btn_upgrade), "clicked",
 		    G_CALLBACK (show_check_for_updates_view),
 		    NULL);
-  gtk_size_group_add_widget (btn_group, btn);
-  gtk_table_attach (GTK_TABLE (table), btn, 1, 2, 2, 3,
-                    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL, 0, 0);
 
-  gtk_box_pack_start (GTK_BOX (vbox), table, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox),
+                      make_button_layout ("general_web",
+                                          label, btn_install, btn_upgrade, NULL),
+                      TRUE, TRUE, 0);
 
   gtk_widget_show_all (view);
-  g_object_unref (btn_group);
 
   get_package_infos_in_background (NULL);
 
