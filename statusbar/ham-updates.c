@@ -42,7 +42,7 @@
 
 #define _(x) dgettext ("hildon-application-manager", (x))
 
-#define HAM_UPDATES_BUTTON_ICON_NAME     "general_application_manager"
+#define HAM_UPDATES_BUTTON_ICON_NAME     "app_install_new_updates"
 #define HAM_UPDATES_BUTTON_ICON_SIZE     48
 
 #define HAM_UPDATES_OS         _("ai_sb_update_os")
