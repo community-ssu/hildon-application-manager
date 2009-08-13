@@ -30,17 +30,8 @@
 
 G_BEGIN_DECLS
 
-#define HAM_NOTIFIER_TYPE (ham_notifier_get_type ())
 #define HAM_NOTIFIER(obj)					\
-	(G_TYPE_CHECK_INSTANCE_CAST ((obj), HAM_NOTIFIER_TYPE, HamNotifier))
-#define HAM_NOTIFIER_CLASS(klass)				\
-	(G_TYPE_CHECK_CLASS_CAST ((klass), HAM_NOTIFIER_TYPE, HamNotifierClass))
-#define IS_HAM_NOTIFIER(obj)					\
-	(G_TYPE_CHECK_INSTANCE_TYPE ((obj), HAM_NOTIFIER_TYPE))
-#define IS_HAM_NOTIFIER_CLASS(klass)				\
-	(G_TYPE_CHECK_CLASS_TYPE ((klass), HAM_NOTIFIER_TYPE))
-#define HAM_NOTIFIER_GET_CLASS(obj)				\
-	(G_TYPE_INSTANCE_GET_CLASS ((obj), HAM_NOTIFIER_TYPE, HamNotifierClass))
+  ((HamNotifier *) obj)
 
 typedef enum
 {
@@ -50,22 +41,15 @@ typedef enum
 } NotificationsStatus;
 
 typedef struct _HamNotifier HamNotifier;
-typedef struct _HamNotifierClass HamNotifierClass;
+typedef struct _HamNotifierPrivate HamNotifierPrivate;
 
 struct _HamNotifier
 {
-  GObject parent;
+  HamNotifierPrivate *priv;
+
+  /* callbacks */
+  void (*response)   (gpointer self, gint response, gpointer data);
 };
-
-struct _HamNotifierClass
-{
-  GObjectClass parent_class;
-
-  /* signals */
-  void (*response)   (HamNotifier *self, gint response);
-};
-
-GType ham_notifier_get_type (void);
 
 gboolean ham_notifier_check (gchar *proxy);
 GtkWidget *ham_notifier_get_button (HamNotifier *self);
@@ -74,6 +58,9 @@ NotificationsStatus ham_notifier_status (HamNotifier *self);
 
 void ham_notifier_empty_seen_notifications ();
 void ham_notifier_icon_tapped ();
+
+HamNotifier *ham_notifier_new (gpointer data);
+void ham_notifier_free (HamNotifier *self);
 
 G_END_DECLS
 

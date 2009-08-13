@@ -51,61 +51,26 @@
 
 #define DEFAULT_PROVIDER                  "Nokia"
 
-#define HAM_NOTIFIER_GET_PRIVATE(obj) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((obj), HAM_NOTIFIER_TYPE, HamNotifierPrivate))
+#define HAM_NOTIFIER_GET_PRIVATE(obj) ((HamNotifier*)obj)->priv
 
-typedef struct _HamNotifierPrivate HamNotifierPrivate;
 struct _HamNotifierPrivate
 {
   GtkWidget *button;
+  gpointer data;
 
   gchar *url;
 };
 
-enum
-  {
-    RESPONSE,
-    LAST_SIGNAL
-  };
-
-static guint ham_notifier_signals[LAST_SIGNAL];
-
 static void ham_notifier_build_button (HamNotifier *self);
 static void empty_ufile_notifications (const gchar *ufile);
 
-
-G_DEFINE_TYPE (HamNotifier, ham_notifier, G_TYPE_OBJECT)
-
-static void ham_notifier_finalize (GObject *object)
+static void ham_notifier_finalize (gpointer object)
 {
   HamNotifierPrivate *priv;
 
   priv = HAM_NOTIFIER_GET_PRIVATE (object);
 
   g_free (priv->url);
-
-  G_OBJECT_CLASS (ham_notifier_parent_class)->finalize (object);
-}
-
-static void
-ham_notifier_class_init (HamNotifierClass *klass)
-{
-  GObjectClass *object_class;
-
-  object_class = G_OBJECT_CLASS (klass);
-  object_class->finalize = ham_notifier_finalize;
-
-  ham_notifier_signals[RESPONSE] =
-    g_signal_new ("response",
-		  G_TYPE_FROM_CLASS (klass),
-		  G_SIGNAL_RUN_LAST,
-		   G_STRUCT_OFFSET (HamNotifierClass, response),
-		  NULL, NULL,
-		  g_cclosure_marshal_VOID__INT,
-		  G_TYPE_NONE,
-		  1, G_TYPE_INT);
-
-  g_type_class_add_private (klass, sizeof (HamNotifierPrivate));
 }
 
 static void
@@ -167,13 +132,17 @@ static void
 ham_notifier_dialog_response_cb (GtkDialog *dialog,
                                  gint response, gpointer data)
 {
+  HamNotifier *self;
+
+  self = HAM_NOTIFIER (data);
+
   if ((response != GTK_RESPONSE_YES && response == GTK_RESPONSE_NO)
       || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
     {
       update_seen_notifications ();
       empty_ufile_notifications (UFILE_TAPPED_NOTIFICATIONS);
       gtk_widget_destroy (GTK_WIDGET (dialog));
-      g_signal_emit (data, ham_notifier_signals[RESPONSE], 0, response);
+      self->response (self->priv->data, response, data);
     }
 }
 
@@ -247,8 +216,6 @@ ham_notifier_button_clicked_cb (GtkButton *button, gpointer data)
   GtkWidget *dlg;
   HamNotifier *self;
   gchar *content;
-
-  g_return_if_fail (IS_HAM_NOTIFIER (data));
 
   self = HAM_NOTIFIER (data);
 
@@ -769,4 +736,28 @@ ham_notifier_status (HamNotifier *self)
     }
 
   return status;
+}
+
+HamNotifier*
+ham_notifier_new (gpointer data)
+{
+  HamNotifier *self;
+
+  self = g_new (HamNotifier, 1);
+  self->priv = g_new (HamNotifierPrivate, 1);
+  self->priv->data = data;
+
+  ham_notifier_init (self);
+
+  return self;
+
+}
+
+void
+ham_notifier_free (HamNotifier *self)
+{
+  ham_notifier_finalize (self);
+
+  g_free (self->priv);
+  g_free (self);
 }

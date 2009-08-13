@@ -86,7 +86,10 @@ ham_notifier_status_menu_item_finalize (GObject *object)
   close_inotify (self);
 
   if (priv->notifier != NULL)
-    g_object_unref (priv->notifier);
+    {
+      ham_notifier_free (priv->notifier);
+      priv->notifier = NULL;
+    }
 
   G_OBJECT_CLASS (ham_notifier_status_menu_item_parent_class)->finalize (object);
 }
@@ -319,9 +322,14 @@ open_url (HamNotifierStatusMenuItem *self, gchar *url)
 }
 
 static void
-ham_notifier_status_menu_item_response_cb (HamNotifierStatusMenuItem *self,
-					   gint response, gpointer data)
+ham_notifier_status_menu_item_response_cb (gpointer me,
+                                           gint response, gpointer data)
 {
+  HamNotifierStatusMenuItem *self;
+
+  g_return_if_fail (IS_HAM_NOTIFIER_STATUS_MENU_ITEM (me));
+
+  self = HAM_NOTIFIER_STATUS_MENU_ITEM (me);
   gtk_widget_hide (GTK_WIDGET (self));
 
   if (response == GTK_RESPONSE_YES)
@@ -341,11 +349,9 @@ build_status_menu_button (HamNotifierStatusMenuItem *self)
 
   priv = HAM_NOTIFIER_STATUS_MENU_ITEM_GET_PRIVATE (self);
 
-  priv->notifier = g_object_new (HAM_NOTIFIER_TYPE, NULL);
+  priv->notifier = ham_notifier_new (self);
 
-  g_signal_connect_swapped
-    (priv->notifier, "response",
-     G_CALLBACK (ham_notifier_status_menu_item_response_cb), self);
+  priv->notifier->response = ham_notifier_status_menu_item_response_cb;
 
   gtk_container_add (GTK_CONTAINER (self),
 		     ham_notifier_get_button (priv->notifier));
