@@ -30,17 +30,8 @@
 
 G_BEGIN_DECLS
 
-#define HAM_UPDATES_TYPE (ham_updates_get_type ())
 #define HAM_UPDATES(obj)					\
-	(G_TYPE_CHECK_INSTANCE_CAST ((obj), HAM_UPDATES_TYPE, HamUpdates))
-#define HAM_UPDATES_CLASS(klass)				\
-	(G_TYPE_CHECK_CLASS_CAST ((klass), HAM_UPDATES_TYPE, HamUpdatesClass))
-#define IS_HAM_UPDATES(obj)					\
-	(G_TYPE_CHECK_INSTANCE_TYPE ((obj), HAM_UPDATES_TYPE))
-#define IS_HAM_UPDATES_CLASS(klass)				\
-	(G_TYPE_CHECK_CLASS_TYPE ((klass), HAM_UPDATES_TYPE))
-#define HAM_UPDATES_GET_CLASS(obj)				\
-	(G_TYPE_INSTANCE_GET_CLASS ((obj), HAM_UPDATES_TYPE, HamUpdatesClass))
+  ((HamUpdates *) obj)
 
 typedef enum
 {
@@ -50,23 +41,16 @@ typedef enum
 } UpdatesStatus;
 
 typedef struct _HamUpdates HamUpdates;
-typedef struct _HamUpdatesClass HamUpdatesClass;
+typedef struct _HamUpdatesPrivate HamUpdatesPrivate;
 
 struct _HamUpdates
 {
-  GObject parent;
+  HamUpdatesPrivate *priv;
+
+  /* callbacks */
+  void (*check_done) (gpointer self, gboolean ok, gpointer data);
+  void (*response)   (gpointer self, gint response, gpointer data);
 };
-
-struct _HamUpdatesClass
-{
-  GObjectClass parent_class;
-
-  /* signals */
-  void (*check_done) (HamUpdates *self, gboolean ok);
-  void (*response)   (HamUpdates *self, gint response);
-};
-
-GType ham_updates_get_type (void);
 
 gboolean ham_updates_check (HamUpdates *self, gchar *proxy);
 gboolean ham_updates_set_alarm (HamUpdates *self, alarm_event_t *event);
@@ -74,6 +58,9 @@ GtkWidget *ham_updates_get_button (HamUpdates *self);
 time_t ham_updates_get_interval (HamUpdates *self);
 UpdatesStatus ham_updates_status (HamUpdates *self, osso_context_t *context);
 void ham_updates_icon_tapped ();
+
+HamUpdates *ham_updates_new (gpointer data);
+void ham_updates_free (HamUpdates *self);
 
 G_END_DECLS
 

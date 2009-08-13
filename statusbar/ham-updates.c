@@ -49,8 +49,7 @@
 #define HAM_UPDATES_NOKIA      _("ai_sb_update_nokia_%d")
 #define HAM_UPDATES_THIRDPARTY _("ai_sb_update_thirdparty_%d")
 
-#define HAM_UPDATES_GET_PRIVATE(obj) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((obj), HAM_UPDATES_TYPE, HamUpdatesPrivate))
+#define HAM_UPDATES_GET_PRIVATE(obj) ((HamUpdates*)obj)->priv;
 
 typedef struct _Updates Updates;
 struct _Updates {
@@ -60,32 +59,21 @@ struct _Updates {
   gint total;
 };
 
-typedef struct _HamUpdatesPrivate HamUpdatesPrivate;
 struct _HamUpdatesPrivate
 {
   GtkWidget *button;
+  gpointer data;
 
   /* apt-worker spawn */
   guint child_id;
 };
-
-enum
-  {
-    CHECK_DONE,
-    RESPONSE,
-    LAST_SIGNAL
-  };
-
-static guint ham_updates_signals[LAST_SIGNAL];
 
 static void ham_updates_build_button (HamUpdates *self);
 
 static Updates *updates_fetch (const gchar *seen_ufile);
 static void updates_free (Updates* updates);
 
-G_DEFINE_TYPE (HamUpdates, ham_updates, G_TYPE_OBJECT)
-
-static void ham_updates_finalize (GObject *object)
+static void ham_updates_finalize (gpointer object)
 {
   HamUpdatesPrivate *priv;
 
@@ -93,39 +81,6 @@ static void ham_updates_finalize (GObject *object)
 
   if (priv->child_id > 0)
     g_source_remove (priv->child_id);
-
-  G_OBJECT_CLASS (ham_updates_parent_class)->finalize (object);
-}
-
-static void
-ham_updates_class_init (HamUpdatesClass *klass)
-{
-  GObjectClass *object_class;
-
-  object_class = G_OBJECT_CLASS (klass);
-  object_class->finalize = ham_updates_finalize;
-
-  ham_updates_signals[CHECK_DONE] =
-    g_signal_new ("check-done",
-		  G_TYPE_FROM_CLASS (klass),
-		  G_SIGNAL_RUN_LAST,
-		  G_STRUCT_OFFSET (HamUpdatesClass, check_done),
-		  NULL, NULL,
-		  g_cclosure_marshal_VOID__BOOLEAN,
-		  G_TYPE_NONE,
-		  1, G_TYPE_BOOLEAN);
-
-  ham_updates_signals[RESPONSE] =
-    g_signal_new ("response",
-		  G_TYPE_FROM_CLASS (klass),
-		  G_SIGNAL_RUN_LAST,
-		   G_STRUCT_OFFSET (HamUpdatesClass, response),
-		  NULL, NULL,
-		  g_cclosure_marshal_VOID__INT,
-		  G_TYPE_NONE,
-		  1, G_TYPE_INT);
-
-  g_type_class_add_private (klass, sizeof (HamUpdatesPrivate));
 }
 
 static void
@@ -235,6 +190,10 @@ static void
 ham_updates_dialog_response_cb (GtkDialog *dialog,
 				gint response, gpointer data)
 {
+  HamUpdates *self;
+
+  self = HAM_UPDATES (data);
+
   if ((response != GTK_RESPONSE_YES && response == GTK_RESPONSE_NO)
       || (response == GTK_RESPONSE_YES && response != GTK_RESPONSE_NO))
     {
@@ -245,7 +204,7 @@ ham_updates_dialog_response_cb (GtkDialog *dialog,
         }
 
       gtk_widget_destroy (GTK_WIDGET (dialog));
-      g_signal_emit (data, ham_updates_signals[RESPONSE], 0, response);
+      self->response (self->priv->data, response, data);
     }
 }
 
@@ -345,8 +304,6 @@ ham_updates_button_clicked_cb (GtkButton *button, gpointer data)
   HamUpdates *self;
   gchar *content;
 
-  g_return_if_fail (IS_HAM_UPDATES (data));
-
   self = HAM_UPDATES (data);
 
   content = build_dialog_content ();
@@ -423,11 +380,11 @@ ham_updates_build_button (HamUpdates *self)
 static void
 ham_updates_check_done_cb (GPid pid, gint status, gpointer data)
 {
+  HamUpdates *self;
   HamUpdatesPrivate *priv;
   gboolean ok;
 
-  g_return_if_fail (IS_HAM_UPDATES (data));
-
+  self = HAM_UPDATES (data);
   priv = HAM_UPDATES_GET_PRIVATE (data);
 
   priv->child_id = 0;
@@ -437,7 +394,7 @@ ham_updates_check_done_cb (GPid pid, gint status, gpointer data)
   if (ok == TRUE)
     save_last_update_time (time_get_time ());
 
-  g_signal_emit (data, ham_updates_signals[CHECK_DONE], 0, ok);
+  self->check_done (self->priv->data, ok, data);
 }
 
 gboolean
@@ -852,4 +809,28 @@ updates_free (Updates *updates)
   updates_list_free (updates->other);
 
   g_free (updates);
+}
+
+HamUpdates *
+ham_updates_new (gpointer data)
+{
+  HamUpdates *self;
+
+  self = g_new (HamUpdates, 1);
+  self->priv = g_new (HamUpdatesPrivate, 1);
+
+  self->priv->data = data;
+
+  ham_updates_init (self);
+
+  return self;
+}
+
+void
+ham_updates_free (HamUpdates *self)
+{
+  ham_updates_finalize (self);
+
+  g_free (self->priv);
+  g_free (self);
 }

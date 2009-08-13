@@ -205,7 +205,10 @@ ham_updates_status_menu_item_finalize (GObject *object)
   close_inotify (self);
 
   if (priv->updates != NULL)
-    g_object_unref (priv->updates);
+    {
+      ham_updates_free (priv->updates);
+      priv->updates = NULL;
+    }
 
   if (priv->conic != NULL)
     g_object_unref (priv->conic);
@@ -333,7 +336,7 @@ get_http_proxy (HamUpdatesStatusMenuItem *self)
 }
 
 static void
-ham_updates_status_menu_item_check_done_cb (HamUpdatesStatusMenuItem *self,
+ham_updates_status_menu_item_check_done_cb (gpointer self,
                                             gboolean ok, gpointer data)
 {
   HamUpdatesStatusMenuItemPrivate *priv;
@@ -920,9 +923,12 @@ ham_execute (HamUpdatesStatusMenuItem *self)
 }
 
 static void
-ham_updates_status_menu_item_response_cb (HamUpdatesStatusMenuItem *self,
+ham_updates_status_menu_item_response_cb (gpointer me,
                                           gint response, gpointer data)
 {
+  HamUpdatesStatusMenuItem *self;
+
+  self = HAM_UPDATES_STATUS_MENU_ITEM (me);
   update_state (self);
 
   if (response == GTK_RESPONSE_YES)
@@ -935,14 +941,10 @@ build_status_menu_button (HamUpdatesStatusMenuItem *self)
   HamUpdatesStatusMenuItemPrivate *priv;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
-  priv->updates = g_object_new (HAM_UPDATES_TYPE, NULL);
+  priv->updates = ham_updates_new (self);
 
-  g_signal_connect_swapped
-    (priv->updates, "check-done",
-     G_CALLBACK (ham_updates_status_menu_item_check_done_cb), self);
-  g_signal_connect_swapped
-    (priv->updates, "response",
-     G_CALLBACK (ham_updates_status_menu_item_response_cb), self);
+  priv->updates->check_done = ham_updates_status_menu_item_check_done_cb;
+  priv->updates->response = ham_updates_status_menu_item_response_cb;
 
   gtk_container_add (GTK_CONTAINER (self),
                      ham_updates_get_button (priv->updates));
