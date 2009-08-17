@@ -6117,12 +6117,19 @@ write_available_updates_file ()
 	  int flags = get_flags (rec);
 	  int domain_index = awc->cache->extra_info[pkg->ID].cur_domain;
 
+          const char *pkg_name;
+          string pretty_name = get_pretty_name (rec);
+          if (!pretty_name.empty ())
+            pkg_name = pretty_name.c_str ();
+          else
+            pkg_name = pkg.Name ();
+
 	  if (flags & pkgflag_system_update)
-	    x_pkg = xexp_text_new ("os", pkg.Name());
+	    x_pkg = xexp_text_new ("os", pkg_name);
 	  else if (domains[domain_index].is_certified)
-	    x_pkg = xexp_text_new ("certified", pkg.Name());
+	    x_pkg = xexp_text_new ("certified", pkg_name);
 	  else
-	    x_pkg = xexp_text_new ("other", pkg.Name());
+	    x_pkg = xexp_text_new ("other", pkg_name);
 
 	  xexp_cons (x_updates, x_pkg);
 	}
