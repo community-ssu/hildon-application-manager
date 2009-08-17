@@ -1010,7 +1010,8 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   package_list_ready = true;
 
-  sort_all_packages (true);
+  /* Refresh view after sorting only if not in the main view */
+  sort_all_packages (cur_view_struct != &main_view);
 
   /* We switch to the parent view if the current one is the search
      results view.
