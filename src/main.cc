@@ -1789,9 +1789,13 @@ update_seen_updates_file (void)
   /* Build the list of seen updates */
   xexp *seen_updates = xexp_list_new ("updates");
   for (GList *pkg = upgradeable_packages; pkg; pkg = pkg->next)
-    xexp_cons (seen_updates,
-               xexp_text_new ("pkg",
-                              ((package_info *)pkg->data)->name));
+    {
+      package_info *pi = (package_info *) pkg->data;
+      const char* name = pi->available_pretty_name
+        ? pi->available_pretty_name
+        : pi->name;
+      xexp_cons (seen_updates, xexp_text_new ("pkg", name));
+    }
 
   /* Write it to disk */
   user_file_write_xexp (UFILE_SEEN_UPDATES, seen_updates);
