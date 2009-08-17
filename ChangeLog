@@ -1,3 +1,67 @@
+2009-08-13 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* statusbar/ham-notifier.c (ham_notifier_finalize): Remove gobject
+	dependant code.
+	(ham_notifier_class_init): Function removed.
+	(ham_notifier_dialog_response_cb): Change signal emit for simple
+	callback.
+	(ham_notifier_new): New function.
+	(ham_notifier_free): New function.
+	* statusbar/ham-notifier-status-menu-item.c
+	(ham_notifier_status_menu_item_finalize):  Remove gobject dependant
+	code.
+	(ham_notifier_status_menu_item_response_cb): Use gpointer instead
+	object type as parameter.
+	(build_status_menu_button): Remove gobject dependant code.
+	* statusbar/ham-updates.c (ham_updates_finalize): Remove gobject
+	dependant code.
+	(ham_updates_class_init): Function removed.
+	(ham_updates_dialog_response_cb): Change signal emit for a simple
+	callback.
+	(ham_updates_button_clicked_cb): Remove gobject dependant code.
+	(ham_updates_check_done_cb): Change signal emit for a simple
+	callback.
+	(ham_updates_new): New function.
+	(ham_updates_free): New function.
+	* statusbar/ham-updates-status-menu-item.c
+	(ham_updates_status_menu_item_finalize): Remove gobject dependant
+	code.
+	(ham_updates_status_menu_item_check_done_cb): Use gpointer instead
+	object type as parameter.
+	(ham_updates_status_menu_item_response_cb): Use gpointer instead
+	object type as parameter.
+	(build_status_menu_button): Remove gobject dependant code.
+
+2009-08-12 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/ham-long-label.c, src/ham-long-label.h: Removed files.
+	* src/repo.cc (show_catalogue_dialog): Use
+	gtk_widget_set_size_request() rather than gtk_widget_set_usize ()
+	* src/search.cc (show_search_dialog_flow): Same here
+	* src/settings.cc (show_settings_dialog_flow): And here
+	* src/util.cc (select_package_list_with_info): Here too
+	* utils/maemo-confirm-text-user.c (main): And here
+	* src/util.cc (make_global_package_list): Use the font and size
+	specified in the Master Layout Guide (section 6.1) for empty list
+	message. (NB#128014)
+	* src/util.cc: Use the official header for hildon.
+	* src/main.cc (expose_main_view): Apply the triple margin to the
+	background image (NB#131472)
+	* src/apt-worker.cc: Update the partition order to seek for packages
+	(NB#132591)
+	* statusbar/ham-notifier.c: changed the HAM_NOTIFIER_BUTTON_ICON_NAME
+	to the new one specified in the spec (NB#132591)
+	* statusbar/ham-updates.c: changed the HAM_UPDATES_BUTTON_ICON_NAME to
+	the new one specified in the spec. (NB#132591)
+
+2009-08-12 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/main.cc (make_button_layout): New function.
+	(make_main_view): Remove code creating GtkTable widgets and use
+	make_button_layout to create the two layouts. Remove device name
+	ellipsization and use "SmallEmpSystemFont" on the labels instead of
+	"SmallSystemFont"
+
 2009-08-06 Soini Mox <ext-mox.soini@nokia.com>
 
 	* src/log.cc (log_response): Use portable function to get user special
