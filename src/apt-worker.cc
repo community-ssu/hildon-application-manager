@@ -3681,14 +3681,9 @@ is_ssu_dependency (pkgCache::PkgIterator pkg)
 {
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   pkgDepCache &cache = *(awc->cache);
-  pkgCache::VerIterator verdpkg = cache[pkg].CandidateVerIter (cache);
 
   // Return false if we do not have an SSU package available
   if (ssu_packages == NULL)
-    return false;
-
-  // Non-user packages are not part of SSU
-  if (verdpkg.end () || is_user_package (verdpkg))
     return false;
 
   // Find out whether it's a dependency for a SSU package
