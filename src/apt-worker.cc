@@ -3728,10 +3728,8 @@ cmd_third_party_policy_check ()
       package_record rec (candidate);
       int flags = get_flags (rec);
 
-      // Apply policy to user packages only skip system update
-      // meta-packages that are not installed
-      if (is_user_package (candidate) && !candidate.end ()
-          && !(flags & pkgflag_system_update))
+      // skip non available packages and system update meta-packages
+      if (!candidate.end () && !(flags & pkgflag_system_update))
         {
           for (pkgCache::DepIterator Dep = candidate.DependsList ();
                Dep.end () != true;
