@@ -3738,8 +3738,6 @@ cmd_third_party_policy_check ()
                Dep++)
             {
               pkgCache::PkgIterator dpkg = Dep.TargetPkg ();
-              pkgCache::VerIterator verdpkg =
-                cache[dpkg].CandidateVerIter (cache);
 
               // Check whether SSU metapackage is dependant on this
               if (!is_ssu_dependency (dpkg))
