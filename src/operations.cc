@@ -316,14 +316,36 @@ static void ip_reboot_delayed (void *data);
 static gboolean ip_reboot_now (void *data);
 static void ip_reboot_reply (int cmd, apt_proto_decoder *dec, void *data);
 
+struct one_ip_clos {
+  GList *list;
+  void *data;
+  void (*cont) (int n_successful, void*);
+};
+
+static void
+one_install_package_end (int n_successful, void *data)
+{
+  one_ip_clos *c = (one_ip_clos *) data;
+
+  g_list_free (c->list);
+  c->cont (n_successful, c->data);
+  delete c;
+}
+
 void
 install_package (package_info *pi,
 		 void (*cont) (int n_successful, void *), void *data)
 {
-  install_packages (g_list_prepend (NULL, pi),
+  one_ip_clos *c = new one_ip_clos;
+
+  c->list = g_list_prepend (NULL, pi);
+  c->cont = cont;
+  c->data = data;
+
+  install_packages (c->list,
 		    INSTALL_TYPE_STANDARD, false,
 		    NULL, NULL,
-		    cont, data);
+                    one_install_package_end, c);
 }
 
 void
