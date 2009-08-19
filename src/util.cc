@@ -1948,7 +1948,16 @@ make_global_section_list (GList *sections, section_activated *act)
   global_section_list = scroller;
   g_object_ref (scroller);
 
-  return scroller;
+  GtkWidget *alignment;
+  alignment = gtk_alignment_new (0.5, 0.5, 1.0, 1.0);
+  gtk_alignment_set_padding (GTK_ALIGNMENT (alignment),
+                             HILDON_MARGIN_HALF,
+                             0,
+                             HILDON_MARGIN_DOUBLE,
+                             HILDON_MARGIN_DOUBLE);
+  gtk_container_add (GTK_CONTAINER (alignment), scroller);
+
+  return alignment;
 }
 
 void
