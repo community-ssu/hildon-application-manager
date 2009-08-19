@@ -12,6 +12,9 @@ if [ "$1" = "restore-catalogues" ]; then
   /usr/bin/hildon-application-manager-config add "$cats"
 elif [ "$1" = "restore-catalogues2" ]; then
   /usr/bin/hildon-application-manager-config add "$cats2"
+elif [ "$1" = "clear-user-catalogues" ]; then
+    echo '<catalogues/>' > /etc/hildon-application-manager/catalogues
+    /usr/bin/hildon-application-manager-config update
 elif [ "$1" = "run-after-restore" ]; then
   dbus-send --type=method_call \
             --print-reply \
@@ -41,7 +44,8 @@ elif [ "$1" = "check-state" ]; then
             /com/nokia/hildon_update_notifier \
             com.nokia.hildon_update_notifier.check_state
 else
-  echo >&2 "usage: hildon-application-manager-util restore-catalogues" 
+  echo >&2 "usage: hildon-application-manager-util restore-catalogues"
+  echo >&2 "       hildon-application-manager-util clear-user-catalogues"
   echo >&2 "       hildon-application-manager-util run-after-restore"
   echo >&2 "       hildon-application-manager-util update-system"
   echo >&2 "       hildon-application-manager-util check-for-updates"

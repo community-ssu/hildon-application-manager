@@ -18,6 +18,9 @@ restore_SCRIPTS = hildon-application-manager.sh
 rescuedir = $(libexecdir)
 rescue_SCRIPTS = ham-rescue.sh
 
+ossocudscriptsdir=/etc/osso-cud-scripts
+ossocudscripts_SCRIPTS = ham-clean.sh
+
 sudoersdir = $(sysconfdir)/sudoers.d/
 sudoers_DATA = hildon-application-manager.sudoers
 
@@ -51,7 +54,8 @@ EXTRA_DIST = COPYING.LIB                                        \
              hildon-application-manager.conf			\
              hildon-application-manager.sh			\
              hildon-application-manager.sudoers 		\
-             ham-rescue.sh
+             ham-rescue.sh					\
+             ham-clean.sh
 
 deb:
 	./make-package $(PACKAGE) $(VERSION) .
