@@ -54,8 +54,13 @@
 #include "apt-utils.h"
 #include "confutils.h"
 #include "update-notifier-conf.h"
+#include "hildon-fancy-button.h"
 
 #define MAX_PACKAGES_NO_CATEGORIES 7
+
+#define HILDON_FANCY_BUTTON_WIDTH 214
+#define ALIGNMENT_PADDING ((800 - 3 * HILDON_FANCY_BUTTON_WIDTH - 2 * HILDON_MARGIN_TRIPLE) / 2)
+#define MAIN_VIEW_TOP_MARGIN 92
 
 #define _(x) gettext (x)
 
@@ -271,14 +276,6 @@ show_parent_view ()
     }
 }
 
-static GtkWidget *
-make_padded_button (const char *label)
-{
-  GtkWidget *btn = hildon_gtk_button_new (HILDON_SIZE_FINGER_HEIGHT);
-  gtk_button_set_label(GTK_BUTTON(btn), label);
-  return btn;
-}
-
 static gboolean
 expose_main_view (GtkWidget *w, GdkEventExpose *ev, gpointer data)
 {
@@ -311,50 +308,13 @@ expose_main_view (GtkWidget *w, GdkEventExpose *ev, gpointer data)
   return TRUE;
 }
 
-static void
-device_label_destroyed (GtkWidget *widget, gpointer data)
-{
-  if (device_label == widget)
-    device_label = NULL;
-}
-
-static GtkWidget *
-make_button_layout (const char *icon_key, GtkWidget *label, ...)
-{
-  va_list va;
-  GtkBox *vbox, *hbox;
-  GtkWidget *button, *image;
-
-  vbox = GTK_BOX (gtk_vbox_new (FALSE, HILDON_MARGIN_DEFAULT));
-  hbox = GTK_BOX (gtk_hbox_new (FALSE, HILDON_MARGIN_DEFAULT));
-
-  image = gtk_image_new_from_icon_name (icon_key, HILDON_ICON_SIZE_SMALL);
-  gtk_misc_set_alignment (GTK_MISC (image), 0.5, 0.5);
-
-  gtk_box_pack_start (hbox, image, FALSE, TRUE, 0);
-  gtk_box_pack_start (hbox, label, FALSE, TRUE, 0);
-  gtk_box_pack_start (vbox,
-                     GTK_WIDGET (g_object_new (GTK_TYPE_ALIGNMENT,
-                                               "xalign", 0.5, "yalign", 0.5,
-                                               "xscale", 0.0, "yscale", 0.0,
-                                               "child", hbox, NULL)),
-                      FALSE, TRUE, 0);
-
-  va_start (va, label);
-  while ((button = va_arg (va, GtkWidget *)) != NULL)
-    gtk_box_pack_start (vbox, button, FALSE, TRUE, 0);
-  va_end (va);
-
-  return GTK_WIDGET (vbox);
-}
-
 GtkWidget *
 make_main_view (view *v)
 {
   GtkWidget *view;
   GtkWidget *alignment;
-  GtkWidget *vbox;
-  GtkWidget *btn_uninstall, *btn_install, *btn_upgrade, *label;
+  GtkWidget *hbox;
+  GtkWidget *fancy_button;
 
   view = gtk_event_box_new ();
   gtk_widget_set_name (view, "osso-application-installer-main-view");
@@ -362,62 +322,52 @@ make_main_view (view *v)
   g_signal_connect (view, "expose-event",
                     G_CALLBACK (expose_main_view), NULL);
 
-  alignment = gtk_alignment_new (0.0, 0.0, 0.0, 0.0);
+  alignment = gtk_alignment_new (0.5, 0.0, 0.0, 0.0);
+  gtk_alignment_set_padding (GTK_ALIGNMENT (alignment),
+                             MAIN_VIEW_TOP_MARGIN, 0,
+                             ALIGNMENT_PADDING, ALIGNMENT_PADDING);
   gtk_container_add (GTK_CONTAINER (view), alignment);
 
-  vbox = gtk_vbox_new (FALSE, HILDON_MARGIN_TRIPLE);
-  gtk_container_set_border_width (GTK_CONTAINER(vbox), HILDON_MARGIN_TRIPLE);
-  gtk_container_add (GTK_CONTAINER (alignment), vbox);
+  hbox = gtk_hbox_new (TRUE, HILDON_MARGIN_TRIPLE);
+  gtk_container_add (GTK_CONTAINER (alignment), hbox);
 
-  // Applications we have
+  fancy_button = GTK_WIDGET (g_object_new (HILDON_TYPE_FANCY_BUTTON,
+                                           "image-name",
+                                           "general_device_root_folder",
+                                           "pressed-image-name",
+                                           "general_device_root_folder",
+                                           "image-widget-name", "NO_NAME_YET",
+                                           "caption", _("ai_li_uninstall"),
+                                           NULL));
+  gtk_container_add (GTK_CONTAINER (hbox), fancy_button);
+  g_signal_connect (G_OBJECT (fancy_button),
+                    "clicked",
+                    G_CALLBACK (show_view_callback),
+                    &uninstall_applications_view);
 
-  // first label
-  device_label = gtk_label_new (device_name ());
-  hildon_helper_set_logical_color (device_label, GTK_RC_FG, GTK_STATE_NORMAL,
-                                   "SecondaryTextColor");
-  hildon_helper_set_logical_font (device_label, "SmallEmpSystemFont");
-  gtk_misc_set_alignment (GTK_MISC (device_label), 0.0, 0.5);
+  fancy_button = GTK_WIDGET (g_object_new (HILDON_TYPE_FANCY_BUTTON,
+                                           "image-name",         "general_web",
+                                           "pressed-image-name", "general_web",
+                                           "image-widget-name",  "NO_NAME_YET",
+                                           "caption",       _("ai_li_install"),
+                                           NULL));
+  gtk_container_add (GTK_CONTAINER (hbox), fancy_button);
+  g_signal_connect (G_OBJECT (fancy_button),
+                    "clicked",
+                    G_CALLBACK (show_view_callback),
+                    &install_applications_view);
 
-  g_signal_connect (device_label, "destroy",
-		    G_CALLBACK (device_label_destroyed), NULL);
-
-  // first button
-  btn_uninstall = make_padded_button (_("ai_li_uninstall"));
-  g_signal_connect (G_OBJECT (btn_uninstall), "clicked",
-		    G_CALLBACK (show_view_callback),
-		    &uninstall_applications_view);
-  grab_focus_on_map (btn_uninstall);
-
-  gtk_box_pack_start (GTK_BOX (vbox),
-                      make_button_layout ("general_device_root_folder",
-                                          device_label, btn_uninstall, NULL),
-		      TRUE, TRUE, 0);
-
-  // Applications we may want
-
-  // second label
-  label = gtk_label_new (_("ai_li_repository"));
-  hildon_helper_set_logical_color (label, GTK_RC_FG, GTK_STATE_NORMAL,
-                                   "SecondaryTextColor");
-  hildon_helper_set_logical_font(label, "SmallEmpSystemFont");
-  gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-
-  // second button
-  btn_install = make_padded_button (_("ai_li_install"));
-  g_signal_connect (G_OBJECT (btn_install), "clicked",
-		    G_CALLBACK (show_view_callback),
-		    &install_applications_view);
-
-  // third button
-  btn_upgrade = make_padded_button (_("ai_li_update"));
-  g_signal_connect (G_OBJECT (btn_upgrade), "clicked",
-		    G_CALLBACK (show_upgrade_applications_view_callback),
-		    NULL);
-
-  gtk_box_pack_start (GTK_BOX (vbox),
-                      make_button_layout ("general_web",
-                                          label, btn_install, btn_upgrade, NULL),
-                      TRUE, TRUE, 0);
+  fancy_button = GTK_WIDGET (g_object_new (HILDON_TYPE_FANCY_BUTTON,
+                                           "image-name",         "general_web",
+                                           "pressed-image-name", "general_web",
+                                           "image-widget-name",  "NO_NAME_YET",
+                                           "caption",        _("ai_li_update"),
+                                           NULL));
+  gtk_container_add (GTK_CONTAINER (hbox), fancy_button);
+  g_signal_connect (G_OBJECT (fancy_button),
+                    "clicked",
+                    G_CALLBACK (show_check_for_updates_view),
+                    NULL);
 
   gtk_widget_show_all (view);
 
