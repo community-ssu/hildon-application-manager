@@ -1,3 +1,8 @@
+2009-08-21 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (make_upgrade_applications_view): always run the
+	refresh package cache flow.
+
 2009-08-13 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* statusbar/ham-notifier.c (ham_notifier_finalize): Remove gobject
