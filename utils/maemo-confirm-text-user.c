@@ -110,7 +110,7 @@ make_small_text_view (const char *file)
 
   scroll = GTK_WIDGET (g_object_new
                        (HILDON_TYPE_PANNABLE_AREA,
-                        "hscrollbar-policy", GTK_POLICY_AUTOMATIC,
+                        "hscrollbar-policy", GTK_POLICY_NEVER,
                         "vscrollbar-policy", GTK_POLICY_AUTOMATIC,
                         "mov-mode", HILDON_MOVEMENT_MODE_BOTH,
                         NULL));
@@ -120,6 +120,7 @@ make_small_text_view (const char *file)
 
   fill_text_buffer_from_file (buffer, file);
 
+  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (view), GTK_WRAP_WORD);
   gtk_text_view_set_editable (GTK_TEXT_VIEW (view), 0);
   gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (view), 0);
   gtk_container_add (GTK_CONTAINER (scroll), view);
