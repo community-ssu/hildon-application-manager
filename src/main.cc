@@ -234,6 +234,15 @@ show_view (view *v)
 }
 
 static void
+show_upgrade_applications_view (GtkWidget *btn, gpointer data)
+{
+  show_check_for_updates_view ();
+
+  if (is_idle ())
+    refresh_package_cache_without_user_flow ();
+}
+
+static void
 show_view_callback (GtkWidget *btn, gpointer data)
 {
   view *v = (view *)data;
@@ -402,7 +411,7 @@ make_main_view (view *v)
   // third button
   btn_upgrade = make_padded_button (_("ai_li_update"));
   g_signal_connect (G_OBJECT (btn_upgrade), "clicked",
-		    G_CALLBACK (show_check_for_updates_view),
+		    G_CALLBACK (show_upgrade_applications_view),
 		    NULL);
 
   gtk_box_pack_start (GTK_BOX (vbox),
@@ -1823,7 +1832,7 @@ make_upgrade_applications_view (view *v)
       enable_update_all (true);
     }
 
-  maybe_refresh_package_cache_without_user ();
+  // maybe_refresh_package_cache_without_user ();
 
   return view;
 }
