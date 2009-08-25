@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.30~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.30) unstable; urgency=low
 
-  * 
+  [ Víctor Jáquez ]
+  * Fixes: NB#135095 - check for update goes to deadloop
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 20 Aug 2009 15:03:00 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 25 Aug 2009 18:36:13 +0100
 
 hildon-application-manager (1:2.2.29-2) unstable; urgency=low
 

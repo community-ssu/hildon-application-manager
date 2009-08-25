@@ -1,3 +1,16 @@
+2009-08-25 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (show_upgrade_applications_view_callback): Function
+	renamed.
+	(make_main_view): Use the new function name.
+
+2009-08-25 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (show_upgrade_applications_view): new function.
+	(make_main_view): use show_upgrade_applications_view callback.
+	(make_upgrade_applications_view): remove the refresh package cache
+	flow.
+
 2009-08-21 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (make_upgrade_applications_view): always run the
