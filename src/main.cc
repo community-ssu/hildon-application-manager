@@ -1823,9 +1823,7 @@ make_upgrade_applications_view (view *v)
       enable_update_all (true);
     }
 
-  /* the programmer avoids all responsibility of this git patch */
-  if (is_idle ())
-    refresh_package_cache_without_user_flow ();
+  maybe_refresh_package_cache_without_user ();
 
   return view;
 }
