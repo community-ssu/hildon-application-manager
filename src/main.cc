@@ -234,7 +234,7 @@ show_view (view *v)
 }
 
 static void
-show_upgrade_applications_view (GtkWidget *btn, gpointer data)
+show_upgrade_applications_view_callback (GtkWidget *btn, gpointer data)
 {
   show_check_for_updates_view ();
 
@@ -411,7 +411,7 @@ make_main_view (view *v)
   // third button
   btn_upgrade = make_padded_button (_("ai_li_update"));
   g_signal_connect (G_OBJECT (btn_upgrade), "clicked",
-		    G_CALLBACK (show_upgrade_applications_view),
+		    G_CALLBACK (show_upgrade_applications_view_callback),
 		    NULL);
 
   gtk_box_pack_start (GTK_BOX (vbox),
