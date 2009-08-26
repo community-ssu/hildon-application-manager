@@ -3679,9 +3679,6 @@ cmd_get_package_details ()
 static bool
 is_ssu_dependency (pkgCache::PkgIterator pkg)
 {
-  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
-  pkgDepCache &cache = *(awc->cache);
-
   // Return false if we do not have an SSU package available
   if (ssu_packages == NULL)
     return false;
