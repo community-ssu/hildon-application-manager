@@ -5496,6 +5496,9 @@ cmd_clean ()
       pkgAcquire Fetcher;
       Fetcher.Clean(_config->FindDir("Dir::Cache::archives"));
       Fetcher.Clean(_config->FindDir("Dir::Cache::archives") + "partial/");
+
+      // Make sure the filesystem is aware of the space freed
+      sync();
     }
 
   response.encode_int (success);
