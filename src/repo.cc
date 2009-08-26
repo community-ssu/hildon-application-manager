@@ -98,7 +98,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
   gint pos = 0;
 
   entry = hildon_entry_new (HILDON_SIZE_FINGER_HEIGHT);
-  gtk_editable_set_editable(GTK_EDITABLE(entry), !readonly);
+  gtk_editable_set_editable (GTK_EDITABLE(entry), !readonly);
 
   if (readonly)
     {
@@ -128,6 +128,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
 				NULL, (mandatory
 				       ? HILDON_CAPTION_MANDATORY
 				       : HILDON_CAPTION_OPTIONAL));
+  hildon_caption_set_separator (HILDON_CAPTION (caption), NULL);
   gtk_box_pack_start_defaults (GTK_BOX (box), caption);
 
   return entry;
