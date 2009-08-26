@@ -59,8 +59,22 @@
 #define MAX_PACKAGES_NO_CATEGORIES 7
 
 #define HILDON_FANCY_BUTTON_WIDTH 214
-#define ALIGNMENT_PADDING ((800 - 3 * HILDON_FANCY_BUTTON_WIDTH - 2 * HILDON_MARGIN_TRIPLE) / 2)
-#define MAIN_VIEW_TOP_MARGIN 92
+#define MAIN_VIEW_TOP_MARGIN 92 + HILDON_MARGIN_HALF
+#define MAIN_VIEW_WIDGET_NAME "osso-application-installer-main-view"
+#define HILDON_THEME_BACKGROUNDS_PATH "/etc/hildon/theme/backgrounds"
+#define MAIN_VIEW_BG_PIXMAP "applicationmanager.png"
+
+#define MAIN_VIEW_BG_RC_STRING \
+  "pixmap_path \"" HILDON_THEME_BACKGROUNDS_PATH "\"\n" \
+  "style \"" MAIN_VIEW_WIDGET_NAME "-style\"\n" \
+  "{\n" \
+  " bg_pixmap[NORMAL] = \"" MAIN_VIEW_BG_PIXMAP "\"\n" \
+  " bg_pixmap[ACTIVE] = \"" MAIN_VIEW_BG_PIXMAP "\"\n" \
+  " bg_pixmap[PRELIGHT] = \"" MAIN_VIEW_BG_PIXMAP "\"\n" \
+  " bg_pixmap[SELECTED] = \"" MAIN_VIEW_BG_PIXMAP "\"\n" \
+  " bg_pixmap[INSENSITIVE] = \"" MAIN_VIEW_BG_PIXMAP "\"\n" \
+  "}\n" \
+  "widget \"*" MAIN_VIEW_WIDGET_NAME "\" style \"" MAIN_VIEW_WIDGET_NAME "-style\""
 
 #define _(x) gettext (x)
 
@@ -276,38 +290,6 @@ show_parent_view ()
     }
 }
 
-static gboolean
-expose_main_view (GtkWidget *w, GdkEventExpose *ev, gpointer data)
-{
-  /* This puts the background pixmap for the ACTIVE state into the
-     lower right corner.  Using bg_pixmap[ACTIVE] is a hack to
-     communicate which pixmap to use from the gtkrc file.  The widget
-     will never actually be in the ACTIVE state.
-  */
-
-  GtkStyle *style = gtk_rc_get_style (w);
-  GdkPixmap *pixmap = style->bg_pixmap[GTK_STATE_ACTIVE];
-  gint ww, wh, pw, ph;
-
-  if (pixmap)
-    {
-      gdk_drawable_get_size (pixmap, &pw, &ph);
-      gdk_drawable_get_size (w->window, &ww, &wh);
-
-      gdk_draw_drawable (w->window, style->fg_gc[GTK_STATE_NORMAL],
-                         pixmap, 0, 0,
-                         ww - pw - HILDON_MARGIN_TRIPLE,
-                         wh - ph - HILDON_MARGIN_TRIPLE,
-                         pw, ph);
-    }
-
-  gtk_container_propagate_expose (GTK_CONTAINER (w),
-				  gtk_bin_get_child (GTK_BIN (w)),
-				  ev);
-
-  return TRUE;
-}
-
 GtkWidget *
 make_main_view (view *v)
 {
@@ -317,28 +299,24 @@ make_main_view (view *v)
   GtkWidget *fancy_button;
 
   view = gtk_event_box_new ();
-  gtk_widget_set_name (view, "osso-application-installer-main-view");
-
-  g_signal_connect (view, "expose-event",
-                    G_CALLBACK (expose_main_view), NULL);
+  gtk_widget_set_name (view, MAIN_VIEW_WIDGET_NAME);
 
   alignment = gtk_alignment_new (0.5, 0.0, 0.0, 0.0);
   gtk_alignment_set_padding (GTK_ALIGNMENT (alignment),
-                             MAIN_VIEW_TOP_MARGIN, 0,
-                             ALIGNMENT_PADDING, ALIGNMENT_PADDING);
+                             MAIN_VIEW_TOP_MARGIN, 0, 0, 0);
   gtk_container_add (GTK_CONTAINER (view), alignment);
 
-  hbox = gtk_hbox_new (TRUE, HILDON_MARGIN_TRIPLE);
+  hbox = gtk_hbox_new (TRUE, 0);
   gtk_container_add (GTK_CONTAINER (alignment), hbox);
 
   fancy_button = GTK_WIDGET (g_object_new (HILDON_TYPE_FANCY_BUTTON,
                                            "image-name",
-                                           "general_device_root_folder",
+                                           "app_install_applications",
                                            "pressed-image-name",
-                                           "general_device_root_folder",
-                                           "image-widget-name", "NO_NAME_YET",
+                                           "app_install_applications_pressed",
                                            "caption", _("ai_li_uninstall"),
                                            NULL));
+  gtk_widget_set_size_request(fancy_button, HILDON_FANCY_BUTTON_WIDTH, -1);
   gtk_container_add (GTK_CONTAINER (hbox), fancy_button);
   g_signal_connect (G_OBJECT (fancy_button),
                     "clicked",
@@ -346,11 +324,13 @@ make_main_view (view *v)
                     &uninstall_applications_view);
 
   fancy_button = GTK_WIDGET (g_object_new (HILDON_TYPE_FANCY_BUTTON,
-                                           "image-name",         "general_web",
-                                           "pressed-image-name", "general_web",
-                                           "image-widget-name",  "NO_NAME_YET",
-                                           "caption",       _("ai_li_install"),
+                                           "image-name",
+                                           "app_install_browse",
+                                           "pressed-image-name",
+                                           "app_install_browse_pressed",
+                                           "caption", _("ai_li_install"),
                                            NULL));
+  gtk_widget_set_size_request(fancy_button, HILDON_FANCY_BUTTON_WIDTH, -1);
   gtk_container_add (GTK_CONTAINER (hbox), fancy_button);
   g_signal_connect (G_OBJECT (fancy_button),
                     "clicked",
@@ -358,11 +338,13 @@ make_main_view (view *v)
                     &install_applications_view);
 
   fancy_button = GTK_WIDGET (g_object_new (HILDON_TYPE_FANCY_BUTTON,
-                                           "image-name",         "general_web",
-                                           "pressed-image-name", "general_web",
-                                           "image-widget-name",  "NO_NAME_YET",
-                                           "caption",        _("ai_li_update"),
+                                           "image-name",
+                                           "app_install_updates",
+                                           "pressed-image-name",
+                                           "app_install_updates_pressed",
+                                           "caption", _("ai_li_update"),
                                            NULL));
+  gtk_widget_set_size_request(fancy_button, HILDON_FANCY_BUTTON_WIDTH, -1);
   gtk_container_add (GTK_CONTAINER (hbox), fancy_button);
   g_signal_connect (G_OBJECT (fancy_button),
                     "clicked",
@@ -2731,6 +2713,12 @@ main (int argc, char **argv)
   load_settings ();
 
   hildon_gtk_init (&argc, &argv);
+
+  g_signal_connect_swapped (G_OBJECT (gtk_settings_get_default ()),
+                            "notify",
+                            (GCallback) gtk_rc_parse_string,
+                            (gpointer) MAIN_VIEW_BG_RC_STRING);
+  gtk_rc_parse_string (MAIN_VIEW_BG_RC_STRING);
 
   /* we should create main_window and set
    * cur_view_struct to main_view before dbus init,
