@@ -684,21 +684,29 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   const char *current_name = catalogue_name (catalogue);
 
   c->name_entry = add_entry (vbox, group,
-			     _("ai_fi_new_repository_name"),
+			     isnew
+                             ? _("ai_fi_new_repository_name")
+                             : _("ai_ti_catalogue_details_name"),
 			     current_name, NULL, true, readonly, true);
 
   c->uri_entry = add_entry (vbox, group,
-			    _("ai_fi_new_repository_web_address"),
+                            isnew
+			    ? _("ai_fi_new_repository_web_address")
+                            : _("ai_ti_catalogue_details_web_address"),
 			    xexp_aref_text (catalogue, "uri"),
 			    NULL, false, readonly, true);
 
   c->dist_entry = add_entry (vbox, group,
-			     _("ai_fi_new_repository_distribution"),
+                             isnew
+                             ? _("ai_fi_new_repository_distribution")
+                             : _("ai_ti_catalogue_details_distribution"),
 			     xexp_aref_text (catalogue, "dist"),
 			     NULL, false, readonly, true);
 
   c->components_entry = add_entry (vbox, group,
-				   _("ai_fi_new_repository_component"),
+                                   isnew
+				   ? _("ai_fi_new_repository_component")
+                                   : _("ai_ti_catalogue_details_component"),
 				   xexp_aref_text (catalogue, "components"),
 				   NULL, false, readonly, false);
 
