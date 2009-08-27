@@ -396,8 +396,8 @@ hildon_fancy_button_init (HildonFancyButton *fancy_button)
                     (GCallback)propagate_notify,
                     fancy_button);
 
-  g_signal_connect_after (G_OBJECT (fancy_button->image),
-                          "expose-event",
-                          (GCallback)expose_event,
-                          NULL);
+  g_signal_connect (G_OBJECT (fancy_button->image),
+                    "expose-event",
+                    (GCallback)expose_event,
+                    NULL);
 }
