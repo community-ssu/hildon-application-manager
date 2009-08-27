@@ -1,12 +1,12 @@
-hildon-application-manager (1:2.2.32~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.31-1) unstable; urgency=low
 
-  * 
+  * Release 2.2.31-1
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 27 Aug 2009 14:26:27 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 27 Aug 2009 17:11:27 +0100
 
 hildon-application-manager (1:2.2.31) unstable; urgency=low
 
-  [ Víctor Jáquez ]
+  [ Gabriel Schulhof ]
   * Fixes: NB#135507 - Application manager needs to look similar to clock
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 27 Aug 2009 14:24:12 +0100
