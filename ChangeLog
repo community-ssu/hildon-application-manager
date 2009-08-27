@@ -1,3 +1,121 @@
+2009-08-27 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (device_label): global variable removed.
+	(get_device_label): function removed.
+	* src/main.h (get_device_label): remove function export.
+	* src/dbus.cc (set_bt_name_from_message): remove get_device_label
+	usage.
+
+2009-08-27 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* hildon-fancy-button.c (hildon_fancy_button_init): Hook up
+	expose-event using g_signal_connect, not g_signal_connect_after.
+
+2009-08-26 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/repo.cc (add_entry): Set no separator character in the
+	caption widget (NB#133999)
+
+2009-08-26 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (is_ssu_dependency): Removed unused variables.
+
+2009-08-26 Gabriel Schulhof <nix@idefix.go-nix.ca>
+
+	* main.cc (expose_main_view): Remove this function
+	(make_main_view): Do not hook up to expose-event via
+	expose_main_view.  Use new #define-ed widget name instead of
+	string literal.  The GtkHBox containing the fancy buttons needs no
+	spacing.  Modify the icon names for the fancy buttons, and fix
+	their width to HILDON_FANCY_BUTTON_WIDTH.
+	(main): Hook up to GtkSetting's "notify" signal to catch theme
+	changes, calling gtk_rc_parse_string to refresh the window
+	background.
+
+2009-08-26 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/repo.cc (show_cat_edit_dialog): Use the specified logical
+	string for catalogue details (NB#133999)
+
+2009-08-26 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (cmd_clean): Call to sync() after clearing the
+	cache to force the FS to tell the truth regarding to free space.
+
+2009-08-24 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/util.cc (make_global_package_list): Set the widget aligment
+	to the top so the updating banner would hide it.
+	(make_global_section_list): Set the widget aligment to the top so
+	the updating banner would hide it.
+
+2009-08-24 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/util.cc (make_global_section_list): Use the font and size
+	specified in the Master Layout Guide (section 6.1) for empty list
+	message (NB#128014)
+
+2009-08-24 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* ham-clean.sh: Explicitly remove every file under
+	/home/user/.hildon.application-manager when clearing the device.
+
+2009-08-21 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* utils/maemo-confirm-text-user.c (make_small_text_view): Set
+	GTK_POLICY_NEVER for horizontal scrollbars and wrap mode on.
+
+2009-08-19 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/main.cc (make_main_view): Use new HildonFancyButton and
+	change layout a bit.
+	* src/hildon-fancy-button.c: Implement HildonFancyButton
+	* src/hildon-fancy-button.h: Header for HildonFancyButton
+
+2009-08-19 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* util.cc (make_global_section_list): Wrap the scroller in a
+	GtkAlignment with proper paddings.
+
+2009-08-19 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/hildon-application-manager-util: New operation to clear user
+	catalogues and update APT sources: 'clear-user-catalogues' *
+	hildon-application-manager.sudoers: Include newly needed command
+	hildon-application-manager-util clear-user-catalogues
+	* ham-clean.sh: New script calling with 'sudo' to
+	hildon-application-manager-util clear-user-catalogues
+	* Makefile.am: Include ham-clean.sh in EXTRA_DIST and put it under
+	/etc/osso-cud-scripts when installing HAM
+
+2009-08-18 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/operations.cc (struct one_ip_clos): new structure.
+	(one_install_package_end): new function
+	(install_package): Create a continuation and a closure in order to
+	avoid a memory leak (NB#130724)
+
+2009-08-18 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (is_ssu_dependency): Do not return false for
+	every dependency in the 'user' section and check it as any other
+	one.
+
+2009-08-18 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (cmd_third_party_policy_check): Do not check
+	ignore non user packages. Remove unused variable verdpkg
+
+2009-08-17 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (get_package_list_reply): Check whether the current
+	view is the main one to pass the right value to
+	sort_all_packages().
+	(update_seen_updates_file): Use the available package's pretty
+	name if it's available (NB#132436)
+	* src/apt-worker.cc (write_available_updates_file): Use the
+	package's pretty name if it's available. (NB#132436)
+
 2009-08-25 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (show_upgrade_applications_view_callback): Function
