@@ -252,7 +252,7 @@ show_view (view *v)
 }
 
 static void
-show_upgrade_applications_view_callback (GtkWidget *btn, gpointer data)
+show_upgrade_applications_view_and_refresh_callback (GtkWidget *btn, gpointer data)
 {
   show_check_for_updates_view ();
 
@@ -347,7 +347,7 @@ make_main_view (view *v)
   gtk_container_add (GTK_CONTAINER (hbox), fancy_button);
   g_signal_connect (G_OBJECT (fancy_button),
                     "clicked",
-                    G_CALLBACK (show_check_for_updates_view),
+                    G_CALLBACK (show_upgrade_applications_view_and_refresh_callback),
                     NULL);
 
   gtk_widget_show_all (view);
