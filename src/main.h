@@ -193,8 +193,6 @@ void search_packages (const char *pattern, bool in_descriptions);
 const char *nicify_section_name (const char *name);
 
 GtkWindow *get_main_window ();
-GtkWidget *get_main_trail ();
-GtkWidget *get_device_label ();
 
 #define AI_TOPIC(x) ("Utilities_ApplicationInstaller_" x)
 

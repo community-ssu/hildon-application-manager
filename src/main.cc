@@ -101,7 +101,6 @@ struct view {
   bool dirty;                // we need to redraw the cur_view
 };
 
-GtkWidget *device_label = NULL;
 view *cur_view_struct = NULL;
 
 view_id
@@ -2511,12 +2510,6 @@ get_main_window ()
   g_assert (main_window != NULL);
   g_debug ("main window pointer %p", main_window);
   return main_window;
-}
-
-GtkWidget *
-get_device_label ()
-{
-  return device_label;
 }
 
 static void

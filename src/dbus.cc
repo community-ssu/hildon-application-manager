@@ -527,8 +527,6 @@ static void
 set_bt_name_from_message (DBusMessage *message,
                           bool from_property)
 {
-  GtkWidget *label = NULL;
-
   g_return_if_fail (message != NULL);
 
   if (btname)
@@ -542,10 +540,7 @@ set_bt_name_from_message (DBusMessage *message,
   if (!btname) /* btname can be NULL when the Name property didn't change */
     return;
 
-  label = get_device_label ();
-
-  if (label)
-    gtk_label_set_text (GTK_LABEL (label), btname);
+  // Update an unused label with device's name
 }
 
 static void
