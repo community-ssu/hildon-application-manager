@@ -123,12 +123,46 @@ tokens_equal (const char *str1, const char *str2)
 bool
 catalogue_equal (xexp *cat1, xexp *cat2)
 {
-  return (tokens_equal (xexp_aref_text (cat1, "uri"),
-			xexp_aref_text (cat2, "uri"))
-	  && tokens_equal (xexp_aref_text (cat1, "dist"),
-			   xexp_aref_text (cat2, "dist"))
-	  && tokens_equal (xexp_aref_text (cat1, "components"),
-			   xexp_aref_text (cat2, "components")));
+  const gchar *cat1_file = xexp_aref_text (cat1, "file");
+  const gchar *cat1_id = xexp_aref_text (cat1, "id");
+  const gchar *cat2_file = xexp_aref_text (cat2, "file");
+  const gchar *cat2_id = xexp_aref_text (cat2, "id");
+  bool is_pkg_cat1;
+  bool is_pkg_cat2;
+  bool result;
+
+  /* Check whether they're package catalogues */
+  is_pkg_cat1 = cat1_file && cat1_id;
+  is_pkg_cat2 = cat2_file && cat2_id;
+
+  /* Different kind of catalogues: not equal */
+  if (is_pkg_cat1 != is_pkg_cat2)
+    return false;
+
+  /* Check whether they're actually equal or not */
+  result = false;
+  if (is_pkg_cat1 == true)
+    {
+      /* Package catalogues */
+      result =
+        (tokens_equal (xexp_aref_text (cat1, "file"),
+                       xexp_aref_text (cat2, "file"))
+         && tokens_equal (xexp_aref_text (cat1, "id"),
+                          xexp_aref_text (cat2, "id")));
+    }
+  else
+    {
+      /* User catalogues */
+      result =
+        (tokens_equal (xexp_aref_text (cat1, "uri"),
+                       xexp_aref_text (cat2, "uri"))
+         && tokens_equal (xexp_aref_text (cat1, "dist"),
+                          xexp_aref_text (cat2, "dist"))
+         && tokens_equal (xexp_aref_text (cat1, "components"),
+                          xexp_aref_text (cat2, "components")));
+    }
+
+  return result;
 }
 
 xexp *
