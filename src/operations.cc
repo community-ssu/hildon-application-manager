@@ -928,6 +928,11 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 	{
 	  package_info *pi = (package_info *)(c->cur->data);
 
+          /* Stop hildon-status-menu to avoid nasty problmes happening
+           * sometimes when installing an SSU */
+          if (pi->info.install_flags & pkgflag_system_update)
+            stop_dsme_service ("/usr/bin/hildon-status-menu");
+
 	  close_apps ();
 
 	  /* Convert the entertainment dialog into system modal if the

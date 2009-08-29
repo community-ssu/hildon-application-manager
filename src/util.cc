@@ -3038,6 +3038,28 @@ run_cmd (char **argv,
   g_child_watch_add (child_pid, reap_process, c);
 }
 
+static void
+stop_dsme_service_cont (int status, void* data)
+{
+  char **argv = (char **) data;
+  g_strfreev (argv);
+}
+
+void
+stop_dsme_service (const char *service)
+{
+  g_return_if_fail (service != NULL);
+
+  char **argv = g_new (char *, 4);
+
+  argv[0] = g_strdup ("/usr/sbin/dsmetool");
+  argv[1] = g_strdup ("-k");
+  argv[2] = g_strdup (service);
+  argv[3] = NULL;
+
+  run_cmd (argv, true, stop_dsme_service_cont, argv);
+}
+
 void
 close_apps (void)
 {

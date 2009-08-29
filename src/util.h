@@ -527,6 +527,9 @@ void run_cmd (char **argv,
    device except the hildon-application-manager */
 void close_apps (void);
 
+/* Kills the specified service controlled by dsme through the dsmetool */
+void stop_dsme_service (const char *service);
+
 /* Skip over the leading whitespace characters of STR and return a
    pointer to the first non-whitespace one.
 */
