@@ -1127,10 +1127,10 @@ ip_execute_checkrm_script (const char *name,
     argv[i+1] = g_strdup(params[i]);
   argv[i+1] = NULL;
 
-  /* Execute command and continue the process */
+  /* Execute command and continue the process (do not free argv here,
+     it will be freed after the command finished its execution) */
   run_cmd (argv, true, cont, data);
 
-  g_free (argv);
   g_free (cmd);
 }
 

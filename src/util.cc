@@ -2983,6 +2983,7 @@ cleanup_temp_file ()
 }
 
 struct rc_closure {
+  char **argv;
   void (*cont) (int status, void *data);
   void *data;
 };
@@ -2991,11 +2992,17 @@ static void
 reap_process (GPid pid, int status, gpointer raw_data)
 {
   rc_closure *c = (rc_closure *)raw_data;
+  char **argv = c->argv;
   void (*cont) (int status, void *data) = c->cont;
   void *data = c->data;
   delete c;
 
-  cont (status, data);
+  /* Free array of parameters */
+  g_strfreev (argv);
+
+  /* Call continuation function, if present */
+  if (cont != NULL)
+    cont (status, data);
 }
 
 void
@@ -3025,7 +3032,11 @@ run_cmd (char **argv,
 	  || error->code != G_SPAWN_ERROR_NOENT)
 	add_log ("Can't run %s: %s\n", argv[0], error->message);
       g_error_free (error);
-      cont (-1, data);
+
+      /* Call continuation function, if present */
+      if (cont != NULL)
+        cont (-1, data);
+
       return;
     }
 
@@ -3033,16 +3044,10 @@ run_cmd (char **argv,
   log_from_fd (stderr_fd);
 
   rc_closure *c = new rc_closure;
+  c->argv = argv;
   c->cont = cont;
   c->data = data;
   g_child_watch_add (child_pid, reap_process, c);
-}
-
-static void
-stop_dsme_service_cont (int status, void* data)
-{
-  char **argv = (char **) data;
-  g_strfreev (argv);
 }
 
 void
@@ -3057,7 +3062,7 @@ stop_dsme_service (const char *service)
   argv[2] = g_strdup (service);
   argv[3] = NULL;
 
-  run_cmd (argv, true, stop_dsme_service_cont, argv);
+  run_cmd (argv, true, NULL, NULL);
 }
 
 void
