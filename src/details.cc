@@ -757,6 +757,35 @@ spd_set_page_widget (void *data, gint page_number, GtkWidget *widget)
   g_list_free (children);
 }
 
+static bool
+has_long_description (package_info *pi)
+{
+  bool result = false;
+
+  if (pi && pi->description)
+    {
+      char *full_desc = g_strdup (pi->description);
+
+      /* Ensure there no leading / trailing blanks */
+      full_desc = g_strstrip (full_desc);
+
+      /* Check non empty strings only */
+      if (g_strcmp0 (full_desc, ""))
+        {
+          char **desc_lines = g_strsplit (full_desc, "\n", 2);
+          if ((desc_lines[1] != NULL) && g_strcmp0 (desc_lines[1], ""))
+            {
+              /* At least more than one line was found */
+              result = true;
+            }
+          g_strfreev (desc_lines);
+        }
+      g_free (full_desc);
+    }
+
+  return result;
+}
+
 static void
 spd_with_details (void *data, bool filling_details)
 {
@@ -797,17 +826,12 @@ spd_with_details (void *data, bool filling_details)
 
       /* Initialize the notebook pages before appending them */
       spd_nb_widgets[SPD_COMMON_PAGE] = spd_create_common_page (c);
-      spd_nb_widgets[SPD_DESCRIPTION_PAGE] = gtk_vbox_new (TRUE, 0);
       spd_nb_widgets[SPD_SUMMARY_PAGE] = gtk_vbox_new (TRUE, 0);
 
       /* Append the needed notebook pages */
       gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
 				spd_nb_widgets[SPD_COMMON_PAGE],
 				gtk_label_new (_("ai_ti_details_noteb_common")));
-
-      gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-				spd_nb_widgets[SPD_DESCRIPTION_PAGE],
-				gtk_label_new (_("ai_ti_details_noteb_description")));
 
       gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
                                 spd_nb_widgets[SPD_SUMMARY_PAGE],
@@ -845,8 +869,22 @@ spd_with_details (void *data, bool filling_details)
         }
 
       /* Set the content of the rest of the notebook pages */
-      spd_set_page_widget (c, SPD_DESCRIPTION_PAGE,
-                           spd_create_description_page (c));
+
+      /* Check whether the 'description' tab should show up */
+      if (has_long_description (pi))
+        {
+          /* Now create and insert the "Description" tab in its place */
+          spd_nb_widgets[SPD_DESCRIPTION_PAGE] = gtk_vbox_new (TRUE, 0);
+
+          gtk_notebook_insert_page (GTK_NOTEBOOK (notebook),
+                                    spd_nb_widgets[SPD_DESCRIPTION_PAGE],
+                                    gtk_label_new (_("ai_ti_details_noteb_description")),
+                                    SPD_DESCRIPTION_PAGE);
+
+          /* Fill the tab */
+          spd_set_page_widget (c, SPD_DESCRIPTION_PAGE,
+                               spd_create_description_page (c));
+        }
 
       if (!is_ssu_pkg)
         {
