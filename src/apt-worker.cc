@@ -1384,6 +1384,7 @@ get_apt_worker_lock (bool weak)
 /* MMC default mountpoints */
 #define INTERNAL_MMC_MOUNTPOINT  "/home/user/MyDocs"
 #define REMOVABLE_MMC_MOUNTPOINT "/media/mmc1"
+#define HOME_MOUNTPOINT  "/home"
 
 static void
 misc_init ()
@@ -4606,6 +4607,13 @@ cmd_download_package ()
               result_code = operation (false, alt_download_root, true);
             }
 
+          if (result_code == rescode_out_of_space
+              && volume_path_is_mounted_writable (HOME_MOUNTPOINT))
+            {
+              alt_download_root = HOME_MOUNTPOINT;
+              result_code = operation (false, alt_download_root, true);
+            }
+
           /* default or bailout option */
           if (!flag_download_packages_to_mmc ||
               result_code == rescode_out_of_space)
@@ -5270,7 +5278,8 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
   if (internal_mmc_mountpoint
       && !strstr (archive_dir, internal_mmc_mountpoint)
       && removable_mmc_mountpoint
-      && !strstr (archive_dir, removable_mmc_mountpoint))
+      && !strstr (archive_dir, removable_mmc_mountpoint)
+      && !strstr (archive_dir, HOME_MOUNTPOINT))
     {
       /* Should we add install_user_size_delta value */
       size += get_pkg_required_free_space ();
