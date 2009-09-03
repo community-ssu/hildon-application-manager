@@ -273,6 +273,7 @@ static void ip_execute_checkrm_script (const char *name,
 				       const char **params,
 				       void (*cont) (int status, void *data),
 				       void *data);
+static void ip_execute_checkrm_script_done (int status, void *data);
 
 static void ip_check_upgrade (void *data);
 static void ip_check_upgrade_reply (int cmd, apt_proto_decoder *dec,
@@ -1089,6 +1090,23 @@ ip_maybe_continue (bool res, void *data)
     ip_install_next (c);
 }
 
+
+struct ipecs_clos {
+  char **argv;
+  void (*cont) (int status, void *data);
+  void *data;
+};
+
+static void
+ip_execute_checkrm_script_done (int status, void *data)
+{
+  ipecs_clos *c = (ipecs_clos *) data;
+
+  g_strfreev (c->argv);
+  c->cont (status, c->data);
+  delete c;
+}
+
 static void
 ip_execute_checkrm_script (const char *name,
 			   const char **params,
@@ -1099,6 +1117,7 @@ ip_execute_checkrm_script (const char *name,
   int argc;
   char **argv = NULL;
   char *cmd = NULL;
+  ipecs_clos *clos;
   struct stat buf;
   int stat_result;
 
@@ -1122,14 +1141,17 @@ ip_execute_checkrm_script (const char *name,
 
   /* Build the argv array */
   argv = g_new(char *, argc+2);
-  argv[0] = cmd;
+  argv[0] = g_strdup(cmd);
   for (i = 0; params[i] != NULL; i++)
     argv[i+1] = g_strdup(params[i]);
   argv[i+1] = NULL;
 
-  /* Execute command and continue the process (do not free argv here,
-     it will be freed after the command finished its execution) */
-  run_cmd (argv, true, cont, data);
+  /* Execute command and continue the process */
+  clos = new ipecs_clos;
+  clos->argv = argv;
+  clos->cont = cont;
+  clos->data = data;
+  run_cmd (argv, true, ip_execute_checkrm_script_done, clos);
 
   g_free (cmd);
 }
