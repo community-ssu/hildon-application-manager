@@ -839,7 +839,7 @@ cat_text_func (GtkTreeViewColumn *column,
 
   g_object_set (cell, 
       	      	"text", c? full_name : NULL,
-		"sensitive", c->type == cat_editable,
+		"sensitive", c && c->enabled,
 		NULL);
 
   g_free (full_name);
