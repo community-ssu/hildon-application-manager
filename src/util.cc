@@ -2144,26 +2144,28 @@ void select_package_list_response (GtkDialog *dialog,
   delete closure;
 }
 
-void
-package_selected_toggled_callback (GtkCellRendererToggle *cell,
-				   char *path_string,
-				   gpointer user_data)
+static void
+package_selected_activated_callback (GtkTreeView *treeview,
+                                     GtkTreePath *path,
+                                     GtkTreeViewColumn *col,
+                                     gpointer unused)
 {
-  GtkTreePath *path;
   GtkTreeIter iter;
   gboolean selected;
-  GtkTreeView *tree_view;
+  gboolean installable;
 
-  tree_view = GTK_TREE_VIEW (user_data);
+  gtk_tree_model_get_iter (gtk_tree_view_get_model (treeview),
+                           &iter, path);
+  gtk_tree_model_get (gtk_tree_view_get_model (treeview), &iter,
+                      COLUMN_SP_SELECTED, &selected,
+                      COLUMN_SP_INSTALLABLE, &installable,
+                      -1);
 
-  path = gtk_tree_path_new_from_string (path_string);
-  gtk_tree_model_get_iter (gtk_tree_view_get_model (tree_view),
-			   &iter, path);
-  gtk_tree_model_get (gtk_tree_view_get_model (tree_view),
-		      &iter, COLUMN_SP_SELECTED, &selected, -1);
-  gtk_list_store_set (GTK_LIST_STORE(gtk_tree_view_get_model (tree_view)),
-		      &iter, COLUMN_SP_SELECTED, !selected, -1);
-  gtk_tree_path_free (path);
+  if (installable)
+    {
+      gtk_list_store_set (GTK_LIST_STORE(gtk_tree_view_get_model (treeview)),
+                          &iter, COLUMN_SP_SELECTED, !selected, -1);
+    }
 }
 
 static void
@@ -2219,8 +2221,6 @@ select_package_list_with_info (void *data)
   tree_view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (list_store));
   renderer = gtk_cell_renderer_toggle_new ();
   gtk_cell_renderer_toggle_set_radio (GTK_CELL_RENDERER_TOGGLE (renderer), FALSE);
-  g_signal_connect (G_OBJECT (renderer), "toggled",
-		    G_CALLBACK (package_selected_toggled_callback), tree_view);
   column = gtk_tree_view_column_new_with_attributes ("Marked", renderer,
 						     "active", COLUMN_SP_SELECTED,
 						     "activatable", COLUMN_SP_INSTALLABLE,
@@ -2266,6 +2266,10 @@ select_package_list_with_info (void *data)
                                  NULL, NULL, upls_data);
 
   /* Connect signals */
+  g_signal_connect (tree_view, "row-activated",
+		    G_CALLBACK (package_selected_activated_callback),
+		    NULL);
+
   g_signal_connect (list_store, "row-changed",
 		    G_CALLBACK (update_packages_list_selection),
 		    upls_data);
