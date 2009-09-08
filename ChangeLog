@@ -1,3 +1,54 @@
+2009-09-03 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/operations.cc (struct ipecs_clos): New. Closure for passing
+	data among ip_execute_checkrm_script and
+	ip_execute_checkrm_script_cont.
+	(ip_execute_checkrm_script_done): New. Continuation function to
+	properly free the argv array after running run_cmd.
+	(ip_execute_checkrm_script): Put cont and data inside the new
+	closure and call run_cmd passing it along with the new
+	continuation function ip_execute_checkrm_script_done.
+
+	* src/util.cc (struct rc_closure): Removed unused field argv.
+	(reap_process): Do not free here the argv array of strings,
+	neither check for cont != NULL as that's not going to happen
+	anymore.
+	(run_cmd): Don't check for cont != NULL. Removed use of the argv
+	field from struct rc_closure (removed).
+	(stop_dsme_service_cont): New. Continuation function for
+	stop_dsme_service, responsible of freeing the argv array.
+	(stop_dsme_service): Pass proper cont and data to run_cmd.
+
+2009-09-01 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/user_files.h (UFILE_UPDATE_NOTIFIER): Neither this macro nor
+	the string it defines is used in the code. Hence, removing.
+
+2009-08-31 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (struct rc_closure): Added a new field to allow
+	properly freeing the argv char** array after running a command
+	with run_cmd.
+	(reap_process): Free the array of parameters (argv) and execute
+	the continuation if, and only if, a non-NULL function was set.
+	(run_cmd): Execute the continuation if a non-NULL function was
+	set. Also, save a reference to argv in the rc_closure struct.
+	(stop_dsme_service): Neither specify a continuation function nor
+	pass the argv param as 'data'. Not needed from now on.
+	(stop_dsme_service_cont): Removed. It's useless from now on.
+
+	* src/operations.cc (ip_execute_checkrm_script): Do not free argv
+	here, it will be freed after returning from the asynchronous
+	execution of the command (Fixes memory leak).
+
+2009-08-29 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/operations.cc (ip_warn_about_reboot_response): if the
+	package to install is a SSU then ask for stopping the h-s-m
+	service.  * src/util.cc (stop_dsme_service_cont): new function.
+	(stop_dsme_service): new function.  * src/util.h: add the
+	stop_dsme_service function export
+
 2009-08-27 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (device_label): global variable removed.

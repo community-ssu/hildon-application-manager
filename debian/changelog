@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.32~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.32) unstable; urgency=low
 
-  * 
+  [ Víctor Jáquez ]
+  * Fixes: NB#133571 - h-s-m is crashed
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 27 Aug 2009 17:25:57 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 08 Sep 2009 14:45:36 +0100
 
 hildon-application-manager (1:2.2.31-1) unstable; urgency=low
 
