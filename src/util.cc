@@ -2228,6 +2228,7 @@ select_package_list_with_info (void *data)
   gtk_tree_view_append_column (GTK_TREE_VIEW (tree_view),
 			       column);
   renderer = gtk_cell_renderer_text_new ();
+  g_object_set (G_OBJECT (renderer), "ellipsize", PANGO_ELLIPSIZE_END, NULL);
   column = gtk_tree_view_column_new_with_attributes ("Name", renderer,
 						     "text", COLUMN_SP_NAME,
                                                      "sensitive", COLUMN_SP_INSTALLABLE,
