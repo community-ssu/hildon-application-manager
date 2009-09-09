@@ -55,6 +55,7 @@ void send_reboot_message (void);
 bool enough_battery_p (void);
 
 enum device_mode {
+  DEVICE_MODE_UNKNOWN,
   DEVICE_MODE_ONLINE,
   DEVICE_MODE_OFFLINE // the device doesn't receive calls
 };

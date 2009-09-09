@@ -291,7 +291,7 @@ static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
 
-static void ip_maybe_offline_device_mode (ip_clos *c);
+static void ip_set_device_mode (ip_clos *c, device_mode dmode);
 static void ip_maybe_restore_device_mode (ip_clos *c);
 
 static void ip_upgrade_all_confirm (GList *package_list,
@@ -372,6 +372,7 @@ install_packages (GList *packages,
   c->n_successful = 0;
   c->entertaining = false;
   c->refresh_needed = false;
+  c->mode = DEVICE_MODE_UNKNOWN; /* Not known yet (SSU only) */
 
   get_package_infos (packages,
 		     true,
@@ -694,6 +695,10 @@ ip_install_start (ip_clos *c)
 static void
 ip_install_loop (ip_clos *c)
 {
+  /* ensure device mode is restored in case it was modified by the
+     previous installation of another package */
+  ip_maybe_restore_device_mode (c);
+
   if (c->cur == NULL)
     {
       /* End of loop, show a success report to the user.
@@ -1011,31 +1016,37 @@ ip_not_enough_battery_confirm_response (void *data)
 }
 
 static void
-ip_maybe_offline_device_mode (ip_clos *c)
+ip_set_device_mode (ip_clos *c, device_mode dmode)
 {
   /* XXX - We ought ask to the user if we could turn off the
      device mode
   */
-  package_info *pi = (package_info *)(c->cur->data);
 
-  if (!(pi->info.install_flags & pkgflag_system_update))
+  /* Do nothing if there's no valid ip_clos */
+  if (c == NULL)
     return;
 
-  c->mode = get_device_mode ();
-
-  if (c->mode != DEVICE_MODE_OFFLINE)
-    set_device_mode (DEVICE_MODE_OFFLINE);
+  if (dmode != DEVICE_MODE_UNKNOWN)
+    {
+      /* Save current device mode and change it */
+      c->mode = get_device_mode ();
+      set_device_mode (dmode);
+    }
 }
 
 static void
 ip_maybe_restore_device_mode (ip_clos *c)
 {
-  package_info *pi = (package_info *)(c->cur->data);
-
-  if (!(pi->info.install_flags & pkgflag_system_update))
+  /* Do nothing if there's no valid ip_clos or previous saved mode */
+  if ((c == NULL) || (c->mode == DEVICE_MODE_UNKNOWN))
     return;
 
+  /* Restore device mode */
   set_device_mode (c->mode);
+
+  /* Force c->mode has to be set before calling this function
+     again in the future */
+  c->mode = DEVICE_MODE_UNKNOWN;
 }
 
 static void
@@ -1449,10 +1460,11 @@ ip_install_cur (void *data)
 
   if (pi->info.required_free_space < free_space)
     {
-      ip_maybe_offline_device_mode (c);
-
       if (pi->info.install_flags & pkgflag_system_update)
         {
+          /* Set offline mode for SSU packages */
+          ip_set_device_mode (c, DEVICE_MODE_OFFLINE);
+
           /* Before continuing, stop hildon-status-menu to avoid nasty
            * problem happening sometimes when installing an SSU, but
            * wait some time first because of the offline mode change
@@ -1480,9 +1492,6 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
-
-  /* if the package was an OS upgrade restore the device mode */
-  ip_maybe_restore_device_mode (c);
 
   if (dec == NULL)
     {
@@ -1754,6 +1763,9 @@ ip_end (void *data)
 {
   ip_clos *c = (ip_clos *)data;
 
+  /* restore the device mode if needed */
+  ip_maybe_restore_device_mode (c);
+
   if (c->entertaining)
     stop_entertaining_user ();
 
@@ -1787,8 +1799,14 @@ ip_reboot (void *data)
 static void
 ip_reboot_delayed (void *data)
 {
+  ip_clos *c = (ip_clos *)data;
+
   irritate_user (_("ai_cb_restarting_device"));
 
+  /* restore the device mode if needed */
+  ip_maybe_restore_device_mode (c);
+
+  /* actually reboot after some time */
   g_timeout_add (2000, ip_reboot_now, data);
 }
 
