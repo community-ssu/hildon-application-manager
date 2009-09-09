@@ -887,9 +887,9 @@ set_device_mode (device_mode dmode)
   dbus_message_append_args (msg, DBUS_TYPE_STRING,
                             &mode, DBUS_TYPE_INVALID);
 
-  dbus_connection_send (conn, msg, NULL);
-  dbus_connection_flush (conn);
-
+  /* We need to ensure the message was sent and received before continuing */
+  dbus_connection_send_with_reply_and_block (conn, msg, -1, NULL);
   dbus_message_unref (msg);
+
   dbus_connection_unref (conn);
 }

@@ -285,6 +285,7 @@ static void ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_download_cur_fail (void *data);
 static void ip_download_cur_retry_confirm (apt_proto_result_code result_code, void *data);
 static void ip_download_cur_retry_confirm_response (bool result, void *data);
+static gboolean ip_stop_hsm_and_install_delayed (gpointer data);
 static void ip_install_cur (void *data);
 static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
@@ -929,11 +930,6 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 	{
 	  package_info *pi = (package_info *)(c->cur->data);
 
-          /* Stop hildon-status-menu to avoid nasty problmes happening
-           * sometimes when installing an SSU */
-          if (pi->info.install_flags & pkgflag_system_update)
-            stop_dsme_service ("/usr/bin/hildon-status-menu");
-
 	  close_apps ();
 
 	  /* Convert the entertainment dialog into system modal if the
@@ -1407,6 +1403,26 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
     ip_download_cur_retry_confirm (result_code, c);
 }
 
+static gboolean
+ip_stop_hsm_and_install_delayed (gpointer data)
+{
+  ip_clos *c = (ip_clos *)data;
+
+  if ((c != NULL) && (c->cur != NULL))
+    {
+      package_info *pi = (package_info *)(c->cur->data);
+
+      /* Stop hildon-status-menu and continue with installation */
+      stop_dsme_service ("/usr/bin/hildon-status-menu");
+      apt_worker_install_package (pi->name,
+                                  c->alt_download_root,
+                                  ip_install_cur_reply, c);
+    }
+
+  /* Remove source */
+  return FALSE;
+}
+
 static void
 ip_install_cur (void *data)
 {
@@ -1435,10 +1451,22 @@ ip_install_cur (void *data)
     {
       ip_maybe_offline_device_mode (c);
 
-      /* Proceed to install if there's enough free space */
-      apt_worker_install_package (pi->name,
-				  c->alt_download_root,
-				  ip_install_cur_reply, c);
+      if (pi->info.install_flags & pkgflag_system_update)
+        {
+          /* Before continuing, stop hildon-status-menu to avoid nasty
+           * problem happening sometimes when installing an SSU, but
+           * wait some time first because of the offline mode change
+           * (and 3 seconds should be more than enough) */
+          g_timeout_add (3000, ip_stop_hsm_and_install_delayed, c);
+        }
+      else
+        {
+          /* Proceed to install if there's enough free space and no
+             SSU package is being installed */
+          apt_worker_install_package (pi->name,
+                                      c->alt_download_root,
+                                      ip_install_cur_reply, c);
+        }
     }
   else
     {
