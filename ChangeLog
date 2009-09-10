@@ -1,3 +1,35 @@
+2009-09-09 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/dbus.h (enum device_mode): New possible value to keep track
+	situations when the device mode is still not known.
+
+	* src/dbus.cc (set_device_mode): Use a blocking dbus message for
+	setting the device mode as we must be sure the message was
+	properly handled before continuing with anything else.
+
+	* src/operations.cc (install_packages): Initialize device mode.
+	(ip_install_loop): Ensure the device mode is restored, if needed,
+	whenever an additional package is going to be installed.
+	(ip_maybe_offline_device_mode): Removed.
+	(ip_set_device_mode): Sets the device in the mode specified, but
+	storing first current state inside the ip_clos structure.
+	(ip_maybe_restore_device_mode): Don't do anything if the device
+	mode is not known, to protect against several calls to this
+	function without calling ip_set_device_mode() first.
+	(ip_install_cur): Removed call to ip_maybe_offline_device_mode and
+	added call to ip_set_device_mode to set offline mode (SSU only).
+	(ip_install_cur_reply): Don't call ip_maybe_restore_device_mode.
+	(ip_end) Ensure the device mode is restored, if needed, whenever
+	the installation of a package has finished.
+	(ip_reboot_delayed): Ensure the device mode is restored, if
+	needed, right before rebooting.
+	(ip_stop_hsm_and_install_delayed): New GSource func to stop
+	hildon-status-menu and continue installing the package.
+	(ip_install_cur): For SSU packages, call the new function above
+	after some small delay (3 secs), to avoid problems with previous
+	statement to set device in offline mode. If not a SSU package,
+	just continue installing it as usual.
+
 2009-09-03 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/operations.cc (struct ipecs_clos): New. Closure for passing
