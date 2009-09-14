@@ -23,7 +23,7 @@ msgid "development"
 msgstr "Programming"
 
 msgid "education"
-msgstr "Education"
+msgstr "Educational"
 
 msgid "games"
 msgstr "Games"

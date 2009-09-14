@@ -38,7 +38,7 @@ msgid "navigation"
 msgstr "Localisation et Navigation"
 
 msgid "network"
-msgstr "Internet et Réseaux"
+msgstr "Internet et réseau"
 
 msgid "office"
 msgstr "Bureautique"

@@ -20,7 +20,7 @@ msgid "desktop"
 msgstr "Bureaublad"
 
 msgid "development"
-msgstr "Ontwikkeling"
+msgstr "Programmering"
 
 msgid "education"
 msgstr "Educatief"
@@ -38,7 +38,7 @@ msgid "navigation"
 msgstr "Locatie en Navigatie"
 
 msgid "network"
-msgstr "Internet en Netwerk"
+msgstr "Internet en netwerken"
 
 msgid "office"
 msgstr "Kantoor"

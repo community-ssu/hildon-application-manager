@@ -38,7 +38,7 @@ msgid "navigation"
 msgstr "Позиционирование и навигация"
 
 msgid "network"
-msgstr "Интернет и сети"
+msgstr "Интернет и работа в сети"
 
 msgid "office"
 msgstr "Офис"

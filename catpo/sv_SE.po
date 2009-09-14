@@ -36,7 +36,7 @@ msgid "navigation"
 msgstr "Position och Navigation"
 
 msgid "network"
-msgstr "Internet och Nätverk"
+msgstr "Internet och nätverk"
 
 msgid "office"
 msgstr "Kontor"

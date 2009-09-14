@@ -23,7 +23,7 @@ msgid "development"
 msgstr "Ohjelmointi"
 
 msgid "education"
-msgstr "Opiskelu"
+msgstr "Koulutus"
 
 msgid "games"
 msgstr "Pelit"
@@ -38,7 +38,7 @@ msgid "navigation"
 msgstr "Paikannus ja navigointi"
 
 msgid "network"
-msgstr "Internet ja viestintä"
+msgstr "Internet ja verkkoyhteydet"
 
 msgid "office"
 msgstr "Toimisto"

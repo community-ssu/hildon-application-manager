@@ -23,7 +23,7 @@ msgid "development"
 msgstr "Programmazione"
 
 msgid "education"
-msgstr "Educazione"
+msgstr "Programmi educativi"
 
 msgid "games"
 msgstr "Giochi"
@@ -38,7 +38,7 @@ msgid "navigation"
 msgstr "Posizione e Navigazione"
 
 msgid "network"
-msgstr "Internet e Reti"
+msgstr "Internet e connessione di rete"
 
 msgid "office"
 msgstr "Ufficio"

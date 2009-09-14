@@ -20,7 +20,7 @@ msgid "desktop"
 msgstr "Desktop"
 
 msgid "development"
-msgstr "Entwicklung"
+msgstr "Programmierung"
 
 msgid "education"
 msgstr "Bildung"
@@ -38,7 +38,7 @@ msgid "navigation"
 msgstr "Position & Navigation"
 
 msgid "network"
-msgstr "Internet & Netzwerk"
+msgstr "Internet & Netzwerke"
 
 msgid "office"
 msgstr "Büro"
