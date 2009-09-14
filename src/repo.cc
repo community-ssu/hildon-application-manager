@@ -100,11 +100,7 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
   entry = hildon_entry_new (HILDON_SIZE_FINGER_HEIGHT);
   gtk_editable_set_editable (GTK_EDITABLE(entry), !readonly);
 
-  if (readonly)
-    {
-      g_object_set (entry, "can-focus", FALSE, NULL);
-    }
-  else
+  if (!readonly)
     {
 #ifdef MAEMO_CHANGES
       int mode;
