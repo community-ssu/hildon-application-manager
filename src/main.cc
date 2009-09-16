@@ -254,6 +254,7 @@ show_view (view *v)
 static void
 show_upgrade_applications_view_and_refresh_callback (GtkWidget *btn, gpointer data)
 {
+  package_list_ready = false;
   show_check_for_updates_view ();
 
   if (is_idle ())
@@ -831,6 +832,8 @@ sort_all_packages (bool refresh_view)
 
   if (refresh_view)
     show_view (cur_view_struct);
+
+  gtk_widget_show_all (cur_view_struct->cur_view);
 }
 
 struct gpl_closure {
@@ -1545,7 +1548,8 @@ make_install_section_view (view *v)
 			      available_package_selected, 
 			      available_package_activated);
 
-  gtk_widget_show_all (view);
+  if (package_list_ready)
+    gtk_widget_show_all (view);
 
   if (si)
     get_package_infos_in_background (si->packages);
@@ -1710,7 +1714,8 @@ make_install_applications_view (view *v)
       view = make_global_section_list (install_sections, view_section);
     }
 
-  gtk_widget_show_all (view);
+  if (package_list_ready)
+    gtk_widget_show_all (view);
 
   maybe_refresh_package_cache_without_user ();
 
@@ -1779,7 +1784,8 @@ make_upgrade_applications_view (view *v)
 			      available_package_selected,
 			      available_package_activated);
 
-  gtk_widget_show_all (view);
+  if (package_list_ready)
+    gtk_widget_show_all (view);
 
   get_package_infos_in_background (upgradeable_packages);
 
@@ -1810,7 +1816,8 @@ make_uninstall_applications_view (view *v)
 				   _("ai_me_cs_uninstall"),
 				   installed_package_selected,
 				   installed_package_activated);
-  gtk_widget_show_all (view);
+  if (package_list_ready)
+    gtk_widget_show_all (view);
 
   enable_search (true);
   enable_refresh (false);
