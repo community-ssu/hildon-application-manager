@@ -132,6 +132,12 @@ is_idle ()
 }
 
 bool
+is_topmost_dialog (GtkWidget *dialog)
+{
+  return (dialog_stack != NULL) && (dialog_stack->data == dialog);
+}
+
+bool
 start_interaction_flow ()
 {
   /* XXX - We don't allow interaction flows to start when a dialog is

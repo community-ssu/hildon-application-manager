@@ -57,6 +57,9 @@
   a active interaction flow.  When it returns FALSE, a call to
   start_interaction_flow would fail.
 
+  IS_TOPMOST_DIALOG will return TRUE if the specified dialog is on top
+  of the stack, and will return FALSE otherwise.
+
   See "Exiting" for how interaction flows influence the life
   time of the application.
 
@@ -87,6 +90,8 @@ void push_dialog (GtkWidget *dialog);
 void pop_dialog (GtkWidget *dialog);
 
 bool is_idle ();
+
+bool is_topmost_dialog (GtkWidget *dialog);
 
 /** The main window
 
