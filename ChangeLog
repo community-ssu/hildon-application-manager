@@ -1,3 +1,118 @@
+2009-09-16 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (sort_all_packages): Show the view content.
+	(show_upgrade_applications_view_and_refresh_callback): set to
+	false the package_list_read flag.
+	(make_install_section_view): Show the view content only if the
+	package list is already retrieved.
+	(make_install_applications_view): Show the view content only if
+	the package list is already retrieved. Remove the label parameter
+	in function call.
+	(make_upgrade_applications_view): Show the view content only if
+	the package list is already retrieved.
+	(make_uninstall_applications_view): Show the view content only if
+	the package list is already retrieved.
+
+	* src/util.h: Remove the label parameter to show_updating
+	function.
+
+	* src/util.cc (make_global_package_list): align in the middle of
+	the window the empty list message.
+	(make_global_section_list): align in the middle of the window the
+	empty list message.
+	(refresh_updating_banner): remove the use of HildonBanner and use
+	the hildon_gtk_window_set_progress_indicator.
+	(show_updating): Remove the label parameter.
+
+2009-09-16 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (entertainment_focus_in_event_cb): New. Take care of
+	update entertainment progress whenever focus is got.
+	(entertainment_focus_out_event_cb): New. Stop entertainment
+	activity whenever focus is lost in a non topmost dialog
+	(start_entertaining_user): Connect signals 'focus-out-event' and
+	'focus-in-event' for entertainment.dialog.
+
+	* src/util.h, src/util.cc (is_topmost_dialog): New. Allow knowing
+	whether a dialog is on top of the stack or not.
+
+2009-09-14 Gabriel Schulhof <gabriel.schulhof@nokia.com>
+
+	* src/repo.cc (add_entry): Do not turn off "can-focus" property
+	for entry widget.
+
+2009-09-14 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* catpo/da_DK.po: Updated 'education' and 'network'.
+
+	* catpo/de_DE.po: Updated 'education', 'development' and
+	'network'.
+
+	* catpo/en_GB.po: Updated 'education'.
+
+	* catpo/en_US.po: Updated 'education'.
+
+	* catpo/es_ES.po: Updated 'education' and 'network'.
+
+	* catpo/es_MX.po: Updated 'education' and 'network'.
+
+	* catpo/fi_FI.po: Updated 'education' and 'network'.
+
+	* catpo/fr_FR.po: Updated 'education' and 'network'.
+
+	* catpo/fr_CA.po: Updated 'network'.
+
+	* catpo/it_IT.po: Updated 'education' and 'network'.
+
+	* catpo/nl_NL.po: Updated 'development' and 'network'.
+
+	* catpo/no_NO.po: Updated 'education', 'development' and
+	'network'.
+
+	* catpo/pt_PT.po: Updated 'education', 'development' and
+	'network'.
+
+	* catpo/ru_RU.po: Updated 'network'.
+
+	* catpo/sv_SE.po: Updated 'network'.
+
+2009-05-27 Marius Vollmer <marius.vollmer@nokia.com>
+
+	* src/main.cc (nicify_section_name): Let official category
+	translations override the community ones.
+
+2009-09-08 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (package_selected_toggled_callback): Removed, as the
+	'toggled' signal is no longer being handled.
+	(package_selected_activated_callback): New. Handle the
+	'row-activated' signal from the treeview.
+	(select_package_list_with_info): Connect the 'row-activated'
+	signal for the treeview, instead of the 'toggled' one for one cell
+	renderer. Set PANGO_ELLIPSIZE_END attribute for the package name's
+	text renderer.
+
+2009-09-07 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/repo.cc (cat_text_func): Care about the disabled/enabled
+	status of the catalogue to set it dimmed or not, instead of
+	checking whether it's a user editable catalogue.
+
+2009-09-01 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/details.cc (has_long_description): New. Determines whether a
+	package has a long description (more than one line of text).
+	(spd_with_details): Create the 'Description' notebook tab only
+	when there's something to show there. Thus, delay its creation and
+	insertion in the notebook until the needed info is retrieved.
+
+2009-08-28 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/confutils.cc (catalogue_equal): Consider also package
+	catalogues in the comparison, to be able to restore user
+	preferences about the '<disabled>' (set/unset) tag for those kind
+	of catalogues.
+
 2009-09-09 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/dbus.h (enum device_mode): New possible value to keep track
