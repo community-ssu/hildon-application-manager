@@ -1269,30 +1269,25 @@ entertainment_was_broke ()
 /* Progress banners
  */
 
-static GtkWidget *updating_banner = NULL;
 static int updating_level = 0;
-static const char *updating_label = NULL;
 static bool allow_updating_banner = true;
 
 static void
 refresh_updating_banner ()
 {
+  static GtkWindow *win = NULL;
   bool show_it = (updating_level > 0 && allow_updating_banner);
 
-  if (show_it && updating_banner == NULL)
+  if (show_it && win == NULL)
     {
-      updating_banner =
-	hildon_banner_show_animation (GTK_WIDGET (get_main_window ()),
-				      NULL,
-				      updating_label);
-      g_object_ref (updating_banner);
+      win = get_main_window ();
+      hildon_gtk_window_set_progress_indicator (win, 1);
     }
 
-  if (!show_it && updating_banner != NULL)
+  if (!show_it && win != NULL)
     {
-      gtk_widget_destroy (updating_banner);
-      g_object_unref (updating_banner);
-      updating_banner = NULL;
+      hildon_gtk_window_set_progress_indicator (win, 0);
+      win = NULL;
     }
 }
 
@@ -1305,13 +1300,8 @@ updating_timeout (gpointer unused)
 }
 
 void
-show_updating (const char *label)
+show_updating ()
 {
-  if (label == NULL)
-    label = _HCS ("ckdg_pb_updating");
-
-  updating_label = label;
-
   // We must never cancel this timeout since otherwise the
   // UPDATING_LEVEL will get out of sync.
   gtk_timeout_add (2000, updating_timeout, NULL);

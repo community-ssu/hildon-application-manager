@@ -342,7 +342,7 @@ bool entertainment_was_broke ();
    banner is created.  Thus, when a banner is already active when you
    call SHOW_UPDATING again, the label is not changed.
 */
-void show_updating (const char *label = NULL);
+void show_updating ();
 void hide_updating ();
 void allow_updating ();
 void prevent_updating ();

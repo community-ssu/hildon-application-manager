@@ -2079,7 +2079,7 @@ search_packages (const char *pattern, bool in_descriptions)
     }
   else
     {
-      show_updating (_("ai_nw_searching"));
+      show_updating ();
 
       bool only_installed = (parent == &uninstall_applications_view
 			     || parent == &upgrade_applications_view);
