@@ -950,6 +950,29 @@ entertainment_update_title ()
     }
 }
 
+static gboolean
+entertainment_focus_in_event_cb (GtkWidget *dialog,
+                                 GdkEventFocus *event,
+                                 gpointer unused)
+{
+  entertainment_update_progress ();
+  return FALSE;
+}
+
+static gboolean
+entertainment_focus_out_event_cb (GtkWidget *dialog,
+                                  GdkEventFocus *event,
+                                  gpointer unused)
+{
+  g_assert (dialog != NULL);
+
+  /* Stop progressbar activity if not the topmost one */
+  if (!is_topmost_dialog (dialog))
+      entertainment_stop_pulsing ();
+
+  return FALSE;
+}
+
 static void
 entertainment_response (GtkWidget *widget, int response, void *data)
 {
@@ -1048,6 +1071,12 @@ start_entertaining_user (gboolean with_button)
 
       g_signal_connect (entertainment.dialog, "realize",
 		    G_CALLBACK (progressbar_dialog_realized), NULL);
+
+      g_signal_connect(G_OBJECT(entertainment.dialog), "focus-out-event",
+                       G_CALLBACK(entertainment_focus_out_event_cb), NULL);
+
+      g_signal_connect(G_OBJECT(entertainment.dialog), "focus-in-event",
+                       G_CALLBACK(entertainment_focus_in_event_cb), NULL);
 
       g_signal_connect (entertainment.dialog, "response",
 			G_CALLBACK (entertainment_response), &entertainment);
