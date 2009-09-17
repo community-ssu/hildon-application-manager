@@ -564,33 +564,24 @@ nicify_section_name (const char *name)
   if (*name == '\0')
     return "-";
 
-  /* The list of valid categories is defined by the available
-     translations in the "hildon-application-manager-categories" text
-     domain.
-  */
+  // try the translation from the official text domain.
+  char buf[200];
+  snprintf (buf, 200, "ai_category_%s", name);
+  const char *official_translation = gettext (buf);
 
+  if (official_translation != buf)
+    return official_translation;
+
+  // try the community driven text domain
   const char *translated_name =
     dgettext ("hildon-application-manager-categories", name);
 
   if (translated_name != name)
-    {
-      /* The category is valid, since we have a translation for it,
-         but let's see if we can get a (by definition) better
-         translation from the official text domain.
-      */
-      char buf[200];
-      snprintf (buf, 200, "ai_category_%s", name);
-      const char *official_translation = gettext (buf);
-      if (official_translation != buf)
-        name = official_translation;
-      else
-        name = translated_name;
-    }
+    return translated_name;
   else
     {
-      /* This is not a valid category.
-       */
-      name = NULL;
+      // not a valid category.
+      return NULL;
     }
 
   return name;
