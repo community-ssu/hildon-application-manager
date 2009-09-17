@@ -579,9 +579,22 @@ spd_update_common_page (void *data)
   gtk_widget_set_sensitive (GTK_WIDGET (table), TRUE);
 }
 
+static gint
+get_notebook_width (void)
+{
+  GtkWidget *notebook = current_spd_clos->notebook;
+  GdkWindow *nb_window = gtk_widget_get_window (notebook);
+  gint width = -1;
+
+  gdk_drawable_get_size (nb_window, &width, NULL);
+  return width;
+}
+
 static GtkWidget *
 make_small_text_label (const char *text)
 {
+  gint nb_width = get_notebook_width ();
+
   GtkWidget *summary_table = gtk_table_new (1, 1, FALSE);
   gtk_table_set_col_spacings (GTK_TABLE (summary_table), 10);
   gtk_table_set_row_spacings (GTK_TABLE (summary_table), 0);
@@ -591,6 +604,10 @@ make_small_text_label (const char *text)
   gtk_label_set_line_wrap (GTK_LABEL (desc), TRUE);
   gtk_label_set_line_wrap_mode (GTK_LABEL (desc), PANGO_WRAP_WORD);
   gtk_label_set_ellipsize (GTK_LABEL (desc), PANGO_ELLIPSIZE_NONE);
+
+  /* Set GtkLabel width to 90% of notebook width, to avoid weird wraps */
+  gtk_widget_set_size_request (desc, nb_width * 0.9, -1);
+
   gtk_table_attach (GTK_TABLE (summary_table), desc, 0, 1, 0, 1,
 		    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL,
 		    0, 0);
