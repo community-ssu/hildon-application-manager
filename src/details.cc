@@ -874,16 +874,11 @@ spd_with_details (void *data, bool filling_details)
       if (has_long_description (pi))
         {
           /* Now create and insert the "Description" tab in its place */
-          spd_nb_widgets[SPD_DESCRIPTION_PAGE] = gtk_vbox_new (TRUE, 0);
-
+          spd_nb_widgets[SPD_DESCRIPTION_PAGE] = spd_create_description_page (c);
           gtk_notebook_insert_page (GTK_NOTEBOOK (notebook),
                                     spd_nb_widgets[SPD_DESCRIPTION_PAGE],
                                     gtk_label_new (_("ai_ti_details_noteb_description")),
                                     SPD_DESCRIPTION_PAGE);
-
-          /* Fill the tab */
-          spd_set_page_widget (c, SPD_DESCRIPTION_PAGE,
-                               spd_create_description_page (c));
         }
 
       if (!is_ssu_pkg)
