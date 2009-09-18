@@ -3553,3 +3553,9 @@ is_pkg_ssu (package_info *pi, bool broken)
           && (broken ? (pi->info.installable_status != status_able) : true)
           && (pi->flags & pkgflag_system_update));
 }
+
+bool
+running_in_scratchbox ()
+{
+  return access ("/targets/links/scratchbox.config", F_OK) == 0;
+}
