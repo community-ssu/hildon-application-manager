@@ -1272,6 +1272,15 @@ entertainment_was_broke ()
 static int updating_level = 0;
 static bool allow_updating_banner = true;
 
+static GtkWindow*
+get_topmost_window ()
+{
+  if (dialog_stack && dialog_stack->data)
+    return GTK_WINDOW (dialog_stack->data);
+  else
+    return get_main_window ();
+}
+
 static void
 refresh_updating_banner ()
 {
@@ -1280,7 +1289,7 @@ refresh_updating_banner ()
 
   if (show_it && win == NULL)
     {
-      win = get_main_window ();
+      win = get_topmost_window ();
       hildon_gtk_window_set_progress_indicator (win, 1);
     }
 
