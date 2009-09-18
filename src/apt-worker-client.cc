@@ -229,8 +229,7 @@ start_apt_worker (const char *prog)
       || !must_mkfifo ("/tmp/apt-worker.cancel", 0600))
     return false;
 
-  struct stat info;
-  if (stat ("/targets/links/scratchbox.config", &info))
+  if (!running_in_scratchbox ())
     sudo = "/usr/bin/sudo";
   else
     sudo = "/usr/bin/fakeroot";
