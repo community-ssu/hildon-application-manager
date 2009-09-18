@@ -1073,6 +1073,8 @@ start_entertaining_user (gboolean with_button)
       entertainment.bar = gtk_progress_bar_new ();
       gtk_progress_bar_set_text (GTK_PROGRESS_BAR (entertainment.bar),
                                  entertainment.main_title);
+      gtk_progress_bar_set_ellipsize (GTK_PROGRESS_BAR (entertainment.bar),
+                                      PANGO_ELLIPSIZE_END);
       g_object_set (G_OBJECT (entertainment.bar), "text-xalign", 0.5, NULL);
       gtk_box_pack_start (GTK_BOX (box), entertainment.bar, TRUE, TRUE,
                           HILDON_MARGIN_DOUBLE);
