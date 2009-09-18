@@ -132,6 +132,9 @@ load_settings ()
   if (!red_pill_permanent)
     red_pill_mode = false;
 
+  if (running_in_scratchbox ())
+    assume_connection = true;
+
   /* XML - only kidding.
    */
 }
