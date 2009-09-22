@@ -20,7 +20,12 @@ echo $BOOTSTATE > /tmp/STATE
 source /etc/resource_limits.conf
 
 # Start DSME to avoid device hanging/restarting...
-/etc/init.d/dsme start
+exec /sbin/dsme -p /usr/lib/dsme/libstartup.so
+
+# wait for dsme (like in dsme upstart script)
+until waitfordsme; do
+    sleep 1
+done
 
 # Now we can start the rescue process
 /usr/libexec/apt-worker rescue
