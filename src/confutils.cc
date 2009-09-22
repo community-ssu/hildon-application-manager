@@ -120,6 +120,20 @@ tokens_equal (const char *str1, const char *str2)
   return *str1 == '\0' && *str2 == '\0';
 }
 
+/* This function modifies the string in place */
+static void
+uri_remove_trailing_slashes (gchar *uri)
+{
+  if (uri != NULL)
+    {
+      while (g_str_has_suffix (uri, "/"))
+        {
+          char *lastchar = g_strrstr (uri, "/");
+          *lastchar = '\0';
+        }
+    }
+}
+
 bool
 catalogue_equal (xexp *cat1, xexp *cat2)
 {
@@ -152,14 +166,23 @@ catalogue_equal (xexp *cat1, xexp *cat2)
     }
   else
     {
+      gchar *cat1_uri = g_strdup (xexp_aref_text (cat1, "uri"));
+      gchar *cat2_uri = g_strdup (xexp_aref_text (cat2, "uri"));
+
+      /* Remove trailing "/" from uris, if present */
+      uri_remove_trailing_slashes (cat1_uri);
+      uri_remove_trailing_slashes (cat2_uri);
+
       /* User catalogues */
       result =
-        (tokens_equal (xexp_aref_text (cat1, "uri"),
-                       xexp_aref_text (cat2, "uri"))
+        (tokens_equal (cat1_uri, cat2_uri)
          && tokens_equal (xexp_aref_text (cat1, "dist"),
                           xexp_aref_text (cat2, "dist"))
          && tokens_equal (xexp_aref_text (cat1, "components"),
                           xexp_aref_text (cat2, "components")));
+
+      g_free (cat1_uri);
+      g_free (cat2_uri);
     }
 
   return result;
