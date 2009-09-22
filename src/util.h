@@ -623,5 +623,10 @@ bool is_pkg_ssu (package_info *pi, bool broken = true);
  */
 bool running_in_scratchbox ();
 
+/* Takes a screenshot of the specified window and places it
+   in the launch area if there is not already one
+*/
+void maybe_take_screenshot (GtkWindow *win);
+
 #endif /* !UTIL_H */
 

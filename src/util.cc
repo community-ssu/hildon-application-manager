@@ -67,6 +67,8 @@ static void (*idle_cont) (void *) = NULL;
 static void *idle_data = NULL;
 
 #define IDLE_TIMEOUT_SECS 60
+#define SCREENSHOT_DIR "launch"
+#define HILDON_APP_MGR_SERVICE "com.nokia.hildon_application_manager"
 
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
@@ -266,6 +268,37 @@ bool
 is_interaction_flow_active ()
 {
   return interaction_flow_active;
+}
+
+static gboolean
+screenshot_already_exists ()
+{
+  gchar *sshot_dir = NULL;
+  GDir *dir;
+  gboolean res = FALSE;
+
+  sshot_dir = g_strdup_printf ("%s/%s", g_get_user_cache_dir (), SCREENSHOT_DIR);
+  dir = g_dir_open (sshot_dir, 0, NULL);
+  if (dir)
+    {
+      const gchar *sshot_file;
+      while (!res && (sshot_file = g_dir_read_name (dir)) != NULL)
+        {
+          if (g_str_has_prefix (sshot_file, HILDON_APP_MGR_SERVICE))
+            res = TRUE;
+        }
+      g_dir_close (dir);
+    }
+
+  g_free (sshot_dir);
+  return res;
+}
+
+void
+maybe_take_screenshot (GtkWindow *win)
+{
+  if (!screenshot_already_exists ())
+    hildon_gtk_window_take_screenshot (win, TRUE);
 }
 
 void
