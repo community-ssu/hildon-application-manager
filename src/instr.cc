@@ -117,6 +117,7 @@ convert_catalogue (GKeyFile *keyfile, const char *group,
 		   const char *file_uri_base)
 {
   gchar *val;
+  gchar *uri;
 
   if (!g_key_file_has_group (keyfile, group))
     {
@@ -139,39 +140,60 @@ convert_catalogue (GKeyFile *keyfile, const char *group,
 
   if (file_uri_base == NULL)
     {
-      val = g_key_file_get_string (keyfile, group, "uri", NULL);
-      if (val == NULL)
+      uri = g_key_file_get_string (keyfile, group, "uri", NULL);
+      gchar *id = g_key_file_get_string (keyfile, group, "id", NULL);
+      gchar *file = g_key_file_get_string (keyfile, group, "file", NULL);
+
+      if (uri == NULL && (id != NULL && file != NULL))
 	{
-	  add_log ("Catalogue must have 'uri' key: %s\n", group);
-	  xexp_free (cat);
-	  return NULL;
-	}
-      xexp_aset_text (cat, "uri", val);
-      g_free (val);
+          xexp_aset_text (cat, "id", id);
+          g_free (id);
+          xexp_aset_text (cat, "file", file);
+          g_free (file);
+        }
+      else if (uri != NULL && (id == NULL && file == NULL))
+        {
+          xexp_aset_text (cat, "uri", uri);
+        }
+      else
+        {
+          g_free (id);
+          g_free (file);
+          g_free (uri);
+
+          add_log ("Catalogue must have 'uri' key or 'id' and 'file' key: %s\n",
+                   group);
+          xexp_free (cat);
+          return NULL;
+        }
     }
   else
     {
-      val = g_key_file_get_string (keyfile, group, "file_uri", NULL);
-      if (val == NULL)
+      uri = g_key_file_get_string (keyfile, group, "file_uri", NULL);
+      if (uri == NULL)
 	{
 	  add_log ("Catalogue must have 'file_uri' key: %s\n", group);
 	  xexp_free (cat);
 	  return NULL;
 	}
-      
+
       char *full_uri = g_strdup_printf ("file://%s/%s", file_uri_base, val);
       xexp_aset_text (cat, "uri", full_uri);
       g_free (full_uri);
-      g_free (val);
     }
 
-  val = g_key_file_get_string (keyfile, group, "dist", NULL);
-  xexp_aset_text (cat, "dist", val);
-  g_free (val);
+  if (uri)
+    {
+      val = g_key_file_get_string (keyfile, group, "dist", NULL);
+      xexp_aset_text (cat, "dist", val);
+      g_free (val);
 
-  val = g_key_file_get_string (keyfile, group, "components", NULL);
-  xexp_aset_text (cat, "components", val);
-  g_free (val);
+      val = g_key_file_get_string (keyfile, group, "components", NULL);
+      xexp_aset_text (cat, "components", val);
+      g_free (val);
+
+      g_free (uri);
+    }
 
   xexp_reverse (cat);
   return cat;
