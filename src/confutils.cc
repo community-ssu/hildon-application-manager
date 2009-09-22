@@ -149,13 +149,9 @@ catalogue_equal (xexp *cat1, xexp *cat2)
   is_pkg_cat1 = cat1_file && cat1_id;
   is_pkg_cat2 = cat2_file && cat2_id;
 
-  /* Different kind of catalogues: not equal */
-  if (is_pkg_cat1 != is_pkg_cat2)
-    return false;
-
   /* Check whether they're actually equal or not */
   result = false;
-  if (is_pkg_cat1 == true)
+  if (is_pkg_cat1 && is_pkg_cat2)
     {
       /* Package catalogues */
       result =
