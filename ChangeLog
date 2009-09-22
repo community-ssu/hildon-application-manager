@@ -1,3 +1,7 @@
+2009-09-22 David Kedves <dkedves@blumsoft.eu>
+
+	* ham-rescue.sh: wait for dsme before starting the rescue proces
+
 2009-09-16 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (sort_all_packages): Show the view content.
