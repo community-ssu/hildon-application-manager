@@ -1,3 +1,49 @@
+2009-09-22 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (main_view_screenshot_cb): New function.
+	(main): connect the map event to the callback.
+
+	* src/util.cc (screenshot_already_exists): New function.
+	(maybe_take_screenshot): New function.
+
+	* src/util.h: export maybe_take_screenshot function.
+
+2009-09-22 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/confutils.cc (uri_remove_trailing_slashes): New. Removes
+	trailing "/" from uris to improve further comparisons.
+	(catalogue_equal): Use uri_remove_trailing_slashes before
+	comparing URIs to avoid fake false results.
+	(catalogue_equal): Properly compare catalogues regardless both of
+	them being package or user catalogues.
+
+2009-09-18 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker-client.cc (start_apt_worker): Use the new util
+	function running_in_scratchbox.
+
+	* src/settings.cc (load_settings): assume_connection is always
+	true in scratchbox (NB#139728).
+
+	* src/util.cc (get_topmost_window): New function.
+	(refresh_updating_banner): Use get_tompmost_window.
+	(running_in_scratchbox): New function.
+
+	* src/util.h: export running_in_scratchbox function.
+
+2009-09-17 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/main.cc (nicify_section_name): Always look first for
+	translations coming from Nokia, then from the community files.
+
+	* src/details.cc (make_small_text_label): Use 90% of notebook
+	width to explicitly set width for the GtkLabel with wrapping
+	activated.
+	(get_notebook_width): New function to get the notebook width.
+	(spd_with_details): Don't insert an empty vbox
+	and then replace it. Just insert the right thing since the
+	beginning.
+
 2009-09-22 David Kedves <dkedves@blumsoft.eu>
 
 	* ham-rescue.sh: wait for dsme before starting the rescue proces

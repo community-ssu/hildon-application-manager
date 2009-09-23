@@ -1,8 +1,10 @@
-hildon-application-manager (1:2.2.35~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.35) unstable; urgency=low
 
-  * 
+  [ Mario Sanchez Prada ]
+  * Fixes: NB#140223 - Unable to use .install file to install package from
+    certified repository
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 22 Sep 2009 17:01:59 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 23 Sep 2009 20:09:53 +0100
 
 hildon-application-manager (1:2.2.34) unstable; urgency=low
 
