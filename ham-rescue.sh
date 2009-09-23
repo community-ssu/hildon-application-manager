@@ -20,10 +20,10 @@ echo $BOOTSTATE > /tmp/STATE
 source /etc/resource_limits.conf
 
 # Start DSME to avoid device hanging/restarting...
-exec /sbin/dsme -p /usr/lib/dsme/libstartup.so
+/sbin/dsme -p /usr/lib/dsme/libstartup.so &
 
 # wait for dsme (like in dsme upstart script)
-until waitfordsme; do
+until /usr/sbin/waitfordsme; do
     sleep 1
 done
 
