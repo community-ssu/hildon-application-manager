@@ -1361,7 +1361,7 @@ add_catalogues_cont_3 (bool res, bool enable, void *data)
 	  g_assert (c->cur);
 	  xexp_aset_bool (c->cur, "disabled", false);
 	}
-      else 
+      else
 	{
 	  if (c->cur)
 	    xexp_del (c->catalogues, c->cur);
@@ -1438,8 +1438,17 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 
       if (!c->update || c->cur == NULL)
 	{
-	  // New version should be added
-	  cont = add_catalogues_cont_3_add;
+          // Let's remove useless data
+          xexp_adel (c->rest, "file");
+          xexp_adel (c->rest, "id");
+
+          if (xexp_aref_text (c->rest, "uri") != NULL)
+            {
+              // New version should be added
+              cont = add_catalogues_cont_3_add;
+            }
+          else
+            cont = NULL;
 	}
       else if (c->cur && xexp_aref_bool (c->cur, "disabled"))
 	{
