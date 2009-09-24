@@ -87,8 +87,6 @@ extern "C" {
 using namespace std;
 
 static void set_details_callback (void (*func) (gpointer), gpointer data);
-static void set_operation_label (const char *label);
-static void set_operation_callback (void (*func) (gpointer), gpointer data);
 
 static void get_package_infos_in_background (GList *packages);
 
@@ -237,8 +235,6 @@ show_view (view *v)
     }
 
   set_details_callback (NULL, NULL);
-  set_operation_label (NULL);
-  set_operation_callback (NULL, NULL);
 
   allow_updating ();
 
@@ -1445,14 +1441,12 @@ available_package_selected (package_info *pi)
   if (pi)
     {
       set_details_callback (available_package_details, pi);
-      set_operation_callback (install_operation_callback, pi);
       pi->ref ();
       get_package_info (pi, true, ignore_package_info, NULL);
     }
   else
     {
       set_details_callback (NULL, NULL);
-      set_operation_callback (NULL, NULL);
     }
 }
 
@@ -1487,27 +1481,13 @@ uninstall_package_flow (package_info *pi)
     }
 }
 
-static void
-uninstall_operation_callback (gpointer data)
-{
-  uninstall_package_flow ((package_info *)data);
-}
-
 void
 installed_package_selected (package_info *pi)
 {
   if (pi)
-    {
-      set_details_callback (installed_package_details, pi);
-      set_operation_callback (uninstall_operation_callback, pi);
-      set_operation_label (_("ai_me_package_uninstall"));
-    }
+    set_details_callback (installed_package_details, pi);
   else
-    {
-      set_details_callback (NULL, NULL);
-      set_operation_callback (NULL, NULL);
-      set_operation_label (_("ai_tb_uninstall"));
-    }
+    set_details_callback (NULL, NULL);
 }
 
 static void
@@ -1523,8 +1503,6 @@ GtkWidget *
 make_install_section_view (view *v)
 {
   GtkWidget *view;
-
-  set_operation_label (_("ai_tb_install"));
 
   section_info *si = find_section_info (&install_sections,
 					cur_section_rank, cur_section_name);
@@ -1684,8 +1662,6 @@ make_install_applications_view (view *v)
 
   check_catalogues ();
 
-  set_operation_label (_("ai_tb_install"));
-
   if (install_sections && install_sections->next == NULL)
     {
       section_info *si = (section_info *)install_sections->data;
@@ -1763,8 +1739,6 @@ make_upgrade_applications_view (view *v)
 
   check_catalogues ();
 
-  set_operation_label (_("ai_tb_update"));
-
   view =
     make_global_package_list (upgradeable_packages,
 			      false,
@@ -1797,8 +1771,6 @@ make_uninstall_applications_view (view *v)
 {
   GtkWidget *view;
 
-  set_operation_label (_("ai_tb_uninstall"));
-
   view = make_global_package_list (installed_packages,
 				   true,
 				   (package_list_ready
@@ -1824,10 +1796,6 @@ make_search_results_view (view *v)
   if (v->parent == &install_applications_view
       || v->parent == &upgrade_applications_view)
     {
-      set_operation_label (v->parent == &install_applications_view
-			   ? _("ai_tb_install")
-			   : _("ai_tb_update"));
-
       view = make_global_package_list (search_result_packages,
 				       false,
 				       NULL,
@@ -1840,8 +1808,6 @@ make_search_results_view (view *v)
     }
   else
     {
-      set_operation_label (_("ai_tb_uninstall"));
-
       view = make_global_package_list (search_result_packages,
 				       true,
 				       NULL,
@@ -2250,34 +2216,6 @@ set_details_callback (void (*func) (gpointer), gpointer data)
 {
   details_data = data;
   details_func = func;
-}
-
-static void (*operation_func) (gpointer);
-static gpointer operation_data;
-static const char *operation_label;
-
-void
-do_current_operation ()
-{
-  if (operation_func)
-    operation_func (operation_data);
-}
-
-static void
-set_operation_label (const char *label)
-{
-  if (label == NULL)
-    label = _("ai_tb_install");
-
-  operation_label = label;
-}
-
-static void
-set_operation_callback (void (*func) (gpointer), gpointer data)
-{
-  operation_data = data;
-  operation_func = func;
-  set_operation_label (operation_label);
 }
 
 /* Reinstalling the packages form the recently restored backup.

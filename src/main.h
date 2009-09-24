@@ -134,7 +134,6 @@ void get_package_list ();
 void get_package_list_with_cont (void (*cont) (void *data), void *data);
 
 void show_current_details ();
-void do_current_operation ();
 
 void show_check_for_updates_view ();
 

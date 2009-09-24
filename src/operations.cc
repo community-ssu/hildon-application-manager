@@ -467,7 +467,7 @@ ip_install_with_info (void *data)
 	      break;
 #endif
 	    default:
-	      desc = _("ai_tb_install");
+	      desc = _("ai_li_install");
 	      break;
 	    }
 	}
