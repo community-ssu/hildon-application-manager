@@ -369,6 +369,11 @@ spd_third_party_policy_check (package_info *pi, void *data, bool unused)
 {
   spd_clos *c = (spd_clos *)data;
 
+  /* Exit if no valid data at this point */
+  if (current_spd_clos != data)
+    return;
+
+  /* Check current policy check */
   if (pi->third_party_policy != third_party_unknown)
     {
       /* Continue if this information was already known */
@@ -383,8 +388,9 @@ spd_third_party_policy_check (package_info *pi, void *data, bool unused)
 
 static void spd_third_party_policy_check_reply (package_info *pi, void *data)
 {
-  /* Just continue once the third party policy was checked */
-  spd_get_details (data);
+  /* Continue only if valid data is stored in 'data' */
+  if (current_spd_clos == data)
+    spd_get_details (data);
 }
 
 void
