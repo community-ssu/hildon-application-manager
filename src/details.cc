@@ -582,11 +582,19 @@ spd_update_common_page (void *data)
 static gint
 get_notebook_width (void)
 {
-  GtkWidget *notebook = current_spd_clos->notebook;
-  GdkWindow *nb_window = gtk_widget_get_window (notebook);
-  gint width = -1;
+  /* This asumes the width of the notebook does not change across ham
+     execution. If it did (supporting changes to portrair mode, for
+     instance) this would no longer be valid */
+  static gint width = -1;
 
-  gdk_drawable_get_size (nb_window, &width, NULL);
+  if (width == -1)
+    {
+      GtkWidget *notebook = current_spd_clos->notebook;
+      GdkWindow *nb_window = gtk_widget_get_window (notebook);
+      if (nb_window != NULL)
+        gdk_drawable_get_size (nb_window, &width, NULL);
+    }
+
   return width;
 }
 
