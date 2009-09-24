@@ -2699,14 +2699,6 @@ get_osso_context ()
   return osso_ctxt;
 }
 
-static gboolean
-main_view_screenshot_cb (GtkWidget *widget, GdkEventExpose *event, gpointer data)
-{
-  g_signal_handlers_disconnect_by_func (widget, (gpointer) main_view_screenshot_cb, data);
-  maybe_take_screenshot (GTK_WINDOW (main_view.window));
-  return FALSE;
-}
-
 int
 main (int argc, char **argv)
 {
@@ -2767,9 +2759,6 @@ main (int argc, char **argv)
 
   g_signal_connect (G_OBJECT (main_window), "delete-event",
                     G_CALLBACK (window_delete_event), NULL);
-
-  g_signal_connect_after (G_OBJECT (main_window), "map-event",
-                          G_CALLBACK (main_view_screenshot_cb), NULL);
 
   create_menu ();
 
