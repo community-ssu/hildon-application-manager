@@ -2476,6 +2476,7 @@ window_delete_event (GtkWidget* widget, GdkEvent *ev, gpointer data)
   if (is_interaction_flow_active ())
     end_interaction_flow ();
 
+  maybe_take_screenshot (GTK_WINDOW (widget));
   hide_main_window ();
   maybe_exit ();
   return TRUE;
