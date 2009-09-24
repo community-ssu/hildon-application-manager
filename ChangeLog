@@ -1,3 +1,19 @@
+2009-09-24 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (window_delete_event): Added the screenshot
+	operation.
+
+2009-09-24 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/details.cc (spd_third_party_policy_check): Check that the
+	spd_clos closure is valid before doing anything else.
+	(spd_third_party_policy_check_reply): Check spd_clos closure is
+	valid before calling to spd_get_details_data.
+	(get_notebook_width): Just retrieve this
+	information once, asuming the notebook width will never change
+	across HAM execution (no goint to portrait mode supported, for
+	instance).
+
 2009-09-22 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (main_view_screenshot_cb): New function.
