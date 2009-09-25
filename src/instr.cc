@@ -428,7 +428,7 @@ execute_install_package (GKeyFile *keyfile, const char *entry,
 
   eip_clos *c = new eip_clos;
   c->catalogues = catalogues;
-  c->package = package;
+  c->package = g_strstrip (package);
   c->cont = cont;
   c->data = data;
 
