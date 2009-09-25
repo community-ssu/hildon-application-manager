@@ -6476,6 +6476,11 @@ do_rescue (const char *package, const char *download_root,
    */
   run_system (true, "dpkg --configure dpkg");
 
+  /* We should mount /home partition to proper place, because
+   * 3rd party apps probably using /opt which is a symlink to
+   * /home/opt :-S */
+  run_system (false, "/bin/mount /home");
+
   misc_init ();
 
   // @todo Is this really necessary?
@@ -6502,7 +6507,10 @@ do_rescue (const char *package, const char *download_root,
 	    erase_operation_record ();
 
 	  if (result == rescode_packages_not_found)
+      {
+        run_system (false, "/bin/umount /home");
 	    return;
+      }
 
 	  if (result != rescode_success)
 	    {
@@ -6511,6 +6519,7 @@ do_rescue (const char *package, const char *download_root,
 	      _system->Lock();
 	    }
 
+      run_system (false, "/bin/umount /home");
 	  run_system (true, "/sbin/reboot");
 	}
       else
