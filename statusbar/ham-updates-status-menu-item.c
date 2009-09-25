@@ -112,6 +112,9 @@ struct _HamUpdatesStatusMenuItemPrivate
   ConIcConnection *conic;
   ConState constate;
 
+  /* osso display */
+  osso_display_state_t display_state;
+
   /* blinker timeout */
   guint blinker_id;
   /* alarm setup timeout */
@@ -254,6 +257,8 @@ ham_updates_status_menu_item_init (HamUpdatesStatusMenuItem *self)
   priv->icon = priv->no_icon = NULL;
 
   priv->updates = NULL;
+
+  priv->display_state = -1;
 
   priv->blinker_id = priv->setup_alarm_id = 0;
 
@@ -431,10 +436,17 @@ ham_updates_status_menu_display_event_cb (osso_display_state_t state,
                                           gpointer data)
 {
   HamUpdatesStatusMenuItem *self;
+  HamUpdatesStatusMenuItemPrivate *priv;
 
   g_return_if_fail (IS_HAM_UPDATES_STATUS_MENU_ITEM (data));
 
   self = HAM_UPDATES_STATUS_MENU_ITEM (data);
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  /* Update display state */
+  priv->display_state = state;
+
+  /* Check if it's needed to enable/disable blinking the icon */
   if (get_icon_state (self) == ICON_STATE_BLINKING)
     {
       if (state == OSSO_DISPLAY_OFF)
@@ -1001,6 +1013,12 @@ blink_icon_on (HamUpdatesStatusMenuItem *self)
   GError *error;
 
   priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+
+  g_return_if_fail (priv->display_state != -1);
+
+  /* do nothing if the screen is off */
+  if (priv->display_state == OSSO_DISPLAY_OFF)
+    return;
 
   /* we're already blinking */
   if (priv->blinker_id != 0)
