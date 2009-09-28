@@ -1310,7 +1310,7 @@ static bool allow_updating_banner = true;
 static GtkWindow*
 get_topmost_window ()
 {
-  if (dialog_stack && dialog_stack->data)
+  if (dialog_stack && dialog_stack->data && dialog_stack->data != entertainment.dialog)
     return GTK_WINDOW (dialog_stack->data);
   else
     return get_main_window ();
