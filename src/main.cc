@@ -250,7 +250,6 @@ show_view (view *v)
 static void
 show_upgrade_applications_view_and_refresh_callback (GtkWidget *btn, gpointer data)
 {
-  package_list_ready = false;
   show_check_for_updates_view ();
 
   if (is_idle ())
