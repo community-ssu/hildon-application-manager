@@ -153,6 +153,24 @@ make_check_button (GtkWidget *dialog)
   return check;
 }
 
+static gchar *
+add_pkgname_in_title (const gchar *title)
+{
+  gchar *pkgname;
+  gchar *newtitle;
+
+  newtitle = NULL;
+
+  /* environment variable set by the apt-worker */
+  pkgname = getenv ("HAM_PKG_NAME");
+  if (pkgname != NULL)
+    newtitle = g_strconcat ("[", pkgname, "] ", title, NULL);
+  else
+    newtitle = g_strdup (title);
+
+  return newtitle;
+}
+
 int
 main (int argc, char **argv)
 {
@@ -163,12 +181,12 @@ main (int argc, char **argv)
 
   if (argc == 2)
     {
-      title = _("ai_ti_license_agreement");
+      title = add_pkgname_in_title (_("ai_ti_license_agreement"));
       file = argv[1];
     }
   else if (argc == 3)
     {
-      title = argv[1];
+      title = add_pkgname_in_title (argv[1]);
       file = argv[2];
     }
   else
@@ -183,6 +201,7 @@ main (int argc, char **argv)
      NULL, GTK_DIALOG_MODAL,
      _("ai_bd_license_ok"), GTK_RESPONSE_OK,
      NULL);
+  g_free (title);
 
   gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
                                      GTK_RESPONSE_OK, FALSE);
