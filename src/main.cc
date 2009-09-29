@@ -1424,12 +1424,6 @@ update_all_packages_flow ()
 }
 
 static void
-install_operation_callback (gpointer data)
-{
-  install_package_flow ((package_info *)data);
-}
-
-static void
 ignore_package_info (package_info *pi, void *data, bool changed)
 {
 }
