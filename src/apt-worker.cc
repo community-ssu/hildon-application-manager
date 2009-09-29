@@ -4595,6 +4595,24 @@ cmd_download_package ()
  * installs packages marked for install.
  */
 
+#define PKGNAME_ENVVAR "HAM_PKG_NAME"
+
+/* these functions (un)export the package name to an environment variable
+ * in order to be used by the package mantainer scripts.
+ * The maemo-confirm-text util uses it.
+ */
+static void
+set_pkgname_envvar (const char *package)
+{
+  setenv (PKGNAME_ENVVAR, package, 1);
+}
+
+static void
+unset_pkgname_envvar ()
+{
+  unsetenv (PKGNAME_ENVVAR);
+}
+
 void
 cmd_install_package ()
 {
@@ -4607,9 +4625,11 @@ cmd_install_package ()
     {
       if (mark_named_package_for_install (package))
 	{
+          set_pkgname_envvar (package);
 	  save_operation_record (package, alt_download_root);
 	  result_code = operation (false, alt_download_root, false);
 	  erase_operation_record ();
+          unset_pkgname_envvar ();
 	}
       else
 	result_code = rescode_packages_not_found;
