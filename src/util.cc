@@ -1544,8 +1544,6 @@ package_info_func (GtkTreeViewColumn *column,
                 NULL);
 }
 
-static bool global_have_last_selection;
-static GtkTreeIter global_last_selection;
 static GtkTreePath *global_target_path = NULL;
 static package_info_callback *global_selection_callback;
 static package_info *current_package_info = NULL;
@@ -1556,40 +1554,6 @@ reset_global_target_path ()
   if (global_target_path)
     gtk_tree_path_free (global_target_path);
   global_target_path = NULL;
-}
-
-static void
-global_selection_changed (GtkTreeSelection *selection, gpointer data)
-{
-  GtkTreeModel *model;
-  GtkTreeIter iter;
-  package_info *pi = NULL;
-
-  if (global_have_last_selection)
-    emit_row_changed (GTK_TREE_MODEL (global_list_store),
-		      &global_last_selection);
-
-  if (gtk_tree_selection_get_selected (selection, &model, &iter))
-    {
-      assert (model == GTK_TREE_MODEL (global_list_store));
-
-      emit_row_changed (model, &iter);
-      global_last_selection = iter;
-      global_have_last_selection = true;
-
-      reset_global_target_path ();
-      global_target_path = gtk_tree_model_get_path (model, &iter);
-
-      if (global_selection_callback)
-        gtk_tree_model_get (model, &iter, 0, &pi, -1);
-    }
-
-  /* Update the global variable */
-  current_package_info = pi;
-
-  /* Use the callback, if present */
-  if (global_selection_callback)
-    global_selection_callback (pi);
 }
 
 static package_info_callback *global_activation_callback;
@@ -1798,12 +1762,6 @@ make_global_package_list (GList *packages,
                              HILDON_MARGIN_DOUBLE);
   gtk_container_add (GTK_CONTAINER (alignment), scroller);
 
-  global_have_last_selection = false;
-  g_signal_connect
-    (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (tree))),
-     "changed",
-     G_CALLBACK (global_selection_changed), NULL);
-
   g_signal_connect (tree, "row-activated",
 		    G_CALLBACK (global_row_activated), NULL);
 
@@ -1827,28 +1785,6 @@ make_global_package_list (GList *packages,
 
   grab_focus_on_map (tree);
 
-  if (global_target_path)
-    {
-      GtkTreeIter iter;
-      GtkTreePath *target_path = gtk_tree_path_copy (global_target_path);
-
-      if (!gtk_tree_model_get_iter (GTK_TREE_MODEL (global_list_store),
-				    &iter, global_target_path))
-	gtk_tree_path_prev (global_target_path);
-
-      gtk_tree_view_set_cursor (GTK_TREE_VIEW (tree),
-				target_path,
-				NULL, FALSE);
-      gtk_tree_view_get_cursor (GTK_TREE_VIEW (tree),
-				&global_target_path,
-				NULL);
-      gtk_tree_path_free (target_path);
-
-      gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (tree),
-				    global_target_path,
-				    NULL, FALSE, 0, 0);
-    }
-
   return alignment;
 }
 
@@ -1858,8 +1794,6 @@ set_global_package_list (GList *packages,
 			 package_info_callback *selected,
 			 package_info_callback *activated)
 {
-  global_have_last_selection = false;
-
   if (global_list_store)
     {
       /* @FIXME:
