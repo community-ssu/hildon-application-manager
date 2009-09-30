@@ -1573,6 +1573,15 @@ global_row_activated (GtkTreeView *treeview,
       gtk_tree_model_get_iter (model, &iter, path))
     {
       package_info *pi;
+
+      /* Save global GtkTreePath */
+      if (global_target_path != NULL)
+        reset_global_target_path ();
+      global_target_path = gtk_tree_model_get_path (model, &iter);
+
+      /* Better save path for the previous element, if present */
+      gtk_tree_path_prev (global_target_path);
+
       gtk_tree_model_get (model, &iter, 0, &pi, -1);
       if (pi)
 	global_activation_callback (pi);
@@ -1785,6 +1794,11 @@ make_global_package_list (GList *packages,
 
   grab_focus_on_map (tree);
 
+  /* Scroll to desired cell, if needed */
+  if (global_target_path != NULL)
+    gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (tree),
+                                  global_target_path,
+                                  NULL, FALSE, 0, 0);
   return alignment;
 }
 

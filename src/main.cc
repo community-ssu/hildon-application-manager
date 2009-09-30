@@ -238,6 +238,10 @@ show_view (view *v)
 
   allow_updating ();
 
+  /* Reset global path when changing among views */
+  if (v != cur_view_struct)
+    reset_global_target_path ();
+
   v->cur_view = v->maker (v);
   v->dirty = false;
 
