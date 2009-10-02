@@ -563,6 +563,10 @@ nicify_section_name (const char *name)
   if (*name == '\0')
     return "-";
 
+  // "Other" is not an good section for ALL rank
+  if (!g_strcmp0 (name, "other"))
+    return NULL;
+
   // try the translation from the official text domain.
   char buf[200];
   snprintf (buf, 200, "ai_category_%s", name);
