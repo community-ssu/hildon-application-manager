@@ -612,7 +612,7 @@ create_section_info (GList **list_ptr,
 		     int rank, const char *name)
 {
   if (name)
-    name = nicify_section_name (canonicalize_section_name (name));
+    name = nicify_section_name (name);
 
   if (!name)
     {
@@ -629,7 +629,7 @@ create_section_info (GList **list_ptr,
     }
 
   section_info *si = find_section_info (list_ptr, rank, name);
-  
+
   if (si == NULL)
     {
       si = new section_info;
