@@ -1,3 +1,102 @@
+2009-10-02 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (create_section_info): Avoid call
+	canonicalize_section_name twice.
+	* src/main.cc (nicify_section_name): If the package is in "user/other"
+	it will belong to that rank too (NB#141426)
+	* src/apt-worker.cc (is_hidden_package): New function.
+	(cmd_get_package_list): skip uninstalled packages in the
+	user/hidden section. (NB#141792)
+
+2009-09-30 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (global_row_activated): Save global_target_path whenever
+	the user starts to process a package (tap on it).
+	(make_global_package_list): Restore treeview position if needed.
+	* src/main.cc (show_view): Reset globally stored GtkTreePath when
+	changing among views, to ensure no weird effects ever
+	happen. (NB#137942)
+	* src/util.cc (global_have_last_selection): Removed.
+	(global_last_selection): Removed.
+	(global_selection_changed): Removed.
+	(make_global_package_list): Don't connect the 'changed' signal on
+	the tree view, as that won't happen anymore with the
+	pannable. Removed code to force scrolling to a given position in the
+	treeview based  in the previously stored GtkTreePath.
+	(set_global_package_list): Don't reset global_have_last_selection.
+
+2009-09-29 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (install_operation_callback): Removed unused function.
+	* utils/maemo-confirm-text-user.c (add_pkgname_in_title): New function.
+	(main): concatenate the installed/updated package name if it exists as
+	a environment variable. (NB#140370)
+	* src/apt-worker.cc (set_pkgname_envvar): New function.
+	(unset_pkgname_envvar): New function.
+	(cmd_install_package): Set the environament variable with the package
+	name when the package is going to be installed. And unset it
+	afterwards.
+
+2009-09-28 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.cc (show_upgrade_applications_view_and_refresh_callback):
+	Don't set the package_list_ready flag to false keeping its
+	outside-defined value.
+	* src/util.cc (get_topmost_window): Return the main window if the top
+	window is the progress dialog. (NB#140765)
+
+2009-09-25 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* statusbar/ham-updates-status-menu-item.c
+	(struct _HamUpdatesStatusMenuItemPrivate): New field 'display_state'
+	to store the display state across all its potential changes.
+	(ham_updates_status_menu_item_init): Initialize display_state.
+	(ham_updates_status_menu_display_event_cb): Update display_state.
+	(blink_icon_on): Do nothing if the screen is off. (NB#136492)
+	* src/instr.cc (execute_install_package): Use g_strstrip () to remove
+	leading/trailing blanks in package name coming from a .install
+	file. (NB#140761)
+
+2009-09-25 David Kedves <dkedves@blumsoft.eu>
+
+	* src/apt-worker.cc (do_rescue): mount the /home partition and umount
+	it after the rescue operation finish.
+
+2009-09-24 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/main.c (show_view): remove set_operation_label and
+	set_operation_callback functions call
+	(available_package_selected): remove set_operation_callback and
+	set_operation_callback functions call
+	(uninstall_operation_callback): removed callback
+	(installed_package_selected): remove set_operation_callback,
+	set_operation_callback and set_operation_label functions call
+	(make_install_section_view): remove set_operation_label function call
+	(make_install_applications_view): remove set_operation_label function
+	call
+	(make_upgrade_applications_view): remove set_operation_label function
+	call
+	(make_uninstall_applications_view): remove set_operation_label
+	function call
+	(make_search_results_view): remove set_operation_label function call
+	(do_current_operation): remove function
+	(set_operation_label): remove function
+	(set_operation_callback): remove function
+	* src/main.h: remove do_current_operation symbol export
+	* src/repo.cc (add_catalogues_cont_2): Remove the file and id tags
+	from the catalogue and add the catalogue only if the descriptions
+	contains an url tag.
+
+2009-09-22 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/instr.cc (convert_catalogue): if no uri is provided, test id and
+	file keys.
+
+2009-09-18 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (start_entertaining_user): Set PANGO_ELLIPSIZE_END
+	ellipsize mode for the progress bar. (NB#139600)
+
 2009-09-24 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (window_delete_event): Added the screenshot

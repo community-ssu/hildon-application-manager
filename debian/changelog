@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.36~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.36) unstable; urgency=low
 
-  * 
+  [ Víctor Jáquez ]
+  * Fixed: NB#141792 - missing user/hidden section
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 24 Sep 2009 19:25:05 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 05 Oct 2009 20:30:00 +0100
 
 hildon-application-manager (1:2.2.35-1) unstable; urgency=low
 
