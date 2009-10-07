@@ -1,3 +1,10 @@
+hildon-application-manager (1:2.2.35-2) unstable; urgency=low
+
+  * Release 2.2.35-2
+  * Fixes: NB#141792 - missing user/hidden section
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 07 Oct 2009 12:12:30 +0200
+
 hildon-application-manager (1:2.2.35-1) unstable; urgency=low
 
   * Release 2.2.35-1
