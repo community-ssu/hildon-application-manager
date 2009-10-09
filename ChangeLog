@@ -1,7 +1,3 @@
-2009-10-09 David Kedves <kedazo@gmail.com>
-
-	* Release 2.2.36-1
-
 2009-10-02 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (create_section_info): Avoid call
