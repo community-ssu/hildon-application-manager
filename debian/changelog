@@ -1,13 +1,15 @@
-hildon-application-manager (1:2.2.37~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.36-1) unstable; urgency=low
 
-  * 
+  * Release 2.2.36-1
+  * Fixes: NB#136492 - Idle use time drops significantly when the update icon
+    blinks
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 05 Oct 2009 20:48:46 +0200
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 09 Oct 2009 10:49:21 +0200
 
 hildon-application-manager (1:2.2.36) unstable; urgency=low
 
   [ Víctor Jáquez ]
-  * Fixed: NB#141792 - missing user/hidden section
+  * Fixes: NB#141792 - missing user/hidden section
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 05 Oct 2009 20:30:00 +0100
 
