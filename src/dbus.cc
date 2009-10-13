@@ -112,14 +112,14 @@ static void
 dbus_install_packages (DBusConnection *conn, DBusMessage *message)
 {
   DBusError error;
-  
+
   dbus_int32_t xid;
   const char **packages;
   int n_packages;
 
   dbus_connection_ref (conn);
   dbus_message_ref (message);
-  
+
   dip_clos *c = new dip_clos;
   c->conn = conn;
   c->message = message;
@@ -136,7 +136,7 @@ dbus_install_packages (DBusConnection *conn, DBusMessage *message)
     {
       c->xid = xid;
       c->packages = packages;
-      
+
       with_initialized_packages (dip_with_initialized_packages, c);
     }
   else
@@ -192,12 +192,12 @@ dip_end (int result, void *data)
 
   DBusMessage *reply;
   dbus_int32_t dbus_result = result;
-	  
+
   reply = dbus_message_new_method_return (c->message);
   dbus_message_append_args (reply,
 			    DBUS_TYPE_INT32, &dbus_result,
 			    DBUS_TYPE_INVALID);
-  
+
   dbus_connection_send (c->conn, reply, NULL);
   dbus_message_unref (reply);
 
@@ -233,7 +233,7 @@ dbus_install_file (DBusConnection *conn, DBusMessage *message)
 
   dbus_connection_ref (conn);
   dbus_message_ref (message);
-  
+
   dif_clos *c = new dif_clos;
   c->conn = conn;
   c->message = message;
@@ -299,12 +299,12 @@ dif_end (int result, void *data)
 
   DBusMessage *reply;
   dbus_int32_t dbus_result = result;
-	  
+
   reply = dbus_message_new_method_return (c->message);
   dbus_message_append_args (reply,
 			    DBUS_TYPE_INT32, &dbus_result,
 			    DBUS_TYPE_INVALID);
-  
+
   dbus_connection_send (c->conn, reply, NULL);
   dbus_message_unref (reply);
 
@@ -332,7 +332,70 @@ icfu_end (bool ignored, void *data)
   end_interaction_flow ();
 }
 
-static DBusHandlerResult 
+static void dsp_with_initialized_packages (void *data);
+
+static void
+dbus_search_packages (DBusConnection *conn, DBusMessage *message)
+{
+  DBusError error;
+  const gchar *arg_pattern;
+  gchar *pattern;
+  dbus_int32_t dbus_result = 1;
+
+  dbus_connection_ref (conn);
+  dbus_message_ref (message);
+
+  dbus_error_init (&error);
+  if (dbus_message_get_args (message, &error,
+			     DBUS_TYPE_STRING, &arg_pattern,
+			     DBUS_TYPE_INVALID))
+    {
+      pattern = g_strdup (arg_pattern);
+
+      if (pattern != NULL)
+        with_initialized_packages (dsp_with_initialized_packages, pattern);
+    }
+  else
+    {
+      DBusMessage *reply;
+      reply = dbus_message_new_error (message,
+				      DBUS_ERROR_INVALID_ARGS,
+				      error.message);
+      dbus_connection_send (conn, reply, NULL);
+      dbus_message_unref (reply);
+      dbus_result = -1;
+    }
+
+  DBusMessage * reply = dbus_message_new_method_return (message);
+  dbus_message_append_args (reply,
+                            DBUS_TYPE_INT32, &dbus_result,
+                            DBUS_TYPE_INVALID);
+
+  dbus_connection_send (conn, reply, NULL);
+  dbus_message_unref (reply);
+
+  // So that we don't lose the reply when we exit below.
+  dbus_connection_flush (conn);
+
+  dbus_message_unref (message);
+  dbus_connection_unref (conn);
+}
+
+static void
+dsp_with_initialized_packages (void *data)
+{
+  gchar *pattern = (gchar *) data;
+
+  present_main_window ();
+  if (is_idle ())
+    {
+      show_install_applications_view ();
+      search_packages (pattern, true);
+    }
+  g_free (pattern);
+}
+
+static DBusHandlerResult
 dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 {
   if (dbus_message_is_method_call (message,
@@ -383,7 +446,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
       present_main_window ();
       if (is_idle ())
 	show_check_for_updates_view ();
-      
+
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
       dbus_message_unref (reply);
@@ -421,11 +484,19 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
       DBusMessage *reply;
 
       start_interaction_flow_when_idle (idle_check_for_updates, NULL);
-      
+
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
       dbus_message_unref (reply);
 
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  if (dbus_message_is_method_call (message,
+                                   "com.nokia.hildon_application_manager",
+                                   "search_packages"))
+    {
+      dbus_search_packages (conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 

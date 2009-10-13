@@ -136,6 +136,7 @@ void get_package_list_with_cont (void (*cont) (void *data), void *data);
 void show_current_details ();
 
 void show_check_for_updates_view ();
+void show_install_applications_view ();
 
 void install_named_package (const char *package,
                             void (*cont) (int n_successful, void *data),

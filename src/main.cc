@@ -1709,6 +1709,13 @@ show_check_for_updates_view ()
   show_view (&upgrade_applications_view);
 }
 
+void
+show_install_applications_view ()
+{
+  show_view (&install_applications_view);
+  set_current_view (&install_applications_view);
+}
+
 static void
 update_seen_updates_file (void)
 {
