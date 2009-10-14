@@ -1,6 +1,7 @@
 hildon-application-manager (1:2.2.37~unreleased) unstable; urgency=low
 
-  * 
+  [ Gabriel Schulhof ]
+  * Fixes: NB#142547 - Application manager missing grid view
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 09 Oct 2009 13:22:00 +0100
 

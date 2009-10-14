@@ -122,6 +122,7 @@ struct section_info {
 
   int rank;
   const char *name;
+  const char *untranslated_name;
 
   GList *packages;
 };

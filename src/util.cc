@@ -215,7 +215,7 @@ idle_callback (gpointer unused)
 	{
 	  void (*cont) (void *) = idle_cont;
 	  void *data = idle_data;
-	  
+
 	  idle_cont = NULL;
 	  idle_data = NULL;
 
@@ -947,10 +947,10 @@ entertainment_update_progress ()
 	entertainment_start_pulsing ();
       else
 	{
-	  entertainment_game *game = 
+	  entertainment_game *game =
 	    &entertainment.games[entertainment.current_game];
 	  double fraction =
-	    (entertainment.completed_fraction 
+	    (entertainment.completed_fraction
 	     + game->fraction * (((double)entertainment.already)
 				 / entertainment.total));
 
@@ -1213,7 +1213,7 @@ set_entertainment_fun (const char *sub_title,
 {
   if (game != -1
       && entertainment.games
-      && entertainment.games[entertainment.current_game].id != -1 
+      && entertainment.games[entertainment.current_game].id != -1
       && entertainment.games[entertainment.current_game].id != game)
     {
       int next_game;
@@ -1221,7 +1221,7 @@ set_entertainment_fun (const char *sub_title,
       for (next_game = entertainment.current_game + 1;
 	   next_game < entertainment.n_games; next_game++)
 	{
-	  if (entertainment.games[next_game].id == -1 
+	  if (entertainment.games[next_game].id == -1
 	      || entertainment.games[next_game].id == game)
 	    break;
 	}
@@ -1877,32 +1877,157 @@ section_clicked (GtkWidget *widget, gpointer data)
     global_section_activated (si);
 }
 
-static gboolean
-scroll_to_widget (GtkWidget *w, GdkEvent *, gpointer data)
+enum {
+  SECTION_LS_TEXT_COLUMN,
+  SECTION_LS_PIXBUF_COLUMN,
+  SECTION_LS_SI_COLUMN,
+  SECTION_LS_N_COLUMNS
+};
+
+static void
+icon_view_item_activated (GtkWidget *icon_view,
+                          GtkTreePath *tp,
+                          GtkTreeModel *tm)
 {
-  GtkWidget *scroller = (GtkWidget *)data;
-  GtkAdjustment *adj =
-    hildon_pannable_area_get_vadjustment (HILDON_PANNABLE_AREA (scroller));
+  GtkTreeIter itr;
 
-  // XXX - this assumes that the adjustement unit is 'pixels'.
+  if (gtk_tree_model_get_iter (tm, &itr, tp))
+    {
+      section_info *si = NULL;
 
-  gtk_adjustment_clamp_page (adj,
-			     w->allocation.y,
-			     w->allocation.y + w->allocation.height);
+      gtk_tree_model_get (tm, &itr, SECTION_LS_SI_COLUMN, &si, -1);
 
-  return FALSE;
+      section_clicked (icon_view, si);
+    }
 }
 
 static void
-unref_section_info (gpointer data, GClosure *closure)
+icon_view_is_dying (GtkTreeModel *tm, GtkIconView *stale_pointer)
 {
-  if (data == NULL)
-    return;
-  section_info *si = (section_info *)data;
-  si->unref();
+  section_info *si;
+  GtkTreeIter itr;
+
+  if (gtk_tree_model_get_iter_first (tm, &itr))
+    do
+      {
+        gtk_tree_model_get (tm, &itr, SECTION_LS_SI_COLUMN, &si, -1);
+        si->unref ();
+      }
+    while (gtk_tree_model_iter_next (tm, &itr));
+
+  g_object_unref (G_OBJECT (tm));
 }
 
-#define GRID_COLUMNS 2
+static void
+set_text_cr_style (GtkWidget *widget, GtkStyle *prev_style, GObject *cr_text)
+{
+  GtkStyle *style = NULL;
+
+  style = gtk_rc_get_style_by_paths (gtk_widget_get_settings (widget),
+				     "SmallSystemFont",
+				     NULL,
+				     G_TYPE_NONE);
+  if (style)
+    {
+      PangoAttrList *attr_list = pango_attr_list_new ();
+
+      if (attr_list)
+        {
+	  PangoAttribute *attr =
+	    pango_attr_font_desc_new (
+	      pango_font_description_copy (style->font_desc));
+
+	  pango_attr_list_insert (attr_list, attr);
+	  g_object_set (cr_text, "attributes", attr_list, NULL);
+        }
+    }
+}
+
+static GtkWidget *
+make_my_icon_view (GtkTreeModel *tm)
+{
+  GList *ls_cr = NULL, *itr = NULL;
+  GtkCellRenderer *cr_text = NULL;
+  GtkWidget *icon_view = GTK_WIDGET (g_object_new (
+                                    GTK_TYPE_ICON_VIEW,
+                                    "model", tm,
+                                    "text-column",    SECTION_LS_TEXT_COLUMN,
+                                    "pixbuf-column",  SECTION_LS_PIXBUF_COLUMN,
+                                    "column-spacing", HILDON_MARGIN_TRIPLE,
+                                    "row-spacing",    HILDON_MARGIN_TRIPLE,
+                                    NULL));
+
+  for (ls_cr = itr = gtk_cell_layout_get_cells (GTK_CELL_LAYOUT (icon_view));
+       itr;
+       itr = itr->next)
+    {
+      if (g_type_is_a (G_TYPE_FROM_INSTANCE (itr->data),
+                       GTK_TYPE_CELL_RENDERER_TEXT))
+        break;
+    }
+
+  if (itr)
+    cr_text = GTK_CELL_RENDERER (itr->data);
+  g_list_free (ls_cr);
+
+  if (cr_text) {
+    g_signal_connect (G_OBJECT (icon_view),
+                      "style-set",
+                      G_CALLBACK (set_text_cr_style),
+                      cr_text);
+    set_text_cr_style (icon_view, NULL, G_OBJECT(cr_text));
+    g_object_set(G_OBJECT(cr_text),
+                 "wrap-mode",  PANGO_WRAP_WORD,
+                 "wrap-width", 140,
+                 NULL);
+  }
+
+  return icon_view;
+}
+
+#define SECTION_ICON_PATTERN "/etc/hildon/theme/backgrounds/app_install_%s.png"
+
+static GdkPixbuf *
+pixbuf_from_si(section_info *si)
+{
+  GdkPixbuf *pb = NULL;
+  char *icon_fname;
+
+  /*
+   * Assumptions about section_info:
+   * 1. Non-NULL canonical name and rank of 2 == "other"
+   * 2. NULL canonical name == "all"
+   * 3. Non-NULL canonical name is a valid pre-defined section
+   *
+   * @FIXME: The "programming" category shouldn't be there.
+   * http://wiki.maemo.org/Task:Package_categories states that the category's
+   * canonical name should be "development", not "programming". mario says that
+   * this is a bug in the l10n files.
+   */
+
+  icon_fname = g_strdup_printf (SECTION_ICON_PATTERN,
+                                si->untranslated_name
+                                  ? 2 == si->rank
+                                    ? "other"
+                                    : si->untranslated_name
+                                  : "all");
+  pb = gdk_pixbuf_new_from_file (icon_fname, NULL);
+
+  if (!pb)
+    {
+      /*
+       * If all else fails, try "other"
+       * This should never happen
+       */
+      g_free(icon_fname);
+      icon_fname = g_strdup_printf(SECTION_ICON_PATTERN, "other");
+      pb = gdk_pixbuf_new_from_file (icon_fname, NULL);
+    }
+
+  g_free (icon_fname);
+
+  return pb;
+}
 
 GtkWidget *
 make_global_section_list (GList *sections, section_activated *act)
@@ -1919,65 +2044,44 @@ make_global_section_list (GList *sections, section_activated *act)
       return label;
     }
 
-  GtkWidget *table = gtk_table_new (1, GRID_COLUMNS, TRUE);
   GtkWidget *scroller;
-
-  bool first_button = true;
+  GtkListStore *ls = NULL;
+  GtkTreeIter itr;
+  GtkWidget *icon_view;
 
   scroller = hildon_pannable_area_new ();
 
-  int row = 0;
-  int col = 0;
+  ls = GTK_LIST_STORE (g_object_ref_sink (gtk_list_store_new (
+                                                          SECTION_LS_N_COLUMNS,
+                                                          G_TYPE_STRING,
+                                                          GDK_TYPE_PIXBUF,
+                                                          G_TYPE_POINTER)));
   for (GList *s = sections; s; s = s ->next)
     {
       section_info *si = (section_info *)s->data;
-      GtkWidget *label = gtk_label_new (si->name);
-      gtk_misc_set_padding (GTK_MISC (label), 0, 14);
-      gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
-      GtkWidget *btn = hildon_gtk_button_new (HILDON_SIZE_FINGER_HEIGHT);
-      gtk_container_add (GTK_CONTAINER (btn), label);
-      gtk_table_attach (GTK_TABLE (table), btn,
-                        col, col + 1,
-                        row, row + 1,
-                        GtkAttachOptions (GTK_EXPAND | GTK_FILL),
-                        GtkAttachOptions (GTK_SHRINK | GTK_FILL),
-                        0, 0);
-      col += 1;
-      if (col >= GRID_COLUMNS)
-	{
-	  col = 0;
-	  row++;
-	}
 
-      si->ref();
-      g_signal_connect_data (btn, "clicked",
-                             G_CALLBACK (section_clicked), si,
-                             unref_section_info, G_CONNECT_AFTER);
+      gtk_list_store_append (ls, &itr);
+      gtk_list_store_set (ls, &itr,
+                          SECTION_LS_TEXT_COLUMN,   si->name,
+                          SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si(si),
+                          SECTION_LS_SI_COLUMN,     si,
+                          -1);
 
-      if (first_button)
-	grab_focus_on_map (btn);
-      first_button = false;
-
-      g_signal_connect (btn, "focus-in-event",
-			G_CALLBACK (scroll_to_widget), scroller);
+      si->ref ();
     }
 
-  hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scroller),
-                                          table);
+  icon_view = make_my_icon_view(GTK_TREE_MODEL(ls));
+  g_object_weak_ref (G_OBJECT(icon_view), (GWeakNotify)icon_view_is_dying, ls);
+  g_signal_connect (G_OBJECT (icon_view),
+                    "item-activated",
+                    G_CALLBACK (icon_view_item_activated),
+                    ls);
+  gtk_container_add (GTK_CONTAINER(scroller), icon_view);
 
   global_section_list = scroller;
   g_object_ref (scroller);
 
-  GtkWidget *alignment;
-  alignment = gtk_alignment_new (0.5, 0.5, 1.0, 1.0);
-  gtk_alignment_set_padding (GTK_ALIGNMENT (alignment),
-                             HILDON_MARGIN_HALF,
-                             0,
-                             HILDON_MARGIN_DOUBLE,
-                             HILDON_MARGIN_DOUBLE);
-  gtk_container_add (GTK_CONTAINER (alignment), scroller);
-
-  return alignment;
+  return scroller;
 }
 
 void
@@ -2016,7 +2120,7 @@ make_select_package_list_store (GList *package_list, int64_t *total_size)
     {
       package_info *pi = (package_info *) node->data;
       GtkTreeIter iter;
-      gboolean installable = (pi->available_version != NULL) && (strlen(pi->available_version) > 0); 
+      gboolean installable = (pi->available_version != NULL) && (strlen(pi->available_version) > 0);
       char package_size_str[20] = "";
       if (installable)
         size_string_general (package_size_str, 20,

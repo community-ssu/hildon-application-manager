@@ -476,6 +476,7 @@ section_info::section_info ()
   ref_count = 1;
   rank = 1;
   name = NULL;
+  untranslated_name = NULL;
   packages = NULL;
 }
 
@@ -611,8 +612,13 @@ static section_info *
 create_section_info (GList **list_ptr,
 		     int rank, const char *name)
 {
+  const char *untranslated_name = NULL;
+
   if (name)
-    name = nicify_section_name (name);
+    {
+      untranslated_name = canonicalize_section_name (name);
+      name = nicify_section_name (name);
+    }
 
   if (!name)
     {
@@ -634,6 +640,7 @@ create_section_info (GList **list_ptr,
     {
       si = new section_info;
       si->rank = rank;
+      si->untranslated_name = untranslated_name;
       si->name = name;
       si->packages = NULL;
       if (list_ptr)
