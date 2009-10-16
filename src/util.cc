@@ -1998,11 +1998,6 @@ pixbuf_from_si(section_info *si)
    * 1. Non-NULL canonical name and rank of 2 == "other"
    * 2. NULL canonical name == "all"
    * 3. Non-NULL canonical name is a valid pre-defined section
-   *
-   * @FIXME: The "programming" category shouldn't be there.
-   * http://wiki.maemo.org/Task:Package_categories states that the category's
-   * canonical name should be "development", not "programming". mario says that
-   * this is a bug in the l10n files.
    */
 
   icon_fname = g_strdup_printf (SECTION_ICON_PATTERN,
