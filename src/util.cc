@@ -2051,11 +2051,11 @@ make_global_section_list (GList *sections, section_activated *act)
 
   scroller = hildon_pannable_area_new ();
 
-  ls = GTK_LIST_STORE (g_object_ref_sink (gtk_list_store_new (
-                                                          SECTION_LS_N_COLUMNS,
-                                                          G_TYPE_STRING,
-                                                          GDK_TYPE_PIXBUF,
-                                                          G_TYPE_POINTER)));
+  ls = gtk_list_store_new (SECTION_LS_N_COLUMNS,
+                           G_TYPE_STRING,
+                           GDK_TYPE_PIXBUF,
+                           G_TYPE_POINTER);
+
   for (GList *s = sections; s; s = s ->next)
     {
       section_info *si = (section_info *)s->data;
