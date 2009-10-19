@@ -1,3 +1,52 @@
+2009-10-16 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (pixbuf_from_si): Removed comment which must belong
+	to a previous version of the code, as there's nothing about a
+	"programming" category right now in this function.
+	(make_global_section_list): Don't use g_object_ref_sink as
+	GtkListStore is not a subclass of GInitiallyUnowned, hence calling
+	to this function would add an additional (wrong) reference to the
+	model, as if g_object_ref was used, instead of sinking a floating
+	reference, which does not exist for these kind of objects.
+
+2009-10-14 Gabriel Schulhof <nix@idefix.go-nix.ca>
+
+	* debian/changelog: Document changes
+
+	* src/main.cc (section_info::section_info): Initialize
+	untranslated_name to NULL
+	(create_section_info): Save the untranslated_name separately in
+	the section_info structure.
+
+	* src/main.h (section_info): Add new member untranslated_name to
+	track the package's canonical name.
+
+	* src/util.cc (icon_view_item_activated): New function to replace
+	clicking on section button.
+	(icon_view_is_dying): Weak reference for unrefing the icon view's
+	model and the section_info structures stored therein.
+	(set_text_cr_style): Keep icon view labels sized
+	"SmallSystemFont".
+	(make_my_icon_view): Create the icon view.
+	(pixbuf_from_si): Logic for deciding which pixbuf to associate
+	with a given section
+	(make_global_section_list): Replace the contents of the
+	HildonPannableArea with the newly created icon view. The
+	GtkAlignment with the magic paddings is no longer necessary. In
+	fact, it must be absent, or it compresses the HildonPannableArea
+	to the point where a horizontal indicator can be seen during
+	panning.
+
+2009-10-13 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/dbus.cc (dbus_search_packages)
+	(dsp_with_initialized_packages): new functions.
+	(dbus_handler): add the handler for the new command.
+
+	* src/main.cc (show_install_applications_view): new function.
+
+	* src/main.h: export show_install_applications_view.
+
 2009-10-02 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/main.cc (create_section_info): Avoid call
