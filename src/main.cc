@@ -1773,7 +1773,7 @@ make_upgrade_applications_view (view *v)
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
       update_seen_updates_file ();
-      enable_update_all (true);
+      enable_update_all (upgradeable_packages);
     }
 
   // maybe_refresh_package_cache_without_user ();
