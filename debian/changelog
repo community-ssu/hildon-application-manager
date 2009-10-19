@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.38~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.37-1) unstable; urgency=low
 
-  * 
+  [ Víctor Jáquez ]
+  * Fixes: NB#142702 - Missing API for filtering packages
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 19 Oct 2009 09:48:17 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 19 Oct 2009 17:17:15 +0100
 
 hildon-application-manager (1:2.2.37) unstable; urgency=low
 
