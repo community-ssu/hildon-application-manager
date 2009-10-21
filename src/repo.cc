@@ -341,8 +341,11 @@ struct cat_dialog_closure {
   xexp *catalogues_xexp;
   bool dirty;
   bool show_only_errors;
+  bool has_failing_catalogues;
 
   bool showing_catalogues;
+
+  GtkWidget *dialog;
 
   catcache *selected_cat;
   GtkTreeIter selected_iter;
@@ -416,12 +419,13 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
   bool should_ask_the_pill_question = false;
 
   cat_edit_closure *c = (cat_edit_closure *)clos;
+  cat_dialog_closure *d = c->cat_dialog;
 
   if (c->type == cat_readonly) // it cames from an .install file
     ;
   else if (response == REPO_RESPONSE_REMOVE)
     {
-      catcache *cat = c->cat_dialog->selected_cat;
+      catcache *cat = d->selected_cat;
       if (cat == NULL)
 	return;
 
@@ -430,7 +434,7 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
       remove_cat_clos *rc = new remove_cat_clos;
       rc->loop = loop;
-      rc->cat_dialog = c->cat_dialog;
+      rc->cat_dialog = d;
       rc->catalogue = cat->catalogue_xexp;
 
       ask_yes_no (text, remove_cat_cont, rc);
@@ -446,8 +450,8 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
         hildon_check_button_get_active (HILDON_CHECK_BUTTON
                                         (c->disabled_button));
       xexp_aset_bool (c->catalogue, "disabled", disabled);
-      set_cat_list (c->cat_dialog, &c->cat_dialog->selected_iter);
-      c->cat_dialog->dirty = true;
+      set_cat_list (d, &d->selected_iter);
+      d->dirty = true;
     }
   else if (response == GTK_RESPONSE_OK && c->type == cat_editable)
     {
@@ -508,16 +512,16 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
       if (all_whitespace (dist))
         dist = NULL;
 
-      reset_cat_list (c->cat_dialog);
+      reset_cat_list (d);
       if (c->isnew)
-        xexp_append_1 (c->cat_dialog->catalogues_xexp, c->catalogue);
+        xexp_append_1 (d->catalogues_xexp, c->catalogue);
       set_catalogue_name (c->catalogue, name);
       xexp_aset_bool (c->catalogue, "disabled", disabled);
       xexp_aset_text (c->catalogue, "components", comps);
       xexp_aset_text (c->catalogue, "dist", dist);
       xexp_aset_text (c->catalogue, "uri", uri);
-      set_cat_list (c->cat_dialog, &c->cat_dialog->selected_iter);
-      c->cat_dialog->dirty = true;
+      set_cat_list (d, &d->selected_iter);
+      d->dirty = true;
 
       g_free (uri);
       g_free (dist);
@@ -537,6 +541,10 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 
   if (should_ask_the_pill_question)
     ask_the_pill_question ();
+
+  /* Emit response signal if needed */
+  if (d && d->dialog && d->show_only_errors && !d->has_failing_catalogues)
+    gtk_dialog_response (GTK_DIALOG (d->dialog), GTK_RESPONSE_CLOSE);
 }
 
 struct scroll_to_params {
@@ -1022,6 +1030,7 @@ static void
 set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
 {
   gint position = 0;
+  guint n_failed_cats = 0;
   catcache **catptr = &c->caches;
   GtkTreePath *path_to_select = NULL;
 
@@ -1056,7 +1065,12 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
   for (xexp *catx = xexp_first (c->catalogues_xexp); catx;
        catx = xexp_rest (catx))
     {
-      if (c->show_only_errors && !cat_has_errors (catx))
+      gboolean has_errors = cat_has_errors (catx);
+
+      if (has_errors)
+        n_failed_cats++;
+
+      if (c->show_only_errors && !has_errors)
 	continue;
 
       catcache *cat = make_catcache_from_xexp (c, catx);
@@ -1097,6 +1111,9 @@ set_cat_list (cat_dialog_closure *c, GtkTreeIter *iter_to_select)
 	  position += 1;
 	}
     }
+
+  /* Set flag to know there are failing catalogues */
+  c->has_failing_catalogues = (n_failed_cats > 0);
 
   /* Set the focus in the right list element */
   GtkTreeSelection *tree_selection =
@@ -1196,6 +1213,8 @@ cat_response (GtkDialog *dialog, gint response, gpointer clos)
       current_cat_dialog_clos = NULL;
       hide_updating ();
 
+      g_object_unref (c->dialog);
+
       delete c;
     }
 }
@@ -1268,6 +1287,7 @@ show_catalogue_dialog (xexp *catalogues,
   c->catalogues_xexp = catalogues;
   c->dirty = false;
   c->show_only_errors = show_only_errors;
+  c->has_failing_catalogues = false;
   c->showing_catalogues = false;
   c->selected_cat = NULL;
   c->cont = cont;
@@ -1277,7 +1297,10 @@ show_catalogue_dialog (xexp *catalogues,
 
   current_cat_dialog_clos = c;
 
+  /* Create dialog (and save reference) */
   dialog = gtk_dialog_new ();
+  c->dialog = dialog;
+  g_object_ref (dialog);
 
   if (show_only_errors)
     gtk_window_set_title (GTK_WINDOW (dialog), _("ai_ti_failed_repositories"));
