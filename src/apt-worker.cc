@@ -3378,6 +3378,28 @@ encode_broken (pkgCache::PkgIterator &pkg,
     }
 }
 
+static const char *
+catalogue_name (xexp *x)
+{
+  const char *name = NULL;
+  xexp *n = xexp_aref (x, "name");
+  if (n == NULL)
+    ;
+  else if (xexp_is_text (n))
+    name = xexp_text (n);
+  else
+    {
+      xexp *t = (lc_messages && *lc_messages
+		 ? xexp_aref (n, lc_messages)
+		 : NULL);
+      if (t == NULL)
+        t = xexp_aref (n, "default");
+      if (t && xexp_is_text (t))
+        name = xexp_text (t);
+    }
+  return name;
+}
+
 static gchar*
 chop_uri (gchar *uri)
 {
@@ -3422,7 +3444,7 @@ find_catalogue_by_info (const char* p_uri,
                           if (!g_strcmp0 (comps[i], p_comp))
                             {
                               g_strfreev (comps);
-                              catname = g_strdup (xexp_aref_text (cat, "name"));
+                              catname = g_strdup (catalogue_name (cat));
                               goto done;
                             }
                         }
@@ -3432,7 +3454,7 @@ find_catalogue_by_info (const char* p_uri,
               else
                 {
                   // it has no components defined
-                  catname = g_strdup (xexp_aref_text (cat, "name"));
+                  catname = g_strdup (catalogue_name (cat));
                   goto done;
                 }
             }
@@ -3463,15 +3485,13 @@ encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
             {
               if (List.FindIndex (Vf.File (), Index))
                 {
-                  char *archive_info, *archive_uri, *dist, *comp;
-
-                  archive_uri = archive_info = comp = dist = NULL;
+                  char *dist = NULL;
 
                   // extract the uri
-                  archive_uri =
+                  char *archive_uri =
                     chop_uri (g_strdup (Index->ArchiveURI ("").c_str ()));
 
-                  archive_info =
+                  char *archive_info =
                     g_strdup (Index->ArchiveInfo (Version).c_str ());
 
                   // extract the dist
@@ -3484,7 +3504,7 @@ encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
                     }
 
                   // the component
-                  comp = g_strdup (Vf.File ().Component ());
+                  char *comp = g_strdup (Vf.File ().Component ());
 
                   // nasty hack for some repositories which join the
                   // component to the distribution (dist/comp)
@@ -3507,7 +3527,11 @@ encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
                   if (catalogue != NULL)
                     response.encode_string (catalogue);
                   else
-                    response.encode_string (archive_info);
+                    {
+                      catalogue = g_strdup_printf ("%s %s %s",
+                                                   archive_uri, dist, comp);
+                      response.encode_string (catalogue);
+                    }
 
                   g_free (archive_uri);
                   g_free (dist);
