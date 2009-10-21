@@ -1943,6 +1943,9 @@ set_text_cr_style (GtkWidget *widget, GtkStyle *prev_style, GObject *cr_text)
     }
 }
 
+#define ICONS_GRID_ITEM_WIDTH HILDON_ICON_PIXEL_SIZE_XLARGE \
+  + HILDON_MARGIN_DEFAULT + HILDON_MARGIN_HALF
+
 static GtkWidget *
 make_my_icon_view (GtkTreeModel *tm)
 {
@@ -1953,8 +1956,9 @@ make_my_icon_view (GtkTreeModel *tm)
                                     "model", tm,
                                     "text-column",    SECTION_LS_TEXT_COLUMN,
                                     "pixbuf-column",  SECTION_LS_PIXBUF_COLUMN,
-                                    "column-spacing", HILDON_MARGIN_TRIPLE,
-                                    "row-spacing",    HILDON_MARGIN_TRIPLE,
+                                    "column-spacing", HILDON_MARGIN_DOUBLE,
+                                    "item-width", ICONS_GRID_ITEM_WIDTH,
+                                    "row-spacing",    HILDON_MARGIN_DOUBLE,
                                     NULL));
 
   for (ls_cr = itr = gtk_cell_layout_get_cells (GTK_CELL_LAYOUT (icon_view));
@@ -1978,7 +1982,7 @@ make_my_icon_view (GtkTreeModel *tm)
     set_text_cr_style (icon_view, NULL, G_OBJECT(cr_text));
     g_object_set(G_OBJECT(cr_text),
                  "wrap-mode",  PANGO_WRAP_WORD,
-                 "wrap-width", 140,
+                 "wrap-width", ICONS_GRID_ITEM_WIDTH,
                  NULL);
   }
 
