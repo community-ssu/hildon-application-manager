@@ -1,3 +1,12 @@
+2009-10-21 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (ICONS_GRID_ITEM_WIDTH): New define to specify the
+	desired width for every cell in the GtkIconView icons grid.
+	(make_my_icon_view): Use HILDON_MARGIN_DOUBLE (instead of TRIPLE)
+	to space columns in the grid and specify a fixed width for all of
+	them. Use ICONS_GRID_ITEM_WIDTH also to set wrap-width property
+	for the text cell renderer.
+
 2009-10-16 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/util.cc (pixbuf_from_si): Removed comment which must belong
