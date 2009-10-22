@@ -2049,6 +2049,7 @@ make_global_section_list (GList *sections, section_activated *act)
   GtkWidget *icon_view;
 
   scroller = hildon_pannable_area_new ();
+  g_object_set (G_OBJECT (scroller), "vovershoot-max", 0, NULL);
 
   ls = gtk_list_store_new (SECTION_LS_N_COLUMNS,
                            G_TYPE_STRING,
