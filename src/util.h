@@ -629,5 +629,10 @@ bool running_in_scratchbox ();
 */
 void maybe_take_screenshot (GtkWindow *win);
 
+/* Hack for HildonPannableArea to use its deprecated policy
+   HILDON_SIZE_REQUEST_CHILDEN
+ */
+void hildon_pannable_area_set_size_request_children (HildonPannableArea *area);
+
 #endif /* !UTIL_H */
 

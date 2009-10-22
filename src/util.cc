@@ -748,6 +748,30 @@ what_the_fock_p ()
   irritate_user (_("ai_ni_operation_failed"));
 }
 
+static void
+pannable_area_size_request (GtkWidget *widget, GtkRequisition *requisition,
+                            gpointer user_data)
+{
+  GtkRequisition child_req;
+  GtkWidget *child = gtk_bin_get_child (GTK_BIN (widget));
+
+  if (child && GTK_IS_VIEWPORT (child))
+    child = gtk_bin_get_child (GTK_BIN (child));
+
+  if (child)
+    {
+      gtk_widget_size_request (child, &child_req);
+      requisition->height = MIN (350, child_req.height);
+    }
+}
+
+void
+hildon_pannable_area_set_size_request_children (HildonPannableArea *area)
+{
+  g_signal_connect (area, "size-request",
+                    G_CALLBACK (pannable_area_size_request), NULL);
+}
+
 static GtkWidget *
 make_scare_user_with_legalese (bool multiple)
 {
