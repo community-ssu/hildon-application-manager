@@ -32,13 +32,10 @@
 #include <sys/statvfs.h>
 #include <signal.h>
 
-#include <gtk/gtk.h>
 #include <gconf/gconf-client.h>
-#include <hildon/hildon.h>
 #include <hildon/hildon-file-chooser-dialog.h>
 #include <gdk/gdkkeysyms.h>
 #include <conic.h>
-#include <libgnomevfs/gnome-vfs.h>
 #include <dbus/dbus.h>
 
 #include "util.h"

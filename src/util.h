@@ -27,6 +27,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <libgnomevfs/gnome-vfs.h>
+#include <hildon/hildon.h>
 
 #include "main.h"
 
