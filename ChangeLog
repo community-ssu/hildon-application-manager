@@ -1,3 +1,8 @@
+2009-10-22 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (make_global_section_list): Set the 'vovershoot-max'
+	property for the pannable area to '0' (no bouncing).
+
 2009-10-21 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/util.cc (ICONS_GRID_ITEM_WIDTH): New define to specify the
