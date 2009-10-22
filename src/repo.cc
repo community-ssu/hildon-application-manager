@@ -657,8 +657,8 @@ show_cat_edit_dialog (cat_dialog_closure *cat_dialog, xexp *catalogue,
   if (detail)
     gtk_widget_set_size_request (scrolledw, -1, 350);
   else
-    g_object_set (G_OBJECT(scrolledw),
-                  "size-request-policy", HILDON_SIZE_REQUEST_CHILDREN, NULL);
+    hildon_pannable_area_set_size_request_children
+      (HILDON_PANNABLE_AREA (scrolledw));
 
   vbox = gtk_vbox_new (FALSE, 0);
   hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scrolledw),

@@ -785,8 +785,7 @@ make_scare_user_with_legalese (bool multiple)
 
   scroll = hildon_pannable_area_new ();
   hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scroll), label);
-  hildon_pannable_area_set_size_request_policy (HILDON_PANNABLE_AREA (scroll),
-                                                HILDON_SIZE_REQUEST_CHILDREN);
+  hildon_pannable_area_set_size_request_children (HILDON_PANNABLE_AREA (scroll));
 
   return scroll;
 }
