@@ -37,6 +37,7 @@
 #include <gdk/gdkkeysyms.h>
 #include <conic.h>
 #include <dbus/dbus.h>
+#include <X11/Xatom.h>
 
 #include "util.h"
 #include "details.h"
@@ -903,7 +904,18 @@ static void
 progressbar_dialog_realized (GtkWidget *widget, gpointer data)
 {
   GdkWindow *win = widget->window;
+  GdkDisplay *display = gdk_drawable_get_display (win);
+  Atom atom = gdk_x11_get_xatom_by_name_for_display
+    (display, "_HILDON_NOTIFICATION_TYPE");
+  const gchar *nottype = "_HILDON_NOTIFICATION_TYPE_CONFIRMATION";
+
   gdk_window_set_decorations (win, GDK_DECOR_BORDER);
+
+  /* Set the _HILDON_NOTIFICATION_TYPE property so Matchbox places the
+     window correctly */
+  XChangeProperty (GDK_WINDOW_XDISPLAY (win), GDK_WINDOW_XID (win),
+                   atom, XA_STRING, 8, PropModeReplace, (guchar *) nottype,
+                   strlen (nottype));
 }
 
 struct entertainment_data {
@@ -1081,13 +1093,13 @@ start_entertaining_user (gboolean with_button)
       gtk_dialog_set_has_separator (GTK_DIALOG (entertainment.dialog), FALSE);
       gtk_window_set_position (GTK_WINDOW (entertainment.dialog),
                                GTK_WIN_POS_CENTER_ON_PARENT);
-//       gtk_window_set_type_hint (GTK_WINDOW (entertainment.dialog),
-//                                 GDK_WINDOW_TYPE_HINT_NOTIFICATION);
+      gtk_window_set_type_hint (GTK_WINDOW (entertainment.dialog),
+                                GDK_WINDOW_TYPE_HINT_NOTIFICATION);
 
       /* Add the internal box */
-      box = gtk_hbox_new (FALSE, HILDON_MARGIN_DOUBLE);
-      gtk_box_pack_start (GTK_BOX (GTK_DIALOG (entertainment.dialog)->vbox),
-                          box, TRUE, TRUE, HILDON_MARGIN_DEFAULT);
+      box = gtk_vbox_new (FALSE, HILDON_MARGIN_DOUBLE);
+      gtk_container_add
+        (GTK_CONTAINER (GTK_DIALOG (entertainment.dialog)->vbox), box);
 
       /* Add the progress bar */
       entertainment.bar = gtk_progress_bar_new ();
@@ -1096,8 +1108,7 @@ start_entertaining_user (gboolean with_button)
       gtk_progress_bar_set_ellipsize (GTK_PROGRESS_BAR (entertainment.bar),
                                       PANGO_ELLIPSIZE_END);
       g_object_set (G_OBJECT (entertainment.bar), "text-xalign", 0.5, NULL);
-      gtk_box_pack_start (GTK_BOX (box), entertainment.bar, TRUE, TRUE,
-                          HILDON_MARGIN_DOUBLE);
+      gtk_box_pack_start (GTK_BOX (box), entertainment.bar, FALSE, FALSE, 0);
 
       gtk_dialog_set_default_response (GTK_DIALOG (entertainment.dialog),
                                        GTK_RESPONSE_CANCEL);
@@ -1118,7 +1129,11 @@ start_entertaining_user (gboolean with_button)
 
           gtk_widget_show (entertainment.cancel_button);
           gtk_widget_set_no_show_all (entertainment.cancel_button, FALSE);
+
+          gtk_widget_show (GTK_DIALOG (entertainment.dialog)->action_area);
 	}
+      else
+        gtk_widget_hide (GTK_DIALOG (entertainment.dialog)->action_area);
 
       /* Connect signals */
       g_signal_connect (entertainment.dialog, "delete-event",
