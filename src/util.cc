@@ -2348,7 +2348,8 @@ select_package_list_with_info (void *data)
   list_store = make_select_package_list_store (c->package_list, &total_size);
 
   /* Set the message dialog */
-  message_label = gtk_label_new (c->question);
+  message_label = make_small_label (c->question);
+  gtk_label_set_line_wrap (GTK_LABEL (message_label), TRUE);
   gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), message_label,
 		      FALSE, FALSE, padding);
 
