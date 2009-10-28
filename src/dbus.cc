@@ -322,6 +322,55 @@ dif_end (int result, void *data)
   maybe_exit ();
 }
 
+static void
+dbus_top_application (DBusConnection *conn, DBusMessage *message)
+{
+  DBusMessage *reply;
+
+  present_main_window ();
+  maybe_init_packages_list ();
+
+  reply = dbus_message_new_method_return (message);
+  dbus_connection_send (conn, reply, NULL);
+  dbus_message_unref (reply);
+}
+
+static void
+dbus_show_check_for_updates_view (DBusConnection *conn, DBusMessage *message)
+{
+  DBusMessage *reply;
+
+  present_main_window ();
+  maybe_init_packages_list ();
+
+  if (is_idle ())
+    show_check_for_updates_view ();
+
+  reply = dbus_message_new_method_return (message);
+  dbus_connection_send (conn, reply, NULL);
+  dbus_message_unref (reply);
+}
+
+static void
+dbus_showing_check_for_updates_view (DBusConnection *conn, DBusMessage *message)
+{
+  DBusMessage *reply;
+  gboolean showing_view = FALSE;
+
+  /* Check if 'check for updates' view is being shown */
+  if (get_current_view_id () == UPGRADE_APPLICATIONS_VIEW)
+    showing_view = TRUE;
+
+  /* Build reply message with the required boolean value */
+  reply = dbus_message_new_method_return (message);
+  dbus_message_append_args (reply,
+                            DBUS_TYPE_BOOLEAN , &showing_view,
+                            DBUS_TYPE_INVALID);
+
+  dbus_connection_send (conn, reply, NULL);
+  dbus_message_unref (reply);
+}
+
 static void icfu_end (bool ignored, void *data);
 
 static void
@@ -334,6 +383,19 @@ static void
 icfu_end (bool ignored, void *data)
 {
   end_interaction_flow ();
+}
+
+static void
+dbus_check_for_updates (DBusConnection *conn, DBusMessage *message)
+{
+  DBusMessage *reply;
+
+  maybe_init_packages_list ();
+  start_interaction_flow_when_idle (idle_check_for_updates, NULL);
+
+  reply = dbus_message_new_method_return (message);
+  dbus_connection_send (conn, reply, NULL);
+  dbus_message_unref (reply);
 }
 
 static void dsp_with_initialized_packages (void *data);
@@ -433,15 +495,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 				   "com.nokia.hildon_application_manager",
 				   "top_application"))
     {
-      DBusMessage *reply;
-
-      present_main_window ();
-      maybe_init_packages_list ();
-
-      reply = dbus_message_new_method_return (message);
-      dbus_connection_send (conn, reply, NULL);
-      dbus_message_unref (reply);
-
+      dbus_top_application (conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -449,18 +503,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 				   "com.nokia.hildon_application_manager",
 				   "show_check_for_updates_view"))
     {
-      DBusMessage *reply;
-
-      present_main_window ();
-      maybe_init_packages_list ();
-
-      if (is_idle ())
-	show_check_for_updates_view ();
-
-      reply = dbus_message_new_method_return (message);
-      dbus_connection_send (conn, reply, NULL);
-      dbus_message_unref (reply);
-
+      dbus_show_check_for_updates_view (conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -468,22 +511,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 				   "com.nokia.hildon_application_manager",
 				   "showing_check_for_updates_view"))
     {
-      DBusMessage *reply;
-      gboolean showing_view = FALSE;
-
-      /* Check if 'check for updates' view is being shown */
-      if (get_current_view_id () == UPGRADE_APPLICATIONS_VIEW)
-	showing_view = TRUE;
-
-      /* Build reply message with the required boolean value */
-      reply = dbus_message_new_method_return (message);
-      dbus_message_append_args (reply,
-				DBUS_TYPE_BOOLEAN , &showing_view,
-				DBUS_TYPE_INVALID);
-
-      dbus_connection_send (conn, reply, NULL);
-      dbus_message_unref (reply);
-
+      dbus_showing_check_for_updates_view (conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -491,15 +519,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 				   "com.nokia.hildon_application_manager",
 				   "check_for_updates"))
     {
-      DBusMessage *reply;
-
-      maybe_init_packages_list ();
-      start_interaction_flow_when_idle (idle_check_for_updates, NULL);
-
-      reply = dbus_message_new_method_return (message);
-      dbus_connection_send (conn, reply, NULL);
-      dbus_message_unref (reply);
-
+      dbus_check_for_updates (conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
