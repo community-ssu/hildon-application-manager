@@ -202,6 +202,8 @@ void show_help ();
 
 void with_initialized_packages (void (*cont) (void *data), void *data);
 
+void maybe_init_packages_list (void);
+
 osso_context_t *get_osso_context (void);
 
 #endif /* !MAIN_H */

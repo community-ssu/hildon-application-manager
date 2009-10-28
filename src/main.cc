@@ -2617,6 +2617,18 @@ with_initialized_packages (void (*cont) (void *data), void *data)
     }
 }
 
+void maybe_init_packages_list (void)
+{
+  static bool already_initialized = false;
+
+  if (already_initialized)
+    return;
+  already_initialized = true;
+
+  get_package_list_with_cont (notice_initial_packages_available, NULL);
+  save_backup_data ();
+}
+
 osso_context_t *
 get_osso_context ()
 {
@@ -2685,11 +2697,11 @@ main (int argc, char **argv)
 
   create_menu ();
 
-  get_package_list_with_cont (notice_initial_packages_available, NULL);
-  save_backup_data ();
-
   if (show)
-    present_main_window ();
+    {
+      maybe_init_packages_list ();
+      present_main_window ();
+    }
 
   gtk_main ();
 }

@@ -27,6 +27,7 @@
 #include <libintl.h>
 #include <libhal.h>
 
+#include "apt-worker-client.h"
 #include "dbus.h"
 #include "util.h"
 #include "log.h"
@@ -137,6 +138,7 @@ dbus_install_packages (DBusConnection *conn, DBusMessage *message)
       c->xid = xid;
       c->packages = packages;
 
+      maybe_init_packages_list ();
       with_initialized_packages (dip_with_initialized_packages, c);
     }
   else
@@ -246,6 +248,8 @@ dbus_install_file (DBusConnection *conn, DBusMessage *message)
 			     DBUS_TYPE_INVALID))
     {
       c->xid = xid;
+
+      maybe_init_packages_list ();
       with_initialized_packages (dif_with_initialized_packages, c);
     }
   else
@@ -353,7 +357,10 @@ dbus_search_packages (DBusConnection *conn, DBusMessage *message)
       pattern = g_strdup (arg_pattern);
 
       if (pattern != NULL)
-        with_initialized_packages (dsp_with_initialized_packages, pattern);
+        {
+          maybe_init_packages_list ();
+          with_initialized_packages (dsp_with_initialized_packages, pattern);
+        }
     }
   else
     {
@@ -429,6 +436,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
       DBusMessage *reply;
 
       present_main_window ();
+      maybe_init_packages_list ();
 
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
@@ -444,6 +452,8 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
       DBusMessage *reply;
 
       present_main_window ();
+      maybe_init_packages_list ();
+
       if (is_idle ())
 	show_check_for_updates_view ();
 
@@ -483,6 +493,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
     {
       DBusMessage *reply;
 
+      maybe_init_packages_list ();
       start_interaction_flow_when_idle (idle_check_for_updates, NULL);
 
       reply = dbus_message_new_method_return (message);
