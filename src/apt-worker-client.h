@@ -31,7 +31,9 @@
 
 extern int apt_worker_in_fd, apt_worker_out_fd;
 
-bool start_apt_worker (const char *prog);
+void set_apt_worker_cmd (const char *cmd);
+
+void maybe_start_apt_worker (void);
 
 void cancel_apt_worker ();
 

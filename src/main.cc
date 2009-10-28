@@ -2448,36 +2448,6 @@ main_window_realized (GtkWidget* widget, gpointer unused)
 	      "hildon-application-manager");
 }
 
-static void
-cancel_download (void *unused)
-{
-  cancel_apt_worker ();
-}
-
-static void
-apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
-{
-  if (dec == NULL)
-    return;
-
-  int op = dec->decode_int ();
-  int already = dec->decode_int ();
-  int total = dec->decode_int ();
-
-  if (total > 0)
-    {
-      if (op == op_downloading)
-	{
-	  set_entertainment_download_fun (op, already, total);
-	  set_entertainment_cancel (cancel_download, NULL);
-	}
-      else
-	{
-	  set_entertainment_fun (NULL, op, already, total);
-	}
-    }
-}
-
 GtkWindow *
 get_main_window ()
 {
@@ -2656,7 +2626,6 @@ get_osso_context ()
 int
 main (int argc, char **argv)
 {
-  const char *apt_worker_prog = "/usr/libexec/apt-worker";
   bool show = true;
 
   if (argc > 1 && !strcmp (argv[1], "--no-show"))
@@ -2667,7 +2636,7 @@ main (int argc, char **argv)
     }
   if (argc > 1)
     {
-      apt_worker_prog = argv[1];
+      set_apt_worker_cmd (argv[1]);
       argc--;
       argv++;
     }
@@ -2715,11 +2684,6 @@ main (int argc, char **argv)
                     G_CALLBACK (window_delete_event), NULL);
 
   create_menu ();
-
-  if (!start_apt_worker (apt_worker_prog))
-    what_the_fock_p ();
-
-  apt_worker_set_status_callback (apt_status_callback, NULL);
 
   get_package_list_with_cont (notice_initial_packages_available, NULL);
   save_backup_data ();

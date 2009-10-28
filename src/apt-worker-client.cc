@@ -43,12 +43,15 @@
 
 #define _(x) gettext (x)
 
+#define APT_WORKER_CMD_DEFAULT "/usr/libexec/apt-worker"
+
 int apt_worker_out_fd = -1;
 int apt_worker_in_fd = -1;
 int apt_worker_cancel_fd = -1;
 int apt_worker_status_fd = -1;
 GPid apt_worker_pid;
 
+gboolean apt_worker_started = FALSE;
 gboolean apt_worker_ready = FALSE;
 
 static void cancel_all_pending_worker_calls ();
@@ -213,12 +216,29 @@ apt_worker_watch (GPid pid, int status, gpointer data)
   notice_apt_worker_failure ();
 }
 
-bool
-start_apt_worker (const char *prog)
+static char *apt_worker_cmd = NULL;
+
+void
+set_apt_worker_cmd (const char *cmd)
+{
+  /* Free used memory first */
+  if (apt_worker_cmd)
+    {
+      g_free (apt_worker_cmd);
+      apt_worker_cmd = NULL;
+    }
+
+  /* Save a copy */
+  apt_worker_cmd = g_strdup (cmd);
+}
+
+static bool
+start_apt_worker (void)
 {
   int stdout_fd, stderr_fd;
   GError *error = NULL;
-  const char *sudo;
+  const char *sudo = NULL;
+  const char *prog = NULL;
 
   // XXX - be more careful with the /tmp files by putting them in a
   //       temporary directory, maybe.
@@ -234,11 +254,12 @@ start_apt_worker (const char *prog)
   else
     sudo = "/usr/bin/fakeroot";
 
+  prog = apt_worker_cmd ? (const char *)apt_worker_cmd : APT_WORKER_CMD_DEFAULT;
+
   const char *options = backend_options ();
 
   const char *args[] = {
-    sudo,
-    prog, "backend",
+    sudo, prog, "backend",
     "/tmp/apt-worker.to", "/tmp/apt-worker.from",
     "/tmp/apt-worker.status", "/tmp/apt-worker.cancel",
     options,
@@ -276,6 +297,8 @@ start_apt_worker (const char *prog)
   setup_pmstatus_from_fd (apt_worker_status_fd);
   add_apt_worker_handler ();
 
+  apt_worker_started = TRUE;
+
   return true;
 }
 
@@ -295,6 +318,52 @@ finish_apt_worker_startup ()
   apt_worker_ready = TRUE;
 
   maybe_send_one_worker_call ();
+}
+
+static void
+cancel_download (void *unused)
+{
+  cancel_apt_worker ();
+}
+
+static void
+apt_status_callback (int cmd, apt_proto_decoder *dec, void *unused)
+{
+  if (dec == NULL)
+    return;
+
+  int op = dec->decode_int ();
+  int already = dec->decode_int ();
+  int total = dec->decode_int ();
+
+  if (total > 0)
+    {
+      if (op == op_downloading)
+	{
+	  set_entertainment_download_fun (op, already, total);
+	  set_entertainment_cancel (cancel_download, NULL);
+	}
+      else
+	{
+	  set_entertainment_fun (NULL, op, already, total);
+	}
+    }
+}
+
+void
+maybe_start_apt_worker (void)
+{
+  if (apt_worker_started)
+    return;
+
+  if (!start_apt_worker ())
+    {
+      what_the_fock_p ();
+      return;
+    }
+
+  /* Everything went fine if reached */
+  apt_worker_set_status_callback (apt_status_callback, NULL);
 }
 
 void
@@ -453,6 +522,10 @@ call_apt_worker (int cmd, char *data, int len,
 {
   assert (cmd >= 0 && cmd < APTCMD_MAX);
 
+  /* Ensure apt-worker was started */
+  maybe_start_apt_worker ();
+
+  /* Double-check apt-worker is running */
   if (!apt_worker_is_running ())
     {
       add_log ("apt-worker is not running\n");
