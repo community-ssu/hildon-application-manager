@@ -184,6 +184,7 @@ set_current_view (view *v)
       enable_refresh (false);
       enable_search (false);
       enable_sort (false);
+      prevent_updating ();
     }
   else if (v->id == UNINSTALL_APPLICATIONS_VIEW)
     {
@@ -191,6 +192,7 @@ set_current_view (view *v)
       enable_refresh (false);
       enable_search (true);
       enable_sort (true);
+      allow_updating ();
     }
   else if (v->id == INSTALL_SECTION_VIEW
            || v->id == SEARCH_RESULTS_VIEW)
@@ -199,6 +201,7 @@ set_current_view (view *v)
       enable_refresh (true);
       enable_search (true);
       enable_sort (true);
+      allow_updating ();
     }
   else if (v->id == INSTALL_APPLICATIONS_VIEW)
     {
@@ -206,6 +209,7 @@ set_current_view (view *v)
       enable_refresh (true);
       enable_search (true);
       enable_sort (install_sections && !install_sections->next);
+      allow_updating ();
     }
   else if (v->id == UPGRADE_APPLICATIONS_VIEW)
     {
@@ -213,6 +217,7 @@ set_current_view (view *v)
       enable_refresh (true);
       enable_search (true);
       enable_sort (true);
+      allow_updating ();
     }
 
   cur_view_struct = v;
