@@ -2410,8 +2410,36 @@ view_set_dirty (view *v)
 }
 
 static void
+is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
+{
+  g_return_if_fail(widget != NULL && HILDON_IS_WINDOW(widget));
+
+  HildonWindow *window = HILDON_WINDOW (widget);
+
+  set_current_view ((view *) data);
+  g_debug ("the top view is %d", cur_view_struct->id);
+
+  /* Update the seen-updates file if the window is top most again and
+     the "Check for updates" view is currently selected */
+  if (package_list_ready && hildon_window_get_is_topmost (window) &&
+      (cur_view_struct == &upgrade_applications_view))
+    {
+      update_seen_updates_file ();
+    }
+
+  if (cur_view_struct->dirty)
+    show_view (cur_view_struct);
+}
+
+static void
 reset_view (view *v)
 {
+  /* Disconnect window's signal handlers using the user_data parameter */
+  g_signal_handlers_disconnect_by_func (G_OBJECT (v->window),
+                                        (gpointer) is_topmost_cb,
+                                        v);
+
+  /* Set NULL values */
   v->window = NULL;
   v->cur_view = NULL;
   //  cur_view_struct = v->parent;
@@ -2459,28 +2487,6 @@ get_main_window ()
   g_assert (main_window != NULL);
   g_debug ("main window pointer %p", main_window);
   return main_window;
-}
-
-static void
-is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
-{
-  g_return_if_fail(widget != NULL && HILDON_IS_WINDOW(widget));
-
-  HildonWindow *window = HILDON_WINDOW (widget);
-
-  set_current_view ((view *) data);
-  g_debug ("the top view is %d", cur_view_struct->id);
-
-  /* Update the seen-updates file if the window is top most again and
-     the "Check for updates" view is currently selected */
-  if (package_list_ready && hildon_window_get_is_topmost (window) &&
-      (cur_view_struct == &upgrade_applications_view))
-    {
-      update_seen_updates_file ();
-    }
-
-  if (cur_view_struct->dirty)
-    show_view (cur_view_struct);
 }
 
 static gboolean
