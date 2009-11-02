@@ -1,3 +1,57 @@
+2009-10-28 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker-client.cc (APT_WORKER_CMD_DEFAULT): New define
+	for the default fallback to be used as the apt-worker command.
+	(set_apt_worker_cmd): New function to tell the which command will
+	be used to launch the apt-worker.
+	(start_apt_worker): Converted to a private function and removed
+	parameter to tell which command to use as the apt-worker. From now
+	on it will use that one set with set_apt_worker_cmd or the default
+	one.
+	(cancel_download): Moved from main.cc, needed for
+	apt_status_callback.
+	(apt_status_callback): Moved from main.cc, needed for the initial
+	start up of the apt-worker, now done from this file itself.
+	(maybe_start_apt_worker): New function to start the apt-worker if
+	and only if it was not previously started.
+	(call_apt_worker): Always call to maybe_start_apt_worker to ensure
+	it was started before communicating with it.
+
+	* src/apt-worker-client.h (set_apt_worker_cmd): Public
+	declaration.
+	(maybe_start_apt_worker): Public declaration.
+
+	* src/main.cc (cancel_download): Moved to apt-worker-client.cc.
+	(apt_status_callback): Moved to apt-worker-client.cc.
+	(maybe_init_packages_list): New function to initialize, for the
+	very first time, the list of packages as retrieved from the
+	apt-worker. Such a list will be retrieved once per execution of
+	HAM.
+	(main): Don't retrieve the package list always, just call to
+	maybe_init_packages_list when the --no-show parameter was not
+	set. Call to set_apt_worker_cmd when needed and don't start up
+	apt-worker before entering the main look with gtk_main.
+
+	* src/main.h (maybe_init_packages_list): Public declaration.
+
+	* src/dbus.cc (dbus_top_application): New function to handle the
+	"top_application" D-Bus message.
+	(dbus_show_check_for_updates_view): New function to handle the
+	"dbus_show_check_for_updates_view" D-Bus message.
+	(dbus_showing_check_for_updates_view): New function to handle the
+	"dbus_showing_check_for_updates_view" D-Bus message.
+	(dbus_check_for_updates): New function to handle the
+	"dbus_check_for_updates" D-Bus message.
+	(dbus_handler): Use the new functions above to handle every D-Bus
+	message when they arrive, instead of having all the code for each
+	of them directly in the "if" branches.
+	(dbus_install_packages): Call maybe_init_packages_list before
+	installing any package, to make sure everything will work.
+	(dbus_install_file): Call maybe_init_packages_list before
+	installing any file, as in dbus_install_packages.
+	(dbus_search_packages): If the search pattern is ok, call to
+	maybe_init_packages_list before performing the search.
+
 2009-10-22 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/util.cc (make_global_section_list): Set the 'vovershoot-max'

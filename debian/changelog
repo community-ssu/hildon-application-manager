@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.38~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.38) unstable; urgency=low
 
-  * 
+  [ Mario Sanchez Prada ]
+  * Fixes: NB#139889 - Startup time for Application manager need to be improved
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 22 Oct 2009 12:50:20 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 02 Nov 2009 13:56:25 +0100
 
 hildon-application-manager (1:2.2.37-3) unstable; urgency=low
 
