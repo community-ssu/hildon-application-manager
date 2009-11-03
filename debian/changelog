@@ -1,8 +1,19 @@
-hildon-application-manager (1:2.2.39~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.39) unstable; urgency=low
 
-  * 
+  [ Víctor Jáquez ]
+  * Fixes: NB#143281 - Application manager, Application detail word
+    wrapping issue
+  * Fixes: NB#143999 - "Update" progress bar pane misaligned
+  * Fixes: NB#144042 - Truncation logical string ai_ia_restore
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 02 Nov 2009 14:03:58 +0100
+  [ Mario Sanchez Prada ]
+  * Fixes: NB#143011 - Don't show "Update All" if no updates are available
+  * Fixes: NB#143616 - Confusing empty window shown after deleting
+    unavailable catalogue
+  * Fixes: NB#144739 - Crash @ updating_timeout () at util.cc:1342
+  * Fixes: NB#144700 - Progress indicators are not shown in the some scenarios.
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 03 Nov 2009 15:46:36 +0100
 
 hildon-application-manager (1:2.2.38) unstable; urgency=low
 
