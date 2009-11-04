@@ -2874,23 +2874,6 @@ cmd_get_package_list ()
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
 
-      // Look for the SSU package if needed
-      if (ssu_packages_needs_refresh
-          && (!installed.end () || !candidate.end ()))
-        {
-          pkgCache::VerIterator viter = !candidate.end ()
-            ? candidate
-            : installed;
-          package_record rec (viter);
-          int flags = get_flags (rec);
-          if (flags & pkgflag_system_update)
-            {
-              /* Add it to the local GSList */
-              ssu_pkgs_found = g_slist_prepend (ssu_pkgs_found,
-                                                g_strdup (pkg.Name ()));
-            }
-        }
-
       // skip non user packages if requested.  Both the installed and
       // candidate versions must be non-user packages for a package to
       // be skipped completely.
@@ -2899,16 +2882,6 @@ cmd_get_package_list ()
 	  && (installed.end () || !is_user_package (installed))
 	  && (candidate.end () || !is_user_package (candidate)))
 	continue;
-
-      // skip system update meta-packages that are not installed
-      //
-      if (only_user && installed.end () && !candidate.end ())
-	{
-	  package_record rec (candidate);
-	  int flags = get_flags (rec);
-	  if (flags & pkgflag_system_update)
-	    continue;
-	}
 
       // skip hidden packages that are not installed
       //
@@ -2941,6 +2914,29 @@ cmd_get_package_list ()
 		   && description_matches_pattern (candidate, pattern))))
 	continue;
 
+      // Look for the SSU package if needed
+      //
+      if (ssu_packages_needs_refresh
+          && (!installed.end () || !candidate.end ()))
+        {
+          pkgCache::VerIterator viter = !candidate.end ()
+            ? candidate
+            : installed;
+          package_record rec (viter);
+          flags = get_flags (rec);
+          if (flags & pkgflag_system_update)
+            {
+              /* Add it to the local GSList */
+              ssu_pkgs_found = g_slist_prepend (ssu_pkgs_found,
+                                                g_strdup (pkg.Name ()));
+
+              // skip system update meta-packages that are not installed
+              //
+              if (only_user && installed.end () && !candidate.end ())
+                continue;
+            }
+        }
+
       // Name
       response.encode_string (pkg.Name ());
 
@@ -2969,7 +2965,7 @@ cmd_get_package_list ()
       else
 	encode_empty_version_info (false);
 
-      if (!candidate.end())
+      if (flags == 0 && !candidate.end())
 	{
 	  package_record rec (candidate);
 	  flags = get_flags (rec);
