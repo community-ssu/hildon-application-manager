@@ -1,3 +1,8 @@
+2009-11-04 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (cmd_get_package_list): speed up the package
+	list retrieval.
+
 2009-11-03 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/util.cc (progressbar_dialog_realized): Don't mess with

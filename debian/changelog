@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.40~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.40) unstable; urgency=low
 
-  * 
+  [ Víctor Jáquez ]
+  * Fixes: NB#145287 - speed up the package retrieval from apt-worker to ui
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Tue, 03 Nov 2009 15:57:24 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 04 Nov 2009 13:04:59 +0100
 
 hildon-application-manager (1:2.2.39) unstable; urgency=low
 
