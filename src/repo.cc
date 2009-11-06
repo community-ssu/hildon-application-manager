@@ -1416,7 +1416,12 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
 
       c->cur = find_catalogue (c->catalogues, c->rest);
 
-      if (!c->update || c->cur == NULL)
+      if (c->cur && xexp_aref_bool (c->cur, "disabled"))
+	{
+	  // Old version should be enabled
+	  cont = add_catalogues_cont_3_enable;
+	}
+      else if (!c->update || c->cur == NULL)
 	{
           // Let's remove useless data
           xexp_adel (c->rest, "file");
@@ -1429,11 +1434,6 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
             }
           else
             cont = NULL;
-	}
-      else if (c->cur && xexp_aref_bool (c->cur, "disabled"))
-	{
-	  // Old version should be enabled
-	  cont = add_catalogues_cont_3_enable;
 	}
       else
 	cont = NULL;
