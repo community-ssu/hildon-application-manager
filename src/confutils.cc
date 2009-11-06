@@ -134,6 +134,148 @@ uri_remove_trailing_slashes (gchar *uri)
     }
 }
 
+static gchar *
+dist_get_actual_string (const gchar *dist)
+{
+  gchar *d = g_strdup (dist);
+
+  if ((d == NULL) || !g_strcmp0 (g_strstrip (d), ""))
+    {
+      g_free (d);
+      d = g_strdup (default_distribution);
+    }
+
+  return d;
+}
+
+static char **
+components_get_array (const gchar *components)
+{
+  gchar **comps_array = NULL;
+
+  if (components != NULL)
+    {
+      gchar *stripped_comps = g_strstrip (g_strdup (components));
+
+      if (g_strcmp0 (stripped_comps, ""))
+        comps_array = g_strsplit (stripped_comps, " ", -1);
+
+      g_free (stripped_comps);
+    }
+
+  return comps_array;
+}
+
+static gboolean
+catalogue_uri_equal (const gchar *uri1, const gchar *uri2)
+{
+  gchar *u1 = g_strdup (uri1);
+  gchar *u2 = g_strdup (uri2);
+  gboolean result;
+
+  /* Remove trailing '/' and compare */
+  uri_remove_trailing_slashes (u1);
+  uri_remove_trailing_slashes (u2);
+  result = tokens_equal (u1, u2);
+
+  /* Free */
+  g_free (u1);
+  g_free (u2);
+
+  return result;
+}
+
+static gboolean
+catalogue_dist_equal (const gchar *dist1, const gchar *dist2)
+{
+  gchar *d1 = dist_get_actual_string (dist1);
+  gchar *d2 = dist_get_actual_string (dist2);
+  gboolean result = tokens_equal (d1, d2);
+
+  g_free (d1);
+  g_free (d2);
+
+  return result;
+}
+
+static guint
+catalogue_n_components (gchar **components_array)
+{
+  guint i = 0;
+  if (components_array != NULL)
+    {
+      /* Count the number of elements */
+      while (components_array[i] != NULL)
+        i++;
+    }
+  return i;
+}
+
+static gboolean
+catalogue_components_equal (const gchar *components_1,
+                            const gchar *components_2)
+{
+  gchar **comps_1 = components_get_array (components_1);
+  gchar **comps_2 = components_get_array (components_2);
+
+  gboolean result = FALSE;
+
+  /* Equal if not components string for both cases */
+  if ((comps_1 == NULL) && (comps_2 == NULL))
+    return TRUE;
+
+  /* NOT equal if one catalogue has components but other has not */
+  if ((comps_1 != NULL) && (comps_2 != NULL))
+    {
+      gint i, j;
+
+      /* Traverse the bigger array first, so swap pointers if needed */
+      if (catalogue_n_components (comps_1) < catalogue_n_components (comps_2))
+        {
+          gchar **comps_tmp;
+
+          comps_tmp = comps_1;
+          comps_1 = comps_2;
+          comps_2 = comps_tmp;
+        }
+
+      /* See whether they match */
+      result = TRUE;
+      for (i = 0; comps_1[i]; i++)
+        {
+          gchar *comp_1 = g_strstrip(g_strdup (comps_1[i]));
+          gboolean found = FALSE;
+
+          for (j = 0; comps_2[j]; j++)
+            {
+              gchar *comp_2 = g_strstrip(g_strdup (comps_2[j]));
+
+              if (g_str_equal (comp_1, comp_2))
+                found = TRUE;
+
+              g_free (comp_2);
+
+              if (found)
+                break;
+            }
+          g_free (comp_1);
+
+          if (!found)
+            {
+              /* No need to keep on going if not found */
+              result = FALSE;
+              break;
+            }
+        }
+    }
+
+  /* Free */
+  g_strfreev (comps_1);
+  g_strfreev (comps_2);
+
+  return result;
+}
+
 bool
 catalogue_equal (xexp *cat1, xexp *cat2)
 {
@@ -162,23 +304,13 @@ catalogue_equal (xexp *cat1, xexp *cat2)
     }
   else
     {
-      gchar *cat1_uri = g_strdup (xexp_aref_text (cat1, "uri"));
-      gchar *cat2_uri = g_strdup (xexp_aref_text (cat2, "uri"));
-
-      /* Remove trailing "/" from uris, if present */
-      uri_remove_trailing_slashes (cat1_uri);
-      uri_remove_trailing_slashes (cat2_uri);
-
-      /* User catalogues */
       result =
-        (tokens_equal (cat1_uri, cat2_uri)
-         && tokens_equal (xexp_aref_text (cat1, "dist"),
-                          xexp_aref_text (cat2, "dist"))
-         && tokens_equal (xexp_aref_text (cat1, "components"),
-                          xexp_aref_text (cat2, "components")));
-
-      g_free (cat1_uri);
-      g_free (cat2_uri);
+        (catalogue_uri_equal (xexp_aref_text (cat1, "uri"),
+                              xexp_aref_text (cat2, "uri"))
+         && catalogue_dist_equal (xexp_aref_text (cat1, "dist"),
+                                  xexp_aref_text (cat2, "dist"))
+         && catalogue_components_equal (xexp_aref_text (cat1, "components"),
+                                        xexp_aref_text (cat2, "components")));
     }
 
   return result;
