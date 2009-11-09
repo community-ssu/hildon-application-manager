@@ -2106,6 +2106,9 @@ make_global_section_list (GList *sections, section_activated *act)
     {
       section_info *si = (section_info *)s->data;
 
+      if (si->rank == SECTION_RANK_HIDDEN)
+        continue;
+
       gtk_list_store_append (ls, &itr);
       gtk_list_store_set (ls, &itr,
                           SECTION_LS_TEXT_COLUMN,   si->name,
@@ -2116,7 +2119,7 @@ make_global_section_list (GList *sections, section_activated *act)
       si->ref ();
     }
 
-  icon_view = make_my_icon_view(GTK_TREE_MODEL(ls));
+  icon_view = make_my_icon_view (GTK_TREE_MODEL (ls));
   g_object_weak_ref (G_OBJECT(icon_view), (GWeakNotify)icon_view_is_dying, ls);
   g_signal_connect (G_OBJECT (icon_view),
                     "item-activated",
