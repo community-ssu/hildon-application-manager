@@ -1731,16 +1731,6 @@ is_user_package (const pkgCache::VerIterator &ver)
   return is_user_section (section, section + strlen (section));
 }
 
-bool
-is_hidden_package (const pkgCache::VerIterator &ver)
-{
-  const char *hidden = "user/hidden";
-  const char *section = ver.Section ();
-
-  size_t len = strlen (hidden);
-  return strlen (section) == len && !strncmp (section, hidden, len);
-}
-
 /* Our own version of debSystem.  We override the Lock member function
    to be able to break locks and to avoid failing when dpkg has left a
    journal.
@@ -2882,12 +2872,6 @@ cmd_get_package_list ()
 	  && (installed.end () || !is_user_package (installed))
 	  && (candidate.end () || !is_user_package (candidate)))
 	continue;
-
-      // skip hidden packages that are not installed
-      //
-      if (only_user && installed.end () && !candidate.end ()
-          && is_hidden_package (candidate))
-        continue;
 
       // skip not-installed packages if requested
       //
