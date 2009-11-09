@@ -1686,7 +1686,9 @@ make_install_applications_view (view *v)
     {
       section_info *si = (section_info *)install_sections->data;
       view =
-	make_global_package_list (si->packages,
+	make_global_package_list (((si->rank == SECTION_RANK_HIDDEN)
+                                   ? NULL
+                                   : si->packages),
 				  false,
 				  (package_list_ready
 				   ? _("ai_li_no_applications_available")
