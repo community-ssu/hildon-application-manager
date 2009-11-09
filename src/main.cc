@@ -631,10 +631,17 @@ create_section_info (GList **list_ptr,
 	 "normal" section.  Move it to the "other" rank in that case.
       */
       if (rank == SECTION_RANK_NORMAL)
-	rank = SECTION_RANK_OTHER;
+        {
+          if (untranslated_name && !strcmp (untranslated_name, "hidden"))
+            rank = SECTION_RANK_HIDDEN;
+          else
+            rank = SECTION_RANK_OTHER;
+        }
 
       if (rank == SECTION_RANK_ALL)
 	name = _("ai_category_all");
+      else if (rank == SECTION_RANK_HIDDEN)
+        name = "hidden";
       else if (rank == SECTION_RANK_OTHER)
 	name = _("ai_category_other");
     }
