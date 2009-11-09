@@ -1823,6 +1823,25 @@ make_global_package_list (GList *packages,
   return alignment;
 }
 
+/*
+ * This function check if the package is in section "user/hidden"
+ */
+static bool
+package_is_hidden (package_info *pi)
+{
+  if (red_pill_mode && red_pill_show_all)
+    return false;
+
+  if (!pi->available_section)
+    return false;
+
+  const char *hidden = "user/hidden";
+  const char *section = pi->available_section;
+
+  size_t len = strlen (hidden);
+  return strlen (section) == len && !strncmp (section, hidden, len);
+}
+
 static void
 set_global_package_list (GList *packages,
 			 bool installed,
@@ -1861,6 +1880,12 @@ set_global_package_list (GList *packages,
   for (GList *p = global_packages; p; p = p->next)
     {
       package_info *pi = (package_info *)p->data;
+
+      /* don't insert the package if is installed
+       * and is in the section "user/hidden"
+       */
+      if (!installed && package_is_hidden (pi))
+        continue;
 
       pi->model = GTK_TREE_MODEL (global_list_store);
       gtk_list_store_insert_with_values (global_list_store, &pi->iter,
