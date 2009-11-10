@@ -6161,12 +6161,14 @@ write_available_updates_file ()
 
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
+      bool broken = (cache[pkg].NowBroken()
+		     || (pkg.State () != pkgCache::PkgIterator::NeedsNothing));
 
       if (!candidate.end ()
 	  && !installed.end()
 	  && installed.CompareVer (candidate) < 0
 	  && is_user_package (candidate)
-	)
+          && !broken)
 	{
 	  xexp *x_pkg = NULL;
 	  package_record rec (candidate);
