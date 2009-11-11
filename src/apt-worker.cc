@@ -3509,7 +3509,9 @@ encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
                   else
                     {
                       catalogue = g_strdup_printf ("%s %s %s",
-                                                   archive_uri, dist, comp);
+                                                   archive_uri ? archive_uri : "",
+                                                   dist ? dist : "",
+                                                   comp ? comp : "");
                       response.encode_string (catalogue);
                     }
 
