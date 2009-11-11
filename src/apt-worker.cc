@@ -3487,7 +3487,7 @@ encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
                   char *comp = g_strdup (Vf.File ().Component ());
 
                   // nasty hack for some repositories which join the
-                  // component to the distribution (dist/comp)
+                  // distribution into the component (dist/comp)
                   if (comp != NULL && comp[0] != '\0')
                     {
                       char *p = g_strstr_len (dist, -1, comp);
