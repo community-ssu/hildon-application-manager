@@ -1528,7 +1528,8 @@ make_install_section_view (view *v)
 					cur_section_rank, cur_section_name);
 
   view =
-    make_global_package_list (si? si->packages : NULL,
+    make_global_package_list (v->window,
+                              si? si->packages : NULL,
 			      false,
 			      (package_list_ready
 			       ? _("ai_li_no_applications_available")
@@ -1538,7 +1539,7 @@ make_install_section_view (view *v)
 			      available_package_activated);
 
   if (package_list_ready)
-    gtk_widget_show_all (view);
+    gtk_widget_show (view);
 
   if (si)
     get_package_infos_in_background (si->packages);
@@ -1686,7 +1687,8 @@ make_install_applications_view (view *v)
     {
       section_info *si = (section_info *)install_sections->data;
       view =
-	make_global_package_list (((si->rank == SECTION_RANK_HIDDEN)
+        make_global_package_list (v->window,
+                                  ((si->rank == SECTION_RANK_HIDDEN)
                                    ? NULL
                                    : si->packages),
 				  false,
@@ -1704,7 +1706,7 @@ make_install_applications_view (view *v)
     }
 
   if (package_list_ready)
-    gtk_widget_show_all (view);
+    gtk_widget_show (view);
 
   maybe_refresh_package_cache_without_user ();
 
@@ -1769,7 +1771,8 @@ make_upgrade_applications_view (view *v)
   check_catalogues ();
 
   view =
-    make_global_package_list (upgradeable_packages,
+    make_global_package_list (v->window,
+                              upgradeable_packages,
 			      false,
 			      (package_list_ready
 			       ? _("ai_li_no_updates_available")
@@ -1779,7 +1782,7 @@ make_upgrade_applications_view (view *v)
 			      available_package_activated);
 
   if (package_list_ready)
-    gtk_widget_show_all (view);
+    gtk_widget_show (view);
 
   get_package_infos_in_background (upgradeable_packages);
 
@@ -1800,7 +1803,8 @@ make_uninstall_applications_view (view *v)
 {
   GtkWidget *view;
 
-  view = make_global_package_list (installed_packages,
+  view = make_global_package_list (v->window,
+                                   installed_packages,
 				   true,
 				   (package_list_ready
 				    ? _("ai_li_no_installed_applications")
@@ -1809,7 +1813,7 @@ make_uninstall_applications_view (view *v)
 				   installed_package_selected,
 				   installed_package_activated);
   if (package_list_ready)
-    gtk_widget_show_all (view);
+    gtk_widget_show (view);
 
   enable_search (true);
   enable_refresh (false);
@@ -1825,7 +1829,8 @@ make_search_results_view (view *v)
   if (v->parent == &install_applications_view
       || v->parent == &upgrade_applications_view)
     {
-      view = make_global_package_list (search_result_packages,
+      view = make_global_package_list (v->window,
+                                       search_result_packages,
 				       false,
 				       NULL,
 				       (v->parent == &install_applications_view
@@ -1837,14 +1842,15 @@ make_search_results_view (view *v)
     }
   else
     {
-      view = make_global_package_list (search_result_packages,
+      view = make_global_package_list (v->window,
+                                       search_result_packages,
 				       true,
 				       NULL,
 				       _("ai_me_cs_uninstall"),
 				       installed_package_selected,
 				       installed_package_activated);
     }
-  gtk_widget_show_all (view);
+  gtk_widget_show (view);
 
   enable_search (true);
   enable_refresh (true);

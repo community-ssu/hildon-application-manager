@@ -1446,6 +1446,7 @@ make_small_label (const char *text)
   return label;
 }
 
+static GtkTreeModelFilter *global_tree_model_filter = NULL;
 static GtkListStore *global_list_store = NULL;
 static bool global_installed;
 
@@ -1588,7 +1589,7 @@ global_row_activated (GtkTreeView *treeview,
   GtkTreeModel *model = gtk_tree_view_get_model (treeview);
   GtkTreeIter iter;
 
-  assert (model == GTK_TREE_MODEL (global_list_store));
+  assert (model == GTK_TREE_MODEL (global_tree_model_filter));
 
   if (global_activation_callback &&
       gtk_tree_model_get_iter (model, &iter, path))
@@ -1671,13 +1672,10 @@ global_package_list_key_pressed (GtkWidget * widget,
       gtk_tree_view_get_cursor (GTK_TREE_VIEW (widget), &cursor_path, NULL);
       if (cursor_path)
 	{
-	  gtk_tree_model_get_iter (GTK_TREE_MODEL (global_list_store),
-				   &iter,
-				   cursor_path);
-
-	  result = !gtk_tree_model_iter_next (GTK_TREE_MODEL (global_list_store),
-					      &iter);
-
+	  gtk_tree_model_get_iter (GTK_TREE_MODEL (global_tree_model_filter),
+                                   &iter, cursor_path);
+	  result = !gtk_tree_model_iter_next (GTK_TREE_MODEL (global_tree_model_filter),
+                                              &iter);
 	  gtk_tree_path_free(cursor_path);
 	}
     }
@@ -1732,8 +1730,54 @@ button_press_cb (GtkWidget *treeview, GdkEventButton *event, gpointer data)
 }
 #endif /* TAP_AND_HOLD && MAEMO_CHANGES */
 
+#if HILDON_CHECK_VERSION (2,2,4)
+
+static gboolean
+live_search_filter_func (GtkTreeModel *model,
+                         GtkTreeIter  *iter,
+                         gchar        *text,
+                         gpointer      data)
+{
+    package_info *pi = NULL;
+    gchar *needle = NULL;
+    gchar *name = NULL;
+    gboolean retvalue = FALSE;
+    GtkWidget *live = GTK_WIDGET (data);
+
+    if (global_packages == NULL)
+      return FALSE;
+
+    /* Get package info */
+    gtk_tree_model_get (model, iter, 0, &pi, -1);
+
+    /* Row could be empty - must check */
+    if (pi == NULL)
+      {
+        /* Must ensure consitent state if row is empty */
+        reset_global_target_path ();
+        gtk_widget_hide (live);
+        return FALSE;
+      }
+
+    /* Casefold strings for ease of comparison */
+    needle = g_utf8_casefold (text, -1);
+    name = g_utf8_casefold (pi->get_display_name(global_installed), -1);
+
+    /* Search by name (case insensitive) */
+    retvalue = g_str_has_prefix (name, needle);
+
+    /* Free */
+    g_free (name);
+    g_free (needle);
+
+    return retvalue;
+}
+
+#endif
+
 GtkWidget *
-make_global_package_list (GList *packages,
+make_global_package_list (GtkWidget *window,
+                          GList *packages,
 			  bool installed,
 			  const char *empty_label,
 			  const char *op_label,
@@ -1742,16 +1786,15 @@ make_global_package_list (GList *packages,
 {
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
-  GtkWidget *tree, *scroller, *alignment;
+  GtkWidget *tree, *scroller, *alignment, *vbox;
+
+#if HILDON_CHECK_VERSION (2,2,4)
+  GtkWidget *live;
+#endif
+
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
   GtkWidget *menu = NULL;
 #endif /* TAP_AND_HOLD && MAEMO_CHANGES */
-
-  if (global_list_store == NULL)
-    {
-      global_list_store = gtk_list_store_new (1, G_TYPE_POINTER);
-      g_object_ref (global_list_store);
-    }
 
   if (packages == NULL)
     {
@@ -1763,7 +1806,19 @@ make_global_package_list (GList *packages,
       return label;
     }
 
-  tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL (global_list_store));
+  /* Just create a new model for the first time */
+  if (global_list_store == NULL)
+    global_list_store = gtk_list_store_new (1, G_TYPE_POINTER);
+
+  if (global_tree_model_filter != NULL)
+    g_object_unref (global_tree_model_filter);
+
+  /* Create a tree model filter with the actual model inside */
+  global_tree_model_filter =
+    GTK_TREE_MODEL_FILTER (gtk_tree_model_filter_new (GTK_TREE_MODEL (global_list_store), NULL));
+
+  /* Insert the filter into the treeview */
+  tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL (global_tree_model_filter));
 
   column = gtk_tree_view_column_new ();
 
@@ -1820,7 +1875,36 @@ make_global_package_list (GList *packages,
     gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (tree),
                                   global_target_path,
                                   NULL, FALSE, 0, 0);
-  return alignment;
+
+#if HILDON_CHECK_VERSION (2,2,4)
+  /* Live search */
+  live = hildon_live_search_new ();
+  hildon_live_search_set_filter (HILDON_LIVE_SEARCH (live),
+                                 global_tree_model_filter);
+  hildon_live_search_set_filter_func (HILDON_LIVE_SEARCH (live),
+                                      live_search_filter_func, live, NULL);
+  hildon_live_search_widget_hook (HILDON_LIVE_SEARCH (live),
+                                  window, GTK_TREE_VIEW (tree));
+#endif
+
+  /* Pack the packages list and the live search widget toghether */
+  vbox = gtk_vbox_new (FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox), alignment, TRUE, TRUE, 0);
+
+#if HILDON_CHECK_VERSION (2,2,4)
+  gtk_box_pack_start (GTK_BOX (vbox), live, FALSE, FALSE, 0);
+#endif
+
+  /* Prepare visibility */
+  gtk_widget_show_all (alignment);
+
+#if HILDON_CHECK_VERSION (2,2,4)
+  gtk_widget_hide (live);
+#endif
+
+  gtk_widget_hide (vbox);
+
+  return vbox;
 }
 
 /*
@@ -1855,13 +1939,11 @@ set_global_package_list (GList *packages,
          is causing calls to cat_icon_func/cat_text_func with garbage data
       */
       GtkTreeIter itr;
-      if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (global_list_store),
-                                         &itr))
+      if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (global_list_store), &itr))
         do
           {
             gtk_list_store_set(global_list_store, &itr, 0, NULL, -1);
-          } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (global_list_store),
-                                             &itr));
+          } while (gtk_tree_model_iter_next (GTK_TREE_MODEL (global_list_store), &itr));
       gtk_list_store_clear (global_list_store);
     }
 
@@ -1889,9 +1971,9 @@ set_global_package_list (GList *packages,
 
       pi->model = GTK_TREE_MODEL (global_list_store);
       gtk_list_store_insert_with_values (global_list_store, &pi->iter,
-					 pos,
-					 0, pi,
-					 -1);
+                                         pos,
+                                         0, pi,
+                                         -1);
       pos++;
     }
 }
@@ -2129,6 +2211,10 @@ make_global_section_list (GList *sections, section_activated *act)
 
   global_section_list = scroller;
   g_object_ref (scroller);
+
+  /* Prepare visibility */
+  gtk_widget_show_all (icon_view);
+  gtk_widget_hide (scroller);
 
   return scroller;
 }

@@ -399,7 +399,8 @@ GtkWidget *make_small_label (const char *text);
 
 typedef void package_info_callback (package_info *);
 
-GtkWidget *make_global_package_list (GList *packages,
+GtkWidget *make_global_package_list (GtkWidget *window,
+                                     GList *packages,
 				     bool installed,
 				     const char *empty_label,
 				     const char *op_label,
