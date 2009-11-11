@@ -1,8 +1,10 @@
-hildon-application-manager (1:2.2.41~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.41) unstable; urgency=low
 
-  * 
+  [ Víctor Jáquez ]
+  * Fixes: NB#146152 - do not filter out the hidden packages in the
+    apt-worker but in the UI tree-view
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 04 Nov 2009 13:09:22 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 11 Nov 2009 11:33:23 +0100
 
 hildon-application-manager (1:2.2.40) unstable; urgency=low
 

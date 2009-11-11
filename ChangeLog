@@ -1,3 +1,19 @@
+2009-11-09 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/util.cc (package_is_hidden): New function.
+	(set_global_package_list): If the package is in the "user/hidden"
+	section, it won't be inserted in the tree-view model.
+	(make_global_section_list): Filter out the any section which
+	belongs to the HIDDEN rank.
+
+	* src/main.h (SECTION_RANK_HIDDEN): New section rank.
+
+	* src/main.cc (make_install_applications_view): If there's only
+	hidden packages to install, avoid to show an empty tree-view but
+	the "no available packages" instead.
+	(create_section_info): If the package belongs to the "hidden"
+	section its rank is set to HIDDEN and its name to "hidden"
+
 2009-11-04 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/apt-worker.cc (cmd_get_package_list): speed up the package
