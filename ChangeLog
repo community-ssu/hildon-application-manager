@@ -1,3 +1,16 @@
+2009-11-11 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (encode_package_repository): When the
+	distribution has the form "dist/comp" and comp is NULL, the
+	distribution string is splited and the distribution has the first
+	substring and component the second.  Evaluate the string and if it
+	is NULL print "" instead.
+
+	* src/util.cc (set_global_package_list): Instead of missusing the
+	parameter `installed` to know if the package is installed, we rely
+	on the installed_version property of the package_info object. The
+	explanatory comment is also fixed.
+
 2009-11-09 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/util.cc (package_is_hidden): New function.
