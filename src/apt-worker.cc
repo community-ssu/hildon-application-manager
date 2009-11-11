@@ -3498,6 +3498,20 @@ encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
                           dist = tmp;
                         }
                     }
+                  else
+                    {
+                      // Another nasty hack for some packages which join the
+                      // component into the distribution (dist/comp)
+                      gchar **tmp = g_strsplit (dist, "/", -1);
+                      if (tmp[0] != NULL && tmp[0][0] != '\0'
+                          && tmp[1] != NULL && tmp[1][0] != '\0')
+                        {
+                          g_free (dist);
+                          dist = g_strdup (tmp[0]);
+                          comp = g_strdup (tmp[1]);
+                        }
+                      g_strfreev (tmp);
+                    }
 
                   delete Index;
 
