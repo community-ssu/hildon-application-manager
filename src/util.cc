@@ -1881,10 +1881,10 @@ set_global_package_list (GList *packages,
     {
       package_info *pi = (package_info *)p->data;
 
-      /* don't insert the package if is installed
-       * and is in the section "user/hidden"
+      /* don't insert the package if it isn't installed
+       * and it's in the section "user/hidden"
        */
-      if (!installed && package_is_hidden (pi))
+      if (!pi->installed_version && package_is_hidden (pi))
         continue;
 
       pi->model = GTK_TREE_MODEL (global_list_store);
