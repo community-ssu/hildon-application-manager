@@ -1865,8 +1865,12 @@ static void
 ip_reboot_delayed (void *data)
 {
   ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
 
-  irritate_user (_("ai_cb_restarting_device"));
+  if (pi && pi->info.install_flags & pkgflag_system_update)
+    irritate_user (_("ai_ni_device_restart_long"));
+  else
+    irritate_user (_("ai_cb_restarting_device"));
 
   /* restore the device mode if needed */
   ip_maybe_restore_device_mode (c);
