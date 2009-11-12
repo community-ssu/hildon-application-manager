@@ -33,7 +33,6 @@
 #include "log.h"
 #include "settings.h"
 #include "repo.h"
-#include "search.h"
 #include "apt-worker-client.h"
 #include "user_files.h"
 
@@ -57,7 +56,6 @@ add_item (HildonAppMenu *menu, const gchar *label, void (*func)())
 static GtkWidget *settings_menu_item = NULL;
 static GtkWidget *install_from_file_menu_item = NULL;
 static GtkWidget *update_all_menu_item = NULL;
-static GtkWidget *search_menu_item = NULL;
 static GtkWidget *sort_by_name_menu_item = NULL;
 static GtkWidget *sort_by_size_menu_item = NULL;
 static GtkWidget *refresh_menu_item = NULL;
@@ -144,12 +142,6 @@ create_menu ()
                     GINT_TO_POINTER (SORT_BY_SIZE));
   show_sort_order ();
 
-  /* Search */
-  search_menu_item =
-    add_item (main,
-              _("ai_me_search"),
-              show_search_dialog_flow);
-
   /* Refresh */
   refresh_menu_item =
     add_item (main,
@@ -200,13 +192,6 @@ create_menu ()
 
   set_settings_menu_visible (red_pill_mode);
   set_install_from_file_menu_visible (red_pill_mode);
-}
-
-void
-enable_search (bool flag)
-{
-  if (search_menu_item)
-    g_object_set (G_OBJECT (search_menu_item), "visible", flag, NULL);
 }
 
 void

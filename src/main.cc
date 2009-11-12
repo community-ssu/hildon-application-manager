@@ -182,7 +182,6 @@ set_current_view (view *v)
     {
       enable_update_all (false);
       enable_refresh (false);
-      enable_search (false);
       enable_sort (false);
       prevent_updating ();
     }
@@ -190,7 +189,6 @@ set_current_view (view *v)
     {
       enable_update_all (false);
       enable_refresh (false);
-      enable_search (true);
       enable_sort (true);
       allow_updating ();
     }
@@ -199,7 +197,6 @@ set_current_view (view *v)
     {
       enable_update_all (false);
       enable_refresh (true);
-      enable_search (true);
       enable_sort (true);
       allow_updating ();
     }
@@ -207,7 +204,6 @@ set_current_view (view *v)
     {
       enable_update_all (false);
       enable_refresh (true);
-      enable_search (true);
       enable_sort (install_sections && !install_sections->next);
       allow_updating ();
     }
@@ -215,7 +211,6 @@ set_current_view (view *v)
     {
       enable_update_all (package_list_ready && upgradeable_packages);
       enable_refresh (true);
-      enable_search (true);
       enable_sort (true);
       allow_updating ();
     }
@@ -358,8 +353,6 @@ make_main_view (view *v)
   gtk_widget_show_all (view);
 
   get_package_infos_in_background (NULL);
-
-  enable_search (false);
 
   prevent_updating ();
 
@@ -1544,7 +1537,6 @@ make_install_section_view (view *v)
   if (si)
     get_package_infos_in_background (si->packages);
 
-  enable_search (true);
   enable_refresh (true);
 
   return view;
@@ -1815,7 +1807,6 @@ make_uninstall_applications_view (view *v)
   if (package_list_ready)
     gtk_widget_show (view);
 
-  enable_search (true);
   enable_refresh (false);
 
   return view;
@@ -1852,7 +1843,6 @@ make_search_results_view (view *v)
     }
   gtk_widget_show (view);
 
-  enable_search (true);
   enable_refresh (true);
 
   return view;
