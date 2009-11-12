@@ -1852,6 +1852,20 @@ make_search_results_view (view *v)
   return view;
 }
 
+/*
+ * Return true if all the search_words match with the package name
+ */
+static bool
+match_pattern (const char *pkg_name, char **search_words)
+{
+  int i;
+
+  for (i = 0; search_words[i] != NULL; i++)
+    if (!strcasestr (pkg_name, search_words[i]))
+      return false;
+  return true;
+}
+
 static void
 search_package_list (GList **result,
                      GList *packages, const char *pattern, bool installed)
