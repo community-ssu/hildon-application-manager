@@ -2057,7 +2057,10 @@ search_packages (const char *pattern, bool in_descriptions)
 	  if (install_sections)
 	    {
 	      section_info *si = (section_info *)install_sections->data;
-	      search_package_list (&result, si->packages, pattern, false);
+
+              // Just for precaution: avoid the HIDDEN rank
+              if (si->rank != SECTION_RANK_HIDDEN)
+                search_package_list (&result, si->packages, pattern, false);
 	    }
 	}
       else if (parent == &upgrade_applications_view)
