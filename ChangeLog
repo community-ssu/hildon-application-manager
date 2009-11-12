@@ -1,3 +1,25 @@
+2009-11-12 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/util.cc (package_is_hidden): Remove the static attribute to
+	the function.
+
+	* src/util.h: Export the function package_is_hidden.
+
+	* src/main.cc (match_pattern): This new function look up for all
+	the specified search words in the package name parameter. If they
+	are all the function return true; otherwise return false
+	(search_package_list): Insert to the result package list those
+	packages which all the search words match with the package name
+	and either that package has an installed version string (this
+	means that it's currently installed) and it doesn't belong to the
+	hidden section. This filtering also use the new function
+	match_pattern.
+	(search_packages): Even it's prevented by the UI, in a precautory
+	action, searches are not done in the hidden section.
+	(search_packages_reply): Don't search in the current section list
+	those packages what belong to the HIDDEN section or those what
+	belong to ALL section and have the hidden category.
+
 2009-11-11 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/apt-worker.cc (encode_package_repository): When the
