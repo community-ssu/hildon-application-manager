@@ -1974,7 +1974,15 @@ search_packages_reply (int cmd, apt_proto_decoder *dec, void *data)
 	  if (install_sections)
 	    {
 	      section_info *si = (section_info *)install_sections->data;
-	      find_in_package_list (&result, si->packages, name);
+
+              // Not packages in section HIDDEN
+              // But if the section is ALL then the package shouldn't be hidden
+              if (si->rank == SECTION_RANK_HIDDEN
+                  || (si->rank == SECTION_RANK_ALL
+                      && (!info->installed_version && package_is_hidden (info))))
+                ;
+              else
+                find_in_package_list (&result, si->packages, name);
 	    }
 	}
       else if (parent == &upgrade_applications_view)
