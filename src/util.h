@@ -620,6 +620,10 @@ gboolean is_package_cache_updated ();
  */
 bool is_pkg_ssu (package_info *pi, bool broken = true);
 
+/* Check wheter the package is in section "user/hidden"
+ */
+bool package_is_hidden (package_info *pi);
+
 /* Check whether HAM is running in scratchbox
  */
 bool running_in_scratchbox ();

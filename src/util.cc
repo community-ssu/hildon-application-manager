@@ -1826,7 +1826,7 @@ make_global_package_list (GList *packages,
 /*
  * This function check if the package is in section "user/hidden"
  */
-static bool
+bool
 package_is_hidden (package_info *pi)
 {
   if (red_pill_mode && red_pill_show_all)
