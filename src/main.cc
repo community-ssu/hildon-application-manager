@@ -1871,8 +1871,6 @@ search_package_list (GList **result,
                      GList *packages, const char *pattern, bool installed)
 {
   gchar **words;
-  gboolean found;
-  int i;
 
   if (!(words = g_strsplit (pattern, " ", 0)))
     return; /* pattern is empty */
@@ -1880,18 +1878,12 @@ search_package_list (GList **result,
   while (packages)
     {
       package_info *pi = (package_info *)packages->data;
-      found = FALSE;
 
-      for (i = 0; words[i] != NULL; i++)
-        if (strcasestr (pi->get_display_name (installed), words[i]))
-          found = TRUE;
-        else
-          {
-            found = FALSE;
-            break;
-          }
-
-      if (found)
+      /* Insert only packages that match with search pattern and also
+       * either has an installed version (are installed) or are not hidden
+       */
+      if (match_pattern (pi->get_display_name (installed), words)
+          && (pi->installed_version || !package_is_hidden (pi)))
         {
           pi->ref ();
           *result = g_list_append (*result, pi);
@@ -1899,6 +1891,7 @@ search_package_list (GList **result,
 
       packages = packages->next;
     }
+
   g_strfreev (words);
 }
 
