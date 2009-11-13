@@ -1,8 +1,11 @@
-hildon-application-manager (1:2.2.42~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.42) unstable; urgency=low
 
-  * 
+  [ Mario Sanchez Prada ]
+  * Fixes: NB#146719 - Software update not possible from sales release to
+    PR1.1 reliably
+  * Fixes: NB#146010 - Sub-CR: Info note change needed for CMT SSU
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 12 Nov 2009 17:25:01 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 13 Nov 2009 18:54:48 +0100
 
 hildon-application-manager (1:2.2.41-2) unstable; urgency=low
 

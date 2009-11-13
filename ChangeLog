@@ -1,3 +1,17 @@
+2009-11-13 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (close_apps): Check when the signal () function
+	returned SIG_ERR, since otherwise it would return the old handler,
+	which is never SIG_IGN for the first time it's called.
+
+	* src/apt-worker.cc (HOME_MOUNTPOINT): New define for "/home"
+	(cmd_download_package): Try "/home" if internal and removable
+	mmc's are not available for use, before falling back to rootfs.
+	(is_there_enough_free_space): Consider archives path not being
+	under "/home" when checking for enough free space both for
+	downloading and installation (when using rootfs for downloading,
+	basically).
+
 2009-11-12 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/util.cc (package_is_hidden): Remove the static attribute to
