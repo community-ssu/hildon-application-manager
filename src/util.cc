@@ -3245,7 +3245,7 @@ close_apps (void)
   DBusMessage    *msg;
 
   /* Ignoring SIGTERM */
-  if (signal (SIGTERM, SIG_IGN) != SIG_IGN)
+  if (signal (SIGTERM, SIG_IGN) == SIG_ERR)
     {
       add_log ("Can't ignore the TERM signal\n");
       return;
