@@ -72,7 +72,7 @@ result_code_to_message (package_info *pi,
 			       pi->get_display_name (false));
     }
   else if (result_code == rescode_out_of_space)
-    msg = g_strdup (dgettext ("hildon-common-strings", "sfil_ni_not_enough_memory"));
+    msg = g_strdup (_("ai_ni_memory_shortage"));
 
   return msg;
 }
@@ -967,18 +967,13 @@ ip_not_enough_memory (void *data, int64_t download_size)
     {
       /* Allow continuation
        */
-      char *msg =
-	g_strdup_printf ("%s\n%s",
-			 dgettext ("hildon-common-strings",
-				   "sfil_ni_not_enough_memory"),
-			 _("ai_ni_continue_install"));
+      char *msg = g_strdup_printf ("%s\n%s", _("ai_ni_memory_shortage"),
+                                   _("ai_ni_continue_install"));
       ask_yes_no (msg, ip_maybe_continue, c);
       g_free (msg);
     }
   else
-    ip_abort_cur (c, dgettext ("hildon-common-strings",
-			       "sfil_ni_not_enough_memory"),
-		  false);
+    ip_abort_cur (c, _("ai_ni_memory_shortage"), false);
 }
 
 struct ipneb_clos {
