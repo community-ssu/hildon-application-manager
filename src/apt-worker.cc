@@ -2912,8 +2912,7 @@ cmd_get_package_list ()
 
       // Look for the SSU package if needed
       //
-      if (ssu_packages_needs_refresh
-          && (!installed.end () || !candidate.end ()))
+      if (!installed.end () || !candidate.end ())
         {
           pkgCache::VerIterator viter = !candidate.end ()
             ? candidate
@@ -2922,9 +2921,12 @@ cmd_get_package_list ()
           flags = get_flags (rec);
           if (flags & pkgflag_system_update)
             {
-              /* Add it to the local GSList */
-              ssu_pkgs_found = g_slist_prepend (ssu_pkgs_found,
-                                                g_strdup (pkg.Name ()));
+              if (ssu_packages_needs_refresh)
+                {
+                  /* Add it to the local GSList */
+                  ssu_pkgs_found = g_slist_prepend (ssu_pkgs_found,
+                                                    g_strdup (pkg.Name ()));
+                }
 
               // skip system update meta-packages that are not installed
               //
