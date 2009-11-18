@@ -935,7 +935,8 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 	{
 	  package_info *pi = (package_info *)(c->cur->data);
 
-	  close_apps ();
+          set_prestarted_apps_enabled (FALSE);
+          close_apps ();
 
 	  /* Convert the entertainment dialog into system modal if the
 	     package to be installed requires rebooting the system */
@@ -1765,6 +1766,9 @@ ip_end (void *data)
 
   /* restore the device mode if needed */
   ip_maybe_restore_device_mode (c);
+
+  /* Make sure prestarted apps are enabled */
+  set_prestarted_apps_enabled (TRUE);
 
   if (c->entertaining)
     stop_entertaining_user ();

@@ -529,6 +529,10 @@ void run_cmd (char **argv,
 	      void (*cont) (int status, void *data),
 	      void *data);
 
+/* SET_PRESTARTED_APPS_ENABLED tells hildon-desktop to enable or
+   disable prestarted applications. Useful before closing them all */
+void set_prestarted_apps_enabled (gboolean enable);
+
 /* CLOSE_APPS kills all the user applications currently running in the
    device except the hildon-application-manager */
 void close_apps (void);
