@@ -3238,6 +3238,35 @@ stop_dsme_service (const char *service)
   run_cmd (argv, true, stop_dsme_service_cont, argv);
 }
 
+/* Took from osso-backup: ob_utils_set_prestarted_apps_enabled */
+void
+set_prestarted_apps_enabled (gboolean enable)
+{
+  DBusConnection *conn;
+  DBusMessage    *msg;
+
+  add_log ("%s prestarted apps.\n", enable ? "Starting" : "Stopping");
+
+  conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
+  if (!conn) {
+    add_log ("Could not get session bus.\n");
+    return;
+  }
+
+  msg = dbus_message_new_method_call ("com.nokia.HildonDesktop.AppMgr",
+                                      "/com/nokia/HildonDesktop/AppMgr",
+                                      "com.nokia.HildonDesktop.AppMgr",
+                                      "Prestart");
+
+  dbus_message_append_args (msg, DBUS_TYPE_BOOLEAN, &enable, DBUS_TYPE_INVALID);
+
+  dbus_connection_send (conn, msg, NULL);
+  dbus_connection_flush (conn);
+
+  dbus_message_unref (msg);
+  dbus_connection_unref (conn);
+}
+
 void
 close_apps (void)
 {
