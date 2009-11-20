@@ -4640,6 +4640,7 @@ cmd_download_package ()
  */
 
 #define PKGNAME_ENVVAR "HAM_PKG_NAME"
+#define DPKG_TRIGGER_ENVVAR "DPKG_MAINTSCRIPT_PACKAGE"
 
 /* these functions (un)export the package name to an environment variable
  * in order to be used by the package mantainer scripts.
@@ -4649,12 +4650,14 @@ static void
 set_pkgname_envvar (const char *package)
 {
   setenv (PKGNAME_ENVVAR, package, 1);
+  setenv (DPKG_TRIGGER_ENVVAR, package, 1);
 }
 
 static void
 unset_pkgname_envvar ()
 {
   unsetenv (PKGNAME_ENVVAR);
+  unsetenv (DPKG_TRIGGER_ENVVAR);
 }
 
 void
