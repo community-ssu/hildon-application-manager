@@ -1,8 +1,10 @@
-hildon-application-manager (1:2.2.43~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.42-2) unstable; urgency=low
 
-  * 
+  [ Mario Sanchez Prada ]
+  * Fixes: NB#133696 - "Pills modes" must be removed from H-A-M before
+    devices would be shipped to end-users
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 19 Nov 2009 13:04:37 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 20 Nov 2009 12:52:03 +0100
 
 hildon-application-manager (1:2.2.42-1) unstable; urgency=low
 

@@ -1,3 +1,20 @@
+2009-11-20 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/repo.cc (cat_edit_response): Don't ask the pill question
+	(pill_response): Removed, as no longer necessary.
+	(ask_the_pill_question): Removed, as no longer necessary.
+
+2009-11-18 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (set_prestarted_apps_enabled): New function. Allows
+	enabling/disabling prestarted apps in hildon destkop.
+
+	* src/util.h (set_prestarted_apps_enabled): New prototype.
+
+	* src/operations.cc (ip_warn_about_reboot_response): Call the new
+	function set_prestarted_apps_enabled to disable prestarted apps.
+	(ip_end): Always re-enable (just in case) prestarted apps.
+
 2009-11-13 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/util.cc (close_apps): Check when the signal () function
