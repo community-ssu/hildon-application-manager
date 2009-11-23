@@ -937,7 +937,7 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 
           close_apps ();
           set_prestarted_apps_enabled (FALSE);
-          // kill -9 rtcom-messsaging-ui
+          maybe_kill_all_by_name ("rtcom-messaging-ui", SIGHUP);
           stop_dsme_service ("/usr/bin/camera-ui");
           stop_dsme_service ("/usr/bin/browserd -d");
 
