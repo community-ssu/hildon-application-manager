@@ -4671,8 +4671,12 @@ cmd_install_package ()
 	{
           set_pkgname_envvar (package);
 	  save_operation_record (package, alt_download_root);
-	  result_code = operation (false, alt_download_root, false);
-	  erase_operation_record ();
+ 	  result_code = operation (false, alt_download_root, false);
+
+          /* Delete journal on succesful operations only */
+          if (result_code == rescode_success)
+            erase_operation_record ();
+
           unset_pkgname_envvar ();
 	}
       else
