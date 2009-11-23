@@ -935,8 +935,11 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 	{
 	  package_info *pi = (package_info *)(c->cur->data);
 
-          set_prestarted_apps_enabled (FALSE);
           close_apps ();
+          set_prestarted_apps_enabled (FALSE);
+          // kill -9 rtcom-messsaging-ui
+          stop_dsme_service ("/usr/bin/camera-ui");
+          stop_dsme_service ("/usr/bin/browserd -d");
 
 	  /* Convert the entertainment dialog into system modal if the
 	     package to be installed requires rebooting the system */
