@@ -3248,10 +3248,11 @@ set_prestarted_apps_enabled (gboolean enable)
   add_log ("%s prestarted apps.\n", enable ? "Starting" : "Stopping");
 
   conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
-  if (!conn) {
-    add_log ("Could not get session bus.\n");
-    return;
-  }
+  if (!conn)
+    {
+      add_log ("Could not get session bus.\n");
+      return;
+    }
 
   msg = dbus_message_new_method_call ("com.nokia.HildonDesktop.AppMgr",
                                       "/com/nokia/HildonDesktop/AppMgr",
