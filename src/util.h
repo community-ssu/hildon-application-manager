@@ -642,5 +642,10 @@ void maybe_take_screenshot (GtkWindow *win);
  */
 void hildon_pannable_area_set_size_request_children (HildonPannableArea *area);
 
+/* Sends the signal SIGNUM to all the processes which share
+   the PROC_NAME command line
+ */
+void maybe_kill_all_by_name (const char *proc_name, int signum);
+
 #endif /* !UTIL_H */
 

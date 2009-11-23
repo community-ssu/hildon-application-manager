@@ -3726,3 +3726,72 @@ running_in_scratchbox ()
 {
   return access ("/targets/links/scratchbox.config", F_OK) == 0;
 }
+
+static char*
+read_cmdline (guint pid)
+{
+  char filename[sizeof ("/proc//cmdline") + sizeof (int) * 3];
+  char *cmdline = NULL;
+
+  sprintf (filename, "/proc/%u/cmdline", pid);
+  if (g_file_get_contents (filename, &cmdline, NULL, NULL) == FALSE)
+    return NULL;
+
+  if (cmdline != NULL && cmdline[0] == '\0')
+    {
+      g_free (cmdline);
+      return NULL;
+    }
+
+  return cmdline;
+}
+
+static pid_t*
+find_pid_by_name (const char *proc_name)
+{
+  int i = 0;
+  const char *entry = NULL;
+  pid_t *pid_list = NULL;
+
+  GDir* dir = g_dir_open ("/proc", 0, NULL);
+  if (dir == NULL)
+    return NULL;
+
+  pid_list = (pid_t *) g_malloc (sizeof (pid_t));
+  pid_list[0] = 0;
+  while ((entry = g_dir_read_name (dir)) != NULL)
+    {
+      gdouble pid = g_ascii_strtod (entry, NULL);
+      if (errno != 0)
+        continue;
+      char *cmdline = read_cmdline (pid);
+      if (cmdline == NULL)
+        continue;
+
+      if (g_strrstr (cmdline, proc_name) != NULL)
+        {
+          pid_list = (pid_t *) g_realloc (pid_list, (i + 2) * sizeof (pid_t));
+          pid_list[i++] = (pid_t) pid;
+          pid_list[i] = 0;
+        }
+
+      g_free (cmdline);
+    }
+  g_dir_close (dir);
+
+  return pid_list;
+}
+
+void
+maybe_kill_all_by_name (const char *proc_name, int signum)
+{
+  pid_t *pid_list = find_pid_by_name (proc_name);
+  if (pid_list == NULL)
+    return;
+
+  int i;
+  for (i = 0; pid_list[i] != 0; i++)
+    kill (pid_list[i], signum);
+
+  g_free (pid_list);
+}
