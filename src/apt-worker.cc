@@ -6572,10 +6572,10 @@ do_rescue (const char *package, const char *download_root,
 	    erase_operation_record ();
 
 	  if (result == rescode_packages_not_found)
-      {
-        run_system (false, "/bin/umount /home");
-	    return;
-      }
+            {
+              run_system (false, "/bin/umount /home");
+              return;
+            }
 
 	  if (result != rescode_success)
 	    {
