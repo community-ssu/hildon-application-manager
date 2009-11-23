@@ -1497,6 +1497,8 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   ip_clos *c = (ip_clos *)data;
   package_info *pi = (package_info *)(c->cur->data);
 
+  bool needs_reboot = package_needs_reboot (pi);
+
   if (dec == NULL)
     {
       ip_end (c);
@@ -1506,22 +1508,26 @@ ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   apt_proto_result_code result_code =
     apt_proto_result_code (dec->decode_int ());
 
-  if (clean_after_install)
-    apt_worker_clean (ip_clean_reply, NULL);
+  if (clean_after_install
+      && ((result_code == rescode_success) || !needs_reboot))
+    {
+      /* Clean only when needed */
+      apt_worker_clean (ip_clean_reply, NULL);
+    }
 
   c->refresh_needed = true;
 
+  /* Save the backup data right after installing the package */
   if (result_code == rescode_success)
+    save_backup_data ();
+
+  /* Reboot if needed */
+  if (needs_reboot)
+    ip_reboot (c);
+  else if (result_code == rescode_success)
     {
       c->n_successful += 1;
-
-      /* Save the backup data right after installing the package */
-      save_backup_data ();
-
-      if (package_needs_reboot (pi))
-	ip_reboot (c);
-      else
-	ip_install_next (c);
+      ip_install_next (c);
     }
   else
     {
