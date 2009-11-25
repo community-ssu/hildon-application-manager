@@ -1429,6 +1429,10 @@ ip_stop_hsm_and_install_delayed (gpointer data)
 
       /* Stop hildon-status-menu and continue with installation */
       stop_dsme_service ("/usr/bin/hildon-status-menu");
+
+      /* And just in case call also HAM's favourite killer */
+      run_cmd_simple ("/usr/libexec/ham-killer.sh");
+
       apt_worker_install_package (pi->name,
                                   c->alt_download_root,
                                   ip_install_cur_reply, c);
