@@ -3216,11 +3216,24 @@ run_cmd (char **argv,
 }
 
 static void
-stop_dsme_service_cont (int status, void *data)
+run_cmd_simple_cont (int status, void *data)
 {
   /* Free memory */
   gchar **argv = (gchar **) data;
   g_strfreev (argv);
+}
+
+void
+run_cmd_simple (const char *cmd)
+{
+  g_return_if_fail (cmd != NULL);
+
+  char **argv = g_new (char *, 2);
+
+  argv[0] = g_strdup (cmd);
+  argv[1] = NULL;
+
+  run_cmd (argv, true, run_cmd_simple_cont, argv);
 }
 
 void
@@ -3235,7 +3248,7 @@ stop_dsme_service (const char *service)
   argv[2] = g_strdup (service);
   argv[3] = NULL;
 
-  run_cmd (argv, true, stop_dsme_service_cont, argv);
+  run_cmd (argv, true, run_cmd_simple_cont, argv);
 }
 
 /* Took from osso-backup: ob_utils_set_prestarted_apps_enabled */

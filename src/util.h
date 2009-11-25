@@ -529,6 +529,10 @@ void run_cmd (char **argv,
 	      void (*cont) (int status, void *data),
 	      void *data);
 
+/* RUN_CMD_SIMPLE is a simplified version of RUN_CMD which just expects
+a full path for an executable file, a script or whatever to execute */
+void run_cmd_simple (const char *cmd);
+
 /* SET_PRESTARTED_APPS_ENABLED tells hildon-desktop to enable or
    disable prestarted applications. Useful before closing them all */
 void set_prestarted_apps_enabled (gboolean enable);
