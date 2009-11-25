@@ -6356,7 +6356,7 @@ rescue_operation_with_dir (const char *dir)
 {
   int result;
 
-  fprintf (stderr, "Rescuing from %s\n", dir);
+  fprintf (stderr, "Installing from %s\n", dir);
   result = operation (false, dir, false, false, false);
   fprintf (stderr, "Result code %d\n", result);
   _error->DumpErrors ();
@@ -6368,7 +6368,7 @@ rescue_operation_with_dev (const char *dev)
 {
   const char *dir = "/rescue";
 
-  fprintf (stderr, "Rescuing from %s\n", dev);
+  fprintf (stderr, "Installing from %s\n", dev);
 
   if (mkdir (dir, 0777) < 0
       && errno != EEXIST)
@@ -6392,7 +6392,7 @@ rescue_operation_with_devnode (int major, int minor)
   if (mknod (node, S_IFBLK | 0600, major << 8 | minor) < 0)
     log_stderr ("%s: %m", node);
 
-  fprintf (stderr, "Rescuing from %d:%d\n", major, minor);
+  fprintf (stderr, "Installing from %d:%d\n", major, minor);
 
   int result = rescue_operation_with_dev (node);
 
@@ -6546,12 +6546,12 @@ static void
 do_rescue (const char *package, const char *download_root,
 	   bool erase_record)
 {
-  show_fb_text (0, "Rescuing software update.");
+  show_fb_text (0, "Installing software update.");
   show_fb_text (1, "Please do not interrupt.");
 
   fork_progress_process ();
 
-  fprintf (stderr, "Rescuing %s\n", package);
+  fprintf (stderr, "Installing %s\n", package);
 
   /* This is just to clean the dpkg journal.  We let libapt-pkg
      configure the rest of the packages since we will get better
