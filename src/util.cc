@@ -3255,8 +3255,6 @@ set_prestarted_apps_enabled (gboolean enable)
   DBusConnection *conn;
   DBusMessage    *msg;
 
-  add_log ("%s prestarted apps.\n", enable ? "Starting" : "Stopping");
-
   conn = dbus_bus_get (DBUS_BUS_SESSION, NULL);
   if (!conn)
     {
