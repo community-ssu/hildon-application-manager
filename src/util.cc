@@ -3658,7 +3658,7 @@ get_free_space_at_path (const char *path)
   if (statvfs(path, &buf) != 0)
     return -1;
 
-  int64_t res = (int64_t)buf.f_bfree * (int64_t)buf.f_bsize;
+  int64_t res = (int64_t)buf.f_bavail * (int64_t)buf.f_bsize;
   add_log ("free space (%s): %Ld\n", path, res);
   return res;
 }
