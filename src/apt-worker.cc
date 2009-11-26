@@ -5290,7 +5290,7 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
     }
 
   log_stderr ("free space (%s) = %Ld", archive_dir,
-              (int64_t) buf.f_bfree * (int64_t) buf.f_bsize);
+              (int64_t) buf.f_bavail * (int64_t) buf.f_bsize);
 
   const char *internal_mmc_mountpoint = getenv ("INTERNAL_MMC_MOUNTPOINT");
   if (!internal_mmc_mountpoint)
@@ -5312,7 +5312,7 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
       size += get_pkg_required_free_space ();
     }
 
-  if (unsigned (buf.f_bfree) < double (size) / buf.f_bsize)
+  if (unsigned (buf.f_bavail) < double (size) / buf.f_bsize)
     {
       log_stderr ("You don't have enough free space in %s", archive_dir);
       return false;
