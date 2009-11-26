@@ -1,8 +1,12 @@
-hildon-application-manager (1:2.2.44~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.44) unstable; urgency=low
 
-  * 
+  [ Mario Sanchez Prada ]
+  * Fixes: NB#145703 - Unnecessary Update icon blinking after rescue
+  * Fixes: NB#148458 - Wrong banner when device boots from failed rescue
+    mode(rescue mode because of full rootfs)
+  * Reverted fix for NB#146010
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 26 Nov 2009 17:47:06 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 26 Nov 2009 18:02:24 +0100
 
 hildon-application-manager (1:2.2.43) unstable; urgency=low
 
