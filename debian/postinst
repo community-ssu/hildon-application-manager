@@ -67,6 +67,9 @@ fi
 
 hildon-application-manager-config update || true
 
+## Clean HAM screenshot
+rm -f /home/user/.cache/launch/com.nokia.hildon_application_manager.pvr
+
 #DEBHELPER#
 
 exit 0
