@@ -5280,11 +5280,17 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
 {
   struct statvfs buf;
 
+  // Sync before we measure the free space for download
+  sync ();
+
   if (statvfs (archive_dir, &buf) != 0)
     {
       log_stderr ("Couldn't determine free space in %s", archive_dir);
       return false;
     }
+
+  log_stderr ("free space (%s) = %Ld", archive_dir,
+              (int64_t) buf.f_bfree * (int64_t) buf.f_bsize);
 
   const char *internal_mmc_mountpoint = getenv ("INTERNAL_MMC_MOUNTPOINT");
   if (!internal_mmc_mountpoint)
