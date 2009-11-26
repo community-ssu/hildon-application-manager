@@ -285,7 +285,7 @@ static void ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_download_cur_fail (void *data);
 static void ip_download_cur_retry_confirm (apt_proto_result_code result_code, void *data);
 static void ip_download_cur_retry_confirm_response (bool result, void *data);
-static gboolean ip_stop_hsm_and_install_delayed (gpointer data);
+static gboolean ip_kill_all_and_install_delayed (gpointer data);
 static void ip_install_cur (void *data);
 static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
@@ -937,9 +937,6 @@ ip_warn_about_reboot_response (GtkDialog *dialog, gint response,
 
           close_apps ();
           set_prestarted_apps_enabled (FALSE);
-          maybe_kill_all_by_name ("rtcom-messaging-ui", SIGHUP);
-          stop_dsme_service ("/usr/bin/camera-ui");
-          stop_dsme_service ("/usr/bin/browserd -d");
 
 	  /* Convert the entertainment dialog into system modal if the
 	     package to be installed requires rebooting the system */
@@ -1419,7 +1416,7 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 }
 
 static gboolean
-ip_stop_hsm_and_install_delayed (gpointer data)
+ip_kill_all_and_install_delayed (gpointer data)
 {
   ip_clos *c = (ip_clos *)data;
 
@@ -1427,11 +1424,28 @@ ip_stop_hsm_and_install_delayed (gpointer data)
     {
       package_info *pi = (package_info *)(c->cur->data);
 
-      /* Stop hildon-status-menu and continue with installation */
+      /* Kill running processes that could interfere for SSU */
+      /* Disclaimer: this is a nasty workaround to prevent from a
+         bigger problem to happen because of unknown reasons atm.
+         Programmer avoids any responsibility on this code,
+         implemented under high pressure as requested "from above". */
+      maybe_kill_all_by_name ("rtcom-messaging-ui", SIGHUP);
+      stop_dsme_service ("/usr/bin/camera-ui");
+      stop_dsme_service ("/usr/bin/browserd -d");
       stop_dsme_service ("/usr/bin/hildon-status-menu");
-
-      /* And just in case call also HAM's favourite killer */
-      run_cmd_simple ("/usr/libexec/ham-killer.sh");
+      stop_dsme_service ("/usr/bin/hildon-home");
+      stop_dsme_service ("/usr/bin/hildon-input-method");
+      stop_dsme_service ("/usr/bin/intellisyncd");
+      stop_dsme_service ("/usr/bin/clipboard-manager");
+      stop_dsme_service ("/usr/bin/syncd");
+      stop_dsme_service ("/usr/bin/hildon-desktop");
+      stop_dsme_service ("/usr/bin/osso-connectivity-ui-conndlgs");
+      maybe_kill_all_by_name ("syncd", SIGKILL);
+      maybe_kill_all_by_name ("trackerd", SIGKILL);
+      maybe_kill_all_by_name ("intellisyncd", SIGKILL);
+      maybe_kill_all_by_name ("osso-abook-home-applet", SIGKILL);
+      maybe_kill_all_by_name ("hildon-thumbnailerd", SIGKILL);
+      maybe_kill_all_by_name ("maemo-xinput-sounds", SIGKILL);
 
       apt_worker_install_package (pi->name,
                                   c->alt_download_root,
@@ -1477,7 +1491,7 @@ ip_install_cur (void *data)
            * problem happening sometimes when installing an SSU, but
            * wait some time first because of the offline mode change
            * (and 3 seconds should be more than enough) */
-          g_timeout_add (3000, ip_stop_hsm_and_install_delayed, c);
+          g_timeout_add (3000, ip_kill_all_and_install_delayed, c);
         }
       else
         {

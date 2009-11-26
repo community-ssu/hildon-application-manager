@@ -18,9 +18,6 @@ restore_SCRIPTS = hildon-application-manager.sh
 rescuedir = $(libexecdir)
 rescue_SCRIPTS = ham-rescue.sh
 
-killerdir = $(libexecdir)
-killer_SCRIPTS = ham-killer.sh
-
 ossocudscriptsdir=/etc/osso-cud-scripts
 ossocudscripts_SCRIPTS = ham-clean.sh
 
@@ -58,7 +55,6 @@ EXTRA_DIST = COPYING.LIB                                        \
              hildon-application-manager.sh			\
              hildon-application-manager.sudoers 		\
              ham-rescue.sh					\
-             ham-killer.sh					\
              ham-clean.sh
 
 deb:
