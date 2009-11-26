@@ -5514,15 +5514,13 @@ operation (bool check_only,
   */
 
   if (with_status)
-    send_status (op_downloading, -1, 0, 0); 
-  
-  sync ();
+    send_status (op_downloading, -1, 0, 0);
 
   /* Install packages if not just downloading */
   if (!download_only)
     {
       if (with_status)
-	send_status (op_general, -1, 0, 0); 
+	send_status (op_general, -1, 0, 0);
 
       if (Pm->CheckDownloadedPkgs (true) == false)
         return rescode_package_corrupted;
@@ -5534,6 +5532,9 @@ operation (bool check_only,
       system ("/bin/mount -o bind /usr/share/info /home/user/.doc/info");
       system ("/bin/mount -o bind /usr/share/man /home/user/.doc/man");
       system ("/bin/mount -o bind /usr/share/doc-base /home/user/.doc/doc-base");
+
+      // sync before installing
+      sync ();
 
       /* Do install */
       _system->UnLock();
