@@ -3228,11 +3228,8 @@ run_cmd_simple (const char *cmd)
 {
   g_return_if_fail (cmd != NULL);
 
-  char **argv = g_new (char *, 2);
-
-  argv[0] = g_strdup (cmd);
-  argv[1] = NULL;
-
+  /* Tokenize parameters */
+  gchar **argv = g_strsplit (cmd, " ", -1);
   run_cmd (argv, true, run_cmd_simple_cont, argv);
 }
 
