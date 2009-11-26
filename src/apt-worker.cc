@@ -162,6 +162,11 @@ static xexp *read_operation_record ();
  */
 #define CURRENT_OPERATION_FILE "/var/lib/hildon-application-manager/current-operation"
 
+/* File to store the result of rescue mode execution
+ */
+#define RESCUE_RESULT_FILE "/var/lib/hildon-application-manager/rescue-result"
+
+
 /* You know what this means.
  */
 /*#define DEBUG*/
@@ -6546,6 +6551,10 @@ static void
 do_rescue (const char *package, const char *download_root,
 	   bool erase_record)
 {
+  int result = rescode_failure;
+  xexp *result_xexp = NULL;
+  gchar *result_text = NULL;
+
   show_fb_text (0, "Installing software update.");
   show_fb_text (1, "Please do not interrupt.");
 
@@ -6572,7 +6581,7 @@ do_rescue (const char *package, const char *download_root,
     {
       if (mark_named_package_for_install (package))
 	{
-	  int result = rescue_operation_with_dir (download_root);
+	  result = rescue_operation_with_dir (download_root);
 
 	  if (result != rescode_success)
 	    result = rescue_with_all_devs ();
@@ -6592,24 +6601,33 @@ do_rescue (const char *package, const char *download_root,
 	  if (result == rescode_packages_not_found)
             {
               run_system (false, "/bin/umount /home");
-              return;
             }
+          else
+            {
+              if (result != rescode_success)
+                {
+                  _system->UnLock();
+                  run_system (true, "dpkg --configure -a --force-all");
+                  _system->Lock();
+                }
 
-	  if (result != rescode_success)
-	    {
-	      _system->UnLock();
-	      run_system (true, "dpkg --configure -a --force-all");
-	      _system->Lock();
-	    }
-
-      run_system (false, "/bin/umount /home");
-	  run_system (true, "/sbin/reboot");
+              run_system (false, "/bin/umount /home");
+              run_system (true, "/sbin/reboot");
+            }
 	}
       else
 	fprintf (stderr, "Package %s not found\n", package);
     }
   else
     fprintf (stderr, "Failed to initialize package cache\n");
+
+  /* Write result file */
+  result_text = g_strdup_printf ("%d", (result == rescode_success));
+  result_xexp = xexp_text_new ("success", result_text);
+  g_free (result_text);
+
+  xexp_write_file (RESCUE_RESULT_FILE, result_xexp);
+  xexp_free (result_xexp);
 }
 
 int

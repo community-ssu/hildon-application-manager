@@ -41,15 +41,22 @@
 #include <hildon/hildon.h>
 
 #include "user_files.h"
+#include "xexp.h"
 
 #define _(x) dgettext ("hildon-application-manager", x)
+
+/* This path is an implicit contract with apt-worker */
+#define RESCUE_RESULT_FILE "/var/lib/hildon-application-manager/rescue-result"
 
 int
 main (int argc, char **argv)
 {
   FILE *f;
   GtkWidget *dialog;
+  xexp *rescue_xexp = NULL;
+  int rescue_success = 1;
 
+  /* Check UFILE_BOOT flag file */
   f = user_file_open_for_read (UFILE_BOOT);
   if (f == NULL)
     {
@@ -57,19 +64,30 @@ main (int argc, char **argv)
 	perror (UFILE_BOOT);
       return 0;
     }
-    
   fclose (f);
-
   user_file_remove (UFILE_BOOT);
 
-  hildon_gtk_init (&argc, &argv);
+  /* Check rescue mode last result */
+  rescue_xexp = xexp_read_file (RESCUE_RESULT_FILE);
+  if (rescue_xexp && xexp_is_text (rescue_xexp)
+      && xexp_is (rescue_xexp, "success"))
+    {
+      rescue_success = xexp_text_as_int (rescue_xexp);
+    }
+  xexp_free (rescue_xexp);
 
-  dialog = hildon_note_new_information
-    (NULL, _("ai_ni_system_update_installed"));
+  /* Show success banner only on success. Pretty logical, isn't it? */
+  if (rescue_success)
+    {
+      hildon_gtk_init (&argc, &argv);
 
-  gtk_widget_show_all (dialog);
-  gtk_dialog_run (GTK_DIALOG (dialog));
-  gtk_widget_destroy (dialog);
-  
+      dialog = hildon_note_new_information
+        (NULL, _("ai_ni_system_update_installed"));
+
+      gtk_widget_show_all (dialog);
+      gtk_dialog_run (GTK_DIALOG (dialog));
+      gtk_widget_destroy (dialog);
+    }
+
   return 0;
 }
