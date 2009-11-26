@@ -3659,7 +3659,7 @@ get_free_space_at_path (const char *path)
     return -1;
 
   int64_t res = (int64_t)buf.f_bfree * (int64_t)buf.f_bsize;
-  printf ("FREE: %Ld\n", res);
+  add_log ("free space (%s): %Ld\n", path, res);
   return res;
 }
 
