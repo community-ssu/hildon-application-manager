@@ -1,3 +1,92 @@
+2009-11-26 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* ham-killer.sh: Removed. Now all the work done by it is done from
+	HAM's code through the proper API, instead of using new processes.
+
+	* src/operations.cc (ip_stop_hsm_and_install_delayed): Renamed to
+	ip_kill_all_and_install_delayed, as this function is no longer
+	used to stop h-s-m only, but to kill a bunch of processes in a
+	desperate way to free resources for the SSU. Added more things to
+	kill here.
+	(ip_kill_all_and_install_delayed): stop alarmd service before
+	starting to install an SSU package.
+	(ip_warn_about_reboot_response): Don't kill nor stop any services
+	here, which should be done after the downloading phase.
+	(ip_install_cur): Updated name for the timeout callback.
+
+	* src/apt-worker.cc (RESCUE_RESULT_FILE): New path for the file
+	storing the result (1 or 0) of the last rescue operation.
+	(do_rescue): Always write the content of RESCUE_RESULT_FILE either
+	with 1 or 0 to reflect status after rescuing (success or not).
+
+	* src/ham-after-boot.c (main): Apart from checking the UFILE_BOOT
+	file, also check RESCUE_RESULT_FILE content to actually know when
+	it really makes sense to show the "SSU successfully" banner or not
+
+	* src/util.cc (run_cmd_simple): Allow passing a string with
+	space-separated parameters to automatically tokenize and execute
+	the full command through run_cmd.
+	(set_prestarted_apps_enabled): Removed add_log().
+
+	* debian/postinst: Remove screenshot from ~/.cache/launch
+
+2009-11-25 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (rescue_operation_with_dir): Replaced
+	"Rescuing" with "Installing".
+	(rescue_operation_with_dev): Likewise.
+	(rescue_operation_with_devnode): Likewise.
+	(do_rescue): Likewise.
+	(show_fb_text): Changed 0xF000 to 0X0000.
+	(show_fb_status): Likewise.
+
+	* src/util.cc (run_cmd_simple): New, just takes a full path to a
+	command and executes it through run_cmd. No parameters allowed.
+	(run_cmd_simple_cont): Tear down function for run_cmd_simple.
+	(stop_dsme_service): Use run_cmd_simple_cont instead of defining
+	its own tear down function, as it would share same implementation.
+	(stop_dsme_service_cont): Removed.
+
+	* ham-killer.sh: New script to make sure everything that needs to
+	be killed is killed by HAM, before installing a SSU.
+
+	* Makefile.am: Include ham-killer in distribution
+
+	* src/operations.cc (ip_stop_hsm_and_install_delayed): Right after
+	going in offline mode and before starting SSU installation, make
+	sure everything is killed
+
+2009-11-23 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (cmd_install_package): Delete the installation
+	journal for successfully installations only for SSU packages.
+
+	* src/operations.cc (ip_install_cur_reply): Always reboot the
+	device if the package being installed needs it so, regardless of
+	the result code, unless the user had cancelled the process on
+	purpose.
+
+2009-11-23 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/operations.cc (ip_warn_about_reboot_response): Stop the
+	camera-ui and the browserd services throught dsme.
+	(ip_warn_about_reboot_response): Send sighup to rtcom-messagin-ui
+	before install.
+
+	* src/apt-worker.cc (do_rescue): Honor coding style.
+
+	* src/util.cc (set_prestarted_apps_enabled): Honor coding style.
+	read_cmdline): new function.
+	(find_pid_by_name): new function.
+	(maybe_kill_all_by_name): new function.
+
+	* src/util.h: export the maybe_kill_all_by_name function.
+
+2009-11-10 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (write_available_updates_file): Check if the
+	package is in broken state before writing it down to the file.
+
 2009-11-20 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/repo.cc (cat_edit_response): Don't ask the pill question
