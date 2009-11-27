@@ -5521,10 +5521,26 @@ operation (bool check_only,
       if (Pm->CheckDownloadedPkgs (true) == false)
         return rescode_package_corrupted;
 
+      /* Bind-mounts documentation directories */
+      system ("/bin/mkdir -p /home/user/.doc/doc /home/user/.doc/info "
+              "/home/user/.doc/man /home/user/.doc/doc-base");
+      system ("/bin/mount -o bind /usr/share/doc /home/user/.doc/doc");
+      system ("/bin/mount -o bind /usr/share/info /home/user/.doc/info");
+      system ("/bin/mount -o bind /usr/share/man /home/user/.doc/man");
+      system ("/bin/mount -o bind /usr/share/doc-base /home/user/.doc/doc-base");
+
       /* Do install */
       _system->UnLock();
       pkgPackageManager::OrderResult Res = Pm->DoInstall (status_fd);
       _system->Lock();
+
+      /* Umount these volumes */
+      system ("/bin/umount /home/user/.doc/doc");
+      system ("/bin/umount /home/user/.doc/info");
+      system ("/bin/umount /home/user/.doc/man");
+      system ("/bin/umount /home/user/.doc/doc-base");
+
+      system ("/bin/rm -rf /home/user/.doc");
 
       awc->cache->save_extra_info ();
 
