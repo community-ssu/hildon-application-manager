@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.47) unstable; urgency=low
+
+  * Release 2.2.47
+
+ -- David Kedves <kedazo@gmail.com>  Fri, 27 Nov 2009 16:25:36 +0100
+
 hildon-application-manager (1:2.2.46) unstable; urgency=low
 
   * Fixes: NB#148718 - Doc packages need unnecessary space on the device
