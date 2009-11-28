@@ -4662,6 +4662,20 @@ unset_pkgname_envvar ()
   unsetenv (PKGNAME_ENVVAR);
 }
 
+/* Check whether is an SSU package or not */
+static bool
+is_ssu (const char *package)
+{
+  for (guint i = 0; i < ssu_packages->len; i++)
+    {
+      gchar *ssu_pkg = g_array_index (ssu_packages, gchar*, i);
+      if (!g_strcmp0 (package, ssu_pkg))
+        return true;
+    }
+
+  return false;
+}
+
 void
 cmd_install_package ()
 {
