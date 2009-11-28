@@ -4784,13 +4784,27 @@ cmd_install_package ()
     {
       if (mark_named_package_for_install (package))
 	{
+          char* tmpfs = NULL;
+          bool pkg_is_ssu = is_ssu (package);
+
+          /* if package is SSU, then mount the
+             temporal docsfs */
+          if (pkg_is_ssu)
+            {
+              tmpfs = choose_tmpfs_for_docs ();
+              maybe_bindmount_docsfs (tmpfs);
+            }
+
           set_pkgname_envvar (package);
 	  save_operation_record (package, alt_download_root);
  	  result_code = operation (false, alt_download_root, false);
 
           /* Delete journal on succesful operations only */
-          if ((result_code == rescode_success) || !is_ssu (package))
+          if ((result_code == rescode_success) || pkg_is_ssu)
             erase_operation_record ();
+
+          if (pkg_is_ssu)
+            maybe_bindumount_docsfs (tmpfs);
 
           unset_pkgname_envvar ();
 	}
