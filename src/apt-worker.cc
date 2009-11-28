@@ -4800,7 +4800,7 @@ cmd_install_package ()
  	  result_code = operation (false, alt_download_root, false);
 
           /* Delete journal on succesful operations only */
-          if ((result_code == rescode_success) || pkg_is_ssu)
+          if ((result_code == rescode_success) || !pkg_is_ssu)
             erase_operation_record ();
 
           if (pkg_is_ssu)
