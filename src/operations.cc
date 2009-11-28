@@ -1432,7 +1432,7 @@ ip_kill_all_and_install_delayed (gpointer data)
       maybe_kill_all_by_name ("rtcom-messaging-ui", SIGHUP);
       run_cmd_simple ("/etc/init.d/alarmd stop");
       stop_dsme_service ("/usr/bin/camera-ui");
-      stop_dsme_service ("/usr/bin/browserd -d");
+      stop_dsme_service ("/usr/sbin/browserd -d");
       stop_dsme_service ("/usr/bin/hildon-status-menu");
       stop_dsme_service ("/usr/bin/hildon-home");
       stop_dsme_service ("/usr/bin/hildon-input-method");
