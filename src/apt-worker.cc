@@ -4803,10 +4803,13 @@ cmd_install_package ()
           if ((result_code == rescode_success) || !pkg_is_ssu)
             erase_operation_record ();
 
-          if (pkg_is_ssu)
-            maybe_bindumount_docsfs (tmpfs);
-
           unset_pkgname_envvar ();
+
+          if (pkg_is_ssu)
+            {
+              maybe_bindumount_docsfs (tmpfs);
+              g_free (tmpfs);
+            }
 	}
       else
 	result_code = rescode_packages_not_found;
@@ -6720,6 +6723,7 @@ do_rescue (const char *package, const char *download_root,
             {
               run_system (false, "/bin/umount /home");
               maybe_bindumount_docsfs (tmpfs);
+              g_free (tmpfs);
             }
           else
             {
@@ -6732,6 +6736,7 @@ do_rescue (const char *package, const char *download_root,
 
               run_system (false, "/bin/umount /home");
               maybe_bindumount_docsfs (tmpfs);
+              g_free (tmpfs);
 
               run_system (true, "/sbin/reboot");
             }
