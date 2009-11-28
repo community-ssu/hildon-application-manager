@@ -4675,6 +4675,103 @@ is_ssu (const char *package)
   return false;
 }
 
+/* This is another nasty ad-hoc hack for avoiding rootfs
+ * space exhaustion when doing an SSU.
+ * This function will bind mount the documentation directories
+ * to a temporal and non rootfs space
+ * Please, take out this function from here and put all
+ * those SSU hacks into a special pre-SSU process
+ */
+static int run_system (bool verbose, const char *fmt, ...);
+
+static void
+maybe_bindmount_docsfs (const char *tmpfs)
+{
+  int i;
+  const char* docsfs[] = { "doc", "info", "man", "doc-base", NULL };
+
+  if (tmpfs == NULL || tmpfs[0] == '\0')
+    return;
+
+  char* rootdir = g_strdup_printf ("%s/%s", tmpfs, ".doc");
+  if (mkdir (rootdir, 0777) < 0
+      && errno != EEXIST)
+    log_stderr ("%s: %m", rootdir);
+  else
+    {
+      for (i = 0; docsfs[i] != NULL; i++)
+        {
+          char* dir = g_strdup_printf ("%s/%s", rootdir, docsfs[i]);
+          if (mkdir (dir, 0777) == 0
+              || errno == EEXIST)
+            run_system (false, "/bin/mount -o bind %s /usr/share/%s", dir, docsfs[i]);
+          g_free (dir);
+        }
+    }
+
+  g_free (rootdir);
+}
+
+static int
+maybe_bindumount_docsfs (const char *tmpfs)
+{
+  int i;
+  const char* docsfs[] = { "doc", "info", "man", "doc-base", NULL };
+
+  if (tmpfs == NULL || tmpfs[0] == '\0')
+    return -1;
+
+  char* rootdir = g_strdup_printf ("%s/%s", tmpfs, ".doc");
+
+  for (i = 0; docsfs[i] != NULL; i++)
+    run_system (false, "/bin/umount %s/%s", rootdir, docsfs[i]);
+
+  int ret = unlink_file_tree (rootdir);
+  g_free (rootdir);
+
+  return ret;
+}
+
+static int64_t
+get_free_space (const char *path)
+{
+  struct statvfs buf;
+
+  // Sync before we measure the free space for download
+  sync ();
+
+  if (statvfs (path, &buf) != 0)
+    return -1;
+
+  int64_t res = (int64_t)buf.f_bavail * (int64_t)buf.f_bsize;
+  log_stderr ("free space (%s) = %Ld", path, res);
+  return res;
+}
+
+/* This function will check for the /dev/shm fs
+ * If it's available and sane return it.
+ * Otherwise if /home is available and sane return it.
+ * Fallback is NULL and no mount is done
+ */
+static char*
+choose_tmpfs_for_docs ()
+{
+  const char* shm = "/dev/shm";
+  const char* user = "/home";
+
+  // does 30M is enough threshold?
+  int64_t threshold = 30 * 1024 * 1024;
+
+  if (volume_path_is_mounted_writable (shm)
+      && get_free_space (shm) >= threshold)
+    return g_strdup (shm);
+  else if (volume_path_is_mounted_writable (user)
+           && get_free_space (shm) >= threshold)
+    return g_strdup (user);
+
+  return NULL;
+}
+
 void
 cmd_install_package ()
 {
