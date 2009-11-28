@@ -4688,24 +4688,12 @@ cmd_install_package ()
     {
       if (mark_named_package_for_install (package))
 	{
-          /* Check whether is an SSU package or not */
-          bool is_ssu = false;
-          for (guint i = 0; i < ssu_packages->len; i++)
-            {
-              gchar *ssu_pkg = g_array_index (ssu_packages, gchar*, i);
-              if (!g_strcmp0 (package, ssu_pkg))
-                {
-                  is_ssu = true;
-                  break;
-                }
-            }
-
           set_pkgname_envvar (package);
 	  save_operation_record (package, alt_download_root);
  	  result_code = operation (false, alt_download_root, false);
 
           /* Delete journal on succesful operations only */
-          if ((result_code == rescode_success) || !is_ssu)
+          if ((result_code == rescode_success) || !is_ssu (package))
             erase_operation_record ();
 
           unset_pkgname_envvar ();
