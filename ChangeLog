@@ -1,3 +1,36 @@
+2009-11-28 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (is_there_enough_free_space): Use the function
+	get_free_space when checking for the download mount point.
+	(do_rescue): At rescue also do the docfs hack.
+	(cmd_install_package): If the pkg to install is SSU do the
+	docsfs hack.
+	(maybe_bindmount_docsfs): New function.
+	(maybe_bindumount_docsfs): New function.
+	(get_free_space): New function.
+	(choose_tmpfs_for_docs): New function.
+	(cmd_install_package): Use the new is_ssu function to
+	check whether erase the operation record.
+	(is_ssu): New function to verify if the package is a SSU.
+	(is_there_enough_free_space): use the f_bavail for getting
+	the free space in disk. According to the man page, f_bavail is The
+	total number of free blocks available to a non-privileged process,
+	which seems more close to the results given by df.
+	(operation): sync just before do the package
+	installation.
+	(is_there_enough_free_space): sync disk prior read it free
+	space and log it
+
+	* src/operations.cc (ip_kill_all_and_install_delayed): Fix the
+	browserd path.
+
+	* src/util.cc (get_free_space_at_path): use the f_bavail for getting
+	the free space in disk. According to the man page, f_bavail is The
+	total number of free blocks available to a non-privileged process,
+	which seems more close to the results given by df.
+	(get_free_space_at_path): log the free space in rootfs.
+
+
 2009-11-26 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* ham-killer.sh: Removed. Now all the work done by it is done from

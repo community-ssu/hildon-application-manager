@@ -1,3 +1,10 @@
+hildon-application-manager (1:2.2.48) unstable; urgency=low
+
+  * Fixes: NB#148716 - browserd is not killed properly
+  * Fixes: NB#146922 - HAM does not check free space on rootfs correctly
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Sat, 28 Nov 2009 16:34:33 +0100
+
 hildon-application-manager (1:2.2.47) unstable; urgency=low
 
   * Release 2.2.47
