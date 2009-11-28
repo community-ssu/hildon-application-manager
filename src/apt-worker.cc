@@ -5390,19 +5390,7 @@ get_pkg_required_free_space ()
 static bool
 is_there_enough_free_space (const char *archive_dir, int64_t size)
 {
-  struct statvfs buf;
-
-  // Sync before we measure the free space for download
-  sync ();
-
-  if (statvfs (archive_dir, &buf) != 0)
-    {
-      log_stderr ("Couldn't determine free space in %s", archive_dir);
-      return false;
-    }
-
-  log_stderr ("free space (%s) = %Ld", archive_dir,
-              (int64_t) buf.f_bavail * (int64_t) buf.f_bsize);
+  int64_t free_space = get_free_space (archive_dir);
 
   const char *internal_mmc_mountpoint = getenv ("INTERNAL_MMC_MOUNTPOINT");
   if (!internal_mmc_mountpoint)
@@ -5424,7 +5412,7 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
       size += get_pkg_required_free_space ();
     }
 
-  if (unsigned (buf.f_bavail) < double (size) / buf.f_bsize)
+  if (size < free_space)
     {
       log_stderr ("You don't have enough free space in %s", archive_dir);
       return false;
