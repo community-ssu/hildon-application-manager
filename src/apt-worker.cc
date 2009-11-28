@@ -4483,7 +4483,6 @@ cmd_install_check ()
  * installs packages marked for install.
  */
 
-#include <sys/statvfs.h>
 #include <mntent.h>
 
 /* global variable to report the download size to the frontend */
