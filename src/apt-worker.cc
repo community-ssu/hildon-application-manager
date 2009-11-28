@@ -6708,6 +6708,11 @@ do_rescue (const char *package, const char *download_root,
    * /home/opt :-S */
   run_system (false, "/bin/mount /home");
 
+  /* Also we should mount the docs fs (nasty-ugly hack for
+     rootfs spaces exhaustion )*/
+  char *tmpfs = choose_tmpfs_for_docs ();
+  maybe_bindmount_docsfs (tmpfs);
+
   misc_init ();
 
   // @todo Is this really necessary?
@@ -6736,6 +6741,7 @@ do_rescue (const char *package, const char *download_root,
 	  if (result == rescode_packages_not_found)
             {
               run_system (false, "/bin/umount /home");
+              maybe_bindumount_docsfs (tmpfs);
             }
           else
             {
@@ -6747,6 +6753,8 @@ do_rescue (const char *package, const char *download_root,
                 }
 
               run_system (false, "/bin/umount /home");
+              maybe_bindumount_docsfs (tmpfs);
+
               run_system (true, "/sbin/reboot");
             }
 	}
