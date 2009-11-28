@@ -5392,6 +5392,12 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
 {
   int64_t free_space = get_free_space (archive_dir);
 
+  if (free_space < 0)
+    {
+      log_stderr ("Couldn't determine free space in %s", archive_dir);
+      return false;
+    }
+
   const char *internal_mmc_mountpoint = getenv ("INTERNAL_MMC_MOUNTPOINT");
   if (!internal_mmc_mountpoint)
     internal_mmc_mountpoint = INTERNAL_MMC_MOUNTPOINT;
