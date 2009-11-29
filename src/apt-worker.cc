@@ -4754,7 +4754,7 @@ get_free_space (const char *path)
  * Fallback is NULL and no mount is done
  */
 static const char* docfs[] = { "/dev/shm",   // 1st option
-                               "/home/user", // 2nd option
+                               "/home",      // 2nd option
                                NULL };
 
 static const char*
