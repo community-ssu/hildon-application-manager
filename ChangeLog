@@ -1,3 +1,16 @@
+2009-11-29 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/apt-worker.cc (maybe_bindmount_docsfs): Log the docsfs mounts
+	and umounts.
+	(maybe_bindumount_docsfs): Same.
+	(choose_tmpfs_for_docs): Use const for threshold and use
+	an iterator for choosing the fs.
+	(cmd_install_package): Use const string and don't free
+	(do_rescue): Use const string and don't free
+	(cmd_install_package): Fix regression.
+	(is_there_enough_free_space): Verify if get_free_space
+	doesn't return error.
+
 2009-11-28 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/apt-worker.cc (is_there_enough_free_space): Use the function
