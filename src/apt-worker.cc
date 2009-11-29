@@ -4704,7 +4704,7 @@ maybe_bindmount_docsfs (const char *tmpfs)
           char* dir = g_strdup_printf ("%s/%s", rootdir, docsfs[i]);
           if (mkdir (dir, 0777) == 0
               || errno == EEXIST)
-            run_system (false, "/bin/mount -o bind %s /usr/share/%s", dir, docsfs[i]);
+            run_system (true, "/bin/mount -o bind %s /usr/share/%s", dir, docsfs[i]);
           g_free (dir);
         }
     }
@@ -4724,7 +4724,7 @@ maybe_bindumount_docsfs (const char *tmpfs)
   char* rootdir = g_strdup_printf ("%s/%s", tmpfs, ".doc");
 
   for (i = 0; docsfs[i] != NULL; i++)
-    run_system (false, "/bin/umount %s/%s", rootdir, docsfs[i]);
+    run_system (true, "/bin/umount %s/%s", rootdir, docsfs[i]);
 
   int ret = unlink_file_tree (rootdir);
   g_free (rootdir);
@@ -4760,7 +4760,7 @@ static const char* docfs[] = { "/dev/shm",   // 1st option
 static const char*
 choose_tmpfs_for_docs ()
 {
-  // does 30M is enough threshold?
+  // is 30M enough threshold?
   const int64_t threshold = 30 * 1024 * 1024;
 
   for (int i = 0; docfs[i] != NULL; i++)
