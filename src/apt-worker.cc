@@ -4753,21 +4753,22 @@ get_free_space (const char *path)
  * Otherwise if /home is available and sane return it.
  * Fallback is NULL and no mount is done
  */
-static char*
+static const char* docfs[] = { "/dev/shm",   // 1st option
+                               "/home/user", // 2nd option
+                               NULL };
+
+static const char*
 choose_tmpfs_for_docs ()
 {
-  const char* shm = "/dev/shm";
-  const char* user = "/home";
-
   // does 30M is enough threshold?
-  int64_t threshold = 30 * 1024 * 1024;
+  const int64_t threshold = 30 * 1024 * 1024;
 
-  if (volume_path_is_mounted_writable (shm)
-      && get_free_space (shm) >= threshold)
-    return g_strdup (shm);
-  else if (volume_path_is_mounted_writable (user)
-           && get_free_space (shm) >= threshold)
-    return g_strdup (user);
+  for (int i = 0; docfs[i] != NULL; i++)
+    {
+      if (volume_path_is_mounted_writable (docfs[i])
+          && get_free_space (docfs[i]) >= threshold)
+        return docfs[i];
+    }
 
   return NULL;
 }
@@ -4784,7 +4785,7 @@ cmd_install_package ()
     {
       if (mark_named_package_for_install (package))
 	{
-          char* tmpfs = NULL;
+          const char* tmpfs = NULL;
           bool pkg_is_ssu = is_ssu (package);
 
           /* if package is SSU, then mount the
@@ -4806,10 +4807,7 @@ cmd_install_package ()
           unset_pkgname_envvar ();
 
           if (pkg_is_ssu)
-            {
-              maybe_bindumount_docsfs (tmpfs);
-              g_free (tmpfs);
-            }
+            maybe_bindumount_docsfs (tmpfs);
 	}
       else
 	result_code = rescode_packages_not_found;
@@ -6691,7 +6689,7 @@ do_rescue (const char *package, const char *download_root,
 
   /* Also we should mount the docs fs (nasty-ugly hack for
      rootfs spaces exhaustion )*/
-  char *tmpfs = choose_tmpfs_for_docs ();
+  const char *tmpfs = choose_tmpfs_for_docs ();
   maybe_bindmount_docsfs (tmpfs);
 
   misc_init ();
@@ -6723,7 +6721,6 @@ do_rescue (const char *package, const char *download_root,
             {
               run_system (false, "/bin/umount /home");
               maybe_bindumount_docsfs (tmpfs);
-              g_free (tmpfs);
             }
           else
             {
@@ -6736,7 +6733,6 @@ do_rescue (const char *package, const char *download_root,
 
               run_system (false, "/bin/umount /home");
               maybe_bindumount_docsfs (tmpfs);
-              g_free (tmpfs);
 
               run_system (true, "/sbin/reboot");
             }
