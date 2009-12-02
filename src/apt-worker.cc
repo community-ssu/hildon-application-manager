@@ -993,6 +993,7 @@ void cmd_get_catalogues ();
 void cmd_set_catalogues ();
 void cmd_add_temp_catalogues ();
 void cmd_rm_temp_catalogues ();
+void cmd_get_free_space ();
 void cmd_install_check ();
 void cmd_download_package ();
 void cmd_install_package ();
@@ -1067,6 +1068,7 @@ static const char *cmd_names[] = {
   "SET_CATALOGUES",
   "ADD_TEMP_CATALOGUES",
   "RM_TEMP_CATALOGUES",
+  "GET_FREE_SPACE",
   "INSTALL_CHECK",
   "INSTALL_PACKAGE",
   "REMOVE_CHECK",
@@ -1151,6 +1153,10 @@ handle_request ()
 
     case APTCMD_RM_TEMP_CATALOGUES:
       cmd_rm_temp_catalogues ();
+      break;
+
+    case APTCMD_GET_FREE_SPACE:
+      cmd_get_free_space ();
       break;
 
     case APTCMD_INSTALL_CHECK:
@@ -4446,6 +4452,34 @@ cmd_rm_temp_catalogues ()
   response.encode_int (success);
 }
 
+static int64_t
+get_free_space (const char *path)
+{
+  struct statvfs buf;
+
+  // Sync before we measure the free space for download
+  sync ();
+
+  if (statvfs (path, &buf) != 0)
+    return -1;
+
+  int64_t res = (int64_t)buf.f_bavail * (int64_t)buf.f_bsize;
+  log_stderr ("free space (%s) = %Ld", path, res);
+  return res;
+}
+
+/* APTCMD_GET_FREE_SPACE
+ *
+ * Returns the actual amount of free space for installation
+ */
+
+void
+cmd_get_free_space ()
+{
+  int64_t free_space = get_free_space ("/");
+  response.encode_int64 (free_space);
+}
+
 static bool set_dir_cache_archives (const char *alt_download_root);
 static int operation (bool check_only,
 		      const char *alt_download_root,
@@ -4730,22 +4764,6 @@ maybe_bindumount_docsfs (const char *tmpfs)
   g_free (rootdir);
 
   return ret;
-}
-
-static int64_t
-get_free_space (const char *path)
-{
-  struct statvfs buf;
-
-  // Sync before we measure the free space for download
-  sync ();
-
-  if (statvfs (path, &buf) != 0)
-    return -1;
-
-  int64_t res = (int64_t)buf.f_bavail * (int64_t)buf.f_bsize;
-  log_stderr ("free space (%s) = %Ld", path, res);
-  return res;
 }
 
 /* This function will check for the /dev/shm fs

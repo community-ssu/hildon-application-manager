@@ -47,6 +47,7 @@ enum apt_command {
   APTCMD_ADD_TEMP_CATALOGUES,
   APTCMD_RM_TEMP_CATALOGUES,
 
+  APTCMD_GET_FREE_SPACE,
   APTCMD_INSTALL_CHECK,
   APTCMD_DOWNLOAD_PACKAGE,      // needs network
   APTCMD_INSTALL_PACKAGE,      // needs network
@@ -341,6 +342,14 @@ enum apt_proto_sumtype {
   sumtype_conflicting,
   sumtype_max
 };
+
+// GET_FREE_SPACE - returns actual free space for installation
+//
+// No parameters.
+//
+// Response contains:
+//
+// - free_space (int64_t)
 
 // INSTALL_CHECK - Check for non-authenticated and non-certified
 //                 packages and gather information about the
