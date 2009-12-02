@@ -771,6 +771,16 @@ apt_worker_get_package_details (const char *package,
 }
 
 void
+apt_worker_get_free_space (apt_worker_callback *callback,
+                           void *data)
+{
+  request.reset ();
+  call_apt_worker (APTCMD_GET_FREE_SPACE,
+                   request.get_buf (), request.get_len (),
+                   callback, data);
+}
+
+void
 apt_worker_install_check (const char *package,
 			  apt_worker_callback *callback, void *data)
 {

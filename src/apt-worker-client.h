@@ -99,6 +99,9 @@ void apt_worker_get_package_details (const char *package,
 				     apt_worker_callback *callback,
 				     void *data);
 
+void apt_worker_get_free_space (apt_worker_callback *callback,
+                                void *data);
+
 void apt_worker_install_check (const char *package,
 			       apt_worker_callback *callback,
 			       void *data);
