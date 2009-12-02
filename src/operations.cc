@@ -267,6 +267,7 @@ static void ip_not_enough_battery_confirm (void (*cont) (void *data), void *data
 static void ip_not_enough_battery_confirm_response (void *data);
 
 static void ip_install_one (void *data);
+static void ip_install_one_with_space_checked (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_maybe_continue (bool res, void *data);
 
 static void ip_execute_checkrm_script (const char *name,
@@ -287,6 +288,7 @@ static void ip_download_cur_retry_confirm (apt_proto_result_code result_code, vo
 static void ip_download_cur_retry_confirm_response (bool result, void *data);
 static gboolean ip_kill_all_and_install_delayed (gpointer data);
 static void ip_install_cur (void *data);
+static void ip_install_cur_with_space_checked (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_cur_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_clean_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void ip_install_next (void *data);
@@ -1071,7 +1073,23 @@ ip_install_one (void *data)
       return;
     }
 
-  int64_t free_space = get_free_space ();
+  /* Check free space to install */
+  apt_worker_get_free_space (ip_install_one_with_space_checked, c);
+}
+
+static void
+ip_install_one_with_space_checked (int cmd, apt_proto_decoder *dec, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
+
+  if (dec == NULL)
+    {
+      ip_end (c);
+      return;
+    }
+
+  int64_t free_space = dec->decode_int64 ();
 
   if (free_space < 0)
     annoy_user_with_errno (errno, "get_free_space",
@@ -1476,7 +1494,22 @@ ip_install_cur (void *data)
     }
 
   /* Check free space before downloading */
-  int64_t free_space = get_free_space ();
+  apt_worker_get_free_space (ip_install_cur_with_space_checked, c);
+}
+
+static void
+ip_install_cur_with_space_checked (int cmd, apt_proto_decoder *dec, void *data)
+{
+  ip_clos *c = (ip_clos *)data;
+  package_info *pi = (package_info *)(c->cur->data);
+
+  if (dec == NULL)
+    {
+      ip_end (c);
+      return;
+    }
+
+  int64_t free_space = dec->decode_int64 ();
   if (free_space < 0)
     annoy_user_with_errno (errno, "get_free_space",
 			   ip_end, c);
