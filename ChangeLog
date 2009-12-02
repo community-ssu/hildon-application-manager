@@ -1,3 +1,41 @@
+2009-12-02 Leonid Moiseichuk <leonid.moiseichuk@nokia.com>
+
+	* src/apt-worker.cc (is_ssu): Add NULL-checks for the package name
+	and the list of ssu packages previously stored, to avoid the crash.
+
+2009-12-02 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker-proto.h (enum apt_command): New available
+	operation in the apt-worker: APTCMD_GET_FREE_SPACE.
+
+	* src/apt-worker.cc (cmd_names): New operation name
+	"GET_FREE_SPACE".
+	(handle_request): Handle the new GET_FREE_SPACE request.
+	(get_free_space): Moved upwards in the code.
+	(cmd_get_free_space): New function to retrieve free space in "/"
+
+	* src/apt-worker-client.cc (apt_worker_get_free_space): New
+	function, to call the new APTCMD_GET_FREE_SPACE apt-worker
+	command.
+
+	* src/apt-worker-client.h: New proto for
+	apt_worker_get_free_space.
+
+	* src/operations.cc (ip_install_one_with_space_checked): New
+	function to continue ip_install_one after checking free space
+	available.
+	(ip_install_one): Check free space through apt-worker.
+	(ip_install_cur_with_space_checked): New function to continue
+	ip_install_cur after checking free space available.
+	(ip_install_cur): Check free space through apt-worker.
+
+	* src/util.cc (get_free_space): Removed as from now on this would
+	no longer be useful as it would be got through the apt-worker.
+	(get_free_space_at_path): Removed along with get_free_space.
+
+	* src/util.h (get_free_space): Removed.
+	(get_free_space_at_path): Removed.
+
 2009-11-29 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/apt-worker.cc (maybe_bindmount_docsfs): Log the docsfs mounts

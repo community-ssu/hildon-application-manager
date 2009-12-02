@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.50~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.50) unstable; urgency=low
 
-  * 
+  [ Leonid Moiseichuk ]
+  * Fixes: NB#149029 - apt-worker crashes when installing package from App-Mgr
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Sat, 29 Nov 2009 17:50:22 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 02 Dec 2009 13:13:36 +0100
 
 hildon-application-manager (1:2.2.49-1) unstable; urgency=low
 
