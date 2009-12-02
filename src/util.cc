@@ -3644,25 +3644,6 @@ grab_focus_on_map (GtkWidget *widget)
   g_signal_connect (widget, "map", G_CALLBACK (grab_focus), NULL);
 }
 
-int64_t
-get_free_space ()
-{
-  return get_free_space_at_path ("/");
-}
-
-int64_t
-get_free_space_at_path (const char *path)
-{
-  struct statvfs buf;
-
-  if (statvfs(path, &buf) != 0)
-    return -1;
-
-  int64_t res = (int64_t)buf.f_bavail * (int64_t)buf.f_bsize;
-  add_log ("free space (%s): %Ld\n", path, res);
-  return res;
-}
-
 void
 save_last_update_time (time_t t)
 {

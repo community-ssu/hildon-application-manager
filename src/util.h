@@ -607,14 +607,6 @@ void respond_on_escape (GtkDialog *dialog, int response);
 */
 void grab_focus_on_map (GtkWidget *widget);
 
-/* Get the number of free bytes in the root filesystem.
- */
-int64_t get_free_space ();
-
-/* Get the number of free bytes at the specified path.
- */
-int64_t get_free_space_at_path (const char *path);
-
 /* Save the LAST_UPDATE timstamp from disk */
 void save_last_update_time (time_t t);
 
