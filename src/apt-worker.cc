@@ -4699,11 +4699,14 @@ unset_pkgname_envvar ()
 static bool
 is_ssu (const char *package)
 {
-  for (guint i = 0; i < ssu_packages->len; i++)
+  if (package && *package && ssu_packages)
     {
-      gchar *ssu_pkg = g_array_index (ssu_packages, gchar*, i);
-      if (!g_strcmp0 (package, ssu_pkg))
-        return true;
+      for (guint i = 0; i < ssu_packages->len; i++)
+        {
+          gchar *ssu_pkg = g_array_index (ssu_packages, gchar*, i);
+          if (!g_strcmp0 (package, ssu_pkg))
+            return true;
+        }
     }
 
   return false;
