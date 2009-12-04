@@ -1,3 +1,53 @@
+2009-11-17 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/apt-worker.cc (cmd_get_package_list): Reorder checks for
+	system-update flagged packages when retrieving the list.
+
+2009-11-12 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/menu.cc (create_menu): Don't create the search button.
+	(enable_search): Removed, no longer needed.
+
+	* src/menu.h (enable_search): Removed, no longer needed.
+
+	* src/main.cc (set_current_view): Remove usage of enable_search.
+	(make_main_view): Likewise.
+	(make_install_section_view): Likewise.
+	(make_uninstall_applications_view): Likewise.
+	(make_search_results_view): Likewise.
+
+2009-11-11 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (global_tree_model_filter): New global variable to
+	store the GtkTreeModelFilter used in the treeviews to allow live
+	searching through the list.
+	(global_row_activated): Handle the global_tree_model_filter
+	variable instead of the global_list_store.
+	(make_global_package_list): Added a new parameter to tell the
+	function the GtkWidget referencing the window for the view whose
+	treeview is being created.  Create a GtkTreeModelFilter containing
+	a GtkTreeModel, and create a GtkTreeView with the filter as its
+	model. Create a HildonLiveSearch widget and put it along with the
+	pannable area for the treeview inside a GtkVBox widget, which
+	would be returned by the function from now on after properly
+	setting their visibility.
+	(live_search_filter_func): New. Function to filter out the
+	packages in a treeview as instructied through the new
+	HildonLiveSearch widget.
+	(set_global_package_list): Extract the GtkListStore widget from
+	the GtkTreeModelFilter before proceeding.
+	(make_global_section_list): Update visibility of the widgets.
+
+	* src/util.h (make_global_package_list): Updated prototype.
+
+	* src/main.cc (make_install_section_view): Pass the window for the
+	view to the make_global_package_list function. Don't use
+	gtk_widget_show_all for the returned view, just gtk_widget_show.
+	(make_install_applications_view): Likewise.
+	(make_upgrade_applications_view): Likewise.
+	(make_uninstall_applications_view): Likewise.
+	(make_search_results_view): Likewise.
+
 2009-12-04 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/operations.cc (ip_reboot_delayed): Show the
