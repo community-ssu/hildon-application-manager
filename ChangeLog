@@ -1,3 +1,9 @@
+2009-12-04 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/operations.cc (ip_reboot_delayed): Show the
+	"ai_ni_device_restart_long" l10n id right after installation and
+	before rebooting, for OS updates only.
+
 2009-12-02 Leonid Moiseichuk <leonid.moiseichuk@nokia.com>
 
 	* src/apt-worker.cc (is_ssu): Add NULL-checks for the package name

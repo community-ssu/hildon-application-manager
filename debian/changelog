@@ -1,8 +1,9 @@
-hildon-application-manager (1:2.2.53~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.53) unstable; urgency=low
 
-  * 
+  [ Mario Sanchez Prada ]
+  * Fixes: NB#146010 - Sub-CR: Info note change needed for CMT SSU
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 02 Dec 2009 13:25:47 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 04 Dec 2009 09:47:15 +0100
 
 hildon-application-manager (1:2.2.52) unstable; urgency=low
 
