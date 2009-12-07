@@ -1,3 +1,8 @@
+2009-12-07 David Kedves <dkedves@blumsoft.eu>
+
+	* src/util.cc:
+	  Following a libhildon API change...
+
 2009-11-17 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/apt-worker.cc (cmd_get_package_list): Reorder checks for
