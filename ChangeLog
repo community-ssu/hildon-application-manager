@@ -1,3 +1,8 @@
+2009-12-08 David Kedves <dkedves@blumsoft.eu>
+
+	* src/util.cc:
+	  Adjust hildon-check-version to 2.2.5
+
 2009-12-07 David Kedves <dkedves@blumsoft.eu>
 
 	* src/util.cc:

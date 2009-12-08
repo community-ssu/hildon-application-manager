@@ -1730,7 +1730,7 @@ button_press_cb (GtkWidget *treeview, GdkEventButton *event, gpointer data)
 }
 #endif /* TAP_AND_HOLD && MAEMO_CHANGES */
 
-#if HILDON_CHECK_VERSION (2,2,4)
+#if HILDON_CHECK_VERSION (2,2,5)
 
 static gboolean
 live_search_filter_func (GtkTreeModel *model,
@@ -1788,7 +1788,7 @@ make_global_package_list (GtkWidget *window,
   GtkTreeViewColumn *column;
   GtkWidget *tree, *scroller, *alignment, *vbox;
 
-#if HILDON_CHECK_VERSION (2,2,4)
+#if HILDON_CHECK_VERSION (2,2,5)
   GtkWidget *live;
 #endif
 
@@ -1876,7 +1876,7 @@ make_global_package_list (GtkWidget *window,
                                   global_target_path,
                                   NULL, FALSE, 0, 0);
 
-#if HILDON_CHECK_VERSION (2,2,4)
+#if HILDON_CHECK_VERSION (2,2,5)
   /* Live search */
   live = hildon_live_search_new ();
   hildon_live_search_set_filter (HILDON_LIVE_SEARCH (live),
@@ -1891,14 +1891,14 @@ make_global_package_list (GtkWidget *window,
   vbox = gtk_vbox_new (FALSE, 0);
   gtk_box_pack_start (GTK_BOX (vbox), alignment, TRUE, TRUE, 0);
 
-#if HILDON_CHECK_VERSION (2,2,4)
+#if HILDON_CHECK_VERSION (2,2,5)
   gtk_box_pack_start (GTK_BOX (vbox), live, FALSE, FALSE, 0);
 #endif
 
   /* Prepare visibility */
   gtk_widget_show_all (alignment);
 
-#if HILDON_CHECK_VERSION (2,2,4)
+#if HILDON_CHECK_VERSION (2,2,5)
   gtk_widget_hide (live);
 #endif
 
