@@ -1,10 +1,4 @@
-hildon-application-manager (1:2.2.56~unreleased) unstable; urgency=low
-
-  * FILLME 
-
- -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 10 Dec 2009 17:00:51 +0100
-
-hildon-application-manager (1:2.2.55) unstable; urgency=low
+hildon-application-manager (1:2.2.55~unreleased) unstable; urgency=low
 
   [ David Kedves ]  
   * Set high-compression to rootfs on SSU
