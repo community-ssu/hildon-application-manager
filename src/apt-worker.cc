@@ -4769,6 +4769,23 @@ maybe_bindumount_docsfs (const char *tmpfs)
   return ret;
 }
 
+/* And an another hack to save space while SSU is ongoing... */
+static void
+rootfs_set_compression_level (bool high)
+{
+  gchar *level = "lzo"; /* Normal compression level */
+  gchar *cmd;
+
+  if (high)
+    level ="lzo999";
+
+  cmd = g_strdup_printf ("/bin/mount -o remount,compr=%s /", level);
+
+  run_system (true, cmd);
+
+  g_free (cmd);
+}
+
 /* This function will check for the /dev/shm fs
  * If it's available and sane return it.
  * Otherwise if /home is available and sane return it.
@@ -4815,6 +4832,7 @@ cmd_install_package ()
             {
               tmpfs = choose_tmpfs_for_docs ();
               maybe_bindmount_docsfs (tmpfs);
+              rootfs_set_compression_level (true);
             }
 
           set_pkgname_envvar (package);
@@ -4828,7 +4846,11 @@ cmd_install_package ()
           unset_pkgname_envvar ();
 
           if (pkg_is_ssu)
+          {
             maybe_bindumount_docsfs (tmpfs);
+            rootfs_set_compression_level (false);
+          }
+
 	}
       else
 	result_code = rescode_packages_not_found;
@@ -6708,6 +6730,9 @@ do_rescue (const char *package, const char *download_root,
    * /home/opt :-S */
   run_system (false, "/bin/mount /home");
 
+  /* Remount the root directiory with higher compression */
+  rootfs_set_compression_level (true);
+
   /* Also we should mount the docs fs (nasty-ugly hack for
      rootfs spaces exhaustion )*/
   const char *tmpfs = choose_tmpfs_for_docs ();
@@ -6754,6 +6779,8 @@ do_rescue (const char *package, const char *download_root,
 
               run_system (false, "/bin/umount /home");
               maybe_bindumount_docsfs (tmpfs);
+
+              rootfs_set_compression_level (false);
 
               run_system (true, "/sbin/reboot");
             }
