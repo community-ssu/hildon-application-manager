@@ -1,3 +1,9 @@
+2009-12-10 David Kedves <dkedves@blumsoft.eu>
+
+	* src/apt-worker.cc: New function rootfs_set_compression_level
+	  (cmd_install_package): Set high compression on SSU
+	  (do_rescue): Doing the same ^
+
 2009-12-08 David Kedves <dkedves@blumsoft.eu>
 
 	* src/util.cc:
