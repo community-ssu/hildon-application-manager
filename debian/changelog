@@ -1,7 +1,9 @@
-hildon-application-manager (1:2.2.50) unstable; urgency=low
+hildon-application-manager (1:2.2.50-1) unstable; urgency=low
 
   [ Leonid Moiseichuk ]
   * Fixes: NB#149029 - apt-worker crashes when installing package from App-Mgr
+  [ David Kedves ]
+  * Fixes: NB#148525 - Free space disappears after PR1.0.1 to PR1.1 upgrade
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 02 Dec 2009 13:13:36 +0100
 
