@@ -1,10 +1,10 @@
-hildon-application-manager (1:2.2.55~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.55) unstable; urgency=low
 
-  [ David Kedves ]  
+  [ David Kedves ]
   * Set high-compression to rootfs on SSU
   * Fixes: NB#148525 - Free space disappears after PR1.0.1 to PR1.1 upgrade
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 04 Dec 2009 15:57:52 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 11 Dec 2009 10:14:52 +0100
 
 hildon-application-manager (1:2.2.54) unstable; urgency=low
 
