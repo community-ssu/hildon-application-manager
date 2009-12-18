@@ -33,8 +33,6 @@ void set_install_from_file_menu_visible (bool flag);
 void enable_search (bool);
 void enable_refresh (bool);
 void enable_update_all (bool);
-void enable_sort (bool);
-void show_sort_order ();
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
 GtkWidget *create_package_menu (const char *op_label);

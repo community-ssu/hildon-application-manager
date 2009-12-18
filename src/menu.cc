@@ -56,8 +56,6 @@ add_item (HildonAppMenu *menu, const gchar *label, void (*func)())
 static GtkWidget *settings_menu_item = NULL;
 static GtkWidget *install_from_file_menu_item = NULL;
 static GtkWidget *update_all_menu_item = NULL;
-static GtkWidget *sort_by_name_menu_item = NULL;
-static GtkWidget *sort_by_size_menu_item = NULL;
 static GtkWidget *refresh_menu_item = NULL;
 
 void
@@ -90,23 +88,6 @@ call_install_from_file ()
   install_from_file_flow (NULL);
 }
 
-static void
-toggle_sort (GObject *src, GParamSpec *pspec, gpointer data)
-{
-  gboolean active = FALSE;
-
-  g_object_get (src, "active", &active, NULL);
-  if (active)
-    {
-      int sort_by = GPOINTER_TO_INT (data);
-
-      set_sort_settings (sort_by,
-                         SORT_BY_NAME == sort_by
-                         ? GTK_SORT_ASCENDING
-                         : GTK_SORT_DESCENDING);
-    }
-}
-
 void
 create_menu ()
 {
@@ -117,30 +98,6 @@ create_menu ()
 
   /* set menu */
   hildon_program_set_common_app_menu (hildon_program_get_instance (), main);
-
-  /* Sort */
-  sort_by_name_menu_item = gtk_radio_button_new_with_label
-    (NULL, _("ai_va_sort_name"));
-  gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (sort_by_name_menu_item),
-                              FALSE);
-  hildon_app_menu_add_filter (HILDON_APP_MENU (main),
-                              GTK_BUTTON (sort_by_name_menu_item));
-  g_signal_connect (G_OBJECT (sort_by_name_menu_item),
-                    "notify::active",
-                    (GCallback) toggle_sort,
-                    GINT_TO_POINTER (SORT_BY_NAME));
-
-  sort_by_size_menu_item = gtk_radio_button_new_with_label_from_widget
-    (GTK_RADIO_BUTTON (sort_by_name_menu_item), _("ai_va_sort_size"));
-  gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON(sort_by_size_menu_item),
-      	      	      	      FALSE);
-  hildon_app_menu_add_filter (HILDON_APP_MENU(main),
-      	      	      	      GTK_BUTTON (sort_by_size_menu_item));
-  g_signal_connect (G_OBJECT(sort_by_size_menu_item),
-                    "notify::active",
-                    (GCallback) toggle_sort,
-                    GINT_TO_POINTER (SORT_BY_SIZE));
-  show_sort_order ();
 
   /* Refresh */
   refresh_menu_item =
@@ -206,34 +163,6 @@ enable_update_all (bool flag)
 {
   if (update_all_menu_item)
     g_object_set (G_OBJECT (update_all_menu_item), "visible", flag, NULL);
-}
-
-void
-enable_sort (bool flag)
-{
-  if (sort_by_name_menu_item)
-    g_object_set (G_OBJECT (sort_by_name_menu_item), "visible", flag, NULL);
-
-  if (sort_by_size_menu_item)
-    g_object_set (G_OBJECT (sort_by_size_menu_item), "visible", flag, NULL);
-}
-
-void
-show_sort_order ()
-{
-  GObject *to_activate = G_OBJECT (sort_by_name_menu_item);
-
-  if (SORT_BY_SIZE == package_sort_key
-      && -1 == package_sort_sign)
-    to_activate = G_OBJECT (sort_by_size_menu_item);
-
-  if (to_activate)
-    {
-      gboolean active = FALSE;
-      g_object_get (to_activate, "active", &active, NULL);
-      if (!active)
-        g_object_set (to_activate, "active", TRUE, NULL);
-    }
 }
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)

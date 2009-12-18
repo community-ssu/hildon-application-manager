@@ -127,8 +127,6 @@ load_settings ()
       fclose (f);
     }
 
-  show_sort_order();
-
   if (!red_pill_permanent)
     red_pill_mode = false;
 
@@ -347,8 +345,6 @@ set_sort_settings (int sort_key, int sort_order)
     package_sort_sign = 1;
   else
     package_sort_sign = -1;
-
-  show_sort_order ();
 
   save_settings ();
   sort_all_packages (true);
