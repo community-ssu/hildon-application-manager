@@ -1,3 +1,8 @@
+2009-12-18 Alejandro Piñeiro <apinheiro@igalia.com>
+
+	* src/repo.cc (cat_icon_func): Add missing NULL check.
+	(cat_text_func): Add missing NULL check.
+
 2009-12-18 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/menu.cc (sort_by_name_menu_item): Removed.

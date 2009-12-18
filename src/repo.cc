@@ -768,7 +768,7 @@ cat_icon_func (GtkTreeViewColumn *column,
     }
 
   /* Select icon to show when showing the application catalogue dialog */
-  if (!cd->show_only_errors && c->refresh_failed)
+  if (!cd->show_only_errors && c && c->refresh_failed)
     browser_pixbuf = fail_browser_pixbuf;
   else
     browser_pixbuf = ok_browser_pixbuf;
@@ -791,6 +791,9 @@ cat_text_func (GtkTreeViewColumn *column,
   gchar *full_name = NULL;
 
   gtk_tree_model_get (model, iter, 0, &c, -1);
+
+  if (c == NULL)
+    return;
 
   /* set 'failed catalogue' suffix when needed */
   if (!cd->show_only_errors && c->refresh_failed)

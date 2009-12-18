@@ -7,6 +7,10 @@ hildon-application-manager (1:2.2.56~unreleased) unstable; urgency=low
     catalogue which is disabled
   * Fixes: NB#151321 - Drop sort menu
 
+  [ Alejandro Piñeiro ]
+  * Fixes: NB#127469 - Application Manager crashes when clicking "Save"
+    with any repository
+
  -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 11 Dec 2009 10:20:47 +0100
 
 hildon-application-manager (1:2.2.55) unstable; urgency=low
