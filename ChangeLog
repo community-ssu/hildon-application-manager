@@ -1,3 +1,44 @@
+2009-12-18 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/menu.cc (sort_by_name_menu_item): Removed.
+	(sort_by_size_menu_item): Removed.
+	(toggle_sort): Removed.
+	(create_menu): Removed creation of sort-related item.
+	(enable_sort): Removed.
+	(show_sort_order): Removed.
+
+	* src/menu.h (enable_sort): Removed.
+	(show_sort_order): Removed.
+
+	* src/main.cc (set_current_view): No longer call to enable_sort.
+
+	* src/settings.cc (load_settings): Don't call to show_sort_order.
+	(set_sort_settings): Likewise.
+
+2009-11-17 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/operations.cc (result_code_to_message): Use the logical ID
+	ai_ni_memory_shortage from HAM instead the generic one.
+
+2009-11-06 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/repo.cc (add_catalogues_cont_2): Swapped branches order to
+	properly check when a catalogue must be added or just enabled.
+
+	* src/confutils.cc (dist_get_actual_string): New. Always returns a
+	string for the distribution, returning the default one in case
+	nothing was specified.
+	(components_get_array): New. Returns a gchar** array with the list
+	of components, for ease of comparison when fields are not sorted.
+	(catalogue_uri_equal): New. Checks whether two uris are the same.
+	(catalogue_dist_equal): New. Checks whether two dist field are
+	equal.
+	(catalogue_n_components): New. Returns the number of components.
+	(catalogue_components_equal): New. Checks whether the same
+	components are present in two catalogues, regardless of the order.
+	(catalogue_equal): Use the new functions defined to better check
+	when two catalogues are actually equal and not just identical.
+
 2009-12-10 David Kedves <dkedves@blumsoft.eu>
 
 	* src/apt-worker.cc: New function rootfs_set_compression_level
