@@ -453,41 +453,28 @@ maybe_make_layout (GtkWidget *widget,
 }
 
 static void
-paint_row (PangoLayout *left_layout,
-      	   int left_width, int left_height,
-      	   PangoLayout *right_layout,
-      	   int right_width, int right_height,
-	   PangoAttrList *attrs,
-	   GtkCellRenderer *cell,
-	   GdkDrawable *window,
-	   GtkWidget *widget,
-	   GdkRectangle *cell_area,
-	   GdkRectangle *expose_area,
-	   GtkStateType state,
-	   int y_coord,
-	   gboolean is_above_offset)
+paint_row (PangoLayout *layout,
+           int width, int height,
+           PangoAttrList *attrs,
+           GtkCellRenderer *cell,
+           GdkDrawable *window,
+           GtkWidget *widget,
+           GdkRectangle *cell_area,
+           GdkRectangle *expose_area,
+           GtkStateType state,
+           int y_coord,
+           gboolean is_above_offset)
 {
-  gint available_width;
-
-  available_width = cell_area->width - 2 * DEFAULT_MARGIN;
-
-  if (left_width + right_width > available_width)
+  if (layout)
     {
-      if (left_width < 2 * available_width / 3)
-        right_width = available_width - left_width;
-      else if (right_width < available_width / 3)
-        left_width = available_width - right_width;
-      else
-        {
-          left_width = 2 * available_width / 3;
-          right_width = available_width / 3;
-        }
-    }
+      gint available_width;
 
-  if (left_layout)
-    {
-      pango_layout_set_ellipsize (left_layout, PANGO_ELLIPSIZE_END);
-      pango_layout_set_width (left_layout, left_width * PANGO_SCALE);
+      available_width = cell_area->width - 2 * DEFAULT_MARGIN;
+      if (width > available_width)
+        width = available_width;
+
+      pango_layout_set_ellipsize (layout, PANGO_ELLIPSIZE_END);
+      pango_layout_set_width (layout, width * PANGO_SCALE);
 
       gtk_paint_layout (widget->style,
                         window,
@@ -497,29 +484,10 @@ paint_row (PangoLayout *left_layout,
                         widget,
                         "cellrenderertext",
                         cell_area->x + DEFAULT_MARGIN,
-                        y_coord - (is_above_offset ? left_height : 0),
-                        left_layout);
+                        y_coord - (is_above_offset ? height : 0),
+                        layout);
 
-      g_object_unref (left_layout);
-    }
-
-  if (right_layout)
-    {
-      pango_layout_set_ellipsize (right_layout, PANGO_ELLIPSIZE_END);
-      pango_layout_set_width (right_layout, right_width * PANGO_SCALE);
-
-      gtk_paint_layout (widget->style,
-                        window,
-                        state,
-                        TRUE,
-                        expose_area,
-                        widget,
-                        "cellrenderertext",
-                        cell_area->x + cell_area->width - right_width,
-                        y_coord - (is_above_offset ? right_height : 0),
-                        right_layout);
-
-      g_object_unref (right_layout);
+      g_object_unref (layout);
     }
 }
 
@@ -535,17 +503,14 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
   PackageInfoCellRendererPrivate *priv;
 
   /* example code from eog-pixbuf-cell-renderer.c : */
-  gint name_w, name_h, version_w, version_h;
+  gint name_w, name_h;
   gint description_w, description_h;
-  gint size_w, size_h;
-  gint y_coord, max_top, max_bot;
-  PangoLayout *name_layout, *version_layout, *description_layout, *size_layout;
+  gint y_coord;
+  PangoLayout *name_layout, *description_layout;
   GtkStateType state;
 
   name_w = name_h = 0;
-  version_w = version_h = 0;
   description_w = description_h = 0;
-  size_w = size_h = 0;
 
   priv = PACKAGE_INFO_CELL_RENDERER_GET_PRIVATE (cell);
 
@@ -557,38 +522,21 @@ package_info_cell_renderer_render       (GtkCellRenderer      *cell,
                                    PANGO_ALIGN_LEFT,
                                    &name_w, &name_h);
 
-  version_layout = maybe_make_layout (widget,
-                                      priv->pkg_version,
-                                      priv->scale_medium_attr_list,
-                                      PANGO_ALIGN_LEFT,
-                                      &version_w, &version_h);
-
   description_layout = maybe_make_layout (widget,
                                           priv->pkg_description,
                                           priv->scale_small_attr_list,
                                           PANGO_ALIGN_LEFT,
                                           &description_w, &description_h);
-
-  size_layout = maybe_make_layout (widget,
-                                   priv->pkg_size,
-                                   priv->scale_small_attr_list,
-                                   PANGO_ALIGN_LEFT,
-                                   &size_w, &size_h);
-
-  max_top = MAX (name_h, version_h);
-  max_bot = MAX (description_h, size_h);
   y_coord =
-    cell_area->y + (cell_area->height - (max_top + max_bot)) / 2 + max_top;
+    cell_area->y + (cell_area->height - (name_h + description_h)) / 2 + name_h;
 
   paint_row (name_layout, name_w, name_h,
-             version_layout, version_w, version_h,
              priv->scale_medium_attr_list,
              cell, window, widget,
              cell_area, expose_area,
              state, y_coord, TRUE);
 
   paint_row (description_layout, description_w, description_h,
-             size_layout, size_w, size_h,
              priv->scale_small_attr_list,
              cell, window, widget,
              cell_area, expose_area,
