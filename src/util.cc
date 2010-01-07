@@ -1531,23 +1531,13 @@ package_info_func (GtkTreeViewColumn *column,
 {
   package_info *pi;
   const gchar *package_name = NULL;
-  const gchar *package_version = NULL;
   const gchar *package_description = NULL;
-  gchar buf[20];
 
   gtk_tree_model_get (model, iter, 0, &pi, -1);
   if (!pi)
     return;
 
   package_name = pi->get_display_name (global_installed);
-  package_version = pi->get_display_version (global_installed);
-
-  if (global_installed)
-    size_string_general_or_empty (buf, 20, pi->installed_size);
-  else if (pi->have_info)
-    size_string_general_or_empty (buf, 20, pi->info.download_size);
-  else
-    strcpy (buf, "-");
 
   if (global_installed)
     package_description = pi->installed_short_description;
@@ -1560,9 +1550,7 @@ package_info_func (GtkTreeViewColumn *column,
 
   g_object_set (cell,
                 "package-name", package_name,
-                "package-version", package_version,
                 "package-description", package_description,
-                "package-size", buf,
                 NULL);
 }
 
