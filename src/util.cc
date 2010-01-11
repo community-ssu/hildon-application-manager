@@ -3595,23 +3595,78 @@ iap_callback (ConIcConnection *connection,
 	      gpointer user_data)
 {
   bool success = false;
+  static gchar *iap = NULL;
 
-  switch (con_ic_connection_event_get_status (event))
+  ConIcConnectionError con_err = con_ic_connection_event_get_error (event);
+  ConIcConnectionStatus con_state = con_ic_connection_event_get_status (event);
+  const gchar *event_iap_id = con_ic_event_get_iap_id (CON_IC_EVENT (event));
+
+  switch (con_err)
     {
-    case CON_IC_STATUS_CONNECTED:
-      // add_log ("CON_IC_STATUS_CONNECTED\n");
+    case CON_IC_CONNECTION_ERROR_NONE:
+      break;
+    case CON_IC_CONNECTION_ERROR_INVALID_IAP:
+      add_log ("conic: IAP is invalid\n");
+      break;
+    case CON_IC_CONNECTION_ERROR_CONNECTION_FAILED:
+      add_log ("conic: connection failed\n");
+      break;
+    case CON_IC_CONNECTION_ERROR_USER_CANCELED:
+      add_log ("conic: user cancelled\n");
+      break;
+    default:
+      g_return_if_reached ();
+    }
+
+  switch (con_state)
+    {
+    case CON_IC_STATUS_CONNECTED:{
+      add_log ("connected to %s\n", event_iap_id);
+
+      /* if IAP changed we shall break the download */
+      if (g_strcmp0  (iap, event_iap_id) != 0)
+        {
+          if (iap)
+            {
+              g_free (iap);
+              break_entertainment ();
+            }
+
+          iap = g_strdup (event_iap_id);
+        }
+
       success = true;
       break;
+    }
 
-    case CON_IC_STATUS_DISCONNECTED:
-      // add_log ("CON_IC_STATUS_DISCONNECTED\n");
+    case CON_IC_STATUS_DISCONNECTED:{
+      add_log ("DISCONNECTED from %s\n", event_iap_id);
+
+      /* If the IAP is the same then the current connection
+       * was disconnected */
+      if (g_strcmp0 (iap, event_iap_id) == 0)
+        {
+          g_free (iap);
+        }
+
       break_entertainment ();
       break;
+    }
+
+    case CON_IC_STATUS_DISCONNECTING:{
+      add_log ("DISCONNECTING from %s\n", event_iap_id);
+      /* apt doesn't understand automatic re-connections, so if something goes
+       * wrong, we force the disconnection */
+      /* @TODO segsigv in libconic :S */
+      // if (event_iap_id)
+      //   con_ic_connection_disconnect_by_id (connection_object, event_iap_id);
+      return;
+    }
 
     default:
+      /* let's wait for another event */
       add_log ("ConIc Error: unexpected event type\n");
-      what_the_fock_p ();
-      break;
+      g_return_if_reached ();
     }
 
   ensure_network_cont (success);
