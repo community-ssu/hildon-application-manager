@@ -693,6 +693,20 @@ ip_install_start (ip_clos *c)
   ip_install_loop (c);
 }
 
+/* FIXME: Please remove this code when no longer needed. */
+static void
+force_icons_theme_reload (void)
+{
+  GdkEventClient event;
+
+  /* Send GDK event to force icons theme reload */
+  event.type = GDK_CLIENT_EVENT;
+  event.window = NULL;
+  event.send_event = TRUE;
+  event.message_type = gdk_atom_intern_static_string ("_GTK_LOAD_ICONTHEMES");
+  event.data_format = 32;
+  gdk_event_send_clientmessage_toall ((GdkEvent *) &event);
+}
 
 static void
 ip_install_loop (ip_clos *c)
@@ -730,6 +744,16 @@ ip_install_loop (ip_clos *c)
                   str = g_strdup_printf (_("ai_ni_multiple_install"),
                                          c->n_successful);
 		}
+
+              /* Force reloading icons theme */
+              /* FIXME: This shouldn't be done here as it's not
+               * responsibility of HAM that the icons don't get
+               * updated when changed, added or removed, but of other
+               * components (most likely, Gtk+).
+               * Please remove this code when no longer needed.
+               */
+              force_icons_theme_reload ();
+
 	      annoy_user (str, ip_end, c);
 	      g_free (str);
 	    }
