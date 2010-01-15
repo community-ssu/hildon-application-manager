@@ -4775,13 +4775,16 @@ maybe_bindumount_docsfs (const char *tmpfs)
 static void
 rootfs_set_compression_level (bool high)
 {
-  gchar *level = "lzo"; /* Normal compression level */
+  gchar *level = NULL;
   gchar *cmd;
 
   if (high)
-    level ="lzo999";
+    level = g_strdup ("lzo999");
+  else
+    level = g_strdup ("lzo"); /* Normal compression level */
 
   cmd = g_strdup_printf ("/bin/mount -o remount,compr=%s /", level);
+  g_free (level);
 
   run_system (true, cmd);
 
