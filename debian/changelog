@@ -29,12 +29,6 @@ hildon-application-manager (1:2.2.54) unstable; urgency=low
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 04 Dec 2009 15:53:40 +0100
 
-hildon-application-manager (1:2.2.53.1) unstable; urgency=low
-
-  * Fixes: NB#153419 - Enable .deb installation in application manager
-
- -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 18 Jan 2010 12:14:36 +0100
-
 hildon-application-manager (1:2.2.53) unstable; urgency=low
 
   [ Mario Sanchez Prada ]
