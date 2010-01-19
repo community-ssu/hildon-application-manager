@@ -2267,6 +2267,9 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   c->pi = pi;
 
+  /* TODO: Should we check flags for debian files ? */
+  pi->flags = 0;
+
   pi->name = dec->decode_string_dup ();
   pi->available_pretty_name = dec->decode_string_dup ();
   pi->broken = false;
