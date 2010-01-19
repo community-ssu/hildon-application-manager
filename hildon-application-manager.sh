@@ -29,6 +29,8 @@ fi
 
 if [ -f $pkgs ]; then
   cp "$pkgs" "$upkgs"
+else
+  rm -f "$upkgs"
 fi
 
 exit 0
