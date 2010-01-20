@@ -1,8 +1,8 @@
 hildon-application-manager (1:2.2.52.1) unstable; urgency=low
 
   * Fixes: NB#153419 - Enable .deb installation in application manager
-  * Fixes: NB#136782 - Task launcher shows standard icon instead of
-    application icon
+  * Touch icons path and send signal for theme changed after
+    installing/upgrading a package (related to NB#136782)
 
  -- Marius Vollmer <marius.vollmer@nokia.com>  Mon, 18 Jan 2010 17:20:29 +0100
 
