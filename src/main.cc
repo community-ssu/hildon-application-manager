@@ -166,7 +166,18 @@ static GList *install_sections = NULL;
 static GList *upgradeable_packages = NULL;
 static GList *installed_packages = NULL;
 static GList *search_result_packages = NULL;
-static gboolean package_list_ready = false;
+
+
+enum package_list_state {
+  pkg_list_unknown,
+  pkg_list_retrieving,
+  pkg_list_ready,
+};
+
+static package_list_state pkg_list_state = pkg_list_unknown;
+
+#define package_list_ready (pkg_list_state == pkg_list_ready)
+
 
 static int cur_section_rank;
 static char *cur_section_name;
@@ -977,7 +988,7 @@ get_package_list_reply (int cmd, apt_proto_decoder *dec, void *data)
 	all_si->unref ();
     }
 
-  package_list_ready = true;
+  pkg_list_state = pkg_list_ready;
 
   /* Refresh view after sorting only if not in the main view */
   sort_all_packages (cur_view_struct != &main_view);
@@ -1016,7 +1027,7 @@ get_package_list_with_cont (void (*cont) (void *data), void *data)
   /* Mark package list as not ready and cancel the package info
      getting in the background before freeing the list
   */
-  package_list_ready = false;
+  pkg_list_state = pkg_list_retrieving;
   get_package_infos_in_background (NULL);
   free_all_packages ();
 
@@ -2421,6 +2432,9 @@ static void
 iff_end (bool success, void *unused)
 {
   end_interaction_flow ();
+
+  /* Make sure packages list is initialized after this */
+  maybe_init_packages_list ();
 }
 
 static void
@@ -2657,11 +2671,8 @@ with_initialized_packages (void (*cont) (void *data), void *data)
 
 void maybe_init_packages_list (void)
 {
-  static bool already_initialized = false;
-
-  if (already_initialized)
+  if (initial_packages_available || (pkg_list_state != pkg_list_unknown))
     return;
-  already_initialized = true;
 
   get_package_list_with_cont (notice_initial_packages_available, NULL);
   save_backup_data ();
