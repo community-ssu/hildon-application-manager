@@ -352,16 +352,14 @@ show_package_details (package_info *pi, detail_kind kind,
 
   allow_updating ();
 
+  /* Build the dialog */
+  spd_with_details (c, false);
+
+  /* Show the data */
   if (pi->have_detail_kind != c->kind)
-    {
-      spd_with_details (c, false);
-      get_package_info (pi, false, spd_third_party_policy_check, c);
-    }
+    get_package_info (pi, false, spd_third_party_policy_check, c);
   else
-    {
-      /* Don't retrieve package info or details if already available */
-      spd_with_details (c, false);
-    }
+    spd_with_details (c, true);
 }
 
 static void
@@ -586,20 +584,14 @@ spd_update_common_page (void *data)
 }
 
 static gint
-get_notebook_width (void)
+get_screen_width (void)
 {
-  /* This asumes the width of the notebook does not change across ham
-     execution. If it did (supporting changes to portrair mode, for
-     instance) this would no longer be valid */
-  static gint width = -1;
+  GdkScreen *screen = NULL;
+  gint width = -1;
 
-  if (width == -1)
-    {
-      GtkWidget *notebook = current_spd_clos->notebook;
-      GdkWindow *nb_window = gtk_widget_get_window (notebook);
-      if (nb_window != NULL)
-        gdk_drawable_get_size (nb_window, &width, NULL);
-    }
+  screen = gdk_screen_get_default ();
+  if (screen != NULL)
+    width = gdk_screen_get_width (screen);
 
   return width;
 }
@@ -607,7 +599,7 @@ get_notebook_width (void)
 static GtkWidget *
 make_small_text_label (const char *text)
 {
-  gint nb_width = get_notebook_width ();
+  gint scn_width = get_screen_width ();
 
   GtkWidget *summary_table = gtk_table_new (1, 1, FALSE);
   gtk_table_set_col_spacings (GTK_TABLE (summary_table), 10);
@@ -619,8 +611,9 @@ make_small_text_label (const char *text)
   gtk_label_set_line_wrap_mode (GTK_LABEL (desc), PANGO_WRAP_WORD);
   gtk_label_set_ellipsize (GTK_LABEL (desc), PANGO_ELLIPSIZE_NONE);
 
-  /* Set GtkLabel width to 90% of notebook width, to avoid weird wraps */
-  gtk_widget_set_size_request (desc, nb_width * 0.9, -1);
+  /* Set GtkLabel width to 85% of screen width, to avoid weird wraps */
+  if (scn_width != -1)
+    gtk_widget_set_size_request (desc, scn_width * 0.85, -1);
 
   gtk_table_attach (GTK_TABLE (summary_table), desc, 0, 1, 0, 1,
 		    GtkAttachOptions (GTK_EXPAND | GTK_FILL), GTK_FILL,
@@ -880,67 +873,67 @@ spd_with_details (void *data, bool filling_details)
       dialog = c->dialog;
       notebook = c->notebook;
       spd_nb_widgets = c->spd_nb_widgets;
-    }
 
-  if (c->showing_details)
-    {
-      is_ssu_pkg = is_pkg_ssu (pi);
-
-      /* Prevent the 'Updating' banner from being shown */
-      prevent_updating ();
-
-      if (is_ssu_pkg)
+      if (c->showing_details)
         {
-          spd_set_page_widget (c, SPD_COMMON_PAGE, spd_create_ssu_page (c));
-        }
-      else
-        {
-          /* Update the main common tab */
-          spd_update_common_page (c);
-        }
+          is_ssu_pkg = is_pkg_ssu (pi);
 
-      /* Set the content of the rest of the notebook pages */
+          /* Prevent the 'Updating' banner from being shown */
+          prevent_updating ();
 
-      /* Check whether the 'description' tab should show up */
-      if (has_long_description (pi))
-        {
-          /* Now create and insert the "Description" tab in its place */
-          spd_nb_widgets[SPD_DESCRIPTION_PAGE] = spd_create_description_page (c);
-          gtk_notebook_insert_page (GTK_NOTEBOOK (notebook),
-                                    spd_nb_widgets[SPD_DESCRIPTION_PAGE],
-                                    gtk_label_new (_("ai_ti_details_noteb_description")),
-                                    SPD_DESCRIPTION_PAGE);
+          if (is_ssu_pkg)
+            {
+              spd_set_page_widget (c, SPD_COMMON_PAGE, spd_create_ssu_page (c));
+            }
+          else
+            {
+              /* Update the main common tab */
+              spd_update_common_page (c);
+            }
+
+          /* Set the content of the rest of the notebook pages */
+
+          /* Check whether the 'description' tab should show up */
+          if (has_long_description (pi))
+            {
+              /* Now create and insert the "Description" tab in its place */
+              spd_nb_widgets[SPD_DESCRIPTION_PAGE] = spd_create_description_page (c);
+              gtk_notebook_insert_page (GTK_NOTEBOOK (notebook),
+                                        spd_nb_widgets[SPD_DESCRIPTION_PAGE],
+                                        gtk_label_new (_("ai_ti_details_noteb_description")),
+                                        SPD_DESCRIPTION_PAGE);
+            }
+
+          if (!is_ssu_pkg)
+            {
+              spd_set_page_widget (c, SPD_SUMMARY_PAGE,
+                                   spd_create_summary_page (c));
+
+              /* Update 'summary' tab label */
+              gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
+                                          spd_nb_widgets[SPD_SUMMARY_PAGE],
+                                          gtk_label_new (spd_get_summary_label (c)));
+            }
+          else
+            {
+              // we don't need this tab
+              gtk_notebook_remove_page (GTK_NOTEBOOK (notebook), SPD_SUMMARY_PAGE);
+            }
+
+          if (pi->dependencies && !is_ssu_pkg)
+            {
+              spd_nb_widgets[SPD_DEPS_PAGE] = spd_create_deps_page (c);
+              gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
+                                        spd_nb_widgets[SPD_DEPS_PAGE],
+                                        gtk_label_new (_("ai_ti_details_noteb_dependencies")));
+            }
         }
-
-      if (!is_ssu_pkg)
-        {
-          spd_set_page_widget (c, SPD_SUMMARY_PAGE,
-                               spd_create_summary_page (c));
-
-          /* Update 'summary' tab label */
-          gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
-                                      spd_nb_widgets[SPD_SUMMARY_PAGE],
-                                      gtk_label_new (spd_get_summary_label (c)));
-        }
-      else
-        {
-          // we don't need this tab
-          gtk_notebook_remove_page (GTK_NOTEBOOK (notebook), SPD_SUMMARY_PAGE);
-        }
-
-      if (pi->dependencies && !is_ssu_pkg)
-	{
-	  spd_nb_widgets[SPD_DEPS_PAGE] = spd_create_deps_page (c);
-	  gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
-				    spd_nb_widgets[SPD_DEPS_PAGE],
-				    gtk_label_new (_("ai_ti_details_noteb_dependencies")));
-	}
     }
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (spd_response), c);
 
-  gtk_widget_set_size_request (dialog, 600, 320);
+  gtk_widget_set_size_request (dialog, -1, 320);
   gtk_widget_show_all (dialog);
 
   if (c->show_problems && c->showing_details && !is_ssu_pkg)
