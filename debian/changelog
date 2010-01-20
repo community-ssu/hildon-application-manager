@@ -1,4 +1,4 @@
-hildon-application-manager (1:2.2.56~unreleased) unstable; urgency=low
+hildon-application-manager (1:2.2.56) unstable; urgency=low
 
   [ Mario Sanchez Prada ]
   * Fixes: NB#131635 - Trying to update the applications in memory full
@@ -11,7 +11,7 @@ hildon-application-manager (1:2.2.56~unreleased) unstable; urgency=low
   * Fixes: NB#127469 - Application Manager crashes when clicking "Save"
     with any repository
 
- -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 11 Dec 2009 10:20:47 +0100
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Wed, 20 Jan 2010 13:43:59 +0100
 
 hildon-application-manager (1:2.2.55) unstable; urgency=low
 
