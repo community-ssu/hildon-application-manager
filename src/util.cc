@@ -1466,15 +1466,6 @@ emit_row_changed (GtkTreeModel *model, GtkTreeIter *iter)
 }
 
 static void
-size_string_general_or_empty (char *buf, size_t n, int64_t bytes)
-{
-  if (bytes == 0)
-    buf[0] = '\0';
-  else
-    size_string_general (buf, n, bytes);
-}
-
-static void
 package_icon_func (GtkTreeViewColumn *column,
                    GtkCellRenderer *cell,
                    GtkTreeModel *model,
