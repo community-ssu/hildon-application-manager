@@ -1863,7 +1863,7 @@ make_global_package_list (GtkWidget *window,
   hildon_live_search_set_visible_func (HILDON_LIVE_SEARCH (live),
                                        live_search_filter_func, live, NULL);
   hildon_live_search_widget_hook (HILDON_LIVE_SEARCH (live),
-                                  window, GTK_TREE_VIEW (tree));
+                                  window, tree);
 #endif
 
   /* Pack the packages list and the live search widget toghether */
