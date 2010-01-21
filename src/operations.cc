@@ -57,7 +57,7 @@ result_code_to_message (package_info *pi,
   bool upgrading = (pi->installed_version != NULL);
 
   if (result_code == rescode_download_failed)
-    msg = g_strdup_printf (_("ai_ni_error_download_failed"),
+    msg = g_strdup_printf (_("ai_nc_error_download_failed"),
 			   pi->get_display_name (false));
   else if (result_code == rescode_packages_not_found)
     msg = g_strdup_printf (_("ai_ni_error_download_missing"),
@@ -1350,19 +1350,11 @@ ip_download_cur_retry_confirm (apt_proto_result_code result_code, void *data)
         ? _("ai_ni_error_update_failed")
         : _("ai_ni_error_installation_failed")),
         pi->get_display_name (false));
-  
+
   clos->result_code = result_code;
   clos->c = c;
 
-  /* XXX - the code allows the retry of failed downloads, but I (mvo)
-           forgot to get the needed localized UI strings, so we have
-           to disable that functionality for now.
-  */
-#if 0
   ask_yes_no (msg, ip_download_cur_retry_confirm_response, clos);
-#else
-  annoy_user (msg, ip_download_cur_fail, clos);
-#endif
 
   g_free (msg);
 }
@@ -1374,15 +1366,30 @@ ip_download_cur_fail (void *data)
 }
 
 static void
+ip_download_cur_retry (bool res, void *data)
+{
+  ip_clos *c = (ip_clos *) data;
+
+  if (res)
+    {
+      ip_download_cur (c);
+    }
+  else
+    {
+      ip_end (c);
+    }
+}
+
+static void
 ip_download_cur_retry_confirm_response (bool result, void *data)
 {
   ipdcr_clos *clos = (ipdcr_clos *)data;
   ip_clos *c = (ip_clos *) clos->c;
   package_info *pi = (package_info *)(c->cur->data);
-  
+
   if (result)
     {
-      ip_download_cur (c);
+      ensure_network (ip_download_cur_retry, c);
     }
   else
     {
@@ -1424,7 +1431,9 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
   add_log ("required disk space: %Ld\n", download_size);
 
   if (result_code == rescode_success)
-    ip_install_cur (c);
+    {
+      ip_install_cur (c);
+    }
   else if (result_code == rescode_out_of_space)
     {
       /* Not enough free space */
@@ -1432,21 +1441,15 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
     }
   else if (entertainment_was_cancelled ())
     {
-      apt_worker_clean (ip_clean_reply, NULL);
-
       if (entertainment_was_broke ())
         {
-          package_info *pi = (package_info *) c->cur->data;
-          gchar *msg = result_code_to_message (pi, rescode_download_failed);
-
-          /* stop the entertainment dialogue before annoying the user */
-          stop_entertaining_user ();
-          c->entertaining = false;
-
-          annoy_user (msg, ip_end, c);
+          ip_download_cur_retry_confirm (rescode_download_failed, c);
         }
       else
-        ip_end (c);
+        {
+          apt_worker_clean (ip_clean_reply, NULL);
+          ip_end (c);
+        }
     }
   else
     ip_download_cur_retry_confirm (result_code, c);
