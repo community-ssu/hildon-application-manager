@@ -357,7 +357,14 @@ write_sources_list (const char *filename, xexp *catalogues)
 	    if (comps == NULL)
 	      comps = "";
 
-	    fprintf (f, "deb %s %s %s\n", uri, dist, comps);
+            /* apt don't accept source lines bigger than 1024 bytes
+             * apt-pkg/sourcelist.cc
+             */
+            int len = 7 + strlen (uri) + strlen (dist) + strlen (comps);
+            if (len < 1024)
+              {
+                fprintf (f, "deb %s %s %s\n", uri, dist, comps);
+              }
 	  }
     }
 
