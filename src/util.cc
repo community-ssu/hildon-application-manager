@@ -2319,6 +2319,30 @@ pixbuf_from_si(section_info *si)
   return pb;
 }
 
+static void
+reload_section_icons (GtkWidget *widget, GtkStyle *prev_style, gpointer user_data)
+{
+  GtkTreeModel *tm = (GtkTreeModel *) user_data;
+  GtkTreeIter itr;
+  GdkPixbuf *pb = NULL;
+  section_info *si = NULL;
+
+  if (gtk_tree_model_get_iter_first (tm, &itr))
+    do
+      {
+        gtk_tree_model_get (tm, &itr,
+                            SECTION_LS_PIXBUF_COLUMN, &pb,
+                            SECTION_LS_SI_COLUMN, &si,
+                            -1);
+        g_object_unref (pb);
+        gtk_list_store_set ((GtkListStore *) user_data, &itr,
+                            SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si (si), -1);
+      }
+    while (gtk_tree_model_iter_next (tm, &itr));
+
+  g_object_unref (G_OBJECT (tm));
+}
+
 GtkWidget *
 make_global_section_list (GList *sections, section_activated *act)
 {
@@ -2370,6 +2394,8 @@ make_global_section_list (GList *sections, section_activated *act)
                     "item-activated",
                     G_CALLBACK (icon_view_item_activated),
                     ls);
+  g_signal_connect (G_OBJECT (icon_view), "style-set",
+                    G_CALLBACK (reload_section_icons), ls);
   gtk_container_add (GTK_CONTAINER(scroller), icon_view);
 
   global_section_list = scroller;
