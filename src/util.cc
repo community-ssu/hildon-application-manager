@@ -2489,11 +2489,8 @@ select_package_list_with_info (void *data)
   dialog = gtk_dialog_new ();
   gtk_window_set_title (GTK_WINDOW (dialog), c->title);
   gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
-  gtk_dialog_add_button (GTK_DIALOG (dialog),
-                         dgettext ("hildon-libs", "wdgt_bd_no"),
-                         GTK_RESPONSE_CANCEL);
   ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog),
-                                     dgettext ("hildon-libs", "wdgt_bd_yes"),
+                                     _("ai_bd_confirm_ok"),
                                      GTK_RESPONSE_OK);
 
   push_dialog (dialog);
