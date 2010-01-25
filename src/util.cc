@@ -1712,16 +1712,51 @@ button_press_cb (GtkWidget *treeview, GdkEventButton *event, gpointer data)
 #if HILDON_CHECK_VERSION (2,2,5)
 
 static gboolean
+live_search_look_for_prefix (gchar **tokens, const gchar *prefix)
+{
+  gchar *needle = NULL;
+  gboolean found = false;
+  gint i = 0;
+
+  /* We need something to look for first of all */
+  if (!tokens)
+    return FALSE;
+
+  /* Casefold needle for ease of comparison */
+  needle = g_utf8_casefold (prefix, -1);
+
+  /* Look through the tokens */
+  for (i = 0; tokens[i] != NULL; i++)
+    {
+      found = g_str_has_prefix (tokens[i], needle);
+
+      /* Don't keep on looking if already found */
+      if (found)
+        break;
+    }
+
+  /* Free */
+  g_free (needle);
+
+  return found;
+}
+
+static gboolean
 live_search_filter_func (GtkTreeModel *model,
                          GtkTreeIter  *iter,
                          gchar        *text,
                          gpointer      data)
 {
     package_info *pi = NULL;
-    gchar *needle = NULL;
+    gchar *text_utf8 = NULL;
     gchar *name = NULL;
+    gchar *desc = NULL;
+    gchar **text_tokens = NULL;
+    gchar **name_tokens = NULL;
+    gchar **desc_tokens = NULL;
     gboolean retvalue = FALSE;
     GtkWidget *live = GTK_WIDGET (data);
+    gint i = 0;
 
     if (global_packages == NULL)
       return FALSE;
@@ -1738,16 +1773,41 @@ live_search_filter_func (GtkTreeModel *model,
         return FALSE;
       }
 
-    /* Casefold strings for ease of comparison */
-    needle = g_utf8_casefold (text, -1);
+    /* Casefold name, description and text for ease of comparison */
+    text_utf8 = g_utf8_casefold (text, -1);
     name = g_utf8_casefold (pi->get_display_name(global_installed), -1);
+    desc = g_utf8_casefold (global_installed
+                            ? pi->installed_short_description
+                            : pi->available_short_description,
+                            -1);
 
-    /* Search by name (case insensitive) */
-    retvalue = g_str_has_prefix (name, needle);
+    /* Tokenize name and description */
+    name_tokens = g_strsplit (name, " ", -1);
+    desc_tokens = g_strsplit (desc, " ", -1);
+
+    /* Tokenize and search for *all* the tokens */
+    text_tokens = g_strsplit (text, " ", -1);
+    for (i = 0; text_tokens[i] != NULL; i++)
+      {
+        /* Check package name */
+        retvalue = live_search_look_for_prefix (name_tokens, text_tokens[i]);
+
+        /* Check short description if not found yet */
+        if (!retvalue)
+          retvalue = live_search_look_for_prefix (desc_tokens, text_tokens[i]);
+
+        /* If not found reached this point, don't keep on looking */
+        if (!retvalue)
+          break;
+      }
 
     /* Free */
+    g_strfreev (text_tokens);
+    g_strfreev (name_tokens);
+    g_strfreev (desc_tokens);
+    g_free (text_utf8);
     g_free (name);
-    g_free (needle);
+    g_free (desc);
 
     return retvalue;
 }
