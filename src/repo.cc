@@ -1430,10 +1430,25 @@ add_catalogues_cont_2 (add_catalogues_closure *c)
           xexp_adel (c->rest, "file");
           xexp_adel (c->rest, "id");
 
-          if (xexp_aref_text (c->rest, "uri") != NULL)
+          const char *uri = xexp_aref_text (c->rest, "uri");
+          const char *dist = xexp_aref_text (c->rest, "dist");
+          const char *comps = xexp_aref_text (c->rest, "components");
+
+          if (uri != NULL)
             {
-              // New version should be added
-              cont = add_catalogues_cont_3_add;
+              // forbid any catalogue description bigger than 1024 chars
+              int len = 10 + strlen (uri)
+                + strlen (dist ? dist : "unknown") + strlen (comps ? comps : "");
+              if (len < 1024)
+                {
+                  // New version should be added
+                  cont = add_catalogues_cont_3_add;
+                }
+              else
+                {
+                  add_log ("attempted to install a bad formated catalogue\n");
+                  cont = NULL;
+                }
             }
           else
             cont = NULL;
