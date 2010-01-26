@@ -27,6 +27,10 @@
 
 #include <libintl.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <string.h>
 
 #include <clockd/libtime.h>
@@ -404,6 +408,7 @@ ham_updates_check (HamUpdates *self, gchar *proxy)
   GPid pid;
   GError *error;
   gboolean retval;
+  time_t blink_after;
 
   retval = FALSE;
 
@@ -414,6 +419,32 @@ ham_updates_check (HamUpdates *self, gchar *proxy)
     gainroot_cmd = g_strdup ("/usr/bin/fakeroot");
   else
     gainroot_cmd = g_strdup ("/usr/bin/sudo");
+
+  /* Remove user files if necessary */
+  blink_after = ham_updates_get_blink_after (self);
+  if (blink_after > 0)
+    {
+      gchar *tapped_updates_path =
+        g_strdup_printf ("%s/%s",
+                         user_file_get_state_dir_path (),
+                         UFILE_TAPPED_UPDATES);
+
+      struct stat buf;
+      if (stat (tapped_updates_path, &buf) != -1)
+        {
+          time_t m_time = buf.st_mtime;
+          time_t now = time_get_time ();
+
+          /* Remove files if more than 1 day old */
+          if ((now - m_time) > blink_after)
+            {
+              user_file_remove (UFILE_SEEN_UPDATES);
+              user_file_remove (UFILE_TAPPED_UPDATES);
+            }
+        }
+
+      g_free (tapped_updates_path);
+    }
 
   /* Build command to be spawned */
   gchar *argv[] = {
@@ -452,6 +483,35 @@ ham_updates_check (HamUpdates *self, gchar *proxy)
   g_free (gainroot_cmd);
 
   return retval;
+}
+
+time_t
+ham_updates_get_blink_after (HamUpdates *self)
+{
+  GConfClient *gconf;
+  time_t blink_after;
+
+  gconf = gconf_client_get_default ();
+
+  if (gconf == NULL)
+    return (time_t) UPNO_DEFAULT_BLINK_AFTER;
+
+  blink_after =
+    (time_t) gconf_client_get_int (gconf, UPNO_GCONF_BLINK_AFTER, NULL);
+
+  if (blink_after <= 0)
+    {
+      /* Try to set the default value if something went wrong */
+      blink_after = (time_t) UPNO_DEFAULT_BLINK_AFTER;
+      gconf_client_set_int (gconf,
+                             UPNO_GCONF_BLINK_AFTER,
+                            (time_t) blink_after,
+                             NULL);
+    }
+
+  g_object_unref (gconf);
+
+  return blink_after;
 }
 
 time_t
