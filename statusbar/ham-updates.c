@@ -401,27 +401,10 @@ ham_updates_check_done_cb (GPid pid, gint status, gpointer data)
   self->check_done (self->priv->data, ok, data);
 }
 
-gboolean
-ham_updates_check (HamUpdates *self, gchar *proxy)
+static void
+ham_updates_maybe_force_blinking (HamUpdates *self)
 {
-  gchar *gainroot_cmd;
-  GPid pid;
-  GError *error;
-  gboolean retval;
-  time_t blink_after;
-
-  retval = FALSE;
-
-  /* Choose the right gainroot command */
-  gainroot_cmd = NULL;
-
-  if (running_in_scratchbox ())
-    gainroot_cmd = g_strdup ("/usr/bin/fakeroot");
-  else
-    gainroot_cmd = g_strdup ("/usr/bin/sudo");
-
-  /* Remove user files if necessary */
-  blink_after = ham_updates_get_blink_after (self);
+  time_t blink_after = ham_updates_get_blink_after (self);
   if (blink_after > 0)
     {
       gchar *tapped_updates_path =
@@ -445,6 +428,29 @@ ham_updates_check (HamUpdates *self, gchar *proxy)
 
       g_free (tapped_updates_path);
     }
+
+}
+
+gboolean
+ham_updates_check (HamUpdates *self, gchar *proxy)
+{
+  gchar *gainroot_cmd;
+  GPid pid;
+  GError *error;
+  gboolean retval;
+
+  retval = FALSE;
+
+  /* Choose the right gainroot command */
+  gainroot_cmd = NULL;
+
+  if (running_in_scratchbox ())
+    gainroot_cmd = g_strdup ("/usr/bin/fakeroot");
+  else
+    gainroot_cmd = g_strdup ("/usr/bin/sudo");
+
+  /* Remove user files if necessary and */
+  ham_updates_maybe_force_blinking (self);
 
   /* Build command to be spawned */
   gchar *argv[] = {
@@ -494,7 +500,7 @@ ham_updates_get_blink_after (HamUpdates *self)
   gconf = gconf_client_get_default ();
 
   if (gconf == NULL)
-    return (time_t) UPNO_DEFAULT_BLINK_AFTER;
+    return (time_t) UPNO_DEFAULT_BLINK_AFTER * 60;
 
   blink_after =
     (time_t) gconf_client_get_int (gconf, UPNO_GCONF_BLINK_AFTER, NULL);
@@ -511,7 +517,7 @@ ham_updates_get_blink_after (HamUpdates *self)
 
   g_object_unref (gconf);
 
-  return blink_after;
+  return blink_after * 60 /* in seconds */;
 }
 
 time_t
