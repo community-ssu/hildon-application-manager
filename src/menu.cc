@@ -55,7 +55,6 @@ add_item (HildonAppMenu *menu, const gchar *label, void (*func)())
 
 static GtkWidget *settings_menu_item = NULL;
 static GtkWidget *install_from_file_menu_item = NULL;
-static GtkWidget *update_all_menu_item = NULL;
 static GtkWidget *refresh_menu_item = NULL;
 
 void
@@ -132,12 +131,6 @@ create_menu ()
 	      _("ai_me_settings"),
 	      show_settings_dialog_flow);
 
-  /* Update all */
-  update_all_menu_item =
-    add_item(main,
-      	     _("ai_me_update_all"),
-	     update_all_packages_flow);
-
   gtk_widget_show_all (GTK_WIDGET (main));
 
   /* Hide restore_packages menu item when there is no backup */
@@ -156,13 +149,6 @@ enable_refresh (bool flag)
 {
   if (refresh_menu_item)
     g_object_set (G_OBJECT (refresh_menu_item), "visible", flag, NULL);
-}
-
-void
-enable_update_all (bool flag)
-{
-  if (update_all_menu_item)
-    g_object_set (G_OBJECT (update_all_menu_item), "visible", flag, NULL);
 }
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)

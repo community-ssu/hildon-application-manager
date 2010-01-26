@@ -191,32 +191,27 @@ set_current_view (view *v)
 
   if (v->id == MAIN_VIEW)
     {
-      enable_update_all (false);
       enable_refresh (false);
       prevent_updating ();
     }
   else if (v->id == UNINSTALL_APPLICATIONS_VIEW)
     {
-      enable_update_all (false);
       enable_refresh (false);
       allow_updating ();
     }
   else if (v->id == INSTALL_SECTION_VIEW
            || v->id == SEARCH_RESULTS_VIEW)
     {
-      enable_update_all (false);
       enable_refresh (true);
       allow_updating ();
     }
   else if (v->id == INSTALL_APPLICATIONS_VIEW)
     {
-      enable_update_all (false);
       enable_refresh (true);
       allow_updating ();
     }
   else if (v->id == UPGRADE_APPLICATIONS_VIEW)
     {
-      enable_update_all (package_list_ready && upgradeable_packages);
       enable_refresh (true);
       allow_updating ();
     }
@@ -1774,7 +1769,6 @@ make_upgrade_applications_view (view *v)
       && hildon_window_get_is_topmost (HILDON_WINDOW (get_main_window ())))
     {
       update_seen_updates_file ();
-      enable_update_all (upgradeable_packages);
     }
 
   // maybe_refresh_package_cache_without_user ();
