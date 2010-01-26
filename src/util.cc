@@ -1754,7 +1754,7 @@ live_search_filter_func (GtkTreeModel *model,
 
 #endif
 
-GtkWidget *
+static GtkWidget *
 make_global_package_list (GtkWidget *window,
                           GList *packages,
 			  bool installed,
@@ -1884,6 +1884,69 @@ make_global_package_list (GtkWidget *window,
   gtk_widget_hide (vbox);
 
   return vbox;
+}
+
+GtkWidget *
+make_install_apps_package_list (GtkWidget *window,
+                                GList *packages,
+                                gboolean show_empty_label,
+                                package_info_callback *selected,
+                                package_info_callback *activated)
+{
+  GtkWidget *view = NULL;
+  gchar *empty_label = NULL;
+
+  /* Build the label */
+  empty_label = g_strdup (show_empty_label
+                          ? _("ai_li_no_applications_available")
+                          : NULL);
+  /* Get the view */
+  view = make_global_package_list (window, packages, false, empty_label,
+                                   _("ai_me_cs_install"), selected, activated);
+  g_free (empty_label);
+  return view;
+}
+
+GtkWidget *
+make_upgrade_apps_package_list (GtkWidget *window,
+                                GList *packages,
+                                gboolean show_empty_label,
+                                package_info_callback *selected,
+                                package_info_callback *activated)
+{
+  GtkWidget *view = NULL;
+  gchar *empty_label = NULL;
+
+  /* Build the label */
+  empty_label = g_strdup (show_empty_label
+                          ? _("ai_li_no_updates_available")
+                          : NULL);
+  /* Get the view */
+  view = make_global_package_list (window, packages, false, empty_label,
+                                   _("ai_me_cs_update"), selected, activated);
+  g_free (empty_label);
+  return view;
+}
+
+GtkWidget *
+make_uninstall_apps_package_list (GtkWidget *window,
+                                  GList *packages,
+                                  gboolean show_empty_label,
+                                  package_info_callback *selected,
+                                  package_info_callback *activated)
+{
+  GtkWidget *view = NULL;
+  gchar *empty_label = NULL;
+
+  /* Build the label */
+  empty_label = g_strdup (show_empty_label
+                          ? _("ai_li_no_installed_applications")
+                          : NULL);
+  /* Get the view */
+  view = make_global_package_list (window, packages, true, empty_label,
+                                   _("ai_me_cs_uninstall"), selected, activated);
+  g_free (empty_label);
+  return view;
 }
 
 /*

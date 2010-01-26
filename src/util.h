@@ -365,9 +365,17 @@ GtkWidget *make_small_label (const char *text);
 
 /* Global package list widget
 
-  MAKE_GLOBAL_PACKAGE_LIST creates a widget that displays the given
-  list of packages.  The nodes in PACKAGES must point to package_info
-  structs.
+  MAKE_INSTALL_APPS_PACKAGE_LIST creates a widget that displays the
+  given list of packages in a 'install applications' view.  The nodes
+  in PACKAGES must point to package_info structs.
+
+  MAKE_UPGRADE_PACKAGE_LIST creates a widget that displays the given
+  list of packages in a 'upgrade applications' view.  The nodes in
+  PACKAGES must point to package_info structs.
+
+  MAKE_UNINSTALL_APPS_PACKAGE_LIST creates a widget that displays the
+  given list of packages in a 'uninstall applications' view.  The
+  nodes in PACKAGES must point to package_info structs.
 
   When INSTALLED is true, information about the installed version of a
   package is shown, otherwise the available version is used.
@@ -399,13 +407,24 @@ GtkWidget *make_small_label (const char *text);
 
 typedef void package_info_callback (package_info *);
 
-GtkWidget *make_global_package_list (GtkWidget *window,
-                                     GList *packages,
-				     bool installed,
-				     const char *empty_label,
-				     const char *op_label,
-				     package_info_callback *selected,
-				     package_info_callback *activated);
+GtkWidget *make_install_apps_package_list (GtkWidget *window,
+                                           GList *packages,
+                                           gboolean show_empty_label,
+                                           package_info_callback *selected,
+                                           package_info_callback *activated);
+
+GtkWidget *make_upgrade_apps_package_list (GtkWidget *window,
+                                           GList *packages,
+                                           gboolean show_empty_label,
+                                           package_info_callback *selected,
+                                           package_info_callback *activated);
+
+GtkWidget *make_uninstall_apps_package_list (GtkWidget *window,
+                                             GList *packages,
+                                             gboolean show_empty_label,
+                                             package_info_callback *selected,
+                                             package_info_callback *activated);
+
 void clear_global_package_list ();
 void global_package_info_changed (package_info *pi);
 void reset_global_target_path ();
