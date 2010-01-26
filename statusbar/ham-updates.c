@@ -463,7 +463,7 @@ ham_updates_get_interval (HamUpdates *self)
   gconf = gconf_client_get_default ();
 
   if (gconf == NULL)
-    return (time_t) UPNO_DEFAULT_CHECK_INTERVAL;
+    return (time_t) UPNO_DEFAULT_CHECK_INTERVAL * 60;
 
   interval = (time_t) gconf_client_get_int (gconf, UPNO_GCONF_CHECK_INTERVAL,
 					    NULL);
