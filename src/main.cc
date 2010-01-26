@@ -1526,17 +1526,11 @@ make_install_section_view (view *v)
   section_info *si = find_section_info (&install_sections,
 					cur_section_rank, cur_section_name);
 
-  view =
-    make_global_package_list (v->window,
-                              si? si->packages : NULL,
-			      false,
-			      (package_list_ready
-			       ? _("ai_li_no_applications_available")
-			       : NULL),
-			      _("ai_me_cs_install"),
-			      available_package_selected, 
-			      available_package_activated);
-
+  view = make_install_apps_package_list (v->window,
+                                         si? si->packages : NULL,
+                                         package_list_ready,
+                                         available_package_selected,
+                                         available_package_activated);
   if (package_list_ready)
     gtk_widget_show (view);
 
@@ -1685,17 +1679,14 @@ make_install_applications_view (view *v)
     {
       section_info *si = (section_info *)install_sections->data;
       view =
-        make_global_package_list (v->window,
-                                  ((si->rank == SECTION_RANK_HIDDEN)
-                                   ? NULL
-                                   : si->packages),
-				  false,
-				  (package_list_ready
-				   ? _("ai_li_no_applications_available")
-				   : NULL),
-				  _("ai_me_cs_install"),
-				  available_package_selected,
-				  available_package_activated);
+        make_install_apps_package_list (v->window,
+                                        ((si->rank == SECTION_RANK_HIDDEN)
+                                         ? NULL
+                                         : si->packages),
+                                        package_list_ready,
+                                        available_package_selected,
+                                        available_package_activated);
+
       get_package_infos_in_background (si->packages);
     }
   else
@@ -1768,17 +1759,11 @@ make_upgrade_applications_view (view *v)
 
   check_catalogues ();
 
-  view =
-    make_global_package_list (v->window,
-                              upgradeable_packages,
-			      false,
-			      (package_list_ready
-			       ? _("ai_li_no_updates_available")
-			       : NULL),
-			      _("ai_me_cs_update"),
-			      available_package_selected,
-			      available_package_activated);
-
+  view = make_upgrade_apps_package_list (v->window,
+                                         upgradeable_packages,
+                                         package_list_ready,
+                                         available_package_selected,
+                                         available_package_activated);
   if (package_list_ready)
     gtk_widget_show (view);
 
@@ -1800,16 +1785,11 @@ GtkWidget *
 make_uninstall_applications_view (view *v)
 {
   GtkWidget *view;
-
-  view = make_global_package_list (v->window,
-                                   installed_packages,
-				   true,
-				   (package_list_ready
-				    ? _("ai_li_no_installed_applications")
-				    : NULL),
-				   _("ai_me_cs_uninstall"),
-				   installed_package_selected,
-				   installed_package_activated);
+  view = make_uninstall_apps_package_list (v->window,
+                                           installed_packages,
+                                           package_list_ready,
+                                           installed_package_selected,
+                                           installed_package_activated);
   if (package_list_ready)
     gtk_widget_show (view);
 
@@ -1826,26 +1806,32 @@ make_search_results_view (view *v)
   if (v->parent == &install_applications_view
       || v->parent == &upgrade_applications_view)
     {
-      view = make_global_package_list (v->window,
-                                       search_result_packages,
-				       false,
-				       NULL,
-				       (v->parent == &install_applications_view
-					? _("ai_me_cs_install")
-					: _("ai_me_cs_update")),
-				       available_package_selected,
-				       available_package_activated);
+      if (v->parent == &install_applications_view)
+        {
+          view = make_install_apps_package_list (v->window,
+                                                 search_result_packages,
+                                                 FALSE,
+                                                 available_package_selected,
+                                                 available_package_activated);
+        }
+      else
+        {
+          view = make_upgrade_apps_package_list (v->window,
+                                                 search_result_packages,
+                                                 FALSE,
+                                                 available_package_selected,
+                                                 available_package_activated);
+        }
+
       get_package_infos_in_background (search_result_packages);
     }
   else
     {
-      view = make_global_package_list (v->window,
-                                       search_result_packages,
-				       true,
-				       NULL,
-				       _("ai_me_cs_uninstall"),
-				       installed_package_selected,
-				       installed_package_activated);
+      view = make_uninstall_apps_package_list (v->window,
+                                               search_result_packages,
+                                               FALSE,
+                                               installed_package_selected,
+                                               installed_package_activated);
     }
   gtk_widget_show (view);
 
