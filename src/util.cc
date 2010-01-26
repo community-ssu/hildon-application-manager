@@ -1821,7 +1821,9 @@ make_global_package_list (GtkWidget *window,
 			  const char *empty_label,
 			  const char *op_label,
 			  package_info_callback *selected,
-			  package_info_callback *activated)
+			  package_info_callback *activated,
+                          const gchar *button_label,
+                          void (*button_callback) (void))
 {
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
@@ -1891,6 +1893,27 @@ make_global_package_list (GtkWidget *window,
 
   g_signal_connect (tree, "key-press-event",
                     G_CALLBACK (global_package_list_key_pressed), NULL);
+
+  /* Check if the action area should be used */
+  if (button_label && button_callback)
+    {
+      GtkWidget *action_area_box = NULL;
+      GtkWidget *button = NULL;
+
+      action_area_box =
+        hildon_tree_view_get_action_area_box (GTK_TREE_VIEW (tree));
+
+      button = hildon_button_new (HILDON_SIZE_FINGER_HEIGHT,
+                                  HILDON_BUTTON_ARRANGEMENT_HORIZONTAL);
+      hildon_button_set_title (HILDON_BUTTON (button), button_label);
+
+      g_signal_connect (button, "clicked", G_CALLBACK (button_callback), NULL);
+
+      gtk_box_pack_start (GTK_BOX (action_area_box), button, TRUE, TRUE, 0);
+      gtk_widget_show_all (button);
+
+      hildon_tree_view_set_action_area_visible (GTK_TREE_VIEW (tree), TRUE);
+    }
 
 #if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
   /* Create the contextual menu */
@@ -1962,7 +1985,8 @@ make_install_apps_package_list (GtkWidget *window,
                           : NULL);
   /* Get the view */
   view = make_global_package_list (window, packages, false, empty_label,
-                                   _("ai_me_cs_install"), selected, activated);
+                                   _("ai_me_cs_install"), selected, activated,
+                                   NULL, NULL);
   g_free (empty_label);
   return view;
 }
@@ -1971,20 +1995,35 @@ GtkWidget *
 make_upgrade_apps_package_list (GtkWidget *window,
                                 GList *packages,
                                 gboolean show_empty_label,
+                                gboolean show_action_area,
                                 package_info_callback *selected,
                                 package_info_callback *activated)
 {
   GtkWidget *view = NULL;
   gchar *empty_label = NULL;
+  gchar *button_label = NULL;
+  gpointer button_callback = NULL;
 
   /* Build the label */
   empty_label = g_strdup (show_empty_label
                           ? _("ai_li_no_updates_available")
                           : NULL);
+
+  /* Prepare button label and callback, if needed */
+  if (show_action_area)
+    {
+      button_label = g_strdup (_("ai_me_update_all"));
+      button_callback = (gpointer) update_all_packages_flow;
+    }
+
   /* Get the view */
   view = make_global_package_list (window, packages, false, empty_label,
-                                   _("ai_me_cs_update"), selected, activated);
+                                   _("ai_me_cs_update"), selected, activated,
+                                   button_label, (void (*)()) button_callback);
+  /* Free */
   g_free (empty_label);
+  g_free (button_label);
+
   return view;
 }
 
@@ -2004,7 +2043,8 @@ make_uninstall_apps_package_list (GtkWidget *window,
                           : NULL);
   /* Get the view */
   view = make_global_package_list (window, packages, true, empty_label,
-                                   _("ai_me_cs_uninstall"), selected, activated);
+                                   _("ai_me_cs_uninstall"), selected, activated,
+                                   NULL, NULL);
   g_free (empty_label);
   return view;
 }

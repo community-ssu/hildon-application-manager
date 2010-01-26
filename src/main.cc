@@ -1762,6 +1762,7 @@ make_upgrade_applications_view (view *v)
   view = make_upgrade_apps_package_list (v->window,
                                          upgradeable_packages,
                                          package_list_ready,
+                                         package_list_ready && upgradeable_packages,
                                          available_package_selected,
                                          available_package_activated);
   if (package_list_ready)
@@ -1819,6 +1820,7 @@ make_search_results_view (view *v)
           view = make_upgrade_apps_package_list (v->window,
                                                  search_result_packages,
                                                  FALSE,
+                                                 package_list_ready && search_result_packages,
                                                  available_package_selected,
                                                  available_package_activated);
         }

@@ -416,6 +416,7 @@ GtkWidget *make_install_apps_package_list (GtkWidget *window,
 GtkWidget *make_upgrade_apps_package_list (GtkWidget *window,
                                            GList *packages,
                                            gboolean show_empty_label,
+                                           gboolean show_action_area,
                                            package_info_callback *selected,
                                            package_info_callback *activated);
 
