@@ -55,6 +55,7 @@ struct _HamUpdates
 gboolean ham_updates_check (HamUpdates *self, gchar *proxy);
 gboolean ham_updates_set_alarm (HamUpdates *self, alarm_event_t *event);
 GtkWidget *ham_updates_get_button (HamUpdates *self);
+time_t ham_updates_get_blink_after (HamUpdates *self);
 time_t ham_updates_get_interval (HamUpdates *self);
 UpdatesStatus ham_updates_status (HamUpdates *self, osso_context_t *context);
 void ham_updates_icon_tapped ();
