@@ -27,7 +27,7 @@
 #define UPNO_GCONF_DIR              "/apps/hildon/update-notifier"
 #define UPNO_GCONF_BLINK_AFTER      UPNO_GCONF_DIR "/blink-after"
 #define UPNO_GCONF_CHECK_INTERVAL   UPNO_GCONF_DIR "/check_interval"
-#define UPNO_DEFAULT_BLINK_AFTER    (24 * 60 * 60) /* seconds */
+#define UPNO_DEFAULT_BLINK_AFTER    (24 * 60)      /* minutes */
 #define UPNO_DEFAULT_CHECK_INTERVAL (24 * 60)      /* minutes */
 
 #define UPDATE_NOTIFIER_SERVICE "com.nokia.hildon_update_notifier"
