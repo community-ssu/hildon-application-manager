@@ -1,3 +1,80 @@
+2010-01-27 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/main.cc (update_all_get_upgradeable_packages): New function
+	to get the list of upgradeable packages for the "update all"
+	button, returning the OS package only in the list if present.
+	(update_all_packages_flow): Call
+	update_all_get_upgradeable_packages.
+
+	* src/ham-after-boot.c (main): For the OS update, make sure the
+	icon will blink after reboot by deleting user files related to its
+	state.
+
+	* statusbar/ham-updates-status-menu-item.c
+	(should_force_check_for_updates): New function to check whether a
+	check-for-updates should be forced (no tapped-updates file on
+	disk).
+	(run_service_now): Call should_force_check_for_updates to know
+	whether a check-for-updates should be forced even before the next
+	interval
+
+2010-01-26 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* statusbar/ham-updates.c (ham_updates_check): Return value in the
+	proper units (minutes) when gconf client failed to get the client.
+	(ham_updates_get_blink_after): New function to retrieve the
+	'blinking-after' value from GConf, or its default value.
+	(ham_updates_maybe_force_blinking): New function to decide whether
+	the blinking should be forced or not, depending on several
+	factors.
+	(ham_updates_check): Make sure the 'tapped-updates' and
+	'seen-updates' files get removed before checking for updates if
+	more time has passed since tapping the icon than the 'blink-after'
+	value. Call to ham_updates_maybe_force_blinking
+
+	* statusbar/update-notifier-conf.h (UPNO_GCONF_BLINK_AFTER): New
+	define for the minimum amount of time before forcing the blinking.
+	(UPNO_DEFAULT_BLINK_AFTER): Default value for
+	UPNO_GCONF_BLINK_AFTER
+
+	* src/util.cc (make_global_package_list): Made it private, as it
+	will just handle common logic for the new public functions from
+	now on. Added extra parameters to allow setting a button in the
+	GtkTreeView's action area when needed, by just specifying the
+	label and the callback when clicked.
+	(make_install_apps_package_list): New function to take care of
+	making packages list for the "install apps" views.
+	(make_upgrade_apps_package_list): New function to take care of
+	making packages list for the "update apps" view. Added extra
+	parameter to tell whether the action area should be shown or not
+	for the upgrade view.
+	(make_uninstall_apps_package_list): New function to take care of
+	making packages list for the "uninstall apps" view.
+
+	* src/util.h: Updated prototipes and comments.
+
+	* src/main.cc (make_install_section_view): Call to the new
+	function make_install_apps_package_list instead of
+	make_global_package_list.
+	(make_install_applications_view): Call to the new function
+	make_install_apps_package_list instead of
+	make_global_package_list.
+	(make_upgrade_applications_view): Call to the new function
+	make_upgrade_apps_package_list instead of
+	make_global_package_list. Remove calls to enable_update_all.
+	(make_uninstall_applications_view): Call to the new function
+	make_uninstall_apps_package_list instead of
+	make_global_package_list.
+	(make_search_results_view): Call to the new functions for install,
+	upgrade or uninstall apps, instead of make_global_package_list.
+	(set_current_view): Remove calls to enable_update_all.
+
+	* src/menu.cc (update_all_menu_item): Removed unused menu item.
+	(create_menu): Removed code adding the 'update all' button.
+	(enable_update_all): Removed.
+
+	* src/menu.h (enable_update_all): Removed.
+
 2010-01-20 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/main.cc (enum package_list_state): New enumeration for
