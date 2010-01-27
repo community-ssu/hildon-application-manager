@@ -81,6 +81,11 @@ main (int argc, char **argv)
     {
       hildon_gtk_init (&argc, &argv);
 
+      /* For the OS update, make sure the icon will blink after reboot
+         by deleting user files related to tapped and seen states */
+      user_file_remove (UFILE_SEEN_UPDATES);
+      user_file_remove (UFILE_TAPPED_UPDATES);
+
       dialog = hildon_note_new_information
         (NULL, _("ai_ni_system_update_installed"));
 

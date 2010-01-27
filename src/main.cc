@@ -1423,6 +1423,40 @@ install_package_flow (package_info *pi)
     }
 }
 
+static GList *
+update_all_get_upgradeable_packages (void)
+{
+  GList *packages = NULL;
+  GList *item;
+
+  /* Look for the OS package */
+  for (item = upgradeable_packages; item; item = g_list_next (item))
+    {
+      package_info *pi = (package_info *)item->data;
+
+      if (pi->flags & pkgflag_system_update)
+        {
+          /* Ensure only the OS package is included */
+          if (packages != NULL)
+            {
+              g_list_free (packages);
+              packages = NULL;
+            }
+          packages = g_list_append (packages, pi);
+
+          break;
+        }
+      else
+        {
+          /* Just append it if not an OS update */
+          packages = g_list_prepend (packages, pi);
+        }
+    }
+
+  /* Return reversed list */
+  return g_list_reverse (packages);
+}
+
 static void
 update_all_packages_flow_end (int n_successful, void *data)
 {
@@ -1436,7 +1470,7 @@ update_all_packages_flow ()
 {
   if (start_interaction_flow ())
     {
-      GList *packages_list = g_list_copy (upgradeable_packages);
+      GList *packages_list = update_all_get_upgradeable_packages ();
       install_packages (packages_list,
 			INSTALL_TYPE_UPGRADE_ALL_PACKAGES,
 			false,  NULL, NULL,

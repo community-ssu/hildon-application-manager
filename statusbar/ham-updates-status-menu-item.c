@@ -871,6 +871,39 @@ setup_alarm (HamUpdatesStatusMenuItem *self)
   return priv->alarm_cookie > 0;
 }
 
+static gboolean
+should_force_check_for_updates (HamUpdatesStatusMenuItem *self)
+{
+  HamUpdatesStatusMenuItemPrivate *priv;
+  UpdatesStatus updates;
+  gboolean retval = FALSE;
+
+  /* Check the status of the updates */
+  priv = HAM_UPDATES_STATUS_MENU_ITEM_GET_PRIVATE (self);
+  updates = ham_updates_status (priv->updates, priv->osso);
+  if (updates == UPDATES_NEW)
+    {
+      gchar *tapped_updates_path;
+      struct stat buf;
+
+      /* We need to distinguish if this is a normal use case
+         (icon already blinking before) or if it's because we
+         should force a re-check now (no files on disk) */
+      tapped_updates_path =
+        g_strdup_printf ("%s/%s",
+                         user_file_get_state_dir_path (),
+                         UFILE_TAPPED_UPDATES);
+
+      /* If no tapped files, check-for-updates should be forced */
+      if (stat (tapped_updates_path, &buf) == -1)
+        retval = TRUE;
+
+      g_free (tapped_updates_path);
+    }
+
+  return retval;
+}
+
 static void
 run_service_now (HamUpdatesStatusMenuItem *self)
 {
@@ -888,7 +921,7 @@ run_service_now (HamUpdatesStatusMenuItem *self)
   interval = ham_updates_get_interval (priv->updates);
 
   LOG ("now = %d, last update = %d, interval = %d", now, last_update, interval);
-  if (now - last_update > interval)
+  if ((now - last_update > interval) || should_force_check_for_updates (self))
     {
       LOG ("we haven't checked for updates since long time ago");
       /* Search for new avalable updates */
