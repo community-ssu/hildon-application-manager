@@ -428,7 +428,6 @@ ham_updates_maybe_force_blinking (HamUpdates *self)
 
       g_free (tapped_updates_path);
     }
-
 }
 
 gboolean
