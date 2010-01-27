@@ -253,13 +253,22 @@ show_view (view *v)
   reset_idle_timer ();
 }
 
+static gboolean
+suavarc_refresh_package_cache (gpointer data)
+{
+  refresh_package_cache_without_user_flow ();
+  return FALSE;
+}
+
 static void
 show_upgrade_applications_view_and_refresh_callback (GtkWidget *btn, gpointer data)
 {
   show_check_for_updates_view ();
 
-  if (is_idle ())
-    refresh_package_cache_without_user_flow ();
+  if (is_idle () && package_list_ready)
+    {
+      g_idle_add (suavarc_refresh_package_cache, NULL);
+    }
 }
 
 static void
