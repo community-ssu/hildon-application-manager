@@ -1754,6 +1754,20 @@ live_search_filter_func (GtkTreeModel *model,
 
 #endif
 
+#if defined (TAP_AND_HOLD) && defined (MAEMO_CHANGES)
+static void
+tree_tap_and_hold_cb (GtkWidget *tree, gpointer data)
+{
+  GtkWidget *menu = GTK_WIDGET (data);
+
+  if (GTK_IS_WIDGET (tree) && GTK_IS_MENU (menu))
+    {
+      gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL,
+                      tree, 1, gdk_x11_get_server_time (tree->window));
+    }
+}
+#endif /* TAP_AND_HOLD && MAEMO_CHANGES */
+
 static GtkWidget *
 make_global_package_list (GtkWidget *window,
                           GList *packages,
@@ -1859,13 +1873,20 @@ make_global_package_list (GtkWidget *window,
   /* Create the contextual menu */
   menu = create_package_menu (op_label);
 
-  gtk_widget_show_all (menu);
+  /* Setup tap and hold */
+  gtk_widget_tap_and_hold_setup (tree, NULL, NULL,
+				 GtkWidgetTapAndHoldFlags (0));
+  g_object_ref_sink (menu);
+  if (gtk_menu_get_attach_widget (GTK_MENU (menu)) == NULL)
+    gtk_menu_attach_to_widget (GTK_MENU (menu), tree, NULL);
 
   g_signal_connect (tree, "button-press-event",
                     G_CALLBACK (button_press_cb), NULL);
 
-  gtk_widget_tap_and_hold_setup (tree, menu, NULL,
-				 GtkWidgetTapAndHoldFlags (0));
+  g_signal_connect (tree, "tap-and-hold",
+                    G_CALLBACK (tree_tap_and_hold_cb), menu);
+
+  gtk_widget_show_all (menu);
 #endif /* TAP_AND_HOLD && MAEMO_CHANGES */
 
   set_global_package_list (packages, installed, selected, activated);
