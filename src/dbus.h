@@ -52,13 +52,4 @@ void init_dbus_or_die (bool top_existing);
 
 bool enough_battery_p (void);
 
-enum device_mode {
-  DEVICE_MODE_UNKNOWN,
-  DEVICE_MODE_ONLINE,
-  DEVICE_MODE_OFFLINE // the device doesn't receive calls
-};
-
-device_mode get_device_mode (void);
-void set_device_mode (device_mode dmode);
-
 #endif /* !HAM_DBUS_H */

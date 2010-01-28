@@ -1466,25 +1466,9 @@ ip_kill_all_and_install_delayed (gpointer data)
          bigger problem to happen because of unknown reasons atm.
          Programmer avoids any responsibility on this code,
          implemented under high pressure as requested "from above". */
-      maybe_kill_all_by_name ("rtcom-messaging-ui", SIGHUP);
-      run_cmd_simple ("/etc/init.d/alarmd stop");
-      stop_dsme_service ("/usr/bin/camera-ui");
-      stop_dsme_service ("/usr/sbin/browserd -d");
-      stop_dsme_service ("/usr/bin/hildon-status-menu");
-      stop_dsme_service ("/usr/bin/hildon-home");
-      stop_dsme_service ("/usr/bin/hildon-input-method");
-      stop_dsme_service ("/usr/bin/intellisyncd");
-      stop_dsme_service ("/usr/bin/clipboard-manager");
-      stop_dsme_service ("/usr/bin/syncd");
-      stop_dsme_service ("/usr/bin/hildon-desktop");
-      stop_dsme_service ("/usr/bin/osso-connectivity-ui-conndlgs");
-      maybe_kill_all_by_name ("syncd", SIGKILL);
-      maybe_kill_all_by_name ("trackerd", SIGKILL);
-      maybe_kill_all_by_name ("intellisyncd", SIGKILL);
-      maybe_kill_all_by_name ("osso-abook-home-applet", SIGKILL);
-      maybe_kill_all_by_name ("hildon-thumbnailerd", SIGKILL);
-      maybe_kill_all_by_name ("maemo-xinput-sounds", SIGKILL);
+      kill_processes_for_SSU ();
 
+      /* Continue the process */
       apt_worker_install_package (pi->name,
                                   c->alt_download_root,
                                   ip_install_cur_reply, c);

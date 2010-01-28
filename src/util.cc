@@ -3479,21 +3479,6 @@ run_cmd_simple (const char *cmd)
   run_cmd (argv, true, run_cmd_simple_cont, argv);
 }
 
-void
-stop_dsme_service (const char *service)
-{
-  g_return_if_fail (service != NULL);
-
-  char **argv = g_new (char *, 4);
-
-  argv[0] = g_strdup ("/usr/sbin/dsmetool");
-  argv[1] = g_strdup ("-k");
-  argv[2] = g_strdup (service);
-  argv[3] = NULL;
-
-  run_cmd (argv, true, run_cmd_simple_cont, argv);
-}
-
 /* Took from osso-backup: ob_utils_set_prestarted_apps_enabled */
 void
 set_prestarted_apps_enabled (gboolean enable)
@@ -4017,7 +4002,101 @@ find_pid_by_name (const char *proc_name)
   return pid_list;
 }
 
+/* Test flight mode stuff:
+ dbus-send --system --dest=com.nokia.mce  --print-reply /com/nokia/mce/request com.nokia.mce.request.get_device_mode
+ dbus-send --system --dest=com.nokia.mce  --print-reply /com/nokia/mce/request com.nokia.mce.request.req_device_mode_change string:normal
+*/
+
+/* For setting / getting device offline state */
+#define MCE_SERVICE                     "com.nokia.mce"
+#define MCE_REQUEST_IF                  "com.nokia.mce.request"
+#define MCE_REQUEST_PATH                "/com/nokia/mce/request"
+#define MCE_GET_DEVICE_MODE_REQ         "get_device_mode"
+#define MCE_DEVICE_MODE_CHANGE_REQ      "req_device_mode_change"
+
+device_mode
+get_device_mode ()
+{
+  DBusConnection *conn;
+  DBusMessage   *msg;
+  DBusMessage   *reply;
+  const char    *mode;
+  device_mode ret = DEVICE_MODE_ONLINE;
+
+  conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
+  if (!conn)
+    {
+      fprintf (stderr, "Could not get system bus.");
+      return ret;
+    }
+
+  msg = dbus_message_new_method_call (MCE_SERVICE,
+                                      MCE_REQUEST_PATH,
+                                      MCE_REQUEST_IF,
+                                      MCE_GET_DEVICE_MODE_REQ);
+
+  reply = dbus_connection_send_with_reply_and_block (conn, msg, -1, NULL);
+
+  dbus_message_unref (msg);
+
+  if (reply && dbus_message_get_args (reply, NULL, DBUS_TYPE_STRING,
+                                      &mode, DBUS_TYPE_INVALID))
+    {
+      if (mode == NULL || g_strrstr (mode, "normal") == NULL)
+        ret = DEVICE_MODE_OFFLINE;
+    }
+
+  if (reply)
+   dbus_message_unref (reply);
+
+  dbus_connection_unref (conn);
+
+  return ret;
+}
+
 void
+set_device_mode (device_mode dmode)
+{
+  DBusConnection *conn;
+  DBusMessage    *msg;
+  const char     *mode;
+
+  conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
+  if (!conn)
+    {
+      fprintf (stderr, "Could not get system bus.");
+      return;
+    }
+
+  msg = dbus_message_new_method_call (MCE_SERVICE,
+                                      MCE_REQUEST_PATH,
+                                      MCE_REQUEST_IF,
+                                      MCE_DEVICE_MODE_CHANGE_REQ);
+
+  switch (dmode)
+    {
+    case DEVICE_MODE_OFFLINE:
+      mode = "flight";
+      break;
+    case DEVICE_MODE_ONLINE:
+      mode = "normal";
+      break;
+    default:
+      fprintf (stderr, "Not valid device mode");
+      return;
+    }
+
+  dbus_message_append_args (msg, DBUS_TYPE_STRING,
+                            &mode, DBUS_TYPE_INVALID);
+
+  /* We need to ensure the message was sent and received before continuing */
+  dbus_connection_send_with_reply_and_block (conn, msg, -1, NULL);
+  dbus_message_unref (msg);
+
+  dbus_connection_unref (conn);
+}
+
+static void
 maybe_kill_all_by_name (const char *proc_name, int signum)
 {
   pid_t *pid_list = find_pid_by_name (proc_name);
@@ -4029,4 +4108,48 @@ maybe_kill_all_by_name (const char *proc_name, int signum)
     kill (pid_list[i], signum);
 
   g_free (pid_list);
+}
+
+static void
+stop_dsme_service (const char *service)
+{
+  g_return_if_fail (service != NULL);
+
+  char **argv = g_new (char *, 4);
+
+  argv[0] = g_strdup ("/usr/sbin/dsmetool");
+  argv[1] = g_strdup ("-k");
+  argv[2] = g_strdup (service);
+  argv[3] = NULL;
+
+  run_cmd (argv, true, run_cmd_simple_cont, argv);
+}
+
+void
+kill_processes_for_SSU (void)
+{
+  /* Disclaimer: this is a nasty workaround to prevent from a bigger
+     problem to happen because of unknown reasons atm.  Programmer
+     avoids any responsibility on this code, implemented under high
+     pressure as requested "from above". */
+
+  /* Kill running processes that could interfere for SSU */
+  maybe_kill_all_by_name ("rtcom-messaging-ui", SIGHUP);
+  run_cmd_simple ("/etc/init.d/alarmd stop");
+  stop_dsme_service ("/usr/bin/camera-ui");
+  stop_dsme_service ("/usr/sbin/browserd -d");
+  stop_dsme_service ("/usr/bin/hildon-status-menu");
+  stop_dsme_service ("/usr/bin/hildon-home");
+  stop_dsme_service ("/usr/bin/hildon-input-method");
+  stop_dsme_service ("/usr/bin/intellisyncd");
+  stop_dsme_service ("/usr/bin/clipboard-manager");
+  stop_dsme_service ("/usr/bin/syncd");
+  stop_dsme_service ("/usr/bin/hildon-desktop");
+  stop_dsme_service ("/usr/bin/osso-connectivity-ui-conndlgs");
+  maybe_kill_all_by_name ("syncd", SIGKILL);
+  maybe_kill_all_by_name ("trackerd", SIGKILL);
+  maybe_kill_all_by_name ("intellisyncd", SIGKILL);
+  maybe_kill_all_by_name ("osso-abook-home-applet", SIGKILL);
+  maybe_kill_all_by_name ("hildon-thumbnailerd", SIGKILL);
+  maybe_kill_all_by_name ("maemo-xinput-sounds", SIGKILL);
 }

@@ -562,9 +562,6 @@ void set_prestarted_apps_enabled (gboolean enable);
    device except the hildon-application-manager */
 void close_apps (void);
 
-/* Kills the specified service controlled by dsme through the dsmetool */
-void stop_dsme_service (const char *service);
-
 /* Skip over the leading whitespace characters of STR and return a
    pointer to the first non-whitespace one.
 */
@@ -659,10 +656,24 @@ void maybe_take_screenshot (GtkWindow *win);
  */
 void hildon_pannable_area_set_size_request_children (HildonPannableArea *area);
 
-/* Sends the signal SIGNUM to all the processes which share
-   the PROC_NAME command line
+/* Possible modes for the device to be set in */
+enum device_mode {
+  DEVICE_MODE_UNKNOWN,
+  DEVICE_MODE_ONLINE,
+  DEVICE_MODE_OFFLINE // the device doesn't receive calls
+};
+
+/* Returns the device mode: unknown, online or offline
  */
-void maybe_kill_all_by_name (const char *proc_name, int signum);
+device_mode get_device_mode (void);
+
+/* Sets the device mode: unknown, online or offline
+ */
+void set_device_mode (device_mode dmode);
+
+/* Kill all the processes as needed to ensure a proper SSU
+ */
+void kill_processes_for_SSU (void);
 
 #endif /* !UTIL_H */
 
