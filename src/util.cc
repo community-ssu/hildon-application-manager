@@ -3555,6 +3555,7 @@ all_whitespace (const char *str)
 }
 
 static ConIcConnection *connection_object = NULL;
+static gulong connected_event_handler_id = G_MAXULONG;
 
 struct en_closure {
   void (*callback) (bool success, void *data);
@@ -3632,8 +3633,9 @@ ensure_network (void (*callback) (bool success, void *data), void *data)
   if (connection_object == NULL)
     {
       connection_object = con_ic_connection_new ();
-      g_signal_connect (connection_object, "connection-event",
- 			G_CALLBACK (iap_callback), NULL);
+      connected_event_handler_id =
+        g_signal_connect (connection_object, "connection-event",
+                          G_CALLBACK (iap_callback), NULL);
     }
 
   if (con_ic_connection_connect (connection_object, CON_IC_CONNECT_FLAG_NONE))
@@ -4002,6 +4004,33 @@ find_pid_by_name (const char *proc_name)
   return pid_list;
 }
 
+static void
+listen_to_conic_events (gboolean do_listen)
+{
+  gboolean is_connected = FALSE;
+
+  if (connection_object == NULL)
+    return;
+
+  /* Check current status */
+  is_connected = g_signal_handler_is_connected (connection_object,
+                                                connected_event_handler_id);
+
+  if (do_listen)
+    {
+      if  (!is_connected)
+        connected_event_handler_id =
+          g_signal_connect (connection_object, "connection-event",
+                            G_CALLBACK (iap_callback), NULL);
+    }
+  else
+    {
+      if (is_connected)
+        g_signal_handler_disconnect (connection_object,
+                                     connected_event_handler_id);
+    }
+}
+
 /* Test flight mode stuff:
  dbus-send --system --dest=com.nokia.mce  --print-reply /com/nokia/mce/request com.nokia.mce.request.get_device_mode
  dbus-send --system --dest=com.nokia.mce  --print-reply /com/nokia/mce/request com.nokia.mce.request.req_device_mode_change string:normal
@@ -4086,6 +4115,10 @@ set_device_mode (device_mode dmode)
       return;
     }
 
+  /* Disconnect conic handler before going offline */
+  if (dmode == DEVICE_MODE_OFFLINE)
+    listen_to_conic_events (FALSE);
+
   dbus_message_append_args (msg, DBUS_TYPE_STRING,
                             &mode, DBUS_TYPE_INVALID);
 
@@ -4094,6 +4127,10 @@ set_device_mode (device_mode dmode)
   dbus_message_unref (msg);
 
   dbus_connection_unref (conn);
+
+  /* Reconnect conic handler after going online */
+  if (dmode == DEVICE_MODE_ONLINE)
+    listen_to_conic_events (TRUE);
 }
 
 static void
