@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.57-1) unstable; urgency=low
+
+  * Release 2.2.57-1
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 28 Jan 2010 13:36:04 +0100
+
 hildon-application-manager (1:2.2.57) unstable; urgency=low
 
   * Fixes: NB#148685 - update notification to blink every day even if you

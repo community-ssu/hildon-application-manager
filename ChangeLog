@@ -1,3 +1,11 @@
+2010-01-28 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (tree_tap_and_hold_cb): New function to handle the
+	'tap-and-hold' signal coming from the tree view.
+	(make_global_package_list): Don't pass the menu to the function
+	gtk_widget_tap_and_hold_setup and manually connect to the
+	'tap-and-hold' signal instead.
+
 2010-01-27 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/main.cc (update_all_get_upgradeable_packages): New function
