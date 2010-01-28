@@ -50,8 +50,6 @@ const char *device_name ();
 
 void init_dbus_or_die (bool top_existing);
 
-void send_reboot_message (void);
-
 bool enough_battery_p (void);
 
 enum device_mode {
