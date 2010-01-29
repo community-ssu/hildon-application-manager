@@ -1,3 +1,11 @@
+hildon-application-manager (1:2.2.58-1) unstable; urgency=low
+
+  * Fixes: NB#150182 - SSU shows "operation failed" note and sometimes
+    fails
+  * Minor fix: Tunned live search parameters
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 29 Jan 2010 13:06:22 +0100
+
 hildon-application-manager (1:2.2.57-1) unstable; urgency=low
 
   * Release 2.2.57-1

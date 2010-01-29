@@ -1,5 +1,57 @@
 2010-01-28 Mario Sanchez Prada <msanchez@igalia.com>
 
+	* src/dbus.c (MCE_SERVICE): Removed from here.
+	(MCE_REQUEST_IF): Likewise.
+	(MCE_REQUEST_PATH): Likewise.
+	(MCE_GET_DEVICE_MODE_REQ): Likewise.
+	(MCE_DEVICE_MODE_CHANGE_REQ): Likewise.
+	(get_device_mode): Likewise.
+	(set_device_mode): Likewise.
+
+	* src/dbus.h (device_mode): Removed from here.
+	(get_device_mode): Likewise.
+	(set_device_mode): Likewise.
+	(send_reboot_message): Removed unused function.
+
+	* src/operations.cc (ip_kill_all_and_install_delayed): Removed
+	crappy code to kill and stop processes from here and call a new
+	utility function instead: kill_processes_for_SSU
+
+	* src/util.cc (stop_dsme_service): Made this function private.
+	(maybe_kill_all_by_name): Made this function private.
+	(MCE_SERVICE): Moved from dbus.cc.
+	(MCE_REQUEST_IF): Likewise.
+	(MCE_REQUEST_PATH): Likewise.
+	(MCE_GET_DEVICE_MODE_REQ): Likewise.
+	(MCE_DEVICE_MODE_CHANGE_REQ): Likewise.
+	(get_device_mode): Likewise.
+	(set_device_mode): Likewise.
+	(connected_event_handler_id): New global variable to
+	store the handler id for the 'connection-event' callback.
+	(ensure_network): Store the handler id when connecting the signal.
+	(listen_to_conic_events): New function, to easily state when HAM
+	should start or stop listening to conic events.
+	(set_device_mode): Make sure HAM stops listening to conic events
+	before going to offline mode and that starts listening back to
+	them right after going online again.
+
+	* src/util.h (enum device_mode): Moved from dbus.h.
+	(stop_dsme_service): Removed from header.
+	(get_device_mode): Added prototype.
+	(set_device_mode): Added prototype.
+	(maybe_kill_all_by_name): Removed from header.
+	(kill_processes_for_SSU): Added prototype.
+
+2010-01-25 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/util.cc (live_search_look_for_prefix): New function to
+	easily look for a given prefix among an array of tokens.
+	(live_search_filter_func): For each token provided by the live
+	search widget, look for a match among words in package name or
+	description.
+
+2010-01-28 Mario Sanchez Prada <msanchez@igalia.com>
+
 	* src/util.cc (tree_tap_and_hold_cb): New function to handle the
 	'tap-and-hold' signal coming from the tree view.
 	(make_global_package_list): Don't pass the menu to the function
