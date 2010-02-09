@@ -2402,6 +2402,9 @@ rp_end (int n_successful, void *data)
     xexp_free (backup);
 
   end_interaction_flow ();
+
+  /* Make sure packages list is initialized after this */
+  maybe_init_packages_list ();
 }
 
 /* INSTALL_FROM_FILE_FLOW
