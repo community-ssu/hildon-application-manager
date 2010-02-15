@@ -255,7 +255,10 @@ show_view (view *v)
 static gboolean
 suavarc_refresh_package_cache (gpointer data)
 {
-  refresh_package_cache_without_user_flow ();
+  if (cur_view_struct == &upgrade_applications_view)
+    {
+      refresh_package_cache_without_user_flow ();
+    }
   return FALSE;
 }
 
