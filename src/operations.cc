@@ -1416,6 +1416,7 @@ static void
 ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   ip_clos *c = (ip_clos *)data;
+  static int failure_count = 0;
 
   if (dec == NULL)
     {
@@ -1430,8 +1431,11 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
 
   add_log ("required disk space: %Ld\n", download_size);
 
+  add_log ("result code = %d\n", result_code);
+
   if (result_code == rescode_success)
     {
+      failure_count = 0;
       ip_install_cur (c);
     }
   else if (result_code == rescode_out_of_space)
@@ -1439,16 +1443,26 @@ ip_download_cur_reply (int cmd, apt_proto_decoder *dec, void *data)
       /* Not enough free space */
       ip_not_enough_memory (c, download_size);
     }
-  else if (entertainment_was_cancelled ())
+  else if (result_code == rescode_download_failed)
     {
-      if (entertainment_was_broke ())
-        {
-          ip_download_cur_retry_confirm (rescode_download_failed, c);
-        }
-      else
+      if (entertainment_was_cancelled ()
+          && !entertainment_was_broke ())
         {
           apt_worker_clean (ip_clean_reply, NULL);
           ip_end (c);
+        }
+      else
+        {
+          failure_count++;
+
+          /*
+           * Another stupid request: 3 automatic retries before
+           * noticing the user about the problem
+           */
+          if (failure_count < 3)
+            ensure_network (ip_download_cur_retry, c);
+          else
+            ip_download_cur_retry_confirm (rescode_download_failed, c);
         }
     }
   else
