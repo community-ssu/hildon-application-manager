@@ -984,3 +984,14 @@ apt_worker_third_party_policy_check (const char *package,
                    request.get_buf (), request.get_len (),
                    callback, data);
 }
+
+void
+apt_worker_autoremove (apt_worker_callback *callback,
+                       void *data)
+{
+  request.reset ();
+
+  call_apt_worker (APTCMD_AUTOREMOVE,
+                   request.get_buf (), request.get_len (),
+                   callback, data);
+}
