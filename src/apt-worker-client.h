@@ -155,4 +155,7 @@ void apt_worker_third_party_policy_check (const char *package,
                                           apt_worker_callback *callback,
                                           void *data);
 
+void apt_worker_autoremove (apt_worker_callback *callback,
+                            void *data);
+
 #endif /* !APT_WORKER_CLIENT_H */
