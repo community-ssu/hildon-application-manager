@@ -1012,6 +1012,7 @@ void cmd_reboot ();
 void cmd_set_options ();
 void cmd_set_env ();
 void cmd_third_party_policy_check ();
+void cmd_autoremove ();
 
 int cmdline_check_updates (char **argv);
 int cmdline_rescue (char **argv);
@@ -1085,7 +1086,8 @@ static const char *cmd_names[] = {
   "FLASH_AND_REBOOT",
   "SET_OPTIONS",
   "SET_ENV",
-  "THIRD_PARTY_POLICY_CHECK"
+  "THIRD_PARTY_POLICY_CHECK",
+  "AUTOREMOVE"
 };
 #endif
 
@@ -1217,6 +1219,10 @@ handle_request ()
 
     case APTCMD_THIRD_PARTY_POLICY_CHECK:
       cmd_third_party_policy_check ();
+      break;
+
+    case APTCMD_AUTOREMOVE:
+      cmd_autoremove ();
       break;
 
     default:
@@ -4916,6 +4922,58 @@ cmd_remove_package ()
 	}
     }
 
+  need_cache_init ();
+  response.encode_int (result_code == rescode_success);
+}
+
+/* APTCMD_AUTOREMOVE
+*/
+void
+cmd_autoremove ()
+{
+  AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
+  pkgDepCache &cache = *(awc->cache);
+
+  int result_code = rescode_failure;
+  string autoremovelist, autoremoveversions;
+  // look over the cache to see what can be removed
+  for (pkgCache::PkgIterator Pkg = cache.PkgBegin (); ! Pkg.end (); ++Pkg)
+    {
+      if (cache[Pkg].Garbage)
+        {
+          if (Pkg.CurrentVer () != 0 || cache[Pkg].Install ())
+            log_stderr ("We could delete %s",  string (Pkg.Name ()).c_str ());
+
+          // only show stuff in the list that is not yet marked for removal
+          if (cache[Pkg].Delete () == false)
+            {
+              autoremovelist += string (Pkg.Name()) + " ";
+              autoremoveversions += string (cache[Pkg].CandVersion) + "\n";
+            }
+
+          if (Pkg.CurrentVer () != 0 &&
+              Pkg->CurrentState != pkgCache::State::ConfigFiles)
+            cache.MarkDelete (Pkg, false);
+          else
+            cache.MarkKeep (Pkg, false, false);
+        }
+    }
+
+  // Now see if we destroyed anything
+   if (cache.BrokenCount () != 0)
+     {
+       log_stderr ("Seems like the AutoRemover destroyed something which really "
+                   "shouldn't happen.\n");
+       _error->Error("Internal Error, AutoRemover broke stuff");
+
+       response.encode_int (false);
+       return;
+     }
+
+  log_stderr ("The following package were automatically installed and are no longer required:\n");
+  log_stderr ("%s %s", autoremovelist.c_str (), autoremoveversions.c_str ());
+
+  result_code = operation (false, NULL, false);
   need_cache_init ();
   response.encode_int (result_code == rescode_success);
 }
