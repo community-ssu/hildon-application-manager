@@ -1871,6 +1871,13 @@ ip_end (void *data)
 }
 
 static void
+ip_autoremove_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  /* actually reboot after some time */
+  g_timeout_add (2000, ip_reboot_now, data);
+}
+
+static void
 ip_reboot (void *data)
 {
   ip_clos *c = (ip_clos *)data;
@@ -1895,8 +1902,7 @@ ip_reboot_delayed (void *data)
   /* restore the device mode if needed */
   ip_maybe_restore_device_mode (c);
 
-  /* actually reboot after some time */
-  g_timeout_add (2000, ip_reboot_now, data);
+  apt_worker_autoremove (ip_autoremove_reply, c);
 }
 
 static gboolean
