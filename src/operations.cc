@@ -1952,6 +1952,7 @@ static void up_checkrm_cmd_done (int status, void *data);
 static void up_remove (up_clos *c);
 static void up_remove_with_info (package_info *pi, void *data, bool changed);
 static void up_remove_reply (int cmd, apt_proto_decoder *dec, void *data);
+static void up_autoremove_reply (int cmd, apt_proto_decoder *dec, void *data);
 static void up_end (void *data);
 
 void
@@ -2096,10 +2097,9 @@ up_remove_reply (int cmd, apt_proto_decoder *dec, void *data)
 {
   up_clos *c = (up_clos *)data;
 
-  stop_entertaining_user ();
-
   if (dec == NULL)
     {
+      stop_entertaining_user ();
       up_end (c);
       return;
     }
@@ -2109,12 +2109,7 @@ up_remove_reply (int cmd, apt_proto_decoder *dec, void *data)
   save_backup_data ();
 
   if (success)
-    {
-      char *str = g_strdup_printf (_("ai_ni_uninstall_successful"),
-				   c->pi->get_display_name (true));
-      annoy_user (str, up_end, c);
-      g_free (str);
-    }
+    apt_worker_autoremove (up_autoremove_reply, c);
   else
     {
       char *str = g_strdup_printf (_("ai_ni_error_uninstallation_failed"),
@@ -2123,6 +2118,26 @@ up_remove_reply (int cmd, apt_proto_decoder *dec, void *data)
       g_free (str);
     }
 }
+
+static void
+up_autoremove_reply (int cmd, apt_proto_decoder *dec, void *data)
+{
+  up_clos *c = (up_clos *)data;
+
+  stop_entertaining_user ();
+
+  if (dec == NULL)
+    {
+      up_end (c);
+      return;
+    }
+
+  char *str = g_strdup_printf (_("ai_ni_uninstall_successful"),
+                               c->pi->get_display_name (true));
+  annoy_user (str, up_end, c);
+  g_free (str);
+}
+
 
 static void
 up_end (void *data)
