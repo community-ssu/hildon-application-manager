@@ -4935,7 +4935,7 @@ cmd_autoremove ()
   pkgDepCache &cache = *(awc->cache);
 
   int result_code = rescode_failure;
-  string autoremovelist, autoremoveversions;
+
   // look over the cache to see what can be removed
   for (pkgCache::PkgIterator Pkg = cache.PkgBegin (); ! Pkg.end (); ++Pkg)
     {
@@ -4943,13 +4943,6 @@ cmd_autoremove ()
         {
           if (Pkg.CurrentVer () != 0 || cache[Pkg].Install ())
             log_stderr ("We could delete %s",  string (Pkg.Name ()).c_str ());
-
-          // only show stuff in the list that is not yet marked for removal
-          if (cache[Pkg].Delete () == false)
-            {
-              autoremovelist += string (Pkg.Name()) + " ";
-              autoremoveversions += string (cache[Pkg].CandVersion) + "\n";
-            }
 
           if (Pkg.CurrentVer () != 0 &&
               Pkg->CurrentState != pkgCache::State::ConfigFiles)
@@ -4969,9 +4962,6 @@ cmd_autoremove ()
        response.encode_int (false);
        return;
      }
-
-  log_stderr ("The following package were automatically installed and are no longer required:\n");
-  log_stderr ("%s %s", autoremovelist.c_str (), autoremoveversions.c_str ());
 
   result_code = operation (false, NULL, false);
   need_cache_init ();
