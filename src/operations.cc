@@ -1372,6 +1372,7 @@ ip_download_cur_retry (bool res, void *data)
 
   if (res)
     {
+      reset_entertainment ();
       ip_download_cur (c);
     }
   else

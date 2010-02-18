@@ -286,6 +286,9 @@ void install_confirm (bool scare_user, package_info *pi, bool multiple,
    been called since the last call to start_entertainment_user. This may
    happend when the network connection is tear down.
 
+   RESET_ENTERTAINMENT will set to false either the cancel and the break
+   entertainment flags. This is used when retrying a package download.
+
    The entertainment can be divided into a sequence of 'games'.  Each
    game is allocated its own segment of the progress bar.  For
    example, you can specify that the first half of the progress bar
@@ -325,6 +328,8 @@ bool entertainment_was_cancelled ();
 
 void break_entertainment ();
 bool entertainment_was_broke ();
+
+void reset_entertainment ();
 
 /* SHOW_UPDATING and HIDE_UPDATING determine whether the "Updating"
    animation banner should be shown.  They maintain a counter;
