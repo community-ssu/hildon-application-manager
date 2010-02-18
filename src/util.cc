@@ -1192,6 +1192,13 @@ break_entertainment ()
 }
 
 void
+reset_entertainment ()
+{
+  entertainment.was_broke = false;
+  entertainment.was_cancelled = false;
+}
+
+void
 set_entertainment_main_title (const char *main_title, bool strong)
 {
   /* Free memory if needed */
