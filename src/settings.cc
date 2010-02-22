@@ -54,6 +54,7 @@ bool red_pill_check_always = false;
 bool red_pill_ignore_wrong_domains = true;
 bool red_pill_ignore_thirdparty_policy = false;
 bool red_pill_permanent = false;
+bool show_ssu_problems = false;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
@@ -120,6 +121,8 @@ load_settings ()
 	    red_pill_ignore_thirdparty_policy = val;
 	  else if (sscanf (line, "red-pill-permanent %d", &val) == 1)
 	    red_pill_permanent = val;
+          else if (sscanf (line, "show-ssu-problems %d", &val) == 1)
+            show_ssu_problems = val;
 	  else
 	    add_log ("Unrecognized configuration line: '%s'\n", line);
 	}
@@ -162,6 +165,7 @@ save_settings ()
 	       red_pill_ignore_thirdparty_policy);
       fprintf (f, "red-pill-permanent %d\n", red_pill_permanent);
       fprintf (f, "assume-connection %d\n", assume_connection);
+      fprintf (f, "show-ssu-problems %d\n", show_ssu_problems);
       fflush (f);
       fsync (fileno (f));
       fclose (f);
@@ -181,6 +185,7 @@ enum boolean_options {
   OPT_IGNORE_WRONG_DOMAINS,
   OPT_IGNORE_THIRDPARTY_POLICY,
   OPT_USE_APT_ALGORITHMS,
+  OPT_SHOW_SSU_PROBLEMS,
 #if 0
   OPT_PERMANENT,
 #endif
@@ -256,6 +261,9 @@ make_settings_tab (settings_closure *c)
   make_boolean_option (c, vbox, group, OPT_USE_APT_ALGORITHMS,
 		       "Use apt-get algorithms",
 		       &use_apt_algorithms);
+  make_boolean_option (c, vbox, group, OPT_SHOW_SSU_PROBLEMS,
+                       "Show SSU problems",
+                       &show_ssu_problems);
 #if 0
   make_boolean_option (c, vbox, group, OPT_PERMANENT,
  		       "Red pill is permanent",
