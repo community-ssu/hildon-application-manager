@@ -2369,7 +2369,9 @@ make_global_section_list (GList *sections, section_activated *act)
   GtkListStore *ls = NULL;
   GtkTreeIter itr;
   GtkWidget *icon_view;
+  GtkWidget *box;
 
+  box = gtk_vbox_new (FALSE, 0);
   scroller = hildon_pannable_area_new ();
   g_object_set (G_OBJECT (scroller), "vovershoot-max", 0, NULL);
 
@@ -2404,15 +2406,17 @@ make_global_section_list (GList *sections, section_activated *act)
   g_signal_connect (G_OBJECT (icon_view), "style-set",
                     G_CALLBACK (reload_section_icons), ls);
   gtk_container_add (GTK_CONTAINER(scroller), icon_view);
+  /* just for layout guide compliance */
+  gtk_box_pack_start (GTK_BOX (box), scroller, TRUE, TRUE,
+                      HILDON_MARGIN_TRIPLE);
 
   global_section_list = scroller;
   g_object_ref (scroller);
 
   /* Prepare visibility */
-  gtk_widget_show_all (icon_view);
-  gtk_widget_hide (scroller);
+  gtk_widget_show_all (box);
 
-  return scroller;
+  return box;
 }
 
 void
