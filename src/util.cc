@@ -3659,6 +3659,7 @@ iap_callback (ConIcConnection *connection,
           if (iap)
             {
               g_free (iap);
+              iap = NULL;
               break_entertainment ();
             }
 
@@ -3677,6 +3678,7 @@ iap_callback (ConIcConnection *connection,
       if (g_strcmp0 (iap, event_iap_id) == 0)
         {
           g_free (iap);
+          iap = NULL;
         }
 
       break_entertainment ();
