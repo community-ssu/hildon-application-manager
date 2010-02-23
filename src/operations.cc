@@ -1323,6 +1323,7 @@ ip_download_cur (void *data)
 			       pi->get_display_name (false));
     }
 
+  reset_entertainment ();
   set_entertainment_fun (NULL, -1, -1, 0);
   set_entertainment_main_title (title);
   g_free (title);
@@ -1372,7 +1373,6 @@ ip_download_cur_retry (bool res, void *data)
 
   if (res)
     {
-      reset_entertainment ();
       ip_download_cur (c);
     }
   else
