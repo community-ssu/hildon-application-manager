@@ -904,7 +904,7 @@ spd_with_details (void *data, bool filling_details)
                                         SPD_DESCRIPTION_PAGE);
             }
 
-          //if (!is_ssu_pkg)
+          if (!is_ssu_pkg || show_ssu_problems)
             {
               spd_set_page_widget (c, SPD_SUMMARY_PAGE,
                                    spd_create_summary_page (c));
@@ -914,13 +914,14 @@ spd_with_details (void *data, bool filling_details)
                                           spd_nb_widgets[SPD_SUMMARY_PAGE],
                                           gtk_label_new (spd_get_summary_label (c)));
             }
-            //else
+          else if (!show_ssu_problems)
             {
               // we don't need this tab
-              //gtk_notebook_remove_page (GTK_NOTEBOOK (notebook), SPD_SUMMARY_PAGE);
+              gtk_notebook_remove_page (GTK_NOTEBOOK (notebook), SPD_SUMMARY_PAGE);
             }
 
-            if (pi->dependencies )//&& !is_ssu_pkg)
+          if (pi->dependencies
+              && (!is_ssu_pkg || show_ssu_problems))
             {
               spd_nb_widgets[SPD_DEPS_PAGE] = spd_create_deps_page (c);
               gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
