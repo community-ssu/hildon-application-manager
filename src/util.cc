@@ -782,6 +782,7 @@ make_scare_user_with_legalese (bool multiple)
                             _("ai_nc_non_verified_package_multiple") :
                             _("ai_nc_non_verified_package"));
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label), 0, 0);
 
   scroll = hildon_pannable_area_new ();
   hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scroll), label);
@@ -827,7 +828,20 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
 
   label = gtk_label_new (text);
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
   g_free (text);
+
+  GdkPixbuf* iconpb = pi->installed_version
+    ? pi->installed_icon : pi->available_icon;
+  if (iconpb == NULL)
+    {
+      iconpb = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                         "tasklaunch_default_application",
+                                         TREE_VIEW_ICON_SIZE,
+                                         GtkIconLookupFlags (0),
+                                         NULL);
+    }
+  GtkWidget* icon = gtk_image_new_from_pixbuf (iconpb);
 
   dialog = gtk_dialog_new_with_buttons ((pi->installed_version
                                          ? _("ai_ti_confirm_update")
@@ -840,15 +854,19 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), label,
-                      TRUE, TRUE, 1);
+  GtkWidget *title_box = gtk_hbox_new (FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (title_box), icon, FALSE, FALSE, 5);
+  gtk_box_pack_end (GTK_BOX (title_box), label, TRUE, TRUE, 5);
+
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), title_box,
+                      FALSE, FALSE, 2);
 
   if (scare_user)
     {
       GtkWidget *legalese = make_scare_user_with_legalese (multiple);
 
       gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), legalese,
-                          TRUE, TRUE, 1);
+                          TRUE, TRUE, 2);
 
       gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
                                          GTK_RESPONSE_OK, FALSE);
@@ -857,7 +875,7 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
       gtk_button_set_label (GTK_BUTTON (check),
                             _("ai_ti_confirmation_checkbox"));
       gtk_box_pack_end (GTK_BOX (GTK_DIALOG (dialog)->vbox), check,
-                          TRUE, TRUE, 1);
+                          TRUE, TRUE, 2);
       g_signal_connect (check, "toggled", G_CALLBACK (user_agreed), dialog);
     }
 
