@@ -2223,9 +2223,10 @@ enum {
 static void
 icon_view_item_activated (GtkWidget *icon_view,
                           GtkTreePath *tp,
-                          GtkTreeModel *tm)
+                          gpointer user_data)
 {
   GtkTreeIter itr;
+  GtkTreeModel *tm = gtk_icon_view_get_model (GTK_ICON_VIEW (icon_view));
 
   if (gtk_tree_model_get_iter (tm, &itr, tp))
     {
@@ -2238,10 +2239,11 @@ icon_view_item_activated (GtkWidget *icon_view,
 }
 
 static void
-icon_view_is_dying (GtkTreeModel *tm, GtkIconView *stale_pointer)
+icon_view_is_dying (gpointer data, GtkIconView *stale_pointer)
 {
   section_info *si;
   GtkTreeIter itr;
+  GtkTreeModel *tm = gtk_icon_view_get_model (stale_pointer);
 
   if (gtk_tree_model_get_iter_first (tm, &itr))
     do
@@ -2315,7 +2317,7 @@ make_my_icon_view (GtkTreeModel *tm)
                       "style-set",
                       G_CALLBACK (set_text_cr_style),
                       cr_text);
-    set_text_cr_style (icon_view, NULL, G_OBJECT(cr_text));
+    set_text_cr_style (icon_view, NULL, G_OBJECT (cr_text));
     g_object_set(G_OBJECT(cr_text),
                  "wrap-mode",  PANGO_WRAP_WORD,
                  "wrap-width", ICONS_GRID_ITEM_WIDTH,
@@ -2367,25 +2369,34 @@ pixbuf_from_si(section_info *si)
 static void
 reload_section_icons (GtkWidget *widget, GtkStyle *prev_style, gpointer user_data)
 {
-  GtkTreeModel *tm = (GtkTreeModel *) user_data;
+  GtkTreeModel *tm = gtk_icon_view_get_model (GTK_ICON_VIEW (widget));
   GtkTreeIter itr;
-  GdkPixbuf *pb = NULL;
-  section_info *si = NULL;
 
-  if (gtk_tree_model_get_iter_first (tm, &itr))
-    do
-      {
-        gtk_tree_model_get (tm, &itr,
-                            SECTION_LS_PIXBUF_COLUMN, &pb,
-                            SECTION_LS_SI_COLUMN, &si,
-                            -1);
-        g_object_unref (pb);
-        gtk_list_store_set ((GtkListStore *) user_data, &itr,
-                            SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si (si), -1);
-      }
-    while (gtk_tree_model_iter_next (tm, &itr));
+  if (tm != NULL && gtk_tree_model_get_iter_first (tm, &itr))
+    {
+      section_info *si = NULL;
+      GtkTreeIter lsitr;
+      GtkListStore*  ls = gtk_list_store_new (SECTION_LS_N_COLUMNS,
+                                              G_TYPE_STRING,
+                                              GDK_TYPE_PIXBUF,
+                                              G_TYPE_POINTER);
 
-  g_object_unref (G_OBJECT (tm));
+      do
+        {
+          gtk_tree_model_get (tm, &itr, SECTION_LS_SI_COLUMN, &si, -1);
+          gtk_list_store_append (ls, &lsitr);
+          gtk_list_store_set (ls, &lsitr,
+                              SECTION_LS_TEXT_COLUMN,   si->name,
+                              SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si (si),
+                              SECTION_LS_SI_COLUMN,     si,
+                              -1);
+
+        }
+      while (gtk_tree_model_iter_next (tm, &itr));
+
+      g_object_unref (tm);
+      gtk_icon_view_set_model (GTK_ICON_VIEW (widget), GTK_TREE_MODEL (ls));
+    }
 }
 
 GtkWidget *
@@ -2428,7 +2439,7 @@ make_global_section_list (GList *sections, section_activated *act)
       gtk_list_store_append (ls, &itr);
       gtk_list_store_set (ls, &itr,
                           SECTION_LS_TEXT_COLUMN,   si->name,
-                          SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si(si),
+                          SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si (si),
                           SECTION_LS_SI_COLUMN,     si,
                           -1);
 
@@ -2436,13 +2447,14 @@ make_global_section_list (GList *sections, section_activated *act)
     }
 
   icon_view = make_my_icon_view (GTK_TREE_MODEL (ls));
-  g_object_weak_ref (G_OBJECT(icon_view), (GWeakNotify)icon_view_is_dying, ls);
-  g_signal_connect (G_OBJECT (icon_view),
-                    "item-activated",
+  g_object_weak_ref (G_OBJECT(icon_view), (GWeakNotify) icon_view_is_dying,
+                     NULL);
+  g_signal_connect (G_OBJECT (icon_view), "item-activated",
                     G_CALLBACK (icon_view_item_activated),
-                    ls);
+                    NULL);
   g_signal_connect (G_OBJECT (icon_view), "style-set",
-                    G_CALLBACK (reload_section_icons), ls);
+                    G_CALLBACK (reload_section_icons), NULL);
+
   gtk_container_add (GTK_CONTAINER(scroller), icon_view);
   /* just for layout guide compliance */
   gtk_box_pack_start (GTK_BOX (box), scroller, TRUE, TRUE,
