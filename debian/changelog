@@ -1,3 +1,12 @@
+hildon-application-manager (1:2.2.59-1) unstable; urgency=low
+
+  * Fixes: NB#148697 - Application manager doesn't handle service lost
+    situation end user friendly way
+  * Show SSU problems in details dialog.
+  * APT autoremove after uninstall and installing an SSU
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 25 Feb 2010 10:21:47 +0100
+
 hildon-application-manager (1:2.2.58-1) unstable; urgency=low
 
   * Fixes: NB#150182 - SSU shows "operation failed" note and sometimes

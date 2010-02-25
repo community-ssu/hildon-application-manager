@@ -1,3 +1,80 @@
+2010-02-25 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/settings.cc: set to true the show_ssu_problems global
+	variable by default
+
+2010-02-23 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/operations.cc (ip_download_cur): Reset the cancel/break
+	flags before every download
+
+	* src/util.cc (iap_callback): Nullify the iap identifier after
+	free it.
+
+	* src/details.cc (spd_with_details): don't remove the tab if the
+	setting is enabled.
+
+2010-02-22 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/settings.h: export the global variable
+
+	* src/settings.cc (load_settings): read the new key
+	(save_settings): save the new key
+	(make_settings_tab): put the option in the widget
+
+2010-02-18 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/operations.cc (ip_download_cur_retry): reset entertainment
+	state before downloading again.
+
+	* src/util.cc (reset_entertainment): New function
+
+	* src/util.h: New function exporting
+
+	* src/operations.cc (ip_autoremove_reply): New function.
+	(ip_reboot): call the autoremove apt-worker command.
+
+	* src/apt-worker.cc (cmd_autoremove): Remove useless log messages
+
+	* src/operations.cc (up_remove_reply): Stop the entertainment only
+	if apt-worker fails.
+	(up_remove_reply): Call the autoremove process.
+	(up_autoremove_reply): New function.
+
+2010-02-09 Mario Sanchez Prada <msanchez@igalia.com>
+
+	* src/main.cc (rp_end): Make sure packages list is always
+	initialized after restoring the list of packages.
+
+2010-02-17 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* apt-worker-client.h: function signature
+	src/apt-worker-client.cc (apt_worker_autoremove): New function.
+
+	* src/apt-worker-proto.h: add the command id.
+
+	* src/apt-worker (handle_request): handle the command request.
+	(cmd_autoremove): New function.
+
+	* src/operations.cc (ip_download_cur_reply): Retrying downloading
+	three times if it fails.
+
+2010-01-21 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/operations.cc (result_code_to_message): Show the new label
+	for retrying.
+	(ip_download_cur_retry_confirm): Enable the ask_yes_no dialog
+	(ip_download_cur_retry): New function.
+	(ip_download_cur_retry_confirm_response): fix the function in
+	order to re-ensure the network connection before downloading
+	again.
+	(ip_download_cur_reply): Ask to retry if the download was broke
+
+2010-01-11 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* src/util.cc (iap_callback): handler and report errors, handle
+	the disconnecting status, and try to handle reconnections.
+
 2010-01-28 Mario Sanchez Prada <msanchez@igalia.com>
 
 	* src/dbus.c (MCE_SERVICE): Removed from here.
