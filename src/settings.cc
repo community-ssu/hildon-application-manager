@@ -54,7 +54,7 @@ bool red_pill_check_always = false;
 bool red_pill_ignore_wrong_domains = true;
 bool red_pill_ignore_thirdparty_policy = false;
 bool red_pill_permanent = false;
-bool show_ssu_problems = false;
+bool show_ssu_problems = true;
 
 #define SETTINGS_FILE ".osso/hildon-application-manager"
 
