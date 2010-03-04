@@ -6770,6 +6770,39 @@ fork_progress_process ()
 }
 
 static void
+fs_setup (const char *tmpfs)
+{
+  /* We should mount /home partition to proper place, because
+   * 3rd party apps probably using /home/opt */
+  int retval = run_system (false, "/bin/mount /home");
+
+  if (retval == 0) /* success */
+    {
+      /* Now we should bind mount /opt. It is not a symlink
+       * anymore. Next stop: HAM will be the kernel. :S */
+      run_system (false, "/bin/mount -o bind /home/opt /opt");
+    }
+
+  /* Remount the root directiory with higher compression */
+  rootfs_set_compression_level (true);
+
+  /* Also we should mount the docs fs (nasty-ugly hack for
+     rootfs spaces exhaustion )*/
+  maybe_bindmount_docsfs (tmpfs);
+}
+
+static void
+fs_teardown (const char *tmpfs)
+{
+  run_system (false, "/bin/umount /opt");
+  run_system (false, "/bin/umount /home");
+
+  maybe_bindumount_docsfs (tmpfs);
+
+  rootfs_set_compression_level (false);
+}
+
+static void
 do_rescue (const char *package, const char *download_root,
 	   bool erase_record)
 {
@@ -6790,18 +6823,10 @@ do_rescue (const char *package, const char *download_root,
    */
   run_system (true, "dpkg --configure dpkg");
 
-  /* We should mount /home partition to proper place, because
-   * 3rd party apps probably using /opt which is a symlink to
-   * /home/opt :-S */
-  run_system (false, "/bin/mount /home");
-
-  /* Remount the root directiory with higher compression */
-  rootfs_set_compression_level (true);
-
-  /* Also we should mount the docs fs (nasty-ugly hack for
-     rootfs spaces exhaustion )*/
+  /* Look for the best tempfs */
   const char *tmpfs = choose_tmpfs_for_docs ();
-  maybe_bindmount_docsfs (tmpfs);
+
+  fs_setup (tmpfs);
 
   misc_init ();
 
@@ -6830,8 +6855,7 @@ do_rescue (const char *package, const char *download_root,
 
 	  if (result == rescode_packages_not_found)
             {
-              run_system (false, "/bin/umount /home");
-              maybe_bindumount_docsfs (tmpfs);
+              fs_teardown (tmpfs);
             }
           else
             {
@@ -6842,10 +6866,7 @@ do_rescue (const char *package, const char *download_root,
                   _system->Lock();
                 }
 
-              run_system (false, "/bin/umount /home");
-              maybe_bindumount_docsfs (tmpfs);
-
-              rootfs_set_compression_level (false);
+              fs_teardown (tmpfs);
 
               run_system (true, "/sbin/reboot");
             }
