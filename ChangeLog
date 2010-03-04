@@ -1,3 +1,9 @@
+2010-03-04 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
+
+	* apt-worker.cc (fs_setup): New function.
+	(fs_teardown): New function.
+	(do_rescue): use the new functions
+
 2010-02-25 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* src/settings.cc: set to true the show_ssu_problems global

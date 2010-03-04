@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.60-1) unstable; urgency=low
+
+  * Fixes: NB#159403 - rescue mode fails in 8-23
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Thu, 04 Mar 2010 16:26:54 +0100
+
 hildon-application-manager (1:2.2.59-1) unstable; urgency=low
 
   * Fixes: NB#148697 - Application manager doesn't handle service lost
