@@ -37,6 +37,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <conic.h>
 #include <dbus/dbus.h>
+#include <mce/dbus-names.h>
+#include <mce/mode-names.h>
 
 #include "util.h"
 #include "details.h"
@@ -4103,13 +4105,6 @@ listen_to_conic_events (gboolean do_listen)
  dbus-send --system --dest=com.nokia.mce  --print-reply /com/nokia/mce/request com.nokia.mce.request.req_device_mode_change string:normal
 */
 
-/* For setting / getting device offline state */
-#define MCE_SERVICE                     "com.nokia.mce"
-#define MCE_REQUEST_IF                  "com.nokia.mce.request"
-#define MCE_REQUEST_PATH                "/com/nokia/mce/request"
-#define MCE_GET_DEVICE_MODE_REQ         "get_device_mode"
-#define MCE_DEVICE_MODE_CHANGE_REQ      "req_device_mode_change"
-
 device_mode
 get_device_mode ()
 {
@@ -4129,7 +4124,7 @@ get_device_mode ()
   msg = dbus_message_new_method_call (MCE_SERVICE,
                                       MCE_REQUEST_PATH,
                                       MCE_REQUEST_IF,
-                                      MCE_GET_DEVICE_MODE_REQ);
+                                      MCE_DEVICE_MODE_CHANGE_REQ);
 
   reply = dbus_connection_send_with_reply_and_block (conn, msg, -1, NULL);
 
@@ -4156,6 +4151,8 @@ set_device_mode (device_mode dmode)
   DBusConnection *conn;
   DBusMessage    *msg;
   const char     *mode;
+  const char     *call_state;
+  const char     *call_type = MCE_NORMAL_CALL;
 
   conn = dbus_bus_get (DBUS_BUS_SYSTEM, NULL);
   if (!conn)
@@ -4172,10 +4169,12 @@ set_device_mode (device_mode dmode)
   switch (dmode)
     {
     case DEVICE_MODE_OFFLINE:
-      mode = "flight";
+      mode = MCE_FLIGHT_MODE;
+      call_state = MCE_CALL_STATE_SERVICE;
       break;
     case DEVICE_MODE_ONLINE:
-      mode = "normal";
+      mode = MCE_NORMAL_MODE;
+      call_state = MCE_CALL_STATE_NONE;
       break;
     default:
       fprintf (stderr, "Not valid device mode");
@@ -4193,6 +4192,19 @@ set_device_mode (device_mode dmode)
   dbus_connection_send_with_reply_and_block (conn, msg, -1, NULL);
   dbus_message_unref (msg);
 
+  /* Set also call state */
+  msg = dbus_message_new_method_call (MCE_SERVICE,
+                                      MCE_REQUEST_PATH,
+                                      MCE_REQUEST_IF,
+                                      MCE_CALL_STATE_CHANGE_REQ);
+
+  dbus_message_append_args (msg, DBUS_TYPE_STRING, &call_state,
+                            DBUS_TYPE_STRING, &call_type, DBUS_TYPE_INVALID);
+
+  dbus_connection_send_with_reply_and_block (conn, msg, -1, NULL);
+  dbus_message_unref (msg);
+
+  /* Unref the connection */
   dbus_connection_unref (conn);
 
   /* Reconnect conic handler after going online */
