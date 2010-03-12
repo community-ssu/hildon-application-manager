@@ -1,3 +1,8 @@
+2010-03-11 Alberto Garcia <agarcia@igalia.com>
+
+	* src/util.cc (get_device_mode): Set the telephony service state when
+	requesting OFFLINE mode.
+
 2010-03-04 Víctor Manuel Jáquez Leal <vjaquez@igalia.com>
 
 	* apt-worker.cc (fs_setup): New function.

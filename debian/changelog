@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.61-1) unstable; urgency=low
+
+  * Fixes: NB#160319 - Power key menu is accessible during ssu update - HAM part
+
+ -- Marius Vollmer <marius.vollmer@nokia.com>  Fri, 12 Mar 2010 11:25:13 +0100
+
 hildon-application-manager (1:2.2.60-1) unstable; urgency=low
 
   * Fixes: NB#159403 - rescue mode fails in 8-23
