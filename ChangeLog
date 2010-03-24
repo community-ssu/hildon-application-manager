@@ -1,3 +1,13 @@
+2010-03-24  Marco Barisione  <marco.barisione@collabora.co.uk>
+
+	* src/dbus.cc:
+	* src/main.cc:
+	* src/main.h:
+	* src/menu.cc:
+	* src/operations.cc:
+	* src/operations.h: Make it possible to avoid the legal warning when
+	installing a local package.
+
 2010-03-26 Alban Crequy <alban.crequy@collabora.co.uk>
 
 	* src/apt-worker.cc: Check free space in /home/

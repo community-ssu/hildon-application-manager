@@ -2402,12 +2402,13 @@ static void iff_with_filename (char *uri, void *unused);
 static void iff_end (bool success, void *unused);
 
 void
-install_from_file_flow (const char *filename)
+install_from_file_flow (const char *filename,
+                        bool trusted)
 {
   if (start_interaction_flow ())
     {
       if (filename == NULL)
-	show_deb_file_chooser (iff_with_filename, NULL);
+	show_deb_file_chooser (iff_with_filename, GINT_TO_POINTER (trusted));
       else
 	{
 	  /* Try to convert filename to GnomeVFS uri */
@@ -2421,17 +2422,18 @@ install_from_file_flow (const char *filename)
 	      fileuri = g_strdup (filename);
 	    }
 
-	  iff_with_filename (fileuri, NULL);
+	  iff_with_filename (fileuri, GINT_TO_POINTER (trusted));
 	}
     }
 }
 
 static void
-iff_with_filename (char *uri, void *unused)
+iff_with_filename (char *uri, void *data)
 {
   if (uri)
     {
-      install_file (uri, iff_end, NULL);
+      gboolean trusted = GPOINTER_TO_INT (data);
+      install_file (uri, trusted, iff_end, NULL);
       g_free (uri);
     }
   else

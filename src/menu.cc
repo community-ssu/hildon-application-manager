@@ -84,7 +84,7 @@ set_install_from_file_menu_visible (bool flag)
 static void
 call_install_from_file ()
 {
-  install_from_file_flow (NULL);
+  install_from_file_flow (NULL, false);
 }
 
 void

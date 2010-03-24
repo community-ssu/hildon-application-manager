@@ -77,6 +77,7 @@ void uninstall_package (package_info *pi,
 /* FILENAME must remain valid until CONT is called.
  */
 void install_file (const char *filename,
+		   bool trusted,
 		   void (*cont) (bool success, void *data), void *data);
 
 #endif /* !OPERATIONS_H */
