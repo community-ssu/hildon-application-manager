@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=0.9.4
+Exec=/usr/bin/hildon-application-manager
+MimeType=application/x-debian-package-ovi
+X-Osso-Service=hildon_debian_package_ovi
+

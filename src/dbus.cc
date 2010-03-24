@@ -54,7 +54,7 @@
                           "',member='" BTNAME_SIG_CHANGED "'"
 
 static void
-dbus_mime_open (DBusConnection *conn, DBusMessage *message)
+dbus_mime_open (DBusConnection *conn, DBusMessage *message, bool trusted)
 {
   DBusError error;
   DBusMessage *reply;
@@ -461,7 +461,7 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 				   "com.nokia.hildon_application_manager",
 				   "mime_open"))
     {
-      dbus_mime_open (conn, message);
+      dbus_mime_open (conn, message, false);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -518,6 +518,14 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
                                    "search_packages"))
     {
       dbus_search_packages (conn, message);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_debian_package_ovi",
+				   "mime_open"))
+    {
+      dbus_mime_open (conn, message, true);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -730,6 +738,54 @@ btadapter_received (DBusPendingCall *call, void *user_data)
   dbus_message_unref (message);
 }
 
+static void
+request_name (DBusConnection *connection, const gchar *name, bool top_existing)
+{
+  DBusError error;
+
+  dbus_error_init (&error);
+  int result = dbus_bus_request_name (connection,
+				      name,
+				      DBUS_NAME_FLAG_DO_NOT_QUEUE,
+				      &error);
+
+  if (result < 0)
+    {
+      fprintf (stderr, "Can't request name on dbus: %s\n", error.message);
+      exit (1);
+    }
+
+  if (result == DBUS_REQUEST_NAME_REPLY_EXISTS)
+    {
+      /* There is already an instance of us running.  Bring it to the
+	 front if requested.
+      */
+      if (top_existing)
+	{
+          DBusMessage *request;
+
+          request = dbus_message_new_method_call
+	    ("com.nokia.hildon_application_manager",
+	     "/com/nokia/hildon_application_manager",
+	     "com.nokia.hildon_application_manager",
+	     "top_application");
+
+	  if (request)
+	    dbus_connection_send_with_reply_and_block (connection, request,
+						       INT_MAX, NULL);
+	}
+
+      exit (0);
+    }
+
+  if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
+    {
+      /* Wierdness, but let's continue anyway.
+       */
+      fprintf (stderr, "Couldn't be the primary owner.\n");
+    }
+}
+
 void
 init_dbus_or_die (bool top_existing)
 {
@@ -757,45 +813,8 @@ init_dbus_or_die (bool top_existing)
       exit (1);
     }
 
-  dbus_error_init (&error);
-  int result = dbus_bus_request_name (connection,
-				      "com.nokia.hildon_application_manager",
-				      DBUS_NAME_FLAG_DO_NOT_QUEUE,
-				      &error);
-
-  if (result < 0)
-    {
-      fprintf (stderr, "Can't request name on dbus: %s\n", error.message);
-      exit (1);
-    }
-
-  if (result == DBUS_REQUEST_NAME_REPLY_EXISTS)
-    {
-      /* There is already an instance of us running.  Bring it to the
-	 front if requested.
-      */
-      if (top_existing)
-	{
-	  request = dbus_message_new_method_call
-	    ("com.nokia.hildon_application_manager",
-	     "/com/nokia/hildon_application_manager",
-	     "com.nokia.hildon_application_manager",
-	     "top_application");
-
-	  if (request)
-	    dbus_connection_send_with_reply_and_block (connection, request,
-						       INT_MAX, NULL);
-	}
-
-      exit (0);
-    }
-
-  if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
-    {
-      /* Wierdness, but let's continue anyway.
-       */
-      fprintf (stderr, "Couldn't be the primary owner.\n");
-    }
+  request_name (connection, "com.nokia.hildon_application_manager", top_existing);
+  request_name (connection, "com.nokia.hildon_debian_package_ovi", top_existing);
 
   /* Listen on the system bus for changes to the device name.
    */

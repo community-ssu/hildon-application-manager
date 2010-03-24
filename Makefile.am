@@ -1,10 +1,12 @@
 SUBDIRS = src utils catpo statusbar
 
 desktopdir = $(datadir)/applications/hildon
-desktop_DATA = hildon-application-manager.desktop
+desktop_DATA = hildon-application-manager.desktop \
+               hildon-debian-package-ovi.desktop
 
 servicefiledir=$(datadir)/dbus-1/services
-servicefile_DATA=com.nokia.hildon_application_manager.service
+servicefile_DATA = com.nokia.hildon_application_manager.service \
+                   com.nokia.hildon_debian_package_ovi.service
 
 mimedir = $(datadir)/mime/packages
 mime_DATA = hildon-application-manager.xml
@@ -49,7 +51,9 @@ install-data-local:
 
 EXTRA_DIST = COPYING.LIB                                        \
              hildon-application-manager.desktop	                \
+             hildon-debian-package-ovi.desktop	                \
              com.nokia.hildon_application_manager.service	\
+             com.nokia.hildon_debian_package_ovi.service	\
              hildon-application-manager.xml			\
              hildon-application-manager.conf			\
              hildon-application-manager.sh			\

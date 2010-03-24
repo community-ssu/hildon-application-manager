@@ -1,3 +1,11 @@
+2010-03-24  Xavier Claessense  <xavier.claessens@collabora.co.uk>
+
+	* src/dbus.cc: Add the interface for handling OVI packages
+	* com.nokia.hildon_debian_package_ovi.service: Service file for
+	activating the interface for OVI packages
+	* hildon-debian-package-ovi.desktop: Register the MIME type for OVI
+	* Makefile.am: Add the new files
+
 2010-03-24  Marco Barisione  <marco.barisione@collabora.co.uk>
 
 	* src/dbus.cc:
