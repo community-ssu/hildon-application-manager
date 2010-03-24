@@ -1,3 +1,7 @@
+2010-03-24  Marco Barisione <marco@barisione.org>
+
+	Release 2.2.62
+
 2010-03-24  Marco Barisione  <marco.barisione@collabora.co.uk>
 
 	* src/dbus.cc: Do not show the warning about dangerous content if the
