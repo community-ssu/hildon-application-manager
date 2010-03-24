@@ -69,7 +69,7 @@ dbus_mime_open (DBusConnection *conn, DBusMessage *message)
       if (strcmp (filename, "magic:restore-packages") == 0)
 	restore_packages_flow ();
       else
-	install_from_file_flow (filename);
+	install_from_file_flow (filename, false);
 
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
@@ -262,7 +262,7 @@ dif_with_initialized_packages (void *data)
   if (c->xid)
     {
       if (start_foreign_interaction_flow (c->xid))
-	install_file (c->filename, dif_install_done, c);
+	install_file (c->filename, false, dif_install_done, c);
       else
 	dif_end (-1, c);
     }
@@ -270,7 +270,7 @@ dif_with_initialized_packages (void *data)
     {
       present_main_window ();
       if (start_interaction_flow ())
-	install_file (c->filename, dif_install_done, c);
+	install_file (c->filename, false, dif_install_done, c);
       else
 	dif_end (-1, c);
     }

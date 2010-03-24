@@ -2185,6 +2185,8 @@ up_end (void *data)
 struct if_clos {
   char *filename;
 
+  bool trusted;
+
   package_info *pi;
 
   void (*cont) (bool, void *);
@@ -2204,12 +2206,14 @@ static void if_end_with_success (void *data);
 static void if_end (bool success, void *data);
 
 void install_file (const char *filename,
+		   bool trusted,
 		   void (*cont) (bool success, void *data), void *data)
 {
   if_clos *c = new if_clos;
 
   c->filename = NULL;
   c->pi = NULL;
+  c->trusted = trusted;
   c->cont = cont;
   c->data = data;
 
@@ -2332,7 +2336,14 @@ if_details_reply (int cmd, apt_proto_decoder *dec, void *data)
   else
     cont = if_fail;
 
-  install_confirm (true, pi, false, cont, if_show_details, c);
+  gboolean scare_user;
+
+  if (c->trusted)
+    scare_user = false;
+  else
+    scare_user = true;
+
+  install_confirm (scare_user, pi, false, cont, if_show_details, c);
 }
 
 static void

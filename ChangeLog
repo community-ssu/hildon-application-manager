@@ -1,3 +1,13 @@
+2010-03-24  Marco Barisione  <marco.barisione@collabora.co.uk>
+
+	* src/dbus.cc:
+	* src/main.cc:
+	* src/main.h:
+	* src/menu.cc:
+	* src/operations.cc:
+	* src/operations.h: Make it possible to avoid the legal warning when
+	installing a local package.
+
 2010-03-11 Alberto Garcia <agarcia@igalia.com>
 
 	* src/util.cc (get_device_mode): Set the telephony service state when
