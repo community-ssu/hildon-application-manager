@@ -69,7 +69,7 @@ dbus_mime_open (DBusConnection *conn, DBusMessage *message, bool trusted)
       if (strcmp (filename, "magic:restore-packages") == 0)
 	restore_packages_flow ();
       else
-	install_from_file_flow (filename, false);
+	install_from_file_flow (filename, trusted);
 
       reply = dbus_message_new_method_return (message);
       dbus_connection_send (conn, reply, NULL);
