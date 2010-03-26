@@ -1,3 +1,10 @@
+hildon-application-manager (1:2.2.62-1) unstable; urgency=low
+
+  * Fixes: NB#162465 - Check free space on /home/
+  * Mount partitions in ham-rescue.sh (Gary Birkett, Urho Konttori)
+
+ -- Alban Crequy <alban.crequy@collabora.co.uk>  Fri, 26 Mar 2010 13:14:16 +0000
+
 hildon-application-manager (1:2.2.61-1) unstable; urgency=low
 
   * Fixes: NB#160319 - Power key menu is accessible during ssu update - HAM part
