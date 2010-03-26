@@ -30,6 +30,7 @@
 #include <libintl.h>
 #include <errno.h>
 
+#include <glib/gstdio.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gconf/gconf-client.h>
@@ -2433,20 +2434,34 @@ iff_with_filename (char *uri, void *data)
   if (uri)
     {
       gboolean trusted = GPOINTER_TO_INT (data);
-      install_file (uri, trusted, iff_end, NULL);
-      g_free (uri);
+      install_file (uri, trusted, iff_end, uri);
     }
   else
     iff_end (false, NULL);
 }
 
 static void
-iff_end (bool success, void *unused)
+iff_end (bool success, void *data)
 {
   end_interaction_flow ();
 
   /* Make sure packages list is initialized after this */
   maybe_init_packages_list ();
+
+  /* This is an incredibly ugly hack needed to be sure that packages
+   * installed from the browser are not left around on disk. Forgive
+   * me for my sins. */
+  char *uri = (char *) data;
+  if (uri)
+    {
+      char *filename = g_filename_from_uri (uri, NULL, NULL);
+      if (filename && g_str_has_prefix (filename, "/var/tmp/"))
+        {
+          g_unlink (filename);
+          g_free (filename);
+        }
+      g_free (uri);
+    }
 }
 
 static void
