@@ -1,3 +1,7 @@
+2010-03-26 Alban Crequy <alban.crequy@collabora.co.uk>
+
+	* src/apt-worker.cc: Check free space in /home/
+
 2010-03-11 Alberto Garcia <agarcia@igalia.com>
 
 	* src/util.cc (get_device_mode): Set the telephony service state when
