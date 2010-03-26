@@ -4480,6 +4480,22 @@ get_free_space (const char *path)
   return res;
 }
 
+static int64_t
+get_total_space (const char *path)
+{
+  struct statvfs buf;
+
+  // Sync before we measure the space
+  sync ();
+
+  if (statvfs (path, &buf) != 0)
+    return -1;
+
+  int64_t res = (int64_t)buf.f_blocks * (int64_t)buf.f_bsize;
+  log_stderr ("total space (%s) = %Ld", path, res);
+  return res;
+}
+
 /* APTCMD_GET_FREE_SPACE
  *
  * Returns the actual amount of free space for installation
@@ -5492,6 +5508,8 @@ static bool
 is_there_enough_free_space (const char *archive_dir, int64_t size)
 {
   int64_t free_space = get_free_space (archive_dir);
+  int64_t home_free_space = get_free_space ("/home/");
+  int64_t home_total_space = get_total_space ("/home/");
 
   if (free_space < 0)
     {
@@ -5522,6 +5540,12 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
   if (size > free_space)
     {
       log_stderr ("You don't have enough free space in %s", archive_dir);
+      return false;
+    }
+
+  if ((home_total_space * 5) / 100 > home_free_space)
+    {
+      log_stderr ("You don't have enough free space in /home");
       return false;
     }
 
