@@ -1,4 +1,4 @@
-hildon-application-manager (1:2.2.62-1) unstable; urgency=low
+hildon-application-manager (1:2.2.63-1) unstable; urgency=low
 
   * Fixes: NB#162465 - Check free space on /home/
   * Mount partitions in ham-rescue.sh (Gary Birkett, Urho Konttori)
