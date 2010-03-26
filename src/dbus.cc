@@ -54,7 +54,7 @@
                           "',member='" BTNAME_SIG_CHANGED "'"
 
 static void
-dbus_mime_open (DBusConnection *conn, DBusMessage *message)
+install_package (DBusConnection *conn, DBusMessage *message, bool trusted)
 {
   DBusError error;
   DBusMessage *reply;
@@ -461,7 +461,15 @@ dbus_handler (DBusConnection *conn, DBusMessage *message, void *data)
 				   "com.nokia.hildon_application_manager",
 				   "mime_open"))
     {
-      dbus_mime_open (conn, message);
+      install_package (conn, message, false);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+  if (dbus_message_is_method_call (message,
+				   "com.nokia.hildon_application_manager",
+				   "install_trusted_package"))
+    {
+      install_package (conn, message, true);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
