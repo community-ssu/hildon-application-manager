@@ -1,3 +1,7 @@
+2010-03-26  Marco Barisione <marco.barisione@collabora.co.uk>
+
+	Release 2.2.64
+
 2010-03-26  Marco Barisione  <marco.barisione@collabora.co.uk>
 
 	* src/main.cc: Delete packages installed from /var/tmp/

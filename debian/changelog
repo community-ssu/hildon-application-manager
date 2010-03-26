@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.64-1) unstable; urgency=low
+
+  * Fixes: NB#161689 - Dialog text for Ovi Store paid content
+
+ -- Marco Barisione <marco.barisione@collabora.co.uk>  Fri, 26 Mar 2010 16:55:01 +0000
+
 hildon-application-manager (1:2.2.63-1) unstable; urgency=low
 
   * Fixes: NB#162465 - Check free space on /home/
