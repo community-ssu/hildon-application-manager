@@ -1,3 +1,9 @@
+2010-03-29  Alban Crequy  <alban.crequy@collabora.co.uk>
+
+	* src/apt-worker.cc: Check 150mb free space in /home/
+
+	Release 2.2.65
+
 2010-03-26  Marco Barisione <marco.barisione@collabora.co.uk>
 
 	Release 2.2.64
