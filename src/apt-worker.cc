@@ -5543,7 +5543,7 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
       return false;
     }
 
-  if ((home_total_space * 5) / 100 > home_free_space)
+  if ((home_total_space * 8) / 100 > home_free_space)
     {
       log_stderr ("You don't have enough free space in /home");
       return false;
