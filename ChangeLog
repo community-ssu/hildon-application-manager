@@ -1,3 +1,9 @@
+2010-04-22  Alban Crequy  <alban.crequy@collabora.co.uk>
+
+	* src/operations.cc: Fix "not enough memory" error message
+
+	Release 2.2.66
+
 2010-03-29  Alban Crequy  <alban.crequy@collabora.co.uk>
 
 	* src/apt-worker.cc: Check 150mb free space in /home/

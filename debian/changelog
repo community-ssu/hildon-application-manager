@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.66-1) unstable; urgency=low
+
+  * Fixes: NB#164816 - Fix "Not enough memory" error message
+
+ -- Alban Crequy <alban.crequy@collabora.co.uk>  Thu, 22 Apr 2010 11:05:31 +0100
+
 hildon-application-manager (1:2.2.65-1) unstable; urgency=low
 
   * Fixes: NB#162465 - Free space on /home/ should be at least 150MB.
