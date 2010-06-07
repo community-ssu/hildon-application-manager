@@ -1,3 +1,12 @@
+2010-06-07  Alberto Garcia  <agarcia@igalia.com>
+
+	* src/confutils.cc: Don't add repo definition with more than 1024
+	char
+	* src/repo.cc: Ignore badly formatted catalogues
+	* src/main.cc: Update the cache using an idle call
+
+	Release 2.2.67
+
 2010-04-22  Alban Crequy  <alban.crequy@collabora.co.uk>
 
 	* src/operations.cc: Fix "not enough memory" error message
