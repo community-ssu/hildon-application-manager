@@ -1,3 +1,9 @@
+2010-06-10  Alberto Garcia  <agarcia@igalia.com>
+
+	* src/util.cc: Fix visual artifact in progress bar
+
+	Release 2.2.68
+
 2010-06-07  Alberto Garcia  <agarcia@igalia.com>
 
 	* src/confutils.cc: Don't add repo definition with more than 1024

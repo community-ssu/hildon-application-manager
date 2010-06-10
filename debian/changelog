@@ -1,3 +1,10 @@
+hildon-application-manager (1:2.2.68-1) unstable; urgency=low
+
+  * Updated fix for NB#154290
+  * Fixes: NB#154290 - Progress bar has incorrect size at first
+
+ -- Alberto Garcia <agarcia@igalia.com>  Thu, 10 Jun 2010 11:59:54 +0200
+
 hildon-application-manager (1:2.2.67-1) unstable; urgency=low
 
   * Fixes: NB#154290 - Progress bar has incorrect size at first
