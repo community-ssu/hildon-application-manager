@@ -1148,6 +1148,12 @@ start_entertaining_user (gboolean with_button)
       if (with_button)
 	entertainment_update_cancel ();
 
+      /* Show the progress bar when the dialog is shown.
+         This prevents a visual artifact when the bar first appears */
+      g_signal_connect_swapped (entertainment.dialog, "show",
+                                G_CALLBACK (gtk_widget_show), entertainment.bar);
+      gtk_widget_set_no_show_all (entertainment.bar, TRUE);
+
       /* Show the dialog */
       push_dialog (entertainment.dialog);
       gtk_widget_show_all (entertainment.dialog);
