@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.69-1) unstable; urgency=low
+
+  * Revert wrong fix for NB#164816 ("Not enough memory" error message)
+
+ -- Alban Crequy <alban.crequy@collabora.co.uk>  Mon, 14 Jun 2010 14:06:10 +0100
+
 hildon-application-manager (1:2.2.68-1) unstable; urgency=low
 
   * Updated fix for NB#154290
@@ -14,7 +20,7 @@ hildon-application-manager (1:2.2.67-1) unstable; urgency=low
 
 hildon-application-manager (1:2.2.66-1) unstable; urgency=low
 
-  * Fixes: NB#164816 - Fix "Not enough memory" error message
+  * Fixes NB#164816 - Fix "Not enough memory" error message
 
  -- Alban Crequy <alban.crequy@collabora.co.uk>  Thu, 22 Apr 2010 11:05:31 +0100
 

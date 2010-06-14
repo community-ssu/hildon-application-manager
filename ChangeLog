@@ -1,3 +1,9 @@
+2010-06-14  Alban Crequy  <alban.crequy@collabora.co.uk>
+
+	* src/operations.cc: Fix "not enough memory" error message
+
+	Release 2.2.69
+
 2010-06-10  Alberto Garcia  <agarcia@igalia.com>
 
 	* src/util.cc: Fix visual artifact in progress bar
