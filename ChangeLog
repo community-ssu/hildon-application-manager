@@ -1,3 +1,10 @@
+2010-07-01  Cosimo Alfarano <cosimo.alfarano@collabora.co.uk>
+
+	* src/main.cc: Check /home/user/MyDocs/.apt-archive-cache deleting
+	  trusted .debs, according to NB#177568 and NB#177125
+
+	Release 2.2.70
+
 2010-06-14  Alban Crequy  <alban.crequy@collabora.co.uk>
 
 	* src/operations.cc: Fix "not enough memory" error message

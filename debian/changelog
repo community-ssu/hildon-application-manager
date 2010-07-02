@@ -1,3 +1,10 @@
+hildon-application-manager (1:2.2.70-1) unstable; urgency=low
+
+  * Check /home/user/MyDocs/.apt-archive-cache deleting trusted .debs
+    According to NB#177568 and NB#177125
+
+ -- Cosimo Alfarano <cosimo.alfarano@collabora.co.uk>  Fri, 01 Jul 2010 16:00:11 +0100
+
 hildon-application-manager (1:2.2.69-1) unstable; urgency=low
 
   * Revert wrong fix for NB#164816 ("Not enough memory" error message)
