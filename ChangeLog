@@ -1,3 +1,14 @@
+2010-07-01  Cosimo Alfarano <cosimo.alfarano@collabora.co.uk>
+
+	* src/main.cc: Check /home/user/MyDocs/.apt-archive-cache deleting
+	  trusted .debs, according to NB#177568, blocked by NB#177125
+	* src/util.cc: Add interaction tasks to enqueues task in need of interactive UI
+        * src/main.cc: change of return type from void to null for install_from_file_flow()
+	* irc/main.cc: Use interction tasks to enqueue the install operation
+	  instead of dropping it, in install_from_file_flow() (NB#177568)
+
+	Release 2.2.70
+
 2010-06-14  Alban Crequy  <alban.crequy@collabora.co.uk>
 
 	* src/operations.cc: Fix "not enough memory" error message

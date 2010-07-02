@@ -1,3 +1,15 @@
+hildon-application-manager (1:2.2.70-1) unstable; urgency=low
+
+  * Check /home/user/MyDocs/.apt-archive-cache deleting trusted .debs
+    According to NB#177568 and NB#177125
+  * src/util.cc: Add interaction tasks to enqueues task in need of interactive UI
+  * change of return type from void to null for install_from_file_flow()
+  * Use interction tasks to enqueue the install operation instead
+    of dropping it, in install_from_file_flow()
+  * Fixes: NB#177568 - Rootfs gets full if large paid deb package from ovi store are canceled when installing
+
+ -- Cosimo Alfarano <cosimo.alfarano@collabora.co.uk>  Fri, 01 Jul 2010 16:00:11 +0100
+
 hildon-application-manager (1:2.2.69-1) unstable; urgency=low
 
   * Revert wrong fix for NB#164816 ("Not enough memory" error message)
