@@ -2464,7 +2464,10 @@ iff_end (bool success, void *data)
   if (uri)
     {
       char *filename = g_filename_from_uri (uri, NULL, NULL);
-      if (filename && g_str_has_prefix (filename, "/var/tmp/"))
+      if (filename &&
+          (g_str_has_prefix (filename, "/var/tmp/") ||
+           g_str_has_prefix (filename,
+             "/home/user/MyDocs/.apt-archive-cache/")))
         {
           g_unlink (filename);
           g_free (filename);
