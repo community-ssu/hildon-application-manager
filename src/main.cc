@@ -2408,10 +2408,43 @@ rp_end (int n_successful, void *data)
 /* INSTALL_FROM_FILE_FLOW
  */
 
+/* iff context to be used with add_interaction_task() */
+struct IFFInteractionTaskCtx {
+    gchar *filename;
+    bool trusted;
+};
+
+static void
+iff_interaction_task_free (void *data)
+{
+  IFFInteractionTaskCtx *ctx = (IFFInteractionTaskCtx*) data;
+
+  g_free (ctx->filename);
+  delete ctx;
+}
+
+static gboolean
+install_from_file_flow_when_idle (void *data)
+{
+  IFFInteractionTaskCtx *ctx = (IFFInteractionTaskCtx*) data;
+
+  /* start_interaction_flow() called by install_from_file_flow() already calls
+   * is_idle() but it also calls irritate_user(), I want to avoid it as much
+   * as I can */
+  if (is_idle() && install_from_file_flow (ctx->filename, ctx->trusted))
+    return FALSE; /* success, remove the task */
+
+  /* install_from_file_flow() was not able to complete its task, probably
+   * became not-idle suddently: re-enqueue */
+  return TRUE;
+}
+
 static void iff_with_filename (char *uri, void *unused);
 static void iff_end (bool success, void *unused);
 
-void
+/* returns TRUE on success, enqueues to interaction task and returns FALSE
+ * otherwise */
+gboolean
 install_from_file_flow (const char *filename,
                         bool trusted)
 {
@@ -2433,7 +2466,21 @@ install_from_file_flow (const char *filename,
 	    }
 
 	  iff_with_filename (fileuri, GINT_TO_POINTER (trusted));
+
+    return TRUE; /* interaction flow idle */
 	}
+    }
+  else /* probably a dialog is open */
+    {
+      IFFInteractionTaskCtx *ctx = new IFFInteractionTaskCtx;
+
+      ctx->filename = g_strdup (filename);
+      ctx->trusted = trusted;
+
+      add_interaction_task (install_from_file_flow_when_idle, ctx,
+          iff_interaction_task_free);
+
+      return FALSE; /* interaction flow not idle: enqueued */
     }
 }
 

@@ -174,7 +174,7 @@ void set_catalogues_and_refresh (xexp *catalogues,
 				 void (*cont) (bool keep_going, void *data),
 				 void *data);
 
-void install_from_file_flow (const char *filename,
+gboolean install_from_file_flow (const char *filename,
 			     bool        trusted);
 
 void restore_packages_flow ();
