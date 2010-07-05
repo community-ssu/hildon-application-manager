@@ -64,10 +64,100 @@ static time_t idle_since = 0;
 static guint idle_timeout_id = 0;
 static void (*idle_cont) (void *) = NULL;
 static void *idle_data = NULL;
+/* since there is no real way to free the queue, default value is NULL,
+ * when the queue is empty, the consumer will set it to NULL, when the
+ * producer adds an element, the add function will init it, if set to NULL */
+static GQueue *task_queue = NULL;
+
+/* private structure to hold tasks data for @task_queue */
+struct InteractionTaskQueueCtx {
+    GSourceFunc task;
+    void *data;
+    GDestroyNotify data_free_func;
+};
 
 #define IDLE_TIMEOUT_SECS 60
 #define SCREENSHOT_DIR "launch"
 #define HILDON_APP_MGR_SERVICE "com.nokia.hildon_application_manager"
+
+
+/* Adds a task to be executed when idle.
+ *
+ * Only tasks in need of interaction (ie dialogs) should be added, since a
+ * prerequisite to run the task is that is_idle()==TRUE.
+ *
+ * Added tasks will be executed as soon as the UI becames idle.
+ *
+ * A task will return FALSE if the task doesn't need to be re-executed (ie
+ * successful execution or unrecoverable error), TRUE otherwise.
+ *
+ * IMPORTANT note about task writing:
+ * Do not return TRUE on errors you cannot recover, as it might lead to
+ * starvation: the task cosuming might be faster in obtaining the UI resource
+ * than other flows.
+ * It means that if a task will always fail (i.e., because of some permanent
+ * error) it might be executed forever, never releasing the UI/making the UI
+ * idle -> possible starvation.
+ * Return TRUE only on recoverable errors.
+ *
+ * A task not in need of any interaction shouldn't be added using this
+ * method, as it might be unnecessarely delayed waiting for the UI to be
+ * idle.
+ */
+void
+add_interaction_task (GSourceFunc task,
+    void *data,
+    GDestroyNotify data_free_func)
+{
+  InteractionTaskQueueCtx *ctx = new InteractionTaskQueueCtx;
+
+  ctx->task = task;
+  ctx->data = data;
+  ctx->data_free_func = data_free_func;
+
+  if (task_queue == NULL)
+    task_queue = g_queue_new ();
+
+  g_queue_push_tail (task_queue, ctx);
+}
+
+/* Execute the first task in the queue, dispose its data if the task is
+ * successful, or re-enqueue it otherwise.
+ *
+ * reiterate consuming while is_idle()==TRUE and queue is non-empty.
+ *
+ * Note: it might lead to starvation since a task might always return TRUE
+ * and never been removed. Very likely task consuming will be faster than
+ * other "flows" in need of interaction to obtain the resource */
+static void
+consume_interaction_task_queue (void)
+{
+  if (task_queue == NULL)
+    return;
+
+  while (!g_queue_is_empty (task_queue) && is_idle ())
+    {
+      InteractionTaskQueueCtx *ctx =
+        (InteractionTaskQueueCtx*) g_queue_pop_head (task_queue);
+
+      /* If the task fails (returns TRUE), re-enqueue it using @data again, free @data
+       * otherwise */
+      if (ctx->task (ctx->data))
+        add_interaction_task (ctx->task, ctx->data,
+            ctx->data_free_func);
+      else if (ctx->data_free_func != NULL)
+        ctx->data_free_func (ctx->data);
+
+      delete ctx;
+    }
+
+  if (g_queue_is_empty (task_queue))
+    {
+      g_queue_free (task_queue);
+      task_queue = NULL;
+    }
+}
+
 
 static void
 dialog_realized (GtkWidget *dialog, gpointer data)
@@ -122,6 +212,10 @@ pop_dialog (GtkWidget *dialog)
     dialog_stack = dialog_stack->next;
     g_slist_free_1 (old);
   }
+
+  /* if idle, start enqueued tasks execution */
+  if (is_idle ())
+    consume_interaction_task_queue ();
 }
 
 static bool interaction_flow_active = false;
@@ -148,8 +242,7 @@ start_interaction_flow ()
            since it would mess with having a single stack of dialogs.
   */
 
-  if (dialog_stack != NULL
-      || interaction_flow_active)
+  if (!is_idle ())
     {
       irritate_user (_("ai_ni_operation_progress"));
       return false;
@@ -261,6 +354,10 @@ end_interaction_flow ()
   parent_xid = None;
 
   reset_idle_timer ();
+
+  /* if idle, start enqueued tasks execution */
+  if (is_idle ())
+    consume_interaction_task_queue ();
 }
 
 bool

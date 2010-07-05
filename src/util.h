@@ -680,5 +680,8 @@ void set_device_mode (device_mode dmode);
  */
 void kill_processes_for_SSU (void);
 
+void add_interaction_task (GSourceFunc task, void *data,
+    GDestroyNotify free_func);
+
 #endif /* !UTIL_H */
 
