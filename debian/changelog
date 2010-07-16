@@ -1,3 +1,12 @@
+hildon-application-manager (1:2.2.71-1) unstable; urgency=low
+
+  * Add /home/user/MyDocs/.tmp to the list of dirs allowed to deleted trusted .debs
+    as per https://projects.maemo.org/bugzilla/show_bug.cgi?id=177125#c30https://projects.maemo.org/bugzilla/show_bug.cgi?id=177568#c17
+  * Fixes: NB#177568 - Rootfs gets full if large paid deb package from ovi store are canceled when installing
+  * this bug was reopened after the path was updated in browser.
+
+ -- Cosimo Alfarano <cosimo.alfarano@collabora.co.uk>  Fri, 16 Jul 2010 12:00:11 +0100
+
 hildon-application-manager (1:2.2.70-1) unstable; urgency=low
 
   * Check /home/user/MyDocs/.apt-archive-cache deleting trusted .debs

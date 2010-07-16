@@ -1,3 +1,11 @@
+2010-07-16  Cosimo Alfarano <cosimo.alfarano@collabora.co.uk>
+	* src/main.cc: add "/home/user/MyDocs/.tmp" to dirs prefixes from which
+	  HAM is allowed to unlink downloaded .debs
+	  as specified in
+	  https://projects.maemo.org/bugzilla/show_bug.cgi?id=177125#c30
+
+	  Relase 2.2.71
+
 2010-07-01  Cosimo Alfarano <cosimo.alfarano@collabora.co.uk>
 
 	* src/main.cc: Check /home/user/MyDocs/.apt-archive-cache deleting
