@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.72-1) unstable; urgency=low
+
+  * Don't touch the icon folder after a package is installed
+
+ -- Alberto Garcia <agarcia@igalia.com>  Thu, 05 Aug 2010 16:02:39 +0200
+
 hildon-application-manager (1:2.2.71-1) unstable; urgency=low
 
   * Add /home/user/MyDocs/.tmp to the list of dirs allowed to deleted trusted .debs

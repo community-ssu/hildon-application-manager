@@ -1,3 +1,9 @@
+2010-08-05  Alberto Garcia  <agarcia@igalia.com>
+
+	* src/apt-worker.cc (operation): Don't touch the icon folder after
+	a package has been installed. This is not necessary anymore since
+	gtk 2.14.7-1maemo34
+
 2010-07-16  Cosimo Alfarano <cosimo.alfarano@collabora.co.uk>
 	* src/main.cc: add "/home/user/MyDocs/.tmp" to dirs prefixes from which
 	  HAM is allowed to unlink downloaded .debs
