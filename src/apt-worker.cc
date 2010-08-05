@@ -166,10 +166,6 @@ static xexp *read_operation_record ();
  */
 #define RESCUE_RESULT_FILE "/var/lib/hildon-application-manager/rescue-result"
 
-/* Full path in system for the theme icons
- */
-#define ICONS_THEME_PATH "/usr/share/icons/hicolor"
-
 
 /* You know what this means.
  */
@@ -5772,14 +5768,6 @@ operation (bool check_only,
 
       if (Res != pkgPackageManager::Completed)
 	return rescode_failure;
-
-      /* Touch the icons folder */
-      /* FIXME: This shouldn't be done here as it's not responsibility
-       * of HAM that the icons don't get updated when changed, added
-       * or removed, but of other components (most likely, Gtk+).
-       * Please remove this code when no longer needed.
-       */
-      utimes (ICONS_THEME_PATH, NULL);
     }
 
   return rescode_success;
