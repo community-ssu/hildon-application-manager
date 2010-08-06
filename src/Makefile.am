@@ -44,7 +44,8 @@ hildon_application_manager_SOURCES = main.h			\
                                             hildon-fancy-button.c       \
                                             hildon-fancy-button.h       \
                                             apt-utils.cc
-hildon_application_manager_CFLAGS =   $(HAM_DEPS_CFLAGS)
+hildon_application_manager_CFLAGS =   $(HAM_DEPS_CFLAGS) \
+					$(LAUNCHER_DEPS_CFLAGS)
 hildon_application_manager_CXXFLAGS = $(HAM_DEPS_CFLAGS) \
 					$(LAUNCHER_DEPS_CFLAGS) \
                                         -fno-rtti -fno-exceptions
