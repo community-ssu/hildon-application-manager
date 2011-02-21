@@ -2349,6 +2349,10 @@ set_text_cr_style (GtkWidget *widget, GtkStyle *prev_style, GObject *cr_text)
 #define ICONS_GRID_ITEM_WIDTH HILDON_ICON_PIXEL_SIZE_XLARGE \
   + HILDON_MARGIN_DEFAULT + HILDON_MARGIN_HALF
 
+/* For the spacing, use double margins, but subtract 4 to
+ * avoid horizontal scrollbars appearing in portrait mode */
+#define ICONS_GRID_COL_SPACING HILDON_MARGIN_DOUBLE-4
+
 static GtkWidget *
 make_my_icon_view (GtkTreeModel *tm)
 {
@@ -2359,7 +2363,7 @@ make_my_icon_view (GtkTreeModel *tm)
                                     "model", tm,
                                     "text-column",    SECTION_LS_TEXT_COLUMN,
                                     "pixbuf-column",  SECTION_LS_PIXBUF_COLUMN,
-                                    "column-spacing", HILDON_MARGIN_DOUBLE,
+                                    "column-spacing", ICONS_GRID_COL_SPACING,
                                     "item-width", ICONS_GRID_ITEM_WIDTH,
                                     "row-spacing",    HILDON_MARGIN_DOUBLE,
                                     NULL));

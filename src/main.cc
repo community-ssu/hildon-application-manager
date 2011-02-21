@@ -62,8 +62,10 @@
 #define HILDON_FANCY_BUTTON_WIDTH 214
 #define MAIN_VIEW_TOP_MARGIN 92 + HILDON_MARGIN_HALF
 #define MAIN_VIEW_WIDGET_NAME "osso-application-installer-main-view"
+#define MAIN_VIEW_WIDGET_NAME_PORTRAIT MAIN_VIEW_WIDGET_NAME "-portrait"
 #define HILDON_THEME_BACKGROUNDS_PATH "/etc/hildon/theme/backgrounds"
 #define MAIN_VIEW_BG_PIXMAP "applicationmanager.png"
+#define MAIN_VIEW_BG_PIXMAP_PORTRAIT "applicationmanager-portrait.png"
 
 #define MAIN_VIEW_BG_RC_STRING \
   "pixmap_path \"" HILDON_THEME_BACKGROUNDS_PATH "\"\n" \
@@ -75,7 +77,18 @@
   " bg_pixmap[SELECTED] = \"" MAIN_VIEW_BG_PIXMAP "\"\n" \
   " bg_pixmap[INSENSITIVE] = \"" MAIN_VIEW_BG_PIXMAP "\"\n" \
   "}\n" \
-  "widget \"*" MAIN_VIEW_WIDGET_NAME "\" style \"" MAIN_VIEW_WIDGET_NAME "-style\""
+  "widget \"*" MAIN_VIEW_WIDGET_NAME "\" style \"" MAIN_VIEW_WIDGET_NAME "-style\"" \
+  \
+  "style \"" MAIN_VIEW_WIDGET_NAME_PORTRAIT "-style\"\n" \
+  "{\n" \
+  " bg_pixmap[NORMAL] = \"" MAIN_VIEW_BG_PIXMAP_PORTRAIT "\"\n" \
+  " bg_pixmap[ACTIVE] = \"" MAIN_VIEW_BG_PIXMAP_PORTRAIT "\"\n" \
+  " bg_pixmap[PRELIGHT] = \"" MAIN_VIEW_BG_PIXMAP_PORTRAIT "\"\n" \
+  " bg_pixmap[SELECTED] = \"" MAIN_VIEW_BG_PIXMAP_PORTRAIT "\"\n" \
+  " bg_pixmap[INSENSITIVE] = \"" MAIN_VIEW_BG_PIXMAP_PORTRAIT "\"\n" \
+  "}\n" \
+  "widget \"*" MAIN_VIEW_WIDGET_NAME_PORTRAIT "\" \
+    style \"" MAIN_VIEW_WIDGET_NAME_PORTRAIT "-style\""
 
 #define _(x) gettext (x)
 
@@ -2536,6 +2549,36 @@ view_set_dirty (view *v)
     v->dirty = true;
 }
 
+static gboolean
+configure_event_cb (GtkWidget *widget, GdkEvent *event, gpointer data)
+{
+  g_return_val_if_fail(widget != NULL && HILDON_IS_WINDOW(widget), FALSE);
+  g_return_val_if_fail(event->type == GDK_CONFIGURE, FALSE);
+  g_return_val_if_fail(data != NULL, FALSE);
+
+  GdkEventConfigure *cevent = (GdkEventConfigure*)event;
+  view *v = (view *)data;
+
+  if (v->id == MAIN_VIEW && v->cur_view != NULL) {
+      GtkWidget *alignment = gtk_bin_get_child(GTK_BIN(v->cur_view));
+      guint top_padding = MAIN_VIEW_TOP_MARGIN;
+
+      if (cevent->width < cevent->height) {
+          /* Portrait mode */
+          gtk_widget_set_name (v->cur_view, MAIN_VIEW_WIDGET_NAME_PORTRAIT);
+          top_padding *= 2.5;
+      } else {
+          /* Landscape mode */
+          gtk_widget_set_name (v->cur_view, MAIN_VIEW_WIDGET_NAME);
+      }
+
+      gtk_alignment_set_padding (GTK_ALIGNMENT (alignment),
+                                 top_padding, 0, 0, 0);
+  }
+
+  return FALSE;
+}
+
 static void
 is_topmost_cb (GtkWidget *widget, GParamSpec *arg, gpointer data)
 {
@@ -2564,6 +2607,9 @@ reset_view (view *v)
   /* Disconnect window's signal handlers using the user_data parameter */
   g_signal_handlers_disconnect_by_func (G_OBJECT (v->window),
                                         (gpointer) is_topmost_cb,
+                                        v);
+  g_signal_handlers_disconnect_by_func (G_OBJECT (v->window),
+                                        (gpointer) configure_event_cb,
                                         v);
 
   /* Set NULL values */
@@ -2665,9 +2711,13 @@ make_new_window (view *v)
   v->window = hildon_stackable_window_new ();
   gtk_window_set_title (GTK_WINDOW (v->window),
                         _("ai_ap_application_installer"));
+  hildon_gtk_window_set_portrait_flags (GTK_WINDOW(v->window),
+                        HILDON_PORTRAIT_MODE_SUPPORT);
 
   g_signal_connect(G_OBJECT (v->window), "notify::is-topmost",
                    G_CALLBACK (is_topmost_cb), v);
+  g_signal_connect(G_OBJECT (v->window), "configure-event",
+                   G_CALLBACK (configure_event_cb), v);
   g_signal_connect (G_OBJECT (v->window), "key_press_event",
 		    G_CALLBACK (key_event), NULL);
   g_signal_connect (G_OBJECT (v->window), "key_release_event",
