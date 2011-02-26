@@ -63,6 +63,11 @@ install: build
 
         # Add here commands to install the package into debian/hildon-application-manager.
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/hildon-application-manager
+	for i in alpha beta; do \
+	  echo $$i; \
+	  mkdir -p $(CURDIR)/debian/hildon-application-manager/usr/share/themes/$$i/backgrounds; \
+	  cp share/themes/$$i-background.png $(CURDIR)/debian/hildon-application-manager/usr/share/themes/$$i/backgrounds/applicationmanager-portrait.png; \
+	done
 	rm `find $(CURDIR)/debian/hildon-application-manager -name '*.la'`
 
 
