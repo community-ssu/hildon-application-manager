@@ -130,6 +130,42 @@ add_entry (GtkWidget *box, GtkSizeGroup *group,
   return entry;
 }
 
+static void
+pill_response (GtkDialog *dialog, gint response, gpointer unused)
+{
+  pop_dialog (GTK_WIDGET (dialog));
+  gtk_widget_destroy (GTK_WIDGET (dialog));
+
+  if (red_pill_mode != (response == GTK_RESPONSE_YES))
+    {
+      red_pill_mode = (response == GTK_RESPONSE_YES);
+      save_settings ();
+
+      set_settings_menu_visible (red_pill_mode);
+      set_install_from_file_menu_visible (red_pill_mode);
+      update_backend_options ();
+      if (red_pill_show_all || red_pill_show_magic_sys)
+        get_package_list ();
+    }
+}
+
+static void
+ask_the_pill_question ()
+{
+  GtkWidget *dialog;
+
+  dialog =
+    hildon_note_new_confirmation_add_buttons (NULL, 
+					      "Which pill?",
+					      "Red", GTK_RESPONSE_YES,
+					      "Blue", GTK_RESPONSE_NO,
+					      NULL);
+  push_dialog (dialog);
+  g_signal_connect (dialog, "response",
+		    G_CALLBACK (pill_response), NULL);
+  gtk_widget_show_all (dialog);
+}
+
 struct get_catalogues_closure {
   void (*cont) (xexp *catalogues, void *data);
   void *data;
@@ -380,6 +416,8 @@ remove_cat_cont (bool res, gpointer data)
 static void
 cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
 {
+  bool should_ask_the_pill_question = false;
+
   cat_edit_closure *c = (cat_edit_closure *)clos;
   cat_dialog_closure *d = c->cat_dialog;
 
@@ -492,12 +530,17 @@ cat_edit_response (GtkDialog *dialog, gint response, gpointer clos)
   else if (c->isnew)
     {
       xexp_free (c->catalogue);
+      if (!strcmp (gtk_entry_get_text (GTK_ENTRY (c->uri_entry)), "matrix"))
+	should_ask_the_pill_question = true;
     }
 
   delete c;
 
   pop_dialog (GTK_WIDGET (dialog));
   gtk_widget_destroy (GTK_WIDGET (dialog));
+
+  if (should_ask_the_pill_question)
+    ask_the_pill_question ();
 
   /* Emit response signal if needed */
   if (d && d->dialog && d->show_only_errors && !d->has_failing_catalogues)
