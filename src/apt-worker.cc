@@ -2878,6 +2878,9 @@ cmd_get_package_list ()
     {
       int flags = 0;
 
+      if (read_byte (cancel_fd) >= 0)
+        return;
+
       /* Get installed and candidate iterators for current package */
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
