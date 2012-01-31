@@ -1221,6 +1221,10 @@ handle_request ()
       cmd_autoremove ();
       break;
 
+    case APTCMD_EXIT:
+      exit(0);
+      break;
+
     default:
       log_stderr ("unrecognized request: %d", req.cmd);
       break;

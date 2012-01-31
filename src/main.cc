@@ -2888,5 +2888,10 @@ main (int argc, char **argv)
       present_main_window ();
     }
 
+
+  atexit (cancel_apt_worker);
+  atexit (exit_apt_worker);
+
   gtk_main ();
+  return 0;
 }
