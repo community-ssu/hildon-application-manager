@@ -2493,8 +2493,8 @@ install_from_file_flow (const char *filename,
       add_interaction_task (install_from_file_flow_when_idle, ctx,
           iff_interaction_task_free);
 
-      return FALSE; /* interaction flow not idle: enqueued */
     }
+  return FALSE; /* interaction flow not idle: enqueued */
 }
 
 static void
