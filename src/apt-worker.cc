@@ -6516,6 +6516,8 @@ map_catalogue_error_details (xexp *x)
 void
 cmd_reboot ()
 {
+  if (system ("/usr/sbin/dsmetool -b") == 0)
+    return;
   system ("/sbin/reboot");
 }
 
