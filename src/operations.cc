@@ -309,9 +309,6 @@ static void ip_abort_cur (ip_clos *c, const char *msg, bool with_details);
 static void ip_abort_cur_with_status_details (ip_clos *c);
 static void ip_abort_response (GtkDialog *dialog, gint response,
 			       gpointer data);
-static void ip_abort_cur_os_update (ip_clos *c);
-static void ip_abort_cur_os_update_response (GtkDialog *dialog, gint response,
-                                             gpointer data);
 
 static void ip_end (void *data);
 
@@ -1690,47 +1687,6 @@ ip_upgrade_all_confirm_response (bool res, void *data)
 }
 
 static void
-ip_abort_cur_os_update (ip_clos *c)
-{
-  GtkWidget *dialog = NULL;
-
-  dialog = gtk_dialog_new_with_buttons
-    (_("ai_ti_operating_system_update"),
-     NULL,
-     GTK_DIALOG_MODAL,
-     _("ai_bd_create_backup"), HAM_BACKUP_RESPONSE,
-     NULL);
-  push_dialog (dialog);
-
-  gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
-  GtkWidget *label = gtk_label_new (_("ai_ia_osupdate_pc"));
-  gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-  gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
-		     label);
-  gtk_widget_show_all (dialog);
-
-  g_signal_connect (dialog, "response",
-		    G_CALLBACK (ip_abort_cur_os_update_response), c);
-
-}
-
-static void
-ip_abort_cur_os_update_response (GtkDialog *dialog, gint response,
-                                 gpointer data)
-{
-   ip_clos *c = (ip_clos *)data;
-
-   if (response == HAM_BACKUP_RESPONSE)
-    {
-      launch_osso_backup ();
-    }
-
-   pop_dialog (GTK_WIDGET (dialog));
-   gtk_widget_destroy (GTK_WIDGET (dialog));
-   ip_end (c);
-}
-
-static void
 ip_abort_cur_with_status_details (ip_clos *c)
 {
   package_info *pi = (package_info *)(c->cur->data);
@@ -1771,12 +1727,9 @@ ip_abort_cur (ip_clos *c, const char *msg, bool with_details)
     {
       if (is_last)
 	{
-          if (is_pkg_ssu ((package_info *) c->cur->data))
-            ip_abort_cur_os_update (c);
-          else
-            annoy_user_with_arbitrary_details (final_msg,
-                                               ip_show_cur_problem_details,
-                                               ip_end, c);
+          annoy_user_with_arbitrary_details (final_msg,
+                                             ip_show_cur_problem_details,
+                                             ip_end, c);
           goto annoy;
 	}
       else
