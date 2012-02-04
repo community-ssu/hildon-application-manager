@@ -42,7 +42,7 @@ int  package_sort_sign = 1;
 
 bool clean_after_install = true;
 bool assume_connection = false;
-bool break_locks = true;
+bool break_locks = false;
 bool download_packages_to_mmc = true;
 bool use_apt_algorithms = false;
 bool red_pill_mode = false;
