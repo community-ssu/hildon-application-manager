@@ -6861,7 +6861,7 @@ do_rescue (const char *package, const char *download_root,
 
               fs_teardown (tmpfs);
 
-              run_system (true, "/sbin/reboot");
+              cmd_reboot ();
             }
 	}
       else
