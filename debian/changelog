@@ -1,3 +1,20 @@
+hildon-application-manager (1:2.2.72-5) unstable; urgency=low
+
+  *  Exit apt-worker after closing hildon-application-manager
+  *  By default in Red Pill mode show all packages
+  *  By default, do not break apt locks
+  *  Remove error message about using PC Suite
+  *  main.cc: Fix compile warning
+  *  apt-worker: for rebooting use cmd_reboot()
+  *  apt-worker: First try to use dsmetool as reboot command
+  *  apt-worker: Add ability to cancel cmd_get_package_list operation
+  *  Fix overflow in is_package_cache_updated if interval is bigger than INT_MAX/60
+  *  Revert "Remove possibility of enabling red-pill mode from UI (NB#133696)"
+  *  Revert "Fixes: NB#162465 - Check free space on /home/"
+  *  Revert "NB#162465 Check 150mb free space in /home/"
+
+ -- Pali Rohár <pali.rohar@gmail.com>  Sun, 29 Apr 2012 04:34:39 -0400
+
 hildon-application-manager (1:2.2.72-4.1) unstable; urgency=low
 
   * Bumped version number

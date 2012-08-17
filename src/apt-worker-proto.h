@@ -70,6 +70,8 @@ enum apt_command {
 
   APTCMD_AUTOREMOVE,
 
+  APTCMD_EXIT,
+
   APTCMD_MAX
 };
 

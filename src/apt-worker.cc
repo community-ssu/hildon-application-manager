@@ -1221,6 +1221,10 @@ handle_request ()
       cmd_autoremove ();
       break;
 
+    case APTCMD_EXIT:
+      exit(0);
+      break;
+
     default:
       log_stderr ("unrecognized request: %d", req.cmd);
       break;
@@ -2878,6 +2882,9 @@ cmd_get_package_list ()
     {
       int flags = 0;
 
+      if (read_byte (cancel_fd) >= 0)
+        return;
+
       /* Get installed and candidate iterators for current package */
       pkgCache::VerIterator installed = pkg.CurrentVer ();
       pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
@@ -4476,22 +4483,6 @@ get_free_space (const char *path)
   return res;
 }
 
-static int64_t
-get_total_space (const char *path)
-{
-  struct statvfs buf;
-
-  // Sync before we measure the space
-  sync ();
-
-  if (statvfs (path, &buf) != 0)
-    return -1;
-
-  int64_t res = (int64_t)buf.f_blocks * (int64_t)buf.f_bsize;
-  log_stderr ("total space (%s) = %Ld", path, res);
-  return res;
-}
-
 /* APTCMD_GET_FREE_SPACE
  *
  * Returns the actual amount of free space for installation
@@ -5504,8 +5495,6 @@ static bool
 is_there_enough_free_space (const char *archive_dir, int64_t size)
 {
   int64_t free_space = get_free_space (archive_dir);
-  int64_t home_free_space = get_free_space ("/home/");
-  int64_t home_total_space = get_total_space ("/home/");
 
   if (free_space < 0)
     {
@@ -5536,12 +5525,6 @@ is_there_enough_free_space (const char *archive_dir, int64_t size)
   if (size > free_space)
     {
       log_stderr ("You don't have enough free space in %s", archive_dir);
-      return false;
-    }
-
-  if ((home_total_space * 8) / 100 > home_free_space)
-    {
-      log_stderr ("You don't have enough free space in /home");
       return false;
     }
 
@@ -6537,6 +6520,8 @@ map_catalogue_error_details (xexp *x)
 void
 cmd_reboot ()
 {
+  if (system ("/usr/sbin/dsmetool -b") == 0)
+    return;
   system ("/sbin/reboot");
 }
 
@@ -6880,7 +6865,7 @@ do_rescue (const char *package, const char *download_root,
 
               fs_teardown (tmpfs);
 
-              run_system (true, "/sbin/reboot");
+              cmd_reboot ();
             }
 	}
       else

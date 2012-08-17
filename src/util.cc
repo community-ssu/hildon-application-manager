@@ -4101,6 +4101,9 @@ is_package_cache_updated ()
   if (interval <= 0)
     interval = UPNO_DEFAULT_CHECK_INTERVAL;
 
+  if (interval > INT_MAX / 60 || last_update > INT_MAX - interval * 60)
+    return TRUE;
+
   if (last_update + interval * 60 < time (NULL)
       || last_update < last_domain_modification_time ())
     return FALSE;

@@ -2493,8 +2493,8 @@ install_from_file_flow (const char *filename,
       add_interaction_task (install_from_file_flow_when_idle, ctx,
           iff_interaction_task_free);
 
-      return FALSE; /* interaction flow not idle: enqueued */
     }
+  return FALSE; /* interaction flow not idle: enqueued */
 }
 
 static void
@@ -2888,5 +2888,10 @@ main (int argc, char **argv)
       present_main_window ();
     }
 
+
+  atexit (cancel_apt_worker);
+  atexit (exit_apt_worker);
+
   gtk_main ();
+  return 0;
 }

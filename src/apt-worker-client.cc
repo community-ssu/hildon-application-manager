@@ -995,3 +995,17 @@ apt_worker_autoremove (apt_worker_callback *callback,
                    request.get_buf (), request.get_len (),
                    callback, data);
 }
+
+static void exit_apt_worker_callback(int cmd, apt_proto_decoder *dec, void *data)
+{
+}
+
+void
+exit_apt_worker ()
+{
+  request.reset ();
+
+  call_apt_worker (APTCMD_EXIT,
+                   request.get_buf (), request.get_len (),
+                   exit_apt_worker_callback, NULL);
+}
