@@ -7,7 +7,7 @@ Standards-Version: 3.6.0
 
 Package: hildon-application-manager
 Architecture: any
-Depends: ${shlibs:Depends}, maemo-launcher, hildon-application-manager-l10n-mr | hildon-application-manager-l10n-mr0, hildon-libs-l10n-mr | hildon-libs-l10n-mr0, hildon-fm-l10n-mr | hildon-fm-l10n-mr0, hildon-common-strings-l10n-mr | hildon-common-strings-l10n-mr0
+Depends: ${shlibs:Depends}, maemo-launcher, hildon-application-manager-l10n-mr | hildon-application-manager-l10n-mr0, hildon-libs-l10n-mr | hildon-libs-l10n-mr0, hildon-fm-l10n-mr | hildon-fm-l10n-mr0, hildon-common-strings-l10n-mr | hildon-common-strings-l10n-mr0, kernel-feature-errata-430973-workaround[armel]
 Provides: maemo-installer-utils
 Description: A program for managing user installed applications.
  The Application manager is a frontend for dpkg and apt.  It allows

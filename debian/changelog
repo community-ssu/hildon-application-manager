@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.72-5+thumb0) unstable; urgency=low
+
+  *Thumb2 compiled
+  
+ -- Ivaylo Dimitrov <freemangordon@abv.bg>  Thu, 13 Sep 2012 18:08:43 +0300
+
 hildon-application-manager (1:2.2.72-5) unstable; urgency=low
 
   *  Exit apt-worker after closing hildon-application-manager
