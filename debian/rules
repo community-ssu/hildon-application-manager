@@ -17,7 +17,7 @@ ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 	INSTALL_PROGRAM += -s
 endif
 ifneq (,$(findstring thumb,$(DEB_BUILD_OPTIONS)))
-        CFLAGS += -mthumb
+        CFLAGS += -mthumb -mword-relocations -pie
 endif
 ifeq (,$(findstring nolauncher,$(DEB_BUILD_OPTIONS)))
 	CONFIGURE_OPTIONS += --enable-maemo-launcher
