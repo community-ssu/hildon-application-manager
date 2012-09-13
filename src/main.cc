@@ -29,6 +29,7 @@
 #include <iostream>
 #include <libintl.h>
 #include <errno.h>
+#include <string.h>
 
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
