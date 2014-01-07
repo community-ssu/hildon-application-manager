@@ -2807,11 +2807,9 @@ get_required_free_space (package_record &rec)
 }
 
 static void
-encode_version_info (int summary_kind,
-		     pkgCache::VerIterator &ver, bool include_size)
+encode_version_info (int summary_kind, package_record &rec,
+		     const pkgCache::VerIterator &ver, bool include_size)
 {
-  package_record rec;
-  rec.lookup(ver);
   char *icon;
 
   response.encode_string (ver.VerStr ());
@@ -2888,11 +2886,14 @@ cmd_get_package_list ()
   response.encode_int (1);
   pkgDepCache &cache = *(awc->cache);
 
-  package_record rec;
+  package_record irec;
+  package_record crec;
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
       int flags = 0;
+      bool crec_looked = false;
+      bool irec_looked = false;
 
       if (read_byte (cancel_fd) >= 0)
         return;
@@ -2941,9 +2942,18 @@ cmd_get_package_list ()
       //
       if (!iend || !cend)
         {
-          pkgCache::VerIterator viter = !cend ? candidate : installed;
-          rec.lookup(viter);
-          flags = get_flags (rec);
+          if(!cend)
+            {
+              crec.lookup(candidate);
+              crec_looked = true;
+              flags = get_flags (crec);
+            }
+          else
+            {
+              irec.lookup(installed);
+              irec_looked = true;
+              flags = get_flags (irec);
+            }
           if (flags & pkgflag_system_update)
             {
               if (ssu_packages_needs_refresh)
@@ -2970,7 +2980,14 @@ cmd_get_package_list ()
 
       // Installed version
       if (!iend)
-	encode_version_info (2, installed, true);
+        {
+          if (!irec_looked)
+            {
+              irec.lookup(installed);
+              irec_looked = true;
+            }
+	  encode_version_info (2, irec, installed, true);
+        }
       else
 	encode_empty_version_info (true);
 
@@ -2983,14 +3000,21 @@ cmd_get_package_list ()
       if (!cend && (iend
 	      || installed.CompareVer (candidate) < 0
 	      || broken))
-	encode_version_info (1, candidate, false);
+      {
+        if (!crec_looked)
+          {
+            crec.lookup(candidate);
+            crec_looked = true;
+          }
+	encode_version_info (1, crec, candidate, false);
+      }
       else
 	encode_empty_version_info (false);
 
-      if (flags == 0 && !cend)
+      if (flags == 0 && !cend && !crec_looked)
 	{
-	  rec.lookup(candidate);
-	  flags = get_flags (rec);
+	  crec.lookup(candidate);
+	  flags = get_flags (crec);
 	}
       response.encode_int (flags);
     }
