@@ -1731,15 +1731,16 @@ class DownloadStatus : public pkgAcquireStatus
 bool
 is_user_section (const char *section, const char *end)
 {
-  if (section == NULL)
+  if (!section)
     return false;
 
+  int len = end - section;
 #if ENABLE_OLD_MAEMO_SECTION_TEST
-  if (end-section > 6 && !strncmp (section, "maemo/", 6))
+  if (len > 6 && !memcmp (section, "maemo/", 6))
     return true;
 #endif
   
-  return end-section > 5 && !strncmp (section, "user/", 5);
+  return len > 5 && !memcmp (section, "user/", 5);
 }
 
 bool
@@ -1747,7 +1748,7 @@ is_user_package (const pkgCache::VerIterator &ver)
 {
   const char *section = ver.Section ();
 
-  if (section == NULL)
+  if (!section)
     return false;
 
   return is_user_section (section, section + strlen (section));
@@ -2547,12 +2548,12 @@ mark_for_remove (pkgCache::PkgIterator &pkg)
  */
 
 struct package_record {
+  package_record ();
+
   pkgRecords Recs;
-  pkgRecords::Parser &P;
+  pkgRecords::Parser *P;
   pkgTagSection section;
   bool valid;
-
-  package_record (pkgCache::VerIterator &ver);
 
   bool has (const char *tag);
   string get_string (const char *tag);
@@ -2560,14 +2561,13 @@ struct package_record {
   int get_int (const char *tag, int def);
 
   string get_localized_string (const char *tag);
-};
 
-package_record::package_record (pkgCache::VerIterator &ver)
-  : Recs (*(AptWorkerCache::GetCurrent ()->cache)),
-    P (Recs.Lookup (ver.FileList ()))
-{
+  void lookup(const pkgCache::VerIterator &ver)
+    {
   const char *start, *stop;
-  P.GetRec (start, stop);
+      P = &Recs.Lookup (ver.FileList ());
+
+      P->GetRec (start, stop);
 
   /* NOTE: pkTagSection::Scan only succeeds when the record ends in
            two newlines, but pkgRecords::Parser::GetRec does not
@@ -2577,6 +2577,14 @@ package_record::package_record (pkgCache::VerIterator &ver)
   */
   
   valid = section.Scan (start, stop-start+1);
+    }
+};
+
+package_record::package_record ()
+  : Recs (*(AptWorkerCache::GetCurrent ()->cache)),
+    P(NULL),
+    valid(false)
+{
 }
 
 bool
@@ -2686,8 +2694,9 @@ description_matches_pattern (pkgCache::VerIterator &ver,
 {
   bool match = false;
   char **words = g_strsplit (pattern, " ", 0);
-  package_record rec (ver);
-  const char *desc = rec.P.LongDesc().c_str();
+  package_record rec;
+  rec.lookup(ver);
+  const char *desc = rec.P->LongDesc().c_str();
   int i;
 
   if (words == NULL)
@@ -2801,7 +2810,8 @@ static void
 encode_version_info (int summary_kind,
 		     pkgCache::VerIterator &ver, bool include_size)
 {
-  package_record rec (ver);
+  package_record rec;
+  rec.lookup(ver);
   char *icon;
 
   response.encode_string (ver.VerStr ());
@@ -2878,6 +2888,8 @@ cmd_get_package_list ()
   response.encode_int (1);
   pkgDepCache &cache = *(awc->cache);
 
+  package_record rec;
+
   for (pkgCache::PkgIterator pkg = cache.PkgBegin(); !pkg.end (); pkg++)
     {
       int flags = 0;
@@ -2887,50 +2899,50 @@ cmd_get_package_list ()
 
       /* Get installed and candidate iterators for current package */
       pkgCache::VerIterator installed = pkg.CurrentVer ();
-      pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter(cache);
+      pkgDepCache::StateCache& sc = cache[pkg];
+      pkgCache::VerIterator candidate = sc.CandidateVerIter(cache);
+
+      bool iend = installed.end ();
+      bool cend = candidate.end ();
 
       // skip non user packages if requested.  Both the installed and
       // candidate versions must be non-user packages for a package to
       // be skipped completely.
       //
       if (only_user
-	  && (installed.end () || !is_user_package (installed))
-	  && (candidate.end () || !is_user_package (candidate)))
+	  && (iend || !is_user_package (installed))
+	  && (cend || !is_user_package (candidate)))
 	continue;
 
       // skip not-installed packages if requested
       //
-      if (only_installed && installed.end ())
+      if (only_installed && iend)
 	continue;
 
       // skip non-available packages if requested
       //
-      if (only_available && candidate.end ())
+      if (only_available && cend)
 	continue;
 
       // skip packages that are not installed and not available
       //
-      if (installed.end () && candidate.end ())
+      if (iend && cend)
 	continue;
 
       // skip packages that don't match the pattern if requested
       //
       if (pattern
 	  && !(name_matches_pattern (pkg, pattern)
-	       || (!installed.end ()
-		   && description_matches_pattern (installed, pattern))
-	       || (!candidate.end ()
-		   && description_matches_pattern (candidate, pattern))))
+	       || (!iend && description_matches_pattern (installed, pattern))
+	       || (!cend && description_matches_pattern (candidate, pattern))))
 	continue;
 
       // Look for the SSU package if needed
       //
-      if (!installed.end () || !candidate.end ())
+      if (!iend || !cend)
         {
-          pkgCache::VerIterator viter = !candidate.end ()
-            ? candidate
-            : installed;
-          package_record rec (viter);
+          pkgCache::VerIterator viter = !cend ? candidate : installed;
+          rec.lookup(viter);
           flags = get_flags (rec);
           if (flags & pkgflag_system_update)
             {
@@ -2943,7 +2955,7 @@ cmd_get_package_list ()
 
               // skip system update meta-packages that are not installed
               //
-              if (only_user && installed.end () && !candidate.end ())
+              if (only_user && iend && !cend)
                 continue;
             }
         }
@@ -2952,12 +2964,12 @@ cmd_get_package_list ()
       response.encode_string (pkg.Name ());
 
       // Broken.
-      bool broken = (cache[pkg].NowBroken()
+      bool broken = (sc.NowBroken()
 		     || (pkg.State () != pkgCache::PkgIterator::NeedsNothing));
       response.encode_int (broken);
 
       // Installed version
-      if (!installed.end())
+      if (!iend)
 	encode_version_info (2, installed, true);
       else
 	encode_empty_version_info (true);
@@ -2968,17 +2980,16 @@ cmd_get_package_list ()
       // installed at all, or if the available version is newer than
       // the installed one, or if the installed version is broken.
 
-      if (!candidate.end ()
-	  && (installed.end ()
+      if (!cend && (iend
 	      || installed.CompareVer (candidate) < 0
 	      || broken))
 	encode_version_info (1, candidate, false);
       else
 	encode_empty_version_info (false);
 
-      if (flags == 0 && !candidate.end())
+      if (flags == 0 && !cend)
 	{
-	  package_record rec (candidate);
+	  rec.lookup(candidate);
 	  flags = get_flags (rec);
 	}
       response.encode_int (flags);
@@ -3047,7 +3058,8 @@ cmd_get_system_update_packages ()
       if (installed.end () || candidate.end ())
 	continue;
 
-      package_record rec (candidate);
+      package_record rec;
+      rec.lookup(candidate);
       int flags = get_flags (rec);
       if (flags & pkgflag_system_update)
 	response.encode_string (pkg.Name ());
@@ -3198,7 +3210,8 @@ cmd_get_package_info ()
 		  || pkg.State() != pkgCache::PkgIterator::NeedsNothing))
 	    {
 	      pkgCache::VerIterator ver = cache[pkg].CandidateVerIter(cache);
-	      package_record rec (ver);
+	      package_record rec;
+	      rec.lookup(ver);
 	      info.install_flags |= get_flags (rec);
 	      info.required_free_space += get_required_free_space (rec);
 	    }
@@ -3224,7 +3237,8 @@ cmd_get_package_info ()
 		  if (cache[pkg].Delete())
 		    {
 		      pkgCache::VerIterator ver = pkg.CurrentVer ();
-		      package_record rec (ver);
+		      package_record rec;
+		      rec.lookup(ver);
 		      int flags = get_flags (rec);
 		      if (flags & pkgflag_system_update)
 			{
@@ -3263,7 +3277,8 @@ append_display_name (GString *str, const pkgCache::PkgIterator &pkg)
   pkgCache::VerIterator ver = pkg.CurrentVer();
   if (!ver.end())
     {
-      package_record rec (ver);
+      package_record rec;
+      rec.lookup(ver);
       string pretty_name = get_pretty_name (rec);
       if (!pretty_name.empty())
 	{
@@ -3573,7 +3588,8 @@ encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
 void
 encode_package_and_version (pkgCache::VerIterator ver)
 {
-  package_record rec (ver);
+  package_record rec;
+  rec.lookup(ver);
   GString *str = g_string_new ("");
   string pretty = get_pretty_name (rec);
   if (!pretty.empty())
@@ -3710,9 +3726,10 @@ cmd_get_package_details ()
 
       if (find_package_version (awc->cache, pkg, ver, package, version))
         {
-          package_record rec (ver);
+          package_record rec;
+          rec.lookup(ver);
 
-          response.encode_string (rec.P.Maintainer().c_str());
+          response.encode_string (rec.P->Maintainer().c_str());
           response.encode_string 
             (get_long_description (summary_kind, pkg, rec).c_str());
           encode_dependencies (ver);
@@ -3780,7 +3797,8 @@ cmd_third_party_policy_check ()
     {
       pkgDepCache &cache = *(awc->cache);
       pkgCache::VerIterator candidate = cache[pkg].CandidateVerIter (cache);
-      package_record rec (candidate);
+      package_record rec;
+      rec.lookup(candidate);
       int flags = get_flags (rec);
 
       // skip non available packages and system update meta-packages
@@ -5335,7 +5353,8 @@ myDPkgPM::CheckDownloadedPkgs (bool clean_corrupted)
       bool partial_result = true;
       PkgIterator Pkg(Cache,*I);
       pkgCache::VerIterator cand_ver = Cache[Pkg].CandidateVerIter(Cache);
-      package_record rec (cand_ver);
+      package_record rec;
+      rec.lookup(cand_ver);
       string File = FileNames[Pkg->ID];
       if (File.empty())
         continue;
@@ -5483,7 +5502,8 @@ get_pkg_required_free_space ()
            || pkg.State () != pkgCache::PkgIterator::NeedsNothing))
         {
           pkgCache::VerIterator ver = cache[pkg].CandidateVerIter (cache);
-          package_record rec (ver);
+          package_record rec;
+          rec.lookup(ver);
           retval += get_required_free_space (rec);
         }
     }
@@ -6409,7 +6429,8 @@ write_available_updates_file ()
           && !broken)
 	{
 	  xexp *x_pkg = NULL;
-	  package_record rec (candidate);
+	  package_record rec;
+	  rec.lookup(candidate);
 	  int flags = get_flags (rec);
 	  int domain_index = awc->cache->extra_info[pkg->ID].cur_domain;
 
