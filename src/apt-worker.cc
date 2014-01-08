@@ -3214,6 +3214,7 @@ cmd_get_package_info ()
       AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
       pkgDepCache &cache = *(awc->cache);
       pkgCache::PkgIterator pkg = cache.FindPkg (package);
+      package_record rec;
 
       // simulate install
 
@@ -3234,7 +3235,7 @@ cmd_get_package_info ()
 		  || pkg.State() != pkgCache::PkgIterator::NeedsNothing))
 	    {
 	      pkgCache::VerIterator ver = cache[pkg].CandidateVerIter(cache);
-	      package_record rec;
+
 	      rec.lookup(ver);
 	      info.install_flags |= get_flags (rec);
 	      info.required_free_space += get_required_free_space (rec);
@@ -3261,7 +3262,7 @@ cmd_get_package_info ()
 		  if (cache[pkg].Delete())
 		    {
 		      pkgCache::VerIterator ver = pkg.CurrentVer ();
-		      package_record rec;
+
 		      rec.lookup(ver);
 		      int flags = get_flags (rec);
 		      if (flags & pkgflag_system_update)
@@ -3610,9 +3611,9 @@ encode_package_repository (pkgCache::VerIterator Version, int summary_kind)
 }
 
 void
-encode_package_and_version (pkgCache::VerIterator ver)
+encode_package_and_version (const pkgCache::VerIterator ver,
+                            package_record &rec)
 {
-  package_record rec;
   rec.lookup(ver);
   GString *str = g_string_new ("");
   string pretty = get_pretty_name (rec);
@@ -3630,6 +3631,7 @@ encode_install_summary (const char *want)
 {
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   pkgDepCache &cache = *(awc->cache);
+  package_record rec;
 
   if (cache.BrokenCount() > 0)
     fprintf (stderr, "[ Some installed packages are broken! ]\n");
@@ -3640,30 +3642,32 @@ encode_install_summary (const char *want)
        pkg.end() != true;
        pkg++)
     {
-      if (cache[pkg].NewInstall())
+      pkgDepCache::StateCache& sc = cache[pkg];
+
+      if (sc.NewInstall())
 	{
 	  response.encode_int (sumtype_installing);
-	  encode_package_and_version (cache[pkg].CandidateVerIter(cache));
+	  encode_package_and_version (sc.CandidateVerIter(cache), rec);
 	}
-      else if (cache[pkg].Upgrade())
+      else if (sc.Upgrade())
 	{
 	  response.encode_int (sumtype_upgrading);
-	  encode_package_and_version (cache[pkg].CandidateVerIter(cache));
+	  encode_package_and_version (sc.CandidateVerIter(cache), rec);
 	}
-      else if (cache[pkg].Delete())
+      else if (sc.Delete())
 	{
 	  response.encode_int (sumtype_removing);
-	  encode_package_and_version (pkg.CurrentVer());
+	  encode_package_and_version (pkg.CurrentVer(), rec);
 	}
 
-      if (cache[pkg].InstBroken())
+      if (sc.InstBroken())
 	{
 	  if (is_related (pkg))
 	    encode_broken (pkg, want);
-	  else if (!cache[pkg].NowBroken())
+	  else if (!sc.NowBroken())
 	    {
 	      response.encode_int (sumtype_conflicting);
-	      encode_package_and_version (pkg.CurrentVer());
+	      encode_package_and_version (pkg.CurrentVer(), rec);
 	    }
 	}
     }
@@ -3676,6 +3680,7 @@ encode_remove_summary (pkgCache::PkgIterator &want)
 {
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   pkgDepCache &cache = *(awc->cache);
+  package_record rec;
 
   if (cache.BrokenCount() > 0)
     log_stderr ("[ Some installed packages are broken! ]\n");
@@ -3686,16 +3691,18 @@ encode_remove_summary (pkgCache::PkgIterator &want)
        pkg.end() != true;
        pkg++)
     {
-      if (cache[pkg].Delete())
+      pkgDepCache::StateCache& sc = cache[pkg];
+
+      if (sc.Delete())
 	{
 	  response.encode_int (sumtype_removing);
-	  encode_package_and_version (pkg.CurrentVer());
+	  encode_package_and_version (pkg.CurrentVer(), rec);
 	}
 
-      if (cache[pkg].InstBroken() && !cache[pkg].NowBroken())
+      if (sc.InstBroken() && !sc.NowBroken())
 	{
 	  response.encode_int (sumtype_needed_by);
-	  encode_package_and_version (pkg.CurrentVer());
+	  encode_package_and_version (pkg.CurrentVer(), rec);
 	}
     }
 
@@ -5370,14 +5377,15 @@ bool
 myDPkgPM::CheckDownloadedPkgs (bool clean_corrupted)
 {
   bool result = true;
-  
+  package_record rec;
+
   for (pkgOrderList::iterator I = pkgPackageManager::List->begin(); 
        I != pkgPackageManager::List->end(); I++)
     {
       bool partial_result = true;
       PkgIterator Pkg(Cache,*I);
       pkgCache::VerIterator cand_ver = Cache[Pkg].CandidateVerIter(Cache);
-      package_record rec;
+
       rec.lookup(cand_ver);
       string File = FileNames[Pkg->ID];
       if (File.empty())
@@ -5516,7 +5524,7 @@ get_pkg_required_free_space ()
 {
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   pkgDepCache &cache = *(awc->cache);
-
+  package_record rec;
   int64_t retval = 0;
 
   for (pkgCache::PkgIterator pkg = cache.PkgBegin (); pkg.end () != true; pkg++)
@@ -5526,7 +5534,7 @@ get_pkg_required_free_space ()
            || pkg.State () != pkgCache::PkgIterator::NeedsNothing))
         {
           pkgCache::VerIterator ver = cache[pkg].CandidateVerIter (cache);
-          package_record rec;
+
           rec.lookup(ver);
           retval += get_required_free_space (rec);
         }
@@ -6416,7 +6424,7 @@ write_available_updates_file ()
     return;
 
   xexp *x_updates = xexp_list_new ("updates");
-
+  package_record rec;
   AptWorkerCache *awc = AptWorkerCache::GetCurrent ();
   pkgDepCache &cache = *(awc->cache);
 
@@ -6453,7 +6461,7 @@ write_available_updates_file ()
           && !broken)
 	{
 	  xexp *x_pkg = NULL;
-	  package_record rec;
+
 	  rec.lookup(candidate);
 	  int flags = get_flags (rec);
 	  int domain_index = awc->cache->extra_info[pkg->ID].cur_domain;
