@@ -182,9 +182,7 @@ enum boolean_options {
   OPT_IGNORE_THIRDPARTY_POLICY,
   OPT_USE_APT_ALGORITHMS,
   OPT_SHOW_SSU_PROBLEMS,
-#if 0
   OPT_PERMANENT,
-#endif
   NUM_BOOLEAN_OPTIONS
 };
 
@@ -257,11 +255,9 @@ make_settings_tab (settings_closure *c)
   make_boolean_option (c, vbox, group, OPT_USE_APT_ALGORITHMS,
 		       "Use apt-get algorithms",
 		       &use_apt_algorithms);
-#if 0
   make_boolean_option (c, vbox, group, OPT_PERMANENT,
  		       "Red pill is permanent",
  		       &red_pill_permanent);
-#endif
   g_object_unref (group);
 
   hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scrolled_window),
