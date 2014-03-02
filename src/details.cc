@@ -734,13 +734,6 @@ spd_get_summary_label (void *data)
   return summary_label;
 }
 
-/* Creates the third page in case of SSU package */
-static GtkWidget *
-spd_create_ssu_page (void *data)
-{
-  return make_small_text_label (_("ai_ia_details_use_pc"));
-}
-
 /* Creates the fourth page */
 static GtkWidget *
 spd_create_deps_page (void *data)
@@ -817,7 +810,6 @@ spd_with_details (void *data, bool filling_details)
   GtkWidget *dialog, *notebook;
   GtkWidget **spd_nb_widgets = NULL;
   package_info *pi = c->pi;
-  bool is_ssu_pkg = false;
 
   /* Set this value to check whether the dialog is showing the full
      details for a package or not */
@@ -876,20 +868,11 @@ spd_with_details (void *data, bool filling_details)
 
       if (c->showing_details)
         {
-          is_ssu_pkg = is_pkg_ssu (pi);
-
           /* Prevent the 'Updating' banner from being shown */
           prevent_updating ();
 
-          if (is_ssu_pkg)
-            {
-              spd_set_page_widget (c, SPD_COMMON_PAGE, spd_create_ssu_page (c));
-            }
-          else
-            {
-              /* Update the main common tab */
-              spd_update_common_page (c);
-            }
+          /* Update the main common tab */
+          spd_update_common_page (c);
 
           /* Set the content of the rest of the notebook pages */
 
@@ -904,24 +887,15 @@ spd_with_details (void *data, bool filling_details)
                                         SPD_DESCRIPTION_PAGE);
             }
 
-          if (!is_ssu_pkg || show_ssu_problems)
-            {
-              spd_set_page_widget (c, SPD_SUMMARY_PAGE,
-                                   spd_create_summary_page (c));
+          spd_set_page_widget (c, SPD_SUMMARY_PAGE,
+                               spd_create_summary_page (c));
 
-              /* Update 'summary' tab label */
-              gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
-                                          spd_nb_widgets[SPD_SUMMARY_PAGE],
-                                          gtk_label_new (spd_get_summary_label (c)));
-            }
-          else if (!show_ssu_problems)
-            {
-              // we don't need this tab
-              gtk_notebook_remove_page (GTK_NOTEBOOK (notebook), SPD_SUMMARY_PAGE);
-            }
+          /* Update 'summary' tab label */
+          gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook),
+                                      spd_nb_widgets[SPD_SUMMARY_PAGE],
+                                      gtk_label_new (spd_get_summary_label (c)));
 
-          if (pi->dependencies
-              && (!is_ssu_pkg || show_ssu_problems))
+          if (pi->dependencies)
             {
               spd_nb_widgets[SPD_DEPS_PAGE] = spd_create_deps_page (c);
               gtk_notebook_append_page (GTK_NOTEBOOK (notebook),
@@ -937,7 +911,7 @@ spd_with_details (void *data, bool filling_details)
   gtk_widget_set_size_request (dialog, -1, 320);
   gtk_widget_show_all (dialog);
 
-  if (c->show_problems && c->showing_details && !is_ssu_pkg)
+  if (c->show_problems && c->showing_details)
     gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook),
 				   SPD_SUMMARY_PAGE);
 }
