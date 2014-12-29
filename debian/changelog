@@ -1,3 +1,10 @@
+hildon-application-manager (1:2.2.73-2) unstable; urgency=low
+
+  * Remove another error message about using PC Suite (ai_ia_details_use_pc)
+  * Uncomment Red Pill mode GUI option for permanent Red Pill mode 
+
+ -- Ivaylo Dimitrov <freemangordon@abv.bg>  Sat, 15 Mar 2014 23:18:11 +0200
+
 hildon-application-manager (1:2.2.73-1+thumb0) unstable; urgency=low
 
   *Thumb2 compiled

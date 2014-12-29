@@ -639,10 +639,6 @@ int load_last_update_time ();
 /* Check whether the package cache is up-to-date or not */
 gboolean is_package_cache_updated ();
 
-/* Check whether the specified package is a broken SSU
- */
-bool is_pkg_ssu (package_info *pi, bool broken = true);
-
 /* Check wheter the package is in section "user/hidden"
  */
 bool package_is_hidden (package_info *pi);
