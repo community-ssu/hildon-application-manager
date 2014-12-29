@@ -1,3 +1,9 @@
+hildon-application-manager (1:2.2.73-2+thumb0) unstable; urgency=low
+
+  * Thumb2 compiled
+
+ -- Ivaylo Dimitrov <freemangordon@abv.bg>  Mon, 29 Dec 2014 12:30:41 +0200
+
 hildon-application-manager (1:2.2.73-2) unstable; urgency=low
 
   * Remove another error message about using PC Suite (ai_ia_details_use_pc)
