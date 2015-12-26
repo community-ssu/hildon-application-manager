@@ -1,3 +1,15 @@
+hildon-application-manager (1:2.2.74-1) unstable; urgency=low
+
+  * Backport old commits from hildon-application-manager mainline gitorious project:
+    * make ham.launch TEXTREL-free
+    * Refresh the package cache in the upgrade view
+    * Theme reloading
+    * Fix alignment and add icon in the install/uninstall confirm dialog
+    * Add triple margin in the section view
+    * Use "ai_bd_confirm_ok" in restore dialog
+
+ -- Pali Rohár <pali.rohar@gmail.com>  Sat, 26 Dec 2015 20:30:25 +0100
+
 hildon-application-manager (1:2.2.73-2) unstable; urgency=low
 
   * Remove another error message about using PC Suite (ai_ia_details_use_pc)
