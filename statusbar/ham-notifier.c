@@ -326,6 +326,44 @@ get_osso_product_hardware ()
       fclose (f);
     }
 
+  if (product_hardware[0])
+    return product_hardware;
+
+  f = fopen ("/proc/cpuinfo", "r");
+  if (f)
+    {
+      gchar *line = NULL;
+      char *str = NULL;
+      size_t len = 0;
+      ssize_t n;
+
+      while ((n = getline (&line, &len, f)) != -1)
+        {
+          if (n > 0 && line[n-1] == '\n')
+            line[n-1] = '\0';
+
+          if (sscanf (line, "Hardware : %a[^\n]", &str) == 1)
+            break;
+        }
+
+      if (str)
+        {
+          if (strcmp(str, "Nokia 770") == 0)
+            product_hardware = "SU-18";
+          else if (strcmp(str, "Nokia N800") == 0)
+            product_hardware = "RX-34";
+          else if (strcmp(str, "Nokia N810") == 0)
+            product_hardware = "RX-44";
+         else if (strcmp(str, "Nokia N810 WiMAX") == 0)
+            product_hardware = "RX-48";
+          else if (strcmp(str, "Nokia RX-51 board") == 0)
+            product_hardware = "RX-51";
+          else
+            product_hardware = "";
+          free(str);
+        }
+    }
+
   return product_hardware;
 }
 
