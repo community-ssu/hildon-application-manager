@@ -188,7 +188,7 @@ build_dialog_content ()
       title = xexp_aref_text(notifications, "title");
       desc = xexp_aref_text(notifications, "text");
       uri = xexp_aref_text(notifications, "uri");
-      provider = xexp_aref_text(notifications, "uri");
+      provider = xexp_aref_text(notifications, "provider");
       provider = provider ? provider : DEFAULT_PROVIDER;
 
       if (title != NULL && desc != NULL && uri != NULL && provider != NULL)
