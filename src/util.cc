@@ -537,6 +537,22 @@ ask_custom (const gchar *question,
   gtk_widget_show_all (dialog);
 }
 
+static GtkWidget*
+get_package_icon (package_info *pi)
+{
+  GdkPixbuf* icon = pi->installed_version
+    ? pi->installed_icon : pi->available_icon;
+
+  if (icon == NULL)
+    icon = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+                                     "tasklaunch_default_application",
+                                     TREE_VIEW_ICON_SIZE,
+                                     GtkIconLookupFlags (0),
+                                     NULL);
+
+  return gtk_image_new_from_pixbuf (icon);
+}
+
 void
 ask_yes_no_with_details (const gchar *title,
 			 const gchar *question,
@@ -556,6 +572,21 @@ ask_yes_no_with_details (const gchar *title,
   char *ok = (kind == remove_details) ?
     _("ai_bd_confirm_uninstall") : _("ai_bd_confirm_ok");
 
+  GtkWidget* content;
+  GtkWidget* label = gtk_label_new (question);
+  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+
+  if (pi && kind == remove_details)
+    {
+      content = gtk_hbox_new (FALSE, 0);
+      gtk_box_pack_start (GTK_BOX (content), get_package_icon (pi),
+                          FALSE, FALSE, 5);
+      gtk_box_pack_end (GTK_BOX (content), label, TRUE, TRUE, 5);
+
+    }
+  else
+    content = label;
+
   dialog = gtk_dialog_new_with_buttons
     (title,
      NULL,
@@ -567,7 +598,7 @@ ask_yes_no_with_details (const gchar *title,
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
   gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
-		     gtk_label_new (question));
+		     content);
 
   g_signal_connect (dialog, "response",
 		    G_CALLBACK (yes_no_response), c);
@@ -881,6 +912,7 @@ make_scare_user_with_legalese (bool multiple)
                             _("ai_nc_non_verified_package_multiple") :
                             _("ai_nc_non_verified_package"));
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label), 0, 0);
 
   scroll = hildon_pannable_area_new ();
   hildon_pannable_area_add_with_viewport (HILDON_PANNABLE_AREA (scroll), label);
@@ -926,6 +958,7 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
 
   label = gtk_label_new (text);
   gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
   g_free (text);
 
   dialog = gtk_dialog_new_with_buttons ((pi->installed_version
@@ -939,15 +972,20 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
 
   gtk_dialog_set_has_separator (GTK_DIALOG (dialog), FALSE);
 
-  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), label,
-                      TRUE, TRUE, 1);
+  GtkWidget *title_box = gtk_hbox_new (FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (title_box), get_package_icon (pi),
+                      FALSE, FALSE, 5);
+  gtk_box_pack_end (GTK_BOX (title_box), label, TRUE, TRUE, 5);
+
+  gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), title_box,
+                      FALSE, FALSE, 2);
 
   if (scare_user)
     {
       GtkWidget *legalese = make_scare_user_with_legalese (multiple);
 
       gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog)->vbox), legalese,
-                          TRUE, TRUE, 1);
+                          TRUE, TRUE, 2);
 
       gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
                                          GTK_RESPONSE_OK, FALSE);
@@ -956,7 +994,7 @@ install_confirm (bool scare_user, package_info *pi, bool multiple,
       gtk_button_set_label (GTK_BUTTON (check),
                             _("ai_ti_confirmation_checkbox"));
       gtk_box_pack_end (GTK_BOX (GTK_DIALOG (dialog)->vbox), check,
-                          TRUE, TRUE, 1);
+                          TRUE, TRUE, 2);
       g_signal_connect (check, "toggled", G_CALLBACK (user_agreed), dialog);
     }
 
@@ -2290,9 +2328,10 @@ enum {
 static void
 icon_view_item_activated (GtkWidget *icon_view,
                           GtkTreePath *tp,
-                          GtkTreeModel *tm)
+                          gpointer user_data)
 {
   GtkTreeIter itr;
+  GtkTreeModel *tm = gtk_icon_view_get_model (GTK_ICON_VIEW (icon_view));
 
   if (gtk_tree_model_get_iter (tm, &itr, tp))
     {
@@ -2305,10 +2344,11 @@ icon_view_item_activated (GtkWidget *icon_view,
 }
 
 static void
-icon_view_is_dying (GtkTreeModel *tm, GtkIconView *stale_pointer)
+icon_view_is_dying (gpointer data, GtkIconView *stale_pointer)
 {
   section_info *si;
   GtkTreeIter itr;
+  GtkTreeModel *tm = gtk_icon_view_get_model (stale_pointer);
 
   if (gtk_tree_model_get_iter_first (tm, &itr))
     do
@@ -2386,7 +2426,7 @@ make_my_icon_view (GtkTreeModel *tm)
                       "style-set",
                       G_CALLBACK (set_text_cr_style),
                       cr_text);
-    set_text_cr_style (icon_view, NULL, G_OBJECT(cr_text));
+    set_text_cr_style (icon_view, NULL, G_OBJECT (cr_text));
     g_object_set(G_OBJECT(cr_text),
                  "wrap-mode",  PANGO_WRAP_WORD,
                  "wrap-width", ICONS_GRID_ITEM_WIDTH,
@@ -2435,6 +2475,39 @@ pixbuf_from_si(section_info *si)
   return pb;
 }
 
+static void
+reload_section_icons (GtkWidget *widget, GtkStyle *prev_style, gpointer user_data)
+{
+  GtkTreeModel *tm = gtk_icon_view_get_model (GTK_ICON_VIEW (widget));
+  GtkTreeIter itr;
+
+  if (tm != NULL && gtk_tree_model_get_iter_first (tm, &itr))
+    {
+      section_info *si = NULL;
+      GtkTreeIter lsitr;
+      GtkListStore*  ls = gtk_list_store_new (SECTION_LS_N_COLUMNS,
+                                              G_TYPE_STRING,
+                                              GDK_TYPE_PIXBUF,
+                                              G_TYPE_POINTER);
+
+      do
+        {
+          gtk_tree_model_get (tm, &itr, SECTION_LS_SI_COLUMN, &si, -1);
+          gtk_list_store_append (ls, &lsitr);
+          gtk_list_store_set (ls, &lsitr,
+                              SECTION_LS_TEXT_COLUMN,   si->name,
+                              SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si (si),
+                              SECTION_LS_SI_COLUMN,     si,
+                              -1);
+
+        }
+      while (gtk_tree_model_iter_next (tm, &itr));
+
+      g_object_unref (tm);
+      gtk_icon_view_set_model (GTK_ICON_VIEW (widget), GTK_TREE_MODEL (ls));
+    }
+}
+
 GtkWidget *
 make_global_section_list (GList *sections, section_activated *act)
 {
@@ -2454,7 +2527,9 @@ make_global_section_list (GList *sections, section_activated *act)
   GtkListStore *ls = NULL;
   GtkTreeIter itr;
   GtkWidget *icon_view;
+  GtkWidget *box;
 
+  box = gtk_vbox_new (FALSE, 0);
   scroller = hildon_pannable_area_new ();
   g_object_set (G_OBJECT (scroller), "vovershoot-max", 0, NULL);
 
@@ -2473,7 +2548,7 @@ make_global_section_list (GList *sections, section_activated *act)
       gtk_list_store_append (ls, &itr);
       gtk_list_store_set (ls, &itr,
                           SECTION_LS_TEXT_COLUMN,   si->name,
-                          SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si(si),
+                          SECTION_LS_PIXBUF_COLUMN, pixbuf_from_si (si),
                           SECTION_LS_SI_COLUMN,     si,
                           -1);
 
@@ -2481,21 +2556,26 @@ make_global_section_list (GList *sections, section_activated *act)
     }
 
   icon_view = make_my_icon_view (GTK_TREE_MODEL (ls));
-  g_object_weak_ref (G_OBJECT(icon_view), (GWeakNotify)icon_view_is_dying, ls);
-  g_signal_connect (G_OBJECT (icon_view),
-                    "item-activated",
+  g_object_weak_ref (G_OBJECT(icon_view), (GWeakNotify) icon_view_is_dying,
+                     NULL);
+  g_signal_connect (G_OBJECT (icon_view), "item-activated",
                     G_CALLBACK (icon_view_item_activated),
-                    ls);
+                    NULL);
+  g_signal_connect (G_OBJECT (icon_view), "style-set",
+                    G_CALLBACK (reload_section_icons), NULL);
+
   gtk_container_add (GTK_CONTAINER(scroller), icon_view);
+  /* just for layout guide compliance */
+  gtk_box_pack_start (GTK_BOX (box), scroller, TRUE, TRUE,
+                      HILDON_MARGIN_TRIPLE);
 
   global_section_list = scroller;
   g_object_ref (scroller);
 
   /* Prepare visibility */
-  gtk_widget_show_all (icon_view);
-  gtk_widget_hide (scroller);
+  gtk_widget_show_all (box);
 
-  return scroller;
+  return box;
 }
 
 void
@@ -2729,11 +2809,8 @@ select_package_list_with_info (void *data)
   dialog = gtk_dialog_new ();
   gtk_window_set_title (GTK_WINDOW (dialog), c->title);
   gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
-  gtk_dialog_add_button (GTK_DIALOG (dialog),
-                         dgettext ("hildon-libs", "wdgt_bd_no"),
-                         GTK_RESPONSE_CANCEL);
   ok_button = gtk_dialog_add_button (GTK_DIALOG (dialog),
-                                     dgettext ("hildon-libs", "wdgt_bd_yes"),
+                                     _("ai_bd_confirm_ok"),
                                      GTK_RESPONSE_OK);
 
   push_dialog (dialog);

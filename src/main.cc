@@ -269,7 +269,17 @@ show_view (view *v)
 static gboolean
 suavarc_refresh_package_cache (gpointer data)
 {
-  refresh_package_cache_without_user_flow ();
+  if (!is_idle ())
+    return FALSE;
+
+  if (cur_view_struct == &upgrade_applications_view)
+    {
+      if (package_list_ready)
+        refresh_package_cache_without_user_flow ();
+      else
+        return TRUE;
+    }
+
   return FALSE;
 }
 
@@ -278,10 +288,12 @@ show_upgrade_applications_view_and_refresh_callback (GtkWidget *btn, gpointer da
 {
   show_check_for_updates_view ();
 
-  if (is_idle () && package_list_ready)
-    {
-      g_idle_add (suavarc_refresh_package_cache, NULL);
-    }
+  /*
+   * yeah, I know, it's nasty, but I don't know how to
+   * callback it correctly (the get_package_list has been
+   * already called)
+   */
+  g_timeout_add_seconds (2, suavarc_refresh_package_cache, NULL);
 }
 
 static void
