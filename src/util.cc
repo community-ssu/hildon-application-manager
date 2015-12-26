@@ -4438,6 +4438,15 @@ kill_processes_for_SSU (void)
   stop_dsme_service ("/usr/bin/syncd");
   stop_dsme_service ("/usr/bin/hildon-desktop");
   stop_dsme_service ("/usr/bin/osso-connectivity-ui-conndlgs");
+  maybe_kill_all_by_name ("alarmd", SIGKILL);
+  maybe_kill_all_by_name ("camera-ui", SIGKILL);
+  maybe_kill_all_by_name ("browserd", SIGKILL);
+  maybe_kill_all_by_name ("hildon-status-menu", SIGKILL);
+  maybe_kill_all_by_name ("hildon-home", SIGKILL);
+  maybe_kill_all_by_name ("hildon-input-method", SIGKILL);
+  maybe_kill_all_by_name ("clipboard-manager", SIGKILL);
+  maybe_kill_all_by_name ("hildon-desktop", SIGKILL);
+  maybe_kill_all_by_name ("osso-connectivity-ui-conndlgs", SIGKILL);
   maybe_kill_all_by_name ("syncd", SIGKILL);
   maybe_kill_all_by_name ("trackerd", SIGKILL);
   maybe_kill_all_by_name ("intellisyncd", SIGKILL);
