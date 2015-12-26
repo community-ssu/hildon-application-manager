@@ -363,9 +363,22 @@ get_uri ()
 {
   gchar *uri;
   xexp *conf;
+  xexp *conf2;
 
   uri = NULL;
   conf = xexp_read_file (SYSTEM_SETTINGS_DEFAULTS_FILE);
+  conf2 = xep_read_file (SYSTEM_SETTINGS_FILE);
+
+  if (conf != NULL && conf2 != NULL)
+    {
+      xexp_append (conf2, conf);
+      xexp_free (conf);
+      conf = conf2;
+    }
+  else if (conf2 != NULL)
+    {
+      conf = conf2;
+    }
 
   if (conf != NULL)
     {
