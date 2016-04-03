@@ -1,3 +1,12 @@
+hildon-application-manager (1:2.2.75-1) unstable; urgency=low
+
+  * When doing SSU update make sure that maemo processes are really stopped
+  * Override notification settings from /etc/hildon-application-manager/settings file
+  * Fix notification key for provider
+  * Use /proc/cpuinfo if /proc/component_version is not available
+
+ -- Pali Rohár <pali.rohar@gmail.com>  Sun, 03 Apr 2016 20:24:26 +0200
+
 hildon-application-manager (1:2.2.74-1) unstable; urgency=low
 
   * Backport old commits from hildon-application-manager mainline gitorious project:
