@@ -354,7 +354,7 @@ get_osso_product_hardware ()
             product_hardware = "RX-34";
           else if (strcmp(str, "Nokia N810") == 0)
             product_hardware = "RX-44";
-         else if (strcmp(str, "Nokia N810 WiMAX") == 0)
+          else if (strcmp(str, "Nokia N810 WiMAX") == 0)
             product_hardware = "RX-48";
           else if (strcmp(str, "Nokia RX-51 board") == 0)
             product_hardware = "RX-51";
@@ -405,7 +405,7 @@ get_uri ()
 
   uri = NULL;
   conf = xexp_read_file (SYSTEM_SETTINGS_DEFAULTS_FILE);
-  conf2 = xep_read_file (SYSTEM_SETTINGS_FILE);
+  conf2 = xexp_read_file (SYSTEM_SETTINGS_FILE);
 
   if (conf != NULL && conf2 != NULL)
     {

@@ -47,6 +47,10 @@
 #define AVAILABLE_UPDATES_FILE_NAME "available-updates"
 #define AVAILABLE_UPDATES_FILE "/var/lib/hildon-application-manager/" AVAILABLE_UPDATES_FILE_NAME
 
+/* The file with the current values of the system-wide settings.
+ */
+#define SYSTEM_SETTINGS_FILE "/etc/hildon-application-manager/settings"
+
 /* The file with the default values of the system-wide settings.
  */
 #define SYSTEM_SETTINGS_DEFAULTS_FILE "/usr/share/hildon-application-manager/defaults"
