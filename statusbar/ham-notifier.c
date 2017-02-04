@@ -410,7 +410,6 @@ get_uri ()
   if (conf != NULL && conf2 != NULL)
     {
       xexp_append (conf2, conf);
-      xexp_free (conf);
       conf = conf2;
     }
   else if (conf2 != NULL)
