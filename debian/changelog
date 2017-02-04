@@ -1,3 +1,10 @@
+hildon-application-manager (1:2.2.75-2) unstable; urgency=low
+
+  * Fix double-free
+  * Add new notifier-uri for HAM (provided by repository.maemo.org)
+
+ -- Pali Rohár <pali.rohar@gmail.com>  Sat, 04 Feb 2017 12:15:03 +0100
+
 hildon-application-manager (1:2.2.75-1) unstable; urgency=low
 
   * When doing SSU update make sure that maemo processes are really stopped
