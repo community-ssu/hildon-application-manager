@@ -39,7 +39,7 @@ install-data-local:
           echo "<notifier/>" >$(DESTDIR)$(etcdir)/notifier; \
         fi
 	if [ ! -f $(DESTDIR)$(etcdir)/settings ]; then \
-          echo "<settings/>" >$(DESTDIR)$(etcdir)/settings; \
+          echo "<settings><notifier-uri>http://repository.maemo.org/application-notices/notice-\$${HARDWARE}-fremantle.html</notifier-uri></settings>" >$(DESTDIR)$(etcdir)/settings; \
         fi
 	$(mkinstalldirs) $(DESTDIR)$(vardir)
 	if [ ! -f $(DESTDIR)$(vardir)/available-updates ]; then \
